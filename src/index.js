@@ -48,6 +48,8 @@ const WATCH_BATCH_DELAY_MS = Math.min(1200, Math.max(200, parseInt(process.env.W
 
 if (!BOT_TOKEN) {
   console.error('❌ BOT_TOKEN tanımlı değil.');
+  console.error('   Railway → solana-chain-scanner → Variables → BOT_TOKEN = BotFather token');
+  console.error('   (TELEGRAM_BOT_TOKEN da kabul edilir)');
   process.exit(1);
 }
 
@@ -503,6 +505,7 @@ async function sendBotAnalysisFollowup(ch, cmEntry, token, audit, lang, cardLeve
   let replyMarkup;
   try {
     reportId = reportStore.saveReport({ token, audit, lang, level: cardLevel });
+    console.log(`[report] kaydedildi id=${reportId} sembol=${sym}`);
     const webAppUrl = buildWebAppUrl(reportId);
     if (webAppUrl && /^https:\/\//i.test(webAppUrl)) {
       replyMarkup = {
@@ -1590,6 +1593,10 @@ async function main() {
 
   const dataPath = require('./data-path');
   console.log(`[data] DATA_DIR=${dataPath.DATA_DIR} · kalıcı=${dataPath.isPersistentDataDir() ? 'EVET' : 'HAYIR (Volume /data ekleyin)'}`);
+  try {
+    const reportStore = require('./reportStore');
+    console.log(`[report] store: ${reportStore.reportCount()} rapor · TTL 14 gun · dosya reports.json`);
+  } catch (_) { /* yoksay */ }
 
   await userbot.getClient();
 

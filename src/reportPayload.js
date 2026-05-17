@@ -12,7 +12,8 @@ const {
   liqSummaryWord,
 } = require('./analysis');
 const { formatContractSecurityBlock } = require('./contractSecurityBlock');
-const { formatLinksTradeBlock } = require('./commentLinksTrade');
+const { formatLinksTradeBlock, getChainLinks } = require('./commentLinksTrade');
+const { buildMarketFromToken } = require('./marketData');
 
 function fmtUsd(n) {
   if (n === null || n === undefined || Number.isNaN(n)) return '?';
@@ -44,12 +45,19 @@ function buildReportPayload(token, audit, lang = 'tr', level = 'green') {
   const redFlags = collectRedFlags(token, L);
   const highlights = collectReportBullets(items, redFlags, L, { maxBullets: 12, skipContractDupes: false });
 
-  const signals = items
-    .filter((i) => i.icon !== '✅' && i.icon !== '🤔')
-    .map((i) => ({
-      level: (i.icon === '❌') ? 'bad' : 'warn',
-      text: stripHtml(i.text),
-    }));
+  function iconLevel(icon) {
+    if (icon === '❌') return 'bad';
+    if (icon === '⚠️') return 'warn';
+    if (icon === '✅') return 'good';
+    return 'info';
+  }
+
+  const allChecks = items.map((i) => ({
+    level: iconLevel(i.icon),
+    text: stripHtml(i.text),
+  }));
+
+  const signals = allChecks.filter((i) => i.level === 'bad' || i.level === 'warn');
 
   const onchain = deepLines.map((line) => stripHtml(line).replace(/^[⚠️❌✅📊🔥🛡👥🔗🔒🔓🧪📝🌡🏷]+\s*/, ''));
 
@@ -70,6 +78,7 @@ function buildReportPayload(token, audit, lang = 'tr', level = 'green') {
     levelLabel: levelLabel(level, L),
     symbol: token.tokenSymbol || '?',
     address: token.tokenAddress || '',
+    market: buildMarketFromToken(token),
     dex: token.dex || null,
     trust: {
       score: safe,
@@ -90,7 +99,26 @@ function buildReportPayload(token, audit, lang = 'tr', level = 'green') {
     onchain,
     contract: contractLines,
     links: linksLines,
+    actions: getChainLinks(token),
     counts: { good: goodCount, warn: warnCount, bad: badCount, total: items.length },
+    checks: {
+      all: allChecks,
+      passed: allChecks.filter((c) => c.level === 'good'),
+      warnings: allChecks.filter((c) => c.level === 'warn'),
+      critical: allChecks.filter((c) => c.level === 'bad'),
+      info: allChecks.filter((c) => c.level === 'info'),
+    },
+    audit: {
+      riskPercent: audit.riskPercent,
+      riskCode: audit.risk?.code || null,
+      breakdown: {
+        liquidity: audit.breakdown?.liquidity?.code || null,
+        age: audit.breakdown?.age?.code || null,
+        holders: audit.breakdown?.holders?.code || null,
+        contract: audit.breakdown?.contract?.code || null,
+      },
+    },
+    generatedAt: new Date().toISOString(),
   };
 }
 

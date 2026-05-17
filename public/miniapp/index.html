@@ -2,39 +2,171 @@
 <html lang="tr">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-  <title>Solana Scanner — Risk Raporu</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <title>Solana Scanner</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <script src="https://unpkg.com/lightweight-charts@4.2.0/dist/lightweight-charts.standalone.production.js"></script>
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-  <div class="app hidden" id="app">
-    <header class="header">
-      <p class="eyebrow">Solana Scanner</p>
-      <h1 id="symbol">—</h1>
-      <p class="sub" id="levelBadge">—</p>
-    </header>
-
-    <section class="trust-card">
-      <div class="ring" id="trustRing">
-        <span class="score" id="trustScore">—</span>
-        <span class="score-label" id="trustLabel">güven</span>
-      </div>
-      <p class="tier" id="trustTier">—</p>
-      <p class="verdict" id="trustVerdict"></p>
-    </section>
-
-    <section class="summary-grid" id="summaryGrid"></section>
-
-    <div id="sections"></div>
-
-    <footer class="footer">
-      <p class="footnote">DYOR — Bu rapor otomatik üretilmiştir.</p>
-    </footer>
+  <div id="loading" class="boot-screen">
+    <div class="boot-logo">SOLANA SCANNER</div>
+    <div class="boot-spinner"></div>
+    <p>Veriler yükleniyor…</p>
   </div>
 
-  <div class="loading" id="loading">Rapor yükleniyor…</div>
-  <div class="error hidden" id="error">Rapor bulunamadı veya süresi doldu.</div>
+  <div id="error" class="boot-screen hidden">
+    <p class="boot-error" id="errorText">Rapor yüklenemedi</p>
+    <p class="boot-hint" id="errorHint"></p>
+    <button type="button" class="btn-neon" id="btnErrorHome">Ana ekrana dön</button>
+  </div>
+
+  <!-- Ana scanner (referans tasarım) -->
+  <div id="scanner-home" class="scanner-home hidden">
+    <header class="scan-header">
+      <div class="scan-brand">
+        <span class="brand-icon">◎</span>
+        <div class="brand-titles">
+          <span class="brand-main">SOLANA</span>
+          <span class="brand-sub">DEX SCANNER</span>
+        </div>
+      </div>
+      <button type="button" class="btn-connect" id="btnConnect">Connect</button>
+    </header>
+
+    <div class="search-row">
+      <div class="search-box">
+        <span class="search-ico">⌕</span>
+        <input type="text" placeholder="Token veya çift ara…" disabled />
+      </div>
+      <button type="button" class="btn-filter" aria-label="Filtre">☰</button>
+    </div>
+
+    <div class="chain-scroll">
+      <button type="button" class="chain-chip active">◎ Solana</button>
+      <button type="button" class="chain-chip" disabled>Ξ ETH</button>
+      <button type="button" class="chain-chip" disabled>BNB</button>
+      <button type="button" class="chain-chip" disabled>TON</button>
+    </div>
+
+    <div class="quick-scroll" id="quickCards"></div>
+
+    <div class="feed-tabs">
+      <button type="button" class="feed-tab active" data-feed="trending">Trend</button>
+      <button type="button" class="feed-tab" data-feed="new">Yeni çiftler</button>
+      <button type="button" class="feed-tab" data-feed="refresh" id="btnFeedRefresh" title="Yenile">↻</button>
+    </div>
+
+    <div class="section-label">
+      <span id="feedLabel">Canlı tarama</span>
+      <span class="live-dot"></span>
+    </div>
+
+    <div class="feed-loading hidden" id="feedLoading">Liste yükleniyor…</div>
+
+    <div class="token-list" id="homeTokenList"></div>
+
+    <div class="market-footer" id="marketFooter">
+      <div class="mf-item"><span>24H VOL</span><strong id="statVol">—</strong></div>
+      <div class="mf-item"><span>LISTED</span><strong id="statCount">—</strong></div>
+    </div>
+
+    <nav class="bottom-nav">
+      <button type="button" class="bnav active" data-nav="home">⌂</button>
+      <button type="button" class="bnav" data-nav="trend">↗</button>
+      <button type="button" class="bnav" data-nav="new">+</button>
+      <button type="button" class="bnav" data-nav="scan">◎</button>
+      <button type="button" class="bnav" data-nav="watch">★</button>
+    </nav>
+  </div>
+
+  <!-- Token detay (rapor #r=) -->
+  <div id="view-detail" class="view-detail hidden">
+    <header class="detail-top">
+      <button type="button" class="btn-back" id="btnBack">←</button>
+      <span class="detail-title">Token analizi</span>
+      <span id="riskPillTop" class="risk-pill-top">—</span>
+    </header>
+
+    <div class="detail-body">
+      <section class="hero-card">
+        <div class="hero-top">
+          <div class="logo-wrap" id="logoWrap">
+            <div class="logo-skeleton" id="logoSkeleton"></div>
+            <img id="tokenLogo" class="token-avatar hidden" alt="" width="56" height="56" />
+          </div>
+          <div class="hero-meta">
+            <div class="hero-title-row">
+              <h1 id="pairTitle">—</h1>
+              <button type="button" id="copyMint" class="icon-btn">⧉</button>
+            </div>
+            <p id="pairSub" class="mint-line">—</p>
+            <div class="hero-badges">
+              <span id="dexBadge" class="pill">—</span>
+              <span id="levelChip" class="pill">—</span>
+              <span id="trustMini" class="pill trust">—</span>
+            </div>
+          </div>
+        </div>
+        <div class="hero-price" id="priceUsd">—</div>
+        <div class="quote-changes" id="quoteChanges"></div>
+      </section>
+
+      <section class="chart-terminal glass">
+        <div class="chart-toolbar">
+          <div class="tf-group" id="tfGroup">
+            <button type="button" class="tf" data-tf="1m">1m</button>
+            <button type="button" class="tf" data-tf="5m">5m</button>
+            <button type="button" class="tf active" data-tf="15m">15m</button>
+            <button type="button" class="tf" data-tf="1h">1H</button>
+            <button type="button" class="tf" data-tf="4h">4H</button>
+            <button type="button" class="tf" data-tf="1d">1D</button>
+          </div>
+          <div class="chart-type-group">
+            <button type="button" class="ctype active" data-type="candle">Mum</button>
+            <button type="button" class="ctype" data-type="line">Çizgi</button>
+          </div>
+        </div>
+        <div class="ohlc-bar" id="ohlcBar">
+          <span>O <b id="ohlcO">—</b></span>
+          <span>H <b id="ohlcH">—</b></span>
+          <span>L <b id="ohlcL">—</b></span>
+          <span>C <b id="ohlcC">—</b></span>
+          <span class="ohlc-chg" id="chartPeriodChg">Δ —</span>
+          <span class="ohlc-vol">Vol <b id="ohlcV">—</b></span>
+        </div>
+        <div class="chart-stage">
+          <div class="chart-loader hidden" id="chartLoader"><span></span></div>
+          <div id="priceChart" class="chart-canvas"></div>
+        </div>
+        <p id="chartNote" class="chart-source">—</p>
+      </section>
+
+      <section class="metrics-dashboard" id="metricsDash"></section>
+
+      <section class="txn-section glass hidden" id="txnSection">
+        <div class="txn-head"><span>24s işlem akışı</span><span id="txnCounts">—</span></div>
+        <div class="txn-track"><span id="txnBuyBar" class="txn-buy"></span></div>
+      </section>
+
+      <nav class="main-nav" id="mainNav">
+        <button type="button" class="nav-tab active" data-tab="info">Özet</button>
+        <button type="button" class="nav-tab" data-tab="security">Denetim</button>
+        <button type="button" class="nav-tab" data-tab="trade">İşlem</button>
+      </nav>
+
+      <div class="panel-stack">
+        <div id="panel-info" class="tab-panel active"></div>
+        <div id="panel-security" class="tab-panel hidden"></div>
+        <div id="panel-trade" class="tab-panel hidden"></div>
+      </div>
+    </div>
+
+    <footer class="trade-bar" id="tradeBar"></footer>
+  </div>
 
   <script src="app.js"></script>
 </body>

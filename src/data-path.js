@@ -41,7 +41,7 @@ function migrateLegacyDataDir() {
   if (path.resolve(DATA_DIR) === path.resolve(LEGACY_DATA_DIR)) return;
   if (!fs.existsSync(LEGACY_DATA_DIR)) return;
   ensureDataDir();
-  for (const file of ['channels.json', 'users.json', 'seen.json', 'whitelist.json']) {
+  for (const file of ['channels.json', 'users.json', 'seen.json', 'whitelist.json', 'reports.json']) {
     const src = path.join(LEGACY_DATA_DIR, file);
     const dst = path.join(DATA_DIR, file);
     if (fs.existsSync(src) && !fs.existsSync(dst)) {

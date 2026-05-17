@@ -55,13 +55,27 @@ function saveReport({ token, audit, lang, level }) {
   return id;
 }
 
-function getReport(id) {
-  if (!id) return null;
+function getReportMeta(id) {
+  if (!id) return { status: 'missing' };
   const data = load();
   const r = data.reports[String(id)];
-  if (!r) return null;
-  if (Date.now() - (r.createdAt || 0) > TTL_MS) return null;
-  return r;
+  if (!r) return { status: 'not_found' };
+  if (Date.now() - (r.createdAt || 0) > TTL_MS) {
+    return { status: 'expired', createdAt: r.createdAt };
+  }
+  return { status: 'ok', report: r };
 }
 
-module.exports = { saveReport, getReport, newId };
+function getReport(id) {
+  const meta = getReportMeta(id);
+  return meta.status === 'ok' ? meta.report : null;
+}
+
+function reportCount() {
+  const data = load();
+  return Object.keys(data.reports || {}).length;
+}
+
+module.exports = {
+  saveReport, getReport, getReportMeta, newId, reportCount, TTL_MS,
+};

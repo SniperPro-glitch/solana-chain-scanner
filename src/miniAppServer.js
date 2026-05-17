@@ -7,6 +7,8 @@ const { URL } = require('url');
 
 const reportStore = require('./reportStore');
 const { buildReportPayload } = require('./reportPayload');
+const { enrichMarketForMiniApp } = require('./marketData');
+const miniAppFeed = require('./miniAppFeed');
 
 const PUBLIC_DIR = path.join(__dirname, '..', 'public', 'miniapp');
 
@@ -66,11 +68,20 @@ function createMiniAppServer() {
 
       const apiMatch = url.pathname.match(/^\/api\/report\/([A-Za-z0-9_-]+)$/);
       if (req.method === 'GET' && apiMatch) {
-        const stored = reportStore.getReport(apiMatch[1]);
-        if (!stored) {
-          sendJson(res, 404, { error: 'not_found' });
+        const meta = reportStore.getReportMeta(apiMatch[1]);
+        if (meta.status === 'not_found') {
+          sendJson(res, 404, { error: 'not_found', message: 'Rapor bulunamadi. Yeni token paylasimindaki butonu kullanin.' });
           return;
         }
+        if (meta.status === 'expired') {
+          sendJson(res, 410, {
+            error: 'expired',
+            message: 'Rapor suresi doldu (14 gun). Kanalda yeni analiz bekleyin.',
+            createdAt: meta.createdAt,
+          });
+          return;
+        }
+        const stored = meta.report;
         const payload = buildReportPayload(
           stored.token,
           stored.audit,
@@ -79,12 +90,44 @@ function createMiniAppServer() {
         );
         payload.id = apiMatch[1];
         payload.createdAt = stored.createdAt;
+        try {
+          const tf = url.searchParams.get('tf') || '15m';
+          const liveMarket = await enrichMarketForMiniApp(stored.token, { timeframe: tf });
+          if (liveMarket) payload.market = liveMarket;
+        } catch (e) {
+          console.warn('[miniApp] market:', e.message);
+        }
         sendJson(res, 200, payload);
         return;
       }
 
       if (req.method === 'GET' && url.pathname === '/health') {
         sendJson(res, 200, { ok: true });
+        return;
+      }
+
+      if (req.method === 'GET' && url.pathname === '/api/feed') {
+        const tab = url.searchParams.get('tab') || 'trending';
+        const limit = Math.min(40, parseInt(url.searchParams.get('limit') || '24', 10));
+        try {
+          const feed = await miniAppFeed.buildFeed(tab, limit);
+          sendJson(res, 200, feed);
+        } catch (e) {
+          console.warn('[miniApp] feed:', e.message);
+          sendJson(res, 502, { error: 'feed_failed', message: e.message });
+        }
+        return;
+      }
+
+      const openMatch = url.pathname.match(/^\/api\/open\/([1-9A-HJ-NP-Za-km-z]{32,44})$/);
+      if (req.method === 'GET' && openMatch) {
+        try {
+          const result = await miniAppFeed.analyzeMintAndSave(openMatch[1], 'tr');
+          sendJson(res, 200, result);
+        } catch (e) {
+          const code = e.code === 'not_found' ? 404 : 500;
+          sendJson(res, code, { error: e.code || 'analyze_failed', message: e.message });
+        }
         return;
       }
 
@@ -125,6 +168,13 @@ function startMiniAppServer() {
 
   const port = parseInt(process.env.MINI_APP_PORT || process.env.PORT || '3080', 10);
   const server = createMiniAppServer();
+  server.on('error', (err) => {
+    console.error('[miniApp] HTTP dinleme hatası:', err.message);
+    if (err.code === 'EADDRINUSE') {
+      console.error(`   Port ${port} dolu — Railway'de MINI_APP_PORT tanımlamayın; sadece PORT kullanılır.`);
+    }
+    process.exit(1);
+  });
   server.listen(port, '0.0.0.0', () => {
     console.log(`   Mini App: http://0.0.0.0:${port}  (WEB_APP_URL=${getWebAppBaseUrl()})`);
   });
