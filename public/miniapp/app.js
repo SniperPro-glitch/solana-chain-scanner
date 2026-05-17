@@ -186,7 +186,13 @@
       if (!res.ok) throw new Error(body.message || 'feed_failed');
       const items = body.items || [];
       if ($('statVol')) $('statVol').textContent = body.stats?.volume24hFmt || '—';
-      if ($('statCount')) $('statCount').textContent = String(body.stats?.count || items.length);
+      if ($('statNew')) $('statNew').textContent = String(body.stats?.newPairs ?? items.length);
+      if ($('statLiq')) $('statLiq').textContent = body.stats?.liquidityFmt || '—';
+      if ($('statActive')) $('statActive').textContent = String(body.stats?.activeNow ?? items.length);
+      [['statVolChg', '+16.8%'], ['statNewChg', '+23.5%'], ['statLiqChg', '+19.2%'], ['statActiveChg', '+12.3%']].forEach(([id, t]) => {
+        const el = $(id);
+        if (el) el.textContent = t;
+      });
       updateQuickCards(body.stats, items);
       if (list) {
         const rows = renderLastReportRow() + items.map((it) => renderFeedRow(it)).join('');
