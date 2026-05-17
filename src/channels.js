@@ -275,7 +275,7 @@ function logBootSummary() {
   const persist = isPersistentDataDir() ? 'KALICI' : 'GEÇİCİ (deploy sıfırlar)';
   console.log(`[channels] ${list.length} kanal · depo=${persist} · ${CHANNELS_FILE}`);
   if (!isPersistentDataDir()) {
-    console.warn('[channels] ⚠️ Railway: Volume ekle → Mount Path /data (veya DATA_DIR=/data). TELEGRAM_CHANNEL_IDS yedek olarak kullanılabilir.');
+    console.warn('[channels] ⚠️ Railway: Volume → Mount Path /app/data (veya TELEGRAM_CHANNEL_IDS yedek).');
   }
   if (!list.length) {
     console.log('[channels] (boş — TELEGRAM_CHANNEL_IDS env veya Volume /data gerekli)');

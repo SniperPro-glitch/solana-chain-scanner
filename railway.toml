@@ -1,5 +1,5 @@
 # Railway — kalıcı kanal ayarları için Volume ekleyin (Dashboard → service → Volumes)
-# Mount path: /data
+# Mount path: /app/data  (Railway — /data değil)
 # Kod otomatik olarak /data kullanır (RAILWAY_VOLUME_MOUNT_PATH veya /data dizini varsa)
 
 [deploy]

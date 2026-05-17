@@ -12,8 +12,11 @@ function resolveDataDir() {
   const railwayMount = String(process.env.RAILWAY_VOLUME_MOUNT_PATH || '').trim();
   if (railwayMount) return path.resolve(railwayMount);
 
-  // Railway Volume çoğu kurulumda /data — env gelmese bile mount varsa kullan
+  // Railway: uygulama /app altında — volume genelde /app/data (docs.railway.com/guides/volumes)
   const onRailway = !!(process.env.RAILWAY_ENVIRONMENT || process.env.RAILWAY_PROJECT_ID);
+  if (onRailway && fs.existsSync('/app/data')) {
+    return '/app/data';
+  }
   if (onRailway && fs.existsSync('/data')) {
     return '/data';
   }
@@ -28,6 +31,9 @@ function ensureDataDir() {
 }
 
 function isPersistentDataDir() {
+  if (process.env.RAILWAY_VOLUME_MOUNT_PATH || process.env.RAILWAY_VOLUME_NAME) {
+    return true;
+  }
   return path.resolve(DATA_DIR) !== path.resolve(LEGACY_DATA_DIR);
 }
 
