@@ -153,6 +153,8 @@ function mergeChannelIdsFile(state) {
     for (const id of ids) {
       if (state.channels[id]) {
         delete state.channels[id].archivedAt;
+        delete state.channels[id].leftReason;
+        if (state.channels[id].settings) state.channels[id].settings.enabled = true;
         continue;
       }
       state.channels[id] = stubChannelRecord(id, 'ids-file');
@@ -172,8 +174,10 @@ function mergeEnvChannelIds(state) {
   for (const id of ids) {
     if (state.channels[id]) {
       delete state.channels[id].archivedAt;
-      if (!state.channels[id].settings?.chains?.includes('solana')) {
-        state.channels[id].settings = state.channels[id].settings || { ...DEFAULT_SETTINGS };
+      delete state.channels[id].leftReason;
+      state.channels[id].settings = state.channels[id].settings || { ...DEFAULT_SETTINGS };
+      state.channels[id].settings.enabled = true;
+      if (!state.channels[id].settings.chains?.includes('solana')) {
         state.channels[id].settings.chains = ['solana'];
       }
       continue;
@@ -535,10 +539,26 @@ function markChannelLeft(chatId, reason = 'left') {
   return true;
 }
 
+function reactivateChannelRecord(id, reason = 'restore') {
+  const ch = cache.channels[id];
+  if (!ch) return false;
+  const wasOff = Boolean(ch.archivedAt) || ch.settings?.enabled === false;
+  delete ch.archivedAt;
+  delete ch.leftReason;
+  if (!ch.settings) ch.settings = { ...DEFAULT_SETTINGS };
+  ch.settings.enabled = true;
+  if (wasOff) {
+    console.log(`[channels] ♻️ geri aktif (${reason}): ${ch.title || id}`);
+    save(cache);
+  }
+  return wasOff;
+}
+
 function addChannel(chat, addedBy = 'auto') {
   const id = String(chat.id);
   const existed = Boolean(cache.channels[id]);
   const prev = cache.channels[id];
+  const wasArchived = Boolean(prev?.archivedAt);
   cache.channels[id] = {
     id,
     title: chat.title || chat.username || 'Bilinmiyor',
@@ -551,6 +571,10 @@ function addChannel(chat, addedBy = 'auto') {
     settings: prev?.settings || { ...DEFAULT_SETTINGS },
   };
   delete cache.channels[id].leftReason;
+  if (wasArchived) {
+    cache.channels[id].settings.enabled = true;
+    console.log(`[channels] ♻️ kanal geri yüklendi: ${cache.channels[id].title} (${id})`);
+  }
   const n = normalizeChainsSetting(cache.channels[id].settings.chains);
   if (n.changed) cache.channels[id].settings.chains = n.chains;
   if (!existed) {
@@ -566,6 +590,24 @@ function addChannel(chat, addedBy = 'auto') {
   return { added: !existed, channel: cache.channels[id] };
 }
 
+/** Arşivlenmiş ama bot hâlâ üye olduğu kanalları tekrar aç (deploy SIGTERM sonrası). */
+async function restoreArchivedIfStillMember(bot) {
+  if (!bot?.getChat) return { restored: 0 };
+  let restored = 0;
+  for (const id of Object.keys(cache.channels)) {
+    const ch = cache.channels[id];
+    if (!ch?.archivedAt && ch?.settings?.enabled !== false) continue;
+    try {
+      await bot.getChat(id);
+      if (reactivateChannelRecord(id, 'boot-restore')) restored += 1;
+    } catch {
+      /* bot kanalda değil */
+    }
+  }
+  if (restored) console.log(`[channels] boot: ${restored} kanal arşivden geri alındı`);
+  return { restored };
+}
+
 /** Bot + env + userbot ile tüm bilinen kanalları yeniden kaydeder. */
 async function rediscoverAllChannels(bot, channelsMod) {
   const before = Object.keys(cache.channels).length;
@@ -576,6 +618,7 @@ async function rediscoverAllChannels(bot, channelsMod) {
   } catch (e) {
     console.warn('[channels] userbot sync:', e.message);
   }
+  await restoreArchivedIfStillMember(bot);
   const after = Object.keys(cache.channels).length;
   return { before, after, added: Math.max(0, after - before) };
 }
@@ -695,6 +738,8 @@ module.exports = {
   consumeChainsSanitizeNotice,
   syncFromBotApi,
   rediscoverAllChannels,
+  restoreArchivedIfStillMember,
+  reactivateChannelRecord,
   getChannelIdsForEnv,
 
   tokenPassesChannelFilters,
