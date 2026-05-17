@@ -47,10 +47,18 @@ if (!BOT_TOKEN) {
   process.exit(1);
 }
 
+const ALLOWED_UPDATES = [
+  'message',
+  'edited_message',
+  'channel_post',
+  'edited_channel_post',
+  'callback_query',
+  'my_chat_member',
+  'chat_member',
+];
+
 const POLLING_PARAMS = {
-  allowed_updates: [
-    'message', 'channel_post', 'my_chat_member', 'chat_member', 'callback_query',
-  ],
+  allowed_updates: ALLOWED_UPDATES,
 };
 
 /** Polling başlamadan önce oluşturulur; main() içinde startPolling() çağrılır (409 / webhook çakışması önlemi). */
@@ -70,7 +78,35 @@ function isPollingConflictError(err) {
   return code === 409 || /409|Conflict|terminated by other getUpdates|another bot instance/i.test(msg);
 }
 
+/** Telegram bazen yalnızca my_chat_member dinler (mesajlar gelmez) — boş webhook ile sıfırla */
+async function resetBotAllowedUpdates() {
+  try {
+    const base = `https://api.telegram.org/bot${BOT_TOKEN}`;
+    await fetch(`${base}/setWebhook`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        url: '',
+        allowed_updates: ALLOWED_UPDATES,
+        drop_pending_updates: false,
+      }),
+    });
+    await fetch(`${base}/deleteWebhook`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ drop_pending_updates: false }),
+    });
+    const wh = await bot.getWebHookInfo().catch(() => null);
+    const au = wh?.allowed_updates || [];
+    const hasMessage = au.includes('message');
+    console.log(`[bot] allowed_updates: ${hasMessage ? 'message OK' : 'UYARI ' + JSON.stringify(au)}`);
+  } catch (e) {
+    console.warn('[bot] allowed_updates reset:', e?.message || e);
+  }
+}
+
 async function prepareTelegramConnection() {
+  await resetBotAllowedUpdates();
   try {
     await bot.deleteWebHook({ drop_pending_updates: false });
   } catch (e) {
