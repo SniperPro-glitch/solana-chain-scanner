@@ -1,6 +1,12 @@
 // Solana zinciri — Telegram kart (BSC slim ile aynı yapı; metin/emoji Solana).
 
-const { customEmojiHtml, dexEmojiCharFor, whitelistTitleSuffix, formatTrustedGreenTitle } = require('../../emojiPack');
+const {
+  customEmojiHtml,
+  dexEmojiCharFor,
+  whitelistTitleSuffix,
+  formatTrustedGreenTitle,
+  solanaNewTokenFlagHtml,
+} = require('../../emojiPack');
 const { t, normalizeLang } = require('../../i18n');
 const { formatRiskLine } = require('../../riskDisplay');
 
@@ -116,13 +122,13 @@ function formatTokenCard(token, audit, lang = 'en', level = 'green', opts = {}) 
     tokenEmoji = ce('◎');
   }
 
-  const solFlag = ce('🪙');
   const trustedGreenTitle = level === 'green' ? formatTrustedGreenTitle(token, L, 'solana', t, h) : null;
   if (trustedGreenTitle) {
     for (const row of trustedGreenTitle.split('\n')) lines.push(row);
   } else {
+    const titleFlag = level === 'green' ? solanaNewTokenFlagHtml('solana') : ce('🪙');
     lines.push(
-      `${solFlag} ${titleEmoji} <b>${t(titleKey, L)}:</b> $${h(token.tokenSymbol)}${whitelistTitleSuffix(token.trustedWhitelist, L, 'solana', t, h)}`,
+      `${titleFlag} ${titleEmoji} <b>${t(titleKey, L)}:</b> $${h(token.tokenSymbol)}${whitelistTitleSuffix(token.trustedWhitelist, L, 'solana', t, h)}`,
     );
   }
   {

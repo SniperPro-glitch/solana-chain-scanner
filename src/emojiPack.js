@@ -183,13 +183,13 @@ const BSC_EMOJI_MAP = {
 //   💊 → Pump.fun logosu + pump DEX; 💰 Raydium; ☄️ Meteora; 👻 Phantom al/sat
 //   🔥 5424972470023104089 → /wl bilinen token: POPÜLER satırı (kart + yorum)
 //   🏅 5814173103487456712 → /wl bilinen token: BİLİNEN PROJE satırı (kart + yorum)
-//   🤑 5251414920355931519 → (mesajında yer belirtilmedi — ID kayıtlı)
+//   🤑 5251414920355931519 → kart: Solana flaması, “Yeni Token” başlık satırı başı
 const SOLANA_EMOJI_BASE = {
   '◎': '5998906604735437913',
   '🪐': '5998906604735437913',
   '💎': '5998906604735437913',
   '🪙': '5843946791740905640',   // Solana: logo, kontrat, risk, likidite
-  '🤑': '5251414920355931519',
+  '🤑': '5251414920355931519',   // Solana flaması — Yeni Token satırı başı
   '🟣': '5998906604735437913',
   '🔍': '5999337011998104831',
   '🔎': '5278456597092264192',
@@ -343,6 +343,12 @@ function bscLogoHtml() {
 // Chain-aware logo helper
 function solanaLogoHtml() {
   return customEmojiHtml('🪙', 'solana');
+}
+
+/** Kart — yeşil “Yeni Token” başlığı önündeki Solana flaması (🤑). */
+function solanaNewTokenFlagHtml(chain = 'solana') {
+  if (chain !== 'solana') return '◎';
+  return customEmojiHtml('🤑', 'solana');
 }
 
 function chainLogoHtml(chain = 'solana') {
@@ -555,6 +561,7 @@ module.exports = {
   SOLANA_EMOJI_BASE,
   SOLANA_EMOJI_MAP,
   solanaLogoHtml,
+  solanaNewTokenFlagHtml,
   getEmojiId,
   getWrapMap,
   buildCustomEmojiEntities,
