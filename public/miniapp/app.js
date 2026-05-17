@@ -517,6 +517,52 @@
     if (counts) counts.textContent = `${ratio.buys} alım · ${ratio.sells} satım (${ratio.buyPct}% alım)`;
   }
 
+  function showDexEmbedChart(container, m, note, tf) {
+    const embed = m?.chart?.dexScreenerEmbedUrl;
+    const page = m?.chart?.dexScreenerPageUrl || m?.dexScreenerUrl;
+    if (embed) {
+      container.innerHTML = `<iframe class="dex-embed-chart" src="${escHtml(embed)}" title="DexScreener" loading="lazy" allowfullscreen referrerpolicy="no-referrer-when-downgrade"></iframe>`;
+      if (note) note.textContent = `${(tf || '15m').toUpperCase()} · Grafik DexScreener`;
+      return true;
+    }
+    const link = page
+      ? `<a class="dex-chart-link" href="${escHtml(page)}" target="_blank" rel="noopener">DexScreener’da aç</a>`
+      : '';
+    container.innerHTML = `<div class="empty-chart">Grafik yüklenemedi. ${link}</div>`;
+    return false;
+  }
+
+  function loadChartLibrary() {
+    return new Promise((resolve) => {
+      if (window.LightweightCharts) {
+        resolve(true);
+        return;
+      }
+      const urls = [
+        '/vendor/lightweight-charts.js?v=3',
+        'https://cdn.jsdelivr.net/npm/lightweight-charts@4.2.0/dist/lightweight-charts.standalone.production.js',
+      ];
+      let i = 0;
+      const next = () => {
+        if (window.LightweightCharts) {
+          resolve(true);
+          return;
+        }
+        if (i >= urls.length) {
+          resolve(false);
+          return;
+        }
+        const s = document.createElement('script');
+        s.src = urls[i];
+        i += 1;
+        s.onload = () => resolve(!!window.LightweightCharts);
+        s.onerror = next;
+        document.head.appendChild(s);
+      };
+      next();
+    });
+  }
+
   function destroyChart() {
     if (resizeHandler) {
       window.removeEventListener('resize', resizeHandler);
@@ -565,7 +611,7 @@
     return out;
   }
 
-  function renderChart(m) {
+  async function renderChart(m) {
     const container = $('priceChart');
     const note = $('chartNote');
     if (!container) return;
@@ -587,31 +633,23 @@
     destroyChart();
     container.innerHTML = '';
 
-    if (!window.LightweightCharts) {
-      container.innerHTML = '<div class="empty-chart">Grafik kütüphanesi yüklenemedi</div>';
+    const hasLib = await loadChartLibrary();
+    if (!hasLib) {
+      showDexEmbedChart(container, m, note, tf);
+      return;
+    }
+    const seriesData = buildChartData(candles);
+    if (!seriesData.length) {
+      showDexEmbedChart(container, m, note, tf);
       return;
     }
 
-    const seriesData = buildChartData(candles);
-    if (!seriesData.length) {
-      const embed = m?.chart?.dexScreenerEmbedUrl;
-      const page = m?.chart?.dexScreenerPageUrl || m?.dexScreenerUrl;
-      if (embed) {
-        container.innerHTML = `<iframe class="dex-embed-chart" src="${escHtml(embed)}" title="DexScreener chart" loading="lazy" referrerpolicy="no-referrer"></iframe>`;
-        if (note) note.textContent = `${tf.toUpperCase()} · Grafik DexScreener (gömülü)`;
-        return;
-      }
-      const link = page
-        ? `<a class="dex-chart-link" href="${escHtml(page)}" target="_blank" rel="noopener">DexScreener’da grafiği aç</a>`
-        : '';
-      container.innerHTML = `<div class="empty-chart">Mum verisi yok. ${link}</div>`;
-      return;
-    }
+    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
 
     const last = candles[candles.length - 1];
     updateOhlc(last);
 
-    const w = container.clientWidth || 360;
+    const w = Math.max(container.clientWidth || 0, 320);
     try {
     chartApi = LightweightCharts.createChart(container, {
       width: w,
@@ -704,7 +742,8 @@
     } catch (e) {
       console.warn('chart render', e);
       destroyChart();
-      container.innerHTML = '<div class="empty-chart">Grafik çizilemedi — tekrar deneyin</div>';
+      container.innerHTML = '';
+      showDexEmbedChart(container, m, note, tf);
     }
   }
 
@@ -960,7 +999,7 @@
     renderQuoteChanges(m);
     renderMetrics(m, m.chart?.stats);
     renderTxnBar(m);
-    renderChart(m);
+    renderChart(m).catch((e) => console.warn('renderChart', e));
     renderInfoPanel(data);
     renderSecurityPanel(data);
     renderTradePanel(data);

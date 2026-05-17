@@ -47,7 +47,13 @@ function serveStatic(res, filePath) {
     return;
   }
   const ext = path.extname(filePath).toLowerCase();
-  res.writeHead(200, { 'Content-Type': MIME[ext] || 'application/octet-stream' });
+  const cache = ['.html', '.js', '.css'].includes(ext)
+    ? 'no-cache, must-revalidate'
+    : 'public, max-age=86400';
+  res.writeHead(200, {
+    'Content-Type': MIME[ext] || 'application/octet-stream',
+    'Cache-Control': cache,
+  });
   fs.createReadStream(filePath).pipe(res);
 }
 
