@@ -361,4 +361,5 @@ module.exports = {
   normalizePair,
   fetchTopPairForToken,
   fetchPairByPoolAddress,
+  fetchPoolsHybrid,
 };
