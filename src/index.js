@@ -437,6 +437,41 @@ function formatRailwayChannelEnv(chatId) {
   return `TELEGRAM_CHANNEL_IDS=${chatId}`;
 }
 
+/** Telegram start= payload'da eksi sorunlu olabilir → -100123… sadece rakam kısmı */
+function channelIdToStartToken(chatId) {
+  const id = String(chatId);
+  if (id.startsWith('-100')) return id.slice(4);
+  if (id.startsWith('-')) return id.slice(1);
+  return id;
+}
+
+function startTokenToChannelId(token) {
+  const s = String(token || '').trim();
+  if (!s) return null;
+  if (s.startsWith('-100')) return s;
+  if (s.startsWith('-')) return s;
+  if (/^\d+$/.test(s)) return `-100${s}`;
+  return s;
+}
+
+/** Kanal DB'de yoksa Telegram'dan çekip kaydeder */
+async function ensureChannelRegistered(chatId) {
+  const raw = String(chatId).trim();
+  const id = raw.startsWith('-100') || raw.startsWith('-')
+    ? raw
+    : (startTokenToChannelId(raw) || raw);
+  let ch = channels.get(id);
+  if (ch) return ch;
+  try {
+    const chat = await bot.getChat(id);
+    channels.add(chat, 'ensure');
+    return channels.get(id);
+  } catch (e) {
+    console.warn('[channels] ensure kayıt:', id, e.message);
+    return null;
+  }
+}
+
 async function notifyAdminsChannelBackup(chatId, title, { isNew = false } = {}) {
   if (!ADMIN_IDS.length || !isNew) return;
   const { isPersistentDataDir } = require('./data-path');
@@ -752,11 +787,17 @@ bindTextCommand(/^\/ping(@\w+)?$/i, async (msg) => {
 });
 
 async function openDmChannelSettings(dmChatId, userId, channelId) {
-  const targetId = String(channelId);
-  const ch = channels.get(targetId);
+  const targetId = startTokenToChannelId(channelId) || String(channelId);
+  const ch = await ensureChannelRegistered(targetId);
   const lang = users.getLang(userId) || ch?.settings?.lang || DEFAULT_LANG;
   if (!ch) {
-    return bot.sendMessage(dmChatId, t('cmd.channelNotFound', lang));
+    return bot.sendMessage(
+      dmChatId,
+      `${t('cmd.channelNotFound', lang)}\n\n`
+      + (lang === 'tr'
+        ? 'Kanalda /channelid yazın veya kanaldan bir postu bota iletin.'
+        : 'Use /channelid in the channel or forward a post to the bot.'),
+    );
   }
   if (!(await isChatAdmin(targetId, userId))) {
     return bot.sendMessage(dmChatId, t('cmd.notChannelAdmin', lang));
@@ -840,7 +881,7 @@ bindTextCommand(/^\/start(@\w+)?(\s+(.+))?$/, async (msg, match) => {
 
   const param = (match && match[3] || '').trim();
   if (param.startsWith('settings_') && msg.chat.type === 'private') {
-    const targetId = param.slice('settings_'.length).trim();
+    const targetId = startTokenToChannelId(param.slice('settings_'.length).trim());
     if (targetId) {
       if (!users.getLang(msg.from.id)) {
         pendingChannelAfterLang.set(String(msg.from.id), targetId);
@@ -871,7 +912,15 @@ bindTextCommand(/^\/start(@\w+)?(\s+(.+))?$/, async (msg, match) => {
   }
 
   const lang = langForMsg(msg);
-  await bot.sendMessage(msg.chat.id, t('welcome.start', lang), { parse_mode: 'Markdown' });
+  await bot.sendMessage(msg.chat.id, t('welcome.start', lang), {
+    parse_mode: 'Markdown',
+    reply_markup: {
+      inline_keyboard: [[
+        { text: lang === 'tr' ? '⚙️ Ayarlar' : '⚙️ Settings', callback_data: 'startcmd:settings' },
+        { text: lang === 'tr' ? '🏓 Ping' : '🏓 Ping', callback_data: 'startcmd:ping' },
+      ]],
+    },
+  });
 });
 
 bindTextCommand(/^\/post(@\w+)?(?:\s+([\s\S]+))?$/, async (msg, match) => {
@@ -979,7 +1028,7 @@ bot.on('my_chat_member', async (upd) => {
       const lang = channels.getSettings(chat.id)?.lang || DEFAULT_LANG;
       const me = await bot.getMe().catch(() => null);
       const username = me?.username || 'bot';
-      const deeplink = `https://t.me/${username}?start=settings_${chat.id}`;
+      const deeplink = `https://t.me/${username}?start=settings_${channelIdToStartToken(chat.id)}`;
       const welcomeMsg = t('welcome.added', lang, { name: channelName });
       const sent = await bot.sendMessage(chat.id, welcomeMsg, {
         parse_mode: 'Markdown',
@@ -1062,6 +1111,15 @@ bot.on('callback_query', async (cb) => {
   const cbLang = isDM
     ? (users.getLang(userId) || normalizeLang(cb.from?.language_code))
     : (channels.getSettings(fromChatId)?.lang || DEFAULT_LANG);
+
+  if (cb.data === 'startcmd:settings') {
+    await bot.answerCallbackQuery(cb.id).catch(() => {});
+    return handleSettings({ chat: cb.message.chat, from: cb.from, text: '/settings' });
+  }
+  if (cb.data === 'startcmd:ping') {
+    await bot.answerCallbackQuery(cb.id).catch(() => {});
+    return bot.sendMessage(fromChatId, '🏓 pong');
+  }
 
   if (cb.data?.startsWith('startlang:')) {
     const code = normalizeLang(cb.data.slice('startlang:'.length));
