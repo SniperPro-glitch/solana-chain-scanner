@@ -310,7 +310,22 @@ const STRINGS = {
   'risk.low': { en: 'LOW', tr: 'DÜŞÜK', ru: 'НИЗКИЙ' },
   'risk.medium': { en: 'MEDIUM', tr: 'ORTA', ru: 'СРЕДНИЙ' },
   'risk.high': { en: 'HIGH', tr: 'YÜKSEK', ru: 'ВЫСОКИЙ' },
-  'card.safetyWord': { en: 'safety', tr: 'güven', ru: 'безоп.' },
+  'card.safetyWord': { en: 'safe', tr: 'güvenli', ru: 'безоп.' },
+  'safety.tier.high': {
+    en: 'Solid confidence',
+    tr: 'Güvenilir profil',
+    ru: 'Высокая уверенность',
+  },
+  'safety.tier.mid': {
+    en: 'Moderate confidence',
+    tr: 'Orta güven',
+    ru: 'Средняя уверенность',
+  },
+  'safety.tier.low': {
+    en: '⚠️ Low confidence',
+    tr: '⚠️ Düşük güven',
+    ru: '⚠️ Низкая уверенность',
+  },
 
   // ─── Likidite seviyeleri ───
   'liq.poor': { en: 'POOR', tr: 'ZAYIF', ru: 'НИЗКАЯ' },

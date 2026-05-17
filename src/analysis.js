@@ -1074,7 +1074,9 @@ function buildAnalysisOneLine(token, audit, lang = 'en', opts = {}) {
     }
   }
 
-  const riskTxt = `${escapeHtml(safeStr)} ${escapeHtml(t('card.safetyWord', lang))} · ${escapeHtml(riskLabelText(riskCode, lang))}`;
+  const { safetyTierLabel } = require('./riskDisplay');
+  const safePct = safetyPercent(audit.riskPercent);
+  const riskTxt = `${escapeHtml(safeStr)} ${escapeHtml(t('card.safetyWord', lang))} · ${escapeHtml(safetyTierLabel(safePct, lang))}`;
   let line = opts.skipHeader
     ? `${riskLbl} <b>${riskTxt}</b>${sep}${liqLbl} ${escapeHtml(liqUsd)} (${escapeHtml(liqWord)})`
     : `${header}${riskLbl} <b>${riskTxt}</b>${sep}${liqLbl} ${escapeHtml(liqUsd)} (${escapeHtml(liqWord)})`;
