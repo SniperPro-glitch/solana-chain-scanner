@@ -56,6 +56,12 @@ const POLLING_PARAMS = {
 /** Polling başlamadan önce oluşturulur; main() içinde startPolling() çağrılır (409 / webhook çakışması önlemi). */
 const bot = new TelegramBot(BOT_TOKEN, { polling: false });
 
+const BOT_BOOT_TIME = Date.now();
+const CHANNEL_LEFT_GRACE_MS = Math.max(
+  60_000,
+  parseInt(process.env.CHANNEL_LEFT_GRACE_MS || '180000', 10),
+);
+
 let polling409Streak = 0;
 
 function isPollingConflictError(err) {
@@ -723,6 +729,26 @@ async function handleSettings(msg) {
 
 bindTextCommand(/^\/settings(@\w+)?$/i, handleSettings);
 
+bindTextCommand(/^\/channelid(@\w+)?$/i, async (msg) => {
+  const lang = langForMsg(msg);
+  if (msg.chat.type === 'private') {
+    const ids = channels.getChannelIdsForEnv();
+    const body = ids
+      ? (lang === 'tr'
+        ? `Kayıtlı kanal ID'leri:\n<code>${ids}</code>\n\nRailway → TELEGRAM_CHANNEL_IDS`
+        : `Channel IDs:\n<code>${ids}</code>`)
+      : (lang === 'tr' ? 'Henüz kayıtlı kanal yok.' : 'No channels registered.');
+    return bot.sendMessage(msg.chat.id, body, { parse_mode: 'HTML' });
+  }
+  const id = msg.chat.id;
+  channels.add(msg.chat, 'cmd');
+  const line = `TELEGRAM_CHANNEL_IDS=${id}`;
+  const text = lang === 'tr'
+    ? `📌 Bu kanalın ID'si:\n<code>${id}</code>\n\nDeploy sonrası unutmasın diye Railway Variables'a ekleyin:\n<code>${line}</code>`
+    : `📌 Channel ID:\n<code>${id}</code>\n\nAdd to Railway:\n<code>${line}</code>`;
+  return bot.sendMessage(msg.chat.id, text, { parse_mode: 'HTML' });
+});
+
 bindTextCommand(/^\/start(@\w+)?(\s+(.+))?$/, async (msg, match) => {
   if (msg.chat.type !== 'private') {
     channels.add(msg.chat, msg.from?.username || 'cmd');
@@ -892,8 +918,16 @@ bot.on('my_chat_member', async (upd) => {
   }
 
   if (['left', 'kicked'].includes(newStatus)) {
-    channels.remove(chat.id);
-    console.log(`➖ ${chat.title || chat.id} silindi`);
+    if (Date.now() - BOT_BOOT_TIME < CHANNEL_LEFT_GRACE_MS) {
+      console.log(`[channels] left atlandı (deploy grace ${CHANNEL_LEFT_GRACE_MS / 1000}s): ${chat.id}`);
+      return;
+    }
+    const wasInChannel = ['administrator', 'member', 'restricted', 'creator'].includes(oldStatus);
+    if (!wasInChannel) {
+      console.log(`[channels] left atlandı (zaten kanalda değildi: ${oldStatus}): ${chat.id}`);
+      return;
+    }
+    channels.markLeft(chat.id, newStatus);
   }
   } catch (e) {
     console.error('[my_chat_member]', e?.message, e?.stack);

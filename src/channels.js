@@ -125,6 +125,24 @@ function ensureDir() {
   ensureDataDir();
 }
 
+function stubChannelRecord(id, addedBy, title = null) {
+  return {
+    id,
+    title: title || `Kanal ${id}`,
+    username: null,
+    type: 'channel',
+    addedAt: new Date().toISOString(),
+    addedBy,
+    lastError: null,
+    archivedAt: null,
+    settings: { ...DEFAULT_SETTINGS, chains: ['solana'] },
+  };
+}
+
+function isChannelArchived(ch) {
+  return Boolean(ch?.archivedAt);
+}
+
 function mergeChannelIdsFile(state) {
   if (!fs.existsSync(CHANNEL_IDS_FILE)) return state;
   try {
@@ -133,20 +151,34 @@ function mergeChannelIdsFile(state) {
       .map((s) => s.trim())
       .filter(Boolean);
     for (const id of ids) {
-      if (state.channels[id]) continue;
-      state.channels[id] = {
-        id,
-        title: `Kanal ${id}`,
-        username: null,
-        type: 'channel',
-        addedAt: new Date().toISOString(),
-        addedBy: 'ids-file',
-        lastError: null,
-        settings: { ...DEFAULT_SETTINGS, chains: ['solana'] },
-      };
+      if (state.channels[id]) {
+        delete state.channels[id].archivedAt;
+        continue;
+      }
+      state.channels[id] = stubChannelRecord(id, 'ids-file');
     }
   } catch (e) {
     console.warn('[channels] channel_ids.txt okunamadı:', e.message);
+  }
+  return state;
+}
+
+/** Railway TELEGRAM_CHANNEL_IDS — deploy sonrası dosya silinse bile env'den geri gelir. */
+function mergeEnvChannelIds(state) {
+  const ids = new Set([
+    ...parseChannelIdList(process.env.TELEGRAM_CHANNEL_ID),
+    ...parseChannelIdList(process.env.TELEGRAM_CHANNEL_IDS || process.env.CHANNEL_IDS),
+  ]);
+  for (const id of ids) {
+    if (state.channels[id]) {
+      delete state.channels[id].archivedAt;
+      if (!state.channels[id].settings?.chains?.includes('solana')) {
+        state.channels[id].settings = state.channels[id].settings || { ...DEFAULT_SETTINGS };
+        state.channels[id].settings.chains = ['solana'];
+      }
+      continue;
+    }
+    state.channels[id] = stubChannelRecord(id, 'env-file');
   }
   return state;
 }
@@ -162,7 +194,10 @@ function writeChannelIdsBackup(state) {
 }
 
 function getChannelIdsForEnv() {
-  return Object.keys(cache.channels || {}).join(',');
+  return Object.values(cache.channels || {})
+    .filter((c) => !isChannelArchived(c))
+    .map((c) => c.id)
+    .join(',');
 }
 
 function logEnvBackupHint() {
@@ -181,10 +216,11 @@ function load() {
       state = JSON.parse(fs.readFileSync(CHANNELS_FILE, 'utf8'));
     }
     state = mergeChannelIdsFile(state);
+    state = mergeEnvChannelIds(state);
     return state;
   } catch (err) {
     console.error('channels.json okuma hatası:', err.message);
-    return mergeChannelIdsFile({ channels: {} });
+    return mergeEnvChannelIds(mergeChannelIdsFile({ channels: {} }));
   }
 }
 
@@ -487,19 +523,34 @@ function categorizeFilterReason(reason) {
   return 'other';
 }
 
+function markChannelLeft(chatId, reason = 'left') {
+  const id = String(chatId);
+  if (!cache.channels[id]) return false;
+  cache.channels[id].archivedAt = new Date().toISOString();
+  cache.channels[id].leftReason = reason;
+  if (cache.channels[id].settings) cache.channels[id].settings.enabled = false;
+  save(cache);
+  console.log(`[channels] arşivlendi (silinmedi): ${cache.channels[id].title || id} · ${reason}`);
+  logEnvBackupHint();
+  return true;
+}
+
 function addChannel(chat, addedBy = 'auto') {
   const id = String(chat.id);
   const existed = Boolean(cache.channels[id]);
+  const prev = cache.channels[id];
   cache.channels[id] = {
     id,
     title: chat.title || chat.username || 'Bilinmiyor',
     username: chat.username || null,
     type: chat.type,
-    addedAt: cache.channels[id]?.addedAt || new Date().toISOString(),
+    addedAt: prev?.addedAt || new Date().toISOString(),
     addedBy,
     lastError: null,
-    settings: cache.channels[id]?.settings || { ...DEFAULT_SETTINGS },
+    archivedAt: null,
+    settings: prev?.settings || { ...DEFAULT_SETTINGS },
   };
+  delete cache.channels[id].leftReason;
   const n = normalizeChainsSetting(cache.channels[id].settings.chains);
   if (n.changed) cache.channels[id].settings.chains = n.chains;
   if (!existed) {
@@ -543,12 +594,10 @@ module.exports = {
   add: addChannel,
 
   remove(chatId) {
-    const id = String(chatId);
-    const existed = Boolean(cache.channels[id]);
-    delete cache.channels[id];
-    save(cache);
-    return existed;
+    return markChannelLeft(chatId, 'remove');
   },
+
+  markLeft: markChannelLeft,
 
   setEnabled(chatId, enabled) {
     const id = String(chatId);
@@ -622,17 +671,20 @@ module.exports = {
   },
 
   list() {
-    return Object.values(cache.channels);
+    return Object.values(cache.channels).filter((c) => !isChannelArchived(c));
   },
 
   listEnabled() {
-    return Object.values(cache.channels).filter((c) => c.settings?.enabled);
+    return Object.values(cache.channels).filter(
+      (c) => !isChannelArchived(c) && c.settings?.enabled,
+    );
   },
 
   count() {
+    const active = Object.values(cache.channels).filter((c) => !isChannelArchived(c));
     return {
-      total: Object.keys(cache.channels).length,
-      enabled: Object.values(cache.channels).filter((c) => c.settings?.enabled).length,
+      total: active.length,
+      enabled: active.filter((c) => c.settings?.enabled).length,
     };
   },
 
