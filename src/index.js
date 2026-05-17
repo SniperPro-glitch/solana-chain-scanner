@@ -375,10 +375,13 @@ function bindTextCommand(regex, handler) {
   });
 }
 
-function langForMsg(msg) {
-  if (!msg) return DEFAULT_LANG;
-  if (msg.chat?.type === 'private') {
-    return users.getLang(msg.from?.id) || normalizeLang(msg.from?.language_code);
+function langForMsg(msgOrCb) {
+  if (!msgOrCb) return DEFAULT_LANG;
+  const msg = msgOrCb.message || msgOrCb;
+  const from = msgOrCb.from || msg?.from;
+  if (!msg?.chat) return DEFAULT_LANG;
+  if (msg.chat.type === 'private') {
+    return users.getLang(from?.id) || normalizeLang(from?.language_code);
   }
   return channels.getSettings(msg.chat.id)?.lang || DEFAULT_LANG;
 }
@@ -770,10 +773,16 @@ bot.on('photo', async (msg) => {
 });
 
 bot.on('callback_query', async (cb) => {
+  try {
+  if (!cb?.from?.id || !cb.message?.chat?.id) {
+    return bot.answerCallbackQuery(cb?.id).catch(() => {});
+  }
   const userId = cb.from.id;
-  const fromChatId = cb.message?.chat?.id;
-  const cbLang = langForMsg(cb);
-  const isDM = cb.message?.chat?.type === 'private';
+  const fromChatId = cb.message.chat.id;
+  const isDM = cb.message.chat.type === 'private';
+  const cbLang = isDM
+    ? (users.getLang(userId) || normalizeLang(cb.from?.language_code))
+    : (channels.getSettings(fromChatId)?.lang || DEFAULT_LANG);
 
   if (cb.data?.startsWith('startlang:')) {
     const code = normalizeLang(cb.data.slice('startlang:'.length));
@@ -913,9 +922,14 @@ bot.on('callback_query', async (cb) => {
   }
 
   return bot.answerCallbackQuery(cb.id);
+  } catch (e) {
+    console.error('[callback_query]', cb?.data, e?.message, e?.stack);
+    bot.answerCallbackQuery(cb?.id, { text: '⚠️' }).catch(() => {});
+  }
 });
 
 bot.on('polling_error', (err) => console.error('Polling error:', err?.message || err));
+process.on('unhandledRejection', (e) => console.error('unhandledRejection:', e?.message || e));
 
 async function main() {
   const me = await bot.getMe();
