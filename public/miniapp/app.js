@@ -21,6 +21,7 @@
 
   let feedTab = 'trending';
   let homeShellBound = false;
+  let detailShellBound = false;
   let feedPollTimer = null;
   let openingMint = false;
 
@@ -345,12 +346,18 @@
     fetchFeed(feedTab);
   }
 
-  async function loadReportFlow() {
-    showDetailView();
+  function bindDetailShell() {
+    if (detailShellBound) return;
+    detailShellBound = true;
     setupNav();
     setupTfButtons();
     setupChartType();
     setupCopy();
+  }
+
+  async function loadReportFlow() {
+    showDetailView();
+    bindDetailShell();
     try {
       const data = await loadReport('15m');
       try {
@@ -542,13 +549,20 @@
   }
 
   function buildChartData(candles) {
-    return candles.map((c) => ({
-      time: c.time,
-      open: Number(c.open),
-      high: Number(c.high),
-      low: Number(c.low),
-      close: Number(c.close),
-    }));
+    const out = [];
+    const seen = new Set();
+    for (const c of candles || []) {
+      const time = c.time;
+      if (time == null || seen.has(time)) continue;
+      const open = Number(c.open);
+      const high = Number(c.high);
+      const low = Number(c.low);
+      const close = Number(c.close);
+      if (![open, high, low, close].every(Number.isFinite)) continue;
+      seen.add(time);
+      out.push({ time, open, high, low, close });
+    }
+    return out;
   }
 
   function renderChart(m) {
@@ -572,9 +586,14 @@
     destroyChart();
     container.innerHTML = '';
 
-    if (!candles.length || !window.LightweightCharts) {
-      container.innerHTML = '<div class="empty-chart">Grafik verisi yüklenemedi</div>';
-      container.innerHTML = container.innerHTML.split('div').join('div');
+    if (!window.LightweightCharts) {
+      container.innerHTML = '<div class="empty-chart">Grafik kütüphanesi yüklenemedi</div>';
+      return;
+    }
+
+    const seriesData = buildChartData(candles);
+    if (!seriesData.length) {
+      container.innerHTML = '<div class="empty-chart">Bu zaman dilimi için veri yok — 15m veya 5m deneyin</div>';
       return;
     }
 
@@ -582,6 +601,7 @@
     updateOhlc(last);
 
     const w = container.clientWidth || 360;
+    try {
     chartApi = LightweightCharts.createChart(container, {
       width: w,
       height: 280,
@@ -613,8 +633,6 @@
       },
     });
 
-    const seriesData = buildChartData(candles);
-
     candleSeries = chartApi.addCandlestickSeries({
       upColor: '#22c55e',
       downColor: '#ef4444',
@@ -641,13 +659,14 @@
       scaleMargins: { top: 0.8, bottom: 0 },
     });
 
-    const volData = candles.map((c) => ({
-      time: c.time,
-      value: Number(c.volume) || 0,
-      color: Number(c.close) >= Number(c.open)
-        ? 'rgba(34,197,94,0.4)'
-        : 'rgba(239,68,68,0.4)',
-    }));
+    const volData = seriesData.map((d, i) => {
+      const raw = candles.find((c) => c.time === d.time) || candles[i] || {};
+      return {
+        time: d.time,
+        value: Number(raw.volume) || 0,
+        color: d.close >= d.open ? 'rgba(34,197,94,0.4)' : 'rgba(239,68,68,0.4)',
+      };
+    });
 
     candleSeries.setData(chartType === 'line' ? [] : seriesData);
     lineSeries.setData(seriesData.map((d) => ({ time: d.time, value: d.close })));
@@ -671,6 +690,11 @@
       if (chartApi) chartApi.applyOptions({ width: container.clientWidth || w });
     };
     window.addEventListener('resize', resizeHandler);
+    } catch (e) {
+      console.warn('chart render', e);
+      destroyChart();
+      container.innerHTML = '<div class="empty-chart">Grafik çizilemedi — tekrar deneyin</div>';
+    }
   }
 
   function setChartType(type) {
@@ -854,9 +878,10 @@
             b.classList.remove('loading');
             b.classList.toggle('active', b.dataset.tf === tf);
           });
-        } catch {
+        } catch (e) {
           document.querySelectorAll('.tf').forEach((b) => b.classList.remove('loading'));
-          showToast('Grafik yenilenemedi');
+          const msg = e?.hint || e?.message;
+          showToast(msg && msg !== 'not_found' ? msg : 'Grafik yenilenemedi — birkaç sn sonra tekrar dene');
         } finally {
           setChartLoading(false);
         }
