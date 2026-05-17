@@ -780,11 +780,21 @@ bot.on('my_chat_member', async (upd) => {
   const newStatus = upd.new_chat_member?.status;
   const oldStatus = upd.old_chat_member?.status;
 
-  if (['administrator', 'member'].includes(newStatus) && !['administrator', 'member'].includes(oldStatus)) {
-    channels.add(chat, upd.from?.username || 'auto');
-    console.log(`➕ ${chat.title || chat.id} (${chat.type}) — Toplam: ${channels.count().total}`);
+  // Gerçek kanala giriş: önce left/kicked → sonra admin/member.
+  // Deploy/restart: oldStatus çoğu zaman yok → hoş geldin SPAM olmasın.
+  const joinedChannel = ['administrator', 'member'].includes(newStatus)
+    && ['left', 'kicked'].includes(oldStatus);
+
+  if (joinedChannel) {
+    const { added, channel: chRec } = channels.add(chat, upd.from?.username || 'auto');
+    console.log(`➕ ${chat.title || chat.id} (${chat.type}) — Toplam: ${channels.count().total}${added ? '' : ' (zaten kayıtlı)'}`);
 
     if (newStatus === 'administrator' && chat.type !== 'private') {
+      const prevWelcomeId = chRec?.settings?.welcomeMessageId;
+      if (prevWelcomeId) {
+        console.log(`[welcome] atlandı (zaten gönderilmiş): ${chat.id}`);
+        return;
+      }
       const channelName = chat.title || 'Channel';
       const lang = channels.getSettings(chat.id)?.lang || DEFAULT_LANG;
       const me = await bot.getMe().catch(() => null);
@@ -807,6 +817,13 @@ bot.on('my_chat_member', async (upd) => {
         channels.updateSetting(chat.id, 'welcomeMessageId', sent.message_id);
       }
     }
+    return;
+  }
+
+  // Restart sonrası Telegram güncellemesi: kanalı kaydet ama hoş geldin atma
+  if (['administrator', 'member'].includes(newStatus) && (oldStatus == null || oldStatus === '')) {
+    channels.add(chat, upd.from?.username || 'auto');
+    return;
   }
 
   if (['left', 'kicked'].includes(newStatus)) {
