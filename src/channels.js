@@ -209,6 +209,10 @@ function shouldFilterByRisk(tokenRiskLevel, maxAllowedLevel) {
 function tokenPassesChannelFilters(token, audit, channel, opts = {}) {
   const s = channel.settings || DEFAULT_SETTINGS;
   if (!s.enabled) return { pass: false, reason: 'Channel disabled' };
+  const chList = s.chains;
+  if (!Array.isArray(chList) || chList.length === 0 || !chList.includes('solana')) {
+    return { pass: false, reason: 'Network not selected (choose Solana in settings)' };
+  }
   // Min likidite 0 = filtre yok. >0 ise geçerli sayı şart — aksi halde JS `undefined < 1500` false döner ve token yanlışlıkla geçer.
   const liqUsd = Number(token.liquidityUsd);
   if (s.minLiquidityUsd > 0) {

@@ -719,6 +719,16 @@ const STRINGS = {
   'cmd.bannerAdminOnly': { en: '⛔ Only admins can set the banner.', tr: '⛔ Sadece yönetici banner ayarlayabilir.', ru: '⛔ Только администратор может установить баннер.' },
   'cmd.bannerSendFailed': { en: '❌ Could not send banner: {err}', tr: '❌ Banner gönderilemedi: {err}', ru: '❌ Не удалось отправить баннер: {err}' },
   'cmd.bannerPreview': { en: '👁 Banner preview', tr: '👁 Banner önızlemesi', ru: '👁 Предпросмотр баннера' },
+  'cmd.bannerPrompt': {
+    en: '📤 Send a photo here to set the channel banner.',
+    tr: '📤 Kanal bannerı için buraya fotoğraf gönderin.',
+    ru: '📤 Отправьте фото сюда для баннера канала.',
+  },
+  'settings.banner.none': {
+    en: 'No custom banner set yet.',
+    tr: 'Henüz özel banner yok.',
+    ru: 'Пользовательский баннер не задан.',
+  },
   'cmd.noChannelPicked': { en: '⚠️ No channel selected, start with /settings', tr: '⚠️ Kanal seçilmedi, /settings ile başla', ru: '⚠️ Канал не выбран, начните с /settings' },
   'cmd.closed': { en: '✖ Closed', tr: '✖ Kapatıldı', ru: '✖ Закрыто' },
   'cmd.error': { en: '❌ Error', tr: '❌ Hata', ru: '❌ Ошибка' },

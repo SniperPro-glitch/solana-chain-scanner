@@ -722,6 +722,7 @@ bindTextCommand(/^\/stats(@\w+)?$/i, (msg) => {
 });
 
 bot.on('my_chat_member', async (upd) => {
+  try {
   const chat = upd.chat;
   const newStatus = upd.new_chat_member?.status;
   const oldStatus = upd.old_chat_member?.status;
@@ -758,6 +759,9 @@ bot.on('my_chat_member', async (upd) => {
   if (['left', 'kicked'].includes(newStatus)) {
     channels.remove(chat.id);
     console.log(`➖ ${chat.title || chat.id} silindi`);
+  }
+  } catch (e) {
+    console.error('[my_chat_member]', e?.message, e?.stack);
   }
 });
 
@@ -808,7 +812,7 @@ bot.on('callback_query', async (cb) => {
   }
 
   if (cb.data?.startsWith('pickchat:')) {
-    const targetId = parseInt(cb.data.slice('pickchat:'.length), 10);
+    const targetId = cb.data.slice('pickchat:'.length).trim();
     const ch = channels.get(targetId);
     if (!ch) {
       return bot.answerCallbackQuery(cb.id, { text: t('cmd.channelNotFound', cbLang), show_alert: true });
@@ -867,7 +871,7 @@ bot.on('callback_query', async (cb) => {
 
   if (cb.data?.startsWith('menu:') || cb.data?.startsWith('set:') || cb.data?.startsWith('dex:')
     || cb.data?.startsWith('tgl:') || cb.data?.startsWith('tgf:') || cb.data?.startsWith('profile:')
-    || cb.data?.startsWith('rst:') || cb.data === 'reset') {
+    || cb.data?.startsWith('rst:') || cb.data?.startsWith('banner:') || cb.data === 'reset') {
     const targetChatId = isDM ? (getDmTarget(userId) || fromChatId) : fromChatId;
     if (!targetChatId) {
       return bot.answerCallbackQuery(cb.id, { text: t('cmd.noChannelPicked', cbLang), show_alert: true });
@@ -875,19 +879,30 @@ bot.on('callback_query', async (cb) => {
     if (!(await isChatAdmin(targetChatId, userId))) {
       return bot.answerCallbackQuery(cb.id, { text: t('cmd.adminOnlyShort', cbLang) });
     }
-    if (cb.data === 'menu:banner') {
-      setPendingBanner(targetChatId, userId);
-      return bot.answerCallbackQuery(cb.id, { text: t('cmd.bannerPrompt', cbLang) || 'Foto gönder' });
-    }
     if (cb.data?.startsWith('set:lang:') && isDM) {
       users.setLang(userId, cb.data.slice('set:lang:'.length));
     }
+    const targetLang = channels.getSettings(targetChatId)?.lang || cbLang;
     const result = settingsUI.handleCallback(cb.data, targetChatId);
     if (result?.close) {
       await bot.deleteMessage(fromChatId, cb.message.message_id).catch(() => {});
       return bot.answerCallbackQuery(cb.id, { text: t('cmd.closed', cbLang) });
     }
-    if (result?.awaitBannerUpload) setPendingBanner(targetChatId, userId);
+    if (result?.awaitBannerUpload) {
+      setPendingBanner(targetChatId, userId);
+    }
+    if (result?.previewBanner) {
+      const s = channels.getSettings(targetChatId);
+      if (s?.bannerFileId) {
+        await bot.sendPhoto(fromChatId, s.bannerFileId, {
+          caption: t('cmd.bannerPreview', targetLang),
+        }).catch((err) => {
+          bot.sendMessage(fromChatId, t('cmd.bannerSendFailed', targetLang, { err: err.message })).catch(() => {});
+        });
+      } else {
+        await bot.sendMessage(fromChatId, t('settings.banner.none', targetLang) || '—').catch(() => {});
+      }
+    }
     if (result?.toast) bot.answerCallbackQuery(cb.id, { text: result.toast }).catch(() => {});
     else bot.answerCallbackQuery(cb.id).catch(() => {});
     if (result?.menu) {
