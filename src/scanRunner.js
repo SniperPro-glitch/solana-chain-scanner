@@ -91,7 +91,7 @@ function createScanRunner(deps) {
             continue;
           }
 
-          const chLang = ch.settings?.lang || 'en';
+          const chLang = channels.resolveCardLang(ch);
           const isCritical = audit.isCritical === true;
           const isRisky = !isCritical && (audit.risk.code === 'HIGH' || audit.risk.code === 'MEDIUM');
           const cardLevel = isCritical ? 'critical' : (isRisky ? 'yellow' : 'green');

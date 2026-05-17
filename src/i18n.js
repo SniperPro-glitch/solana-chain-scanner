@@ -867,7 +867,18 @@ const STRINGS = {
 };
 
 const SUPPORTED = ['en', 'tr', 'ru'];
-const DEFAULT_LANG = 'en';
+
+/** Railway BOT_LANG=tr — tüm kartlar varsayılan bu dilde (kanal özel seçmediyse). */
+function getBotDefaultLang() {
+  const raw = String(process.env.BOT_LANG || process.env.BOT_DEFAULT_LANG || '').trim();
+  if (raw) {
+    const l = raw.toLowerCase().slice(0, 2);
+    if (SUPPORTED.includes(l)) return l;
+  }
+  return 'en';
+}
+
+const DEFAULT_LANG = getBotDefaultLang();
 
 function normalizeLang(lang) {
   if (!lang) return DEFAULT_LANG;
@@ -897,4 +908,6 @@ function langName(lang) {
   return { en: 'English 🇬🇧', tr: 'Türkçe 🇹🇷', ru: 'Русский 🇷🇺' }[normalizeLang(lang)] || 'English 🇬🇧';
 }
 
-module.exports = { t, normalizeLang, langName, SUPPORTED, DEFAULT_LANG };
+module.exports = {
+  t, normalizeLang, langName, SUPPORTED, DEFAULT_LANG, getBotDefaultLang,
+};

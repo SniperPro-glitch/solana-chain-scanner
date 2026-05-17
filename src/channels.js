@@ -86,7 +86,8 @@ const DEFAULT_SETTINGS = {
   maxTokensPerScan: 10,
   bannerFileId: null,          // Telegram file_id (channel owner uploads) — null = no banner
   welcomeMessageId: null,      // Welcome message id when bot added
-  lang: 'en',                  // 'en' / 'tr' / 'ru'
+  lang: 'en',                  // 'en' / 'tr' / 'ru' — resolveCardLang ile kart dili
+  langUserChosen: false,       // true = ayarlardan elle seçildi (bot dili ezmez)
   // ─ Chain (ağ) seçimi — her kanal tek ağ dinler. null = seçilmedi (bot mesaj atmaz) ─
   chains: null,                // null = DM'de ◎ Solana seçilene kadar paylaşım yok (TON ile aynı)
   // ─ Yeni filtreler ─
@@ -277,11 +278,29 @@ async function syncFromBotApi(bot) {
   return { synced, ids: [...ok] };
 }
 
+function syncCardLangFromBot() {
+  const { getBotDefaultLang, normalizeLang } = require('./i18n');
+  const botLang = getBotDefaultLang();
+  let updated = 0;
+  for (const ch of Object.values(cache.channels || {})) {
+    if (!ch?.settings || ch.settings.langUserChosen) continue;
+    if (normalizeLang(ch.settings.lang) !== botLang) {
+      ch.settings.lang = botLang;
+      updated += 1;
+    }
+  }
+  if (updated) {
+    save(cache);
+    console.log(`[channels] kart dili BOT_LANG → ${botLang} (${updated} kanal)`);
+  }
+}
+
 function logBootSummary() {
   const list = Object.values(cache.channels || {});
   const fileExists = fs.existsSync(CHANNELS_FILE);
   const persist = isPersistentDataDir() ? 'KALICI' : 'GEÇİCİ (deploy sıfırlar)';
-  console.log(`[channels] ${list.length} kanal · depo=${persist} · ${CHANNELS_FILE}`);
+  const { getBotDefaultLang } = require('./i18n');
+  console.log(`[channels] ${list.length} kanal · depo=${persist} · kart dili varsayılan=${getBotDefaultLang()} · ${CHANNELS_FILE}`);
   if (!isPersistentDataDir()) {
     console.warn('[channels] ⚠️ Railway: Volume → Mount Path /app/data (veya TELEGRAM_CHANNEL_IDS yedek).');
   }
@@ -337,8 +356,11 @@ for (const id of Object.keys(cache.channels)) {
     ch.settings = { ...DEFAULT_SETTINGS };
     migrated = true;
   } else {
+    if (ch.settings.langUserChosen === undefined) {
+      ch.settings.langUserChosen = false;
+    }
     if (ch.settings.lang === undefined) {
-      ch.settings.lang = 'en';
+      ch.settings.lang = require('./i18n').getBotDefaultLang();
       migrated = true;
     }
     // Eski TR risk değerlerini canonical'a çevir
@@ -573,11 +595,61 @@ function reactivateChannelRecord(id, reason = 'restore') {
   return wasOff;
 }
 
-function addChannel(chat, addedBy = 'auto') {
+function initialChannelLang(adderUserId) {
+  const { getBotDefaultLang, normalizeLang } = require('./i18n');
+  if (adderUserId) {
+    try {
+      const users = require('./users');
+      const u = users.getLang(adderUserId);
+      if (u && u !== 'en') return normalizeLang(u);
+    } catch (_) { /* yoksay */ }
+  }
+  return getBotDefaultLang();
+}
+
+/** Kanal kartı / yorum dili — BOT_LANG → kanal ayarı (elle seçildiyse) → ekleme yapan admin. */
+function resolveCardLang(channel, opts = {}) {
+  const { getBotDefaultLang, normalizeLang } = require('./i18n');
+  const s = channel?.settings;
+  if (!s) return getBotDefaultLang();
+  if (s.langUserChosen) return normalizeLang(s.lang);
+
+  if (process.env.BOT_LANG || process.env.BOT_DEFAULT_LANG) {
+    return getBotDefaultLang();
+  }
+
+  const hintId = opts.userId || opts.adderUserId;
+  if (hintId) {
+    try {
+      const users = require('./users');
+      const ul = users.getLang(hintId);
+      if (ul) return normalizeLang(ul);
+    } catch (_) { /* yoksay */ }
+  }
+
+  const adminRaw = String(process.env.ADMIN_USER_ID || '').trim();
+  if (adminRaw) {
+    try {
+      const users = require('./users');
+      for (const aid of adminRaw.split(/[,;\s]+/)) {
+        const ul = users.getLang(aid.trim());
+        if (ul) return normalizeLang(ul);
+      }
+    } catch (_) { /* yoksay */ }
+  }
+
+  return normalizeLang(s.lang || getBotDefaultLang());
+}
+
+function addChannel(chat, addedBy = 'auto', adderUserId = null) {
   const id = String(chat.id);
   const existed = Boolean(cache.channels[id]);
   const prev = cache.channels[id];
   const wasArchived = Boolean(prev?.archivedAt);
+  const settings = prev?.settings ? { ...prev.settings } : { ...DEFAULT_SETTINGS };
+  if (!existed && !settings.langUserChosen) {
+    settings.lang = initialChannelLang(adderUserId);
+  }
   cache.channels[id] = {
     id,
     title: chat.title || chat.username || 'Bilinmiyor',
@@ -585,9 +657,10 @@ function addChannel(chat, addedBy = 'auto') {
     type: chat.type,
     addedAt: prev?.addedAt || new Date().toISOString(),
     addedBy,
+    adderUserId: adderUserId || prev?.adderUserId || null,
     lastError: null,
     archivedAt: null,
-    settings: prev?.settings || { ...DEFAULT_SETTINGS },
+    settings,
   };
   delete cache.channels[id].leftReason;
   if (wasArchived) {
@@ -696,6 +769,12 @@ module.exports = {
       save(cache);
       return true;
     }
+    if (key === 'lang') {
+      cache.channels[id].settings.lang = normalizeLang(value);
+      cache.channels[id].settings.langUserChosen = true;
+      save(cache);
+      return true;
+    }
     cache.channels[id].settings[key] = value;
     save(cache);
     return true;
@@ -773,6 +852,9 @@ module.exports = {
   reactivateChannelRecord,
   purgeChannel,
   isChatUnavailableError,
+  resolveCardLang,
+  initialChannelLang,
+  syncCardLangFromBot,
   getChannelIdsForEnv,
 
   tokenPassesChannelFilters,

@@ -643,7 +643,7 @@ function registerWatch(token, audit, channelMessages) {
 }
 
 async function shareTokenToChannel(ch, token, audit, opts = {}) {
-  const chLang = ch.settings?.lang || DEFAULT_LANG;
+  const chLang = channels.resolveCardLang(ch);
   const isCritical = audit.isCritical === true;
   const isRisky = !isCritical && (audit.risk.code === 'HIGH' || audit.risk.code === 'MEDIUM');
   const cardLevel = isCritical ? 'critical' : (isRisky ? 'yellow' : 'green');
@@ -1040,7 +1040,7 @@ bot.on('my_chat_member', async (upd) => {
     && ['left', 'kicked'].includes(oldStatus);
 
   if (joinedChannel) {
-    const { added, channel: chRec } = channels.add(chat, upd.from?.username || 'auto');
+    const { added, channel: chRec } = channels.add(chat, upd.from?.username || 'auto', upd.from?.id);
     console.log(`➕ ${chat.title || chat.id} (${chat.type}) — Toplam: ${channels.count().total}${added ? '' : ' (zaten kayıtlı)'}`);
     if (added) await notifyAdminsChannelBackup(chat.id, chat.title, { isNew: true });
 
@@ -1418,6 +1418,7 @@ async function main() {
   if (rediscover.added > 0) {
     console.log(`[channels] açılış keşfi: +${rediscover.added} kanal (${rediscover.before} → ${rediscover.after})`);
   }
+  channels.syncCardLangFromBot();
   channels.logBootSummary();
   const chTotal = channels.count().total;
   if (chTotal === 0 && ADMIN_IDS.length) {
