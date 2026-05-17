@@ -97,9 +97,9 @@ async function verifyHeliusRpc() {
     return false;
   }
 
-  if (key.length < 20) {
+  if (key.length < 32) {
     console.error(
-      `[env] ❌ HELIUS_API_KEY çok kısa (${key.length} karakter, önek ${keyFingerprint(key)}) — Project ID değil, API Key yapıştırın`,
+      `[env] ❌ HELIUS_API_KEY çok kısa (${key.length} karakter) — dashboard API Keys tablosundan tam UUID kopyalayın`,
     );
     return false;
   }
@@ -115,7 +115,7 @@ async function verifyHeliusRpc() {
       console.error(
         `[env] ❌ HELIUS_API_KEY geçersiz (RPC ${slot.status}) — önek ${keyFingerprint(key)}`,
       );
-      console.error('[env]    1) dashboard.helius.dev → API Keys → Create New API Key → hemen kopyala');
+      console.error('[env]    1) dashboard.helius.dev → API Keys → satırdaki UUID (Key ID) → kopyala');
       console.error('[env]    2) Railway → HELIUS_API_KEY = sadece key (tırnak yok)');
       console.error('[env]    3) SOLANA_RPC_URL değişkenini sil');
       console.error('[env]    4) Redeploy — veya PC: node scripts/verify-helius.js');
