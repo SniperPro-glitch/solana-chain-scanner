@@ -78,7 +78,7 @@ const DEFAULT_SETTINGS = {
   welcomeMessageId: null,      // Welcome message id when bot added
   lang: 'en',                  // 'en' / 'tr' / 'ru'
   // ─ Chain (ağ) seçimi — her kanal tek ağ dinler. null = seçilmedi (bot mesaj atmaz) ─
-  chains: ['solana'],          // Bu projede yalnızca Solana
+  chains: null,                // null = DM'de ◎ Solana seçilene kadar paylaşım yok (TON ile aynı)
   // ─ Yeni filtreler ─
   minHolders: 0,               // 0 = sınır yok; 30/50/100 önerilir
   minAuditScore: 0,            // 0 = sınır yok; 60/70/80 (skor 0-100)
@@ -170,7 +170,7 @@ for (const id of Object.keys(cache.channels)) {
     // chains alanı yoksa: eski kanal → varsayılan TON (geriye uyumluluk).
     // Sadece bu migration sırasında set edilir; yeni eklenen kanallarda null kalır.
     if (!('chains' in ch.settings)) {
-      ch.settings.chains = ['solana'];
+      ch.settings.chains = null;
       migrated = true;
     }
   }
@@ -351,6 +351,9 @@ module.exports = {
     };
     const n = normalizeChainsSetting(cache.channels[id].settings.chains);
     if (n.changed) cache.channels[id].settings.chains = n.chains;
+    if (!existed) {
+      cache.channels[id].settings.chains = null;
+    }
     save(cache);
     return { added: !existed, channel: cache.channels[id] };
   },

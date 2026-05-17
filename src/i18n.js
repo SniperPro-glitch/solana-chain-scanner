@@ -507,9 +507,9 @@ const STRINGS = {
   'settings.chain': { en: '🌐 Network', tr: '🌐 Ağ', ru: '🌐 Сеть' },
   'settings.chain.none': { en: 'not set', tr: 'seçilmedi', ru: 'не выбрана' },
   'settings.chain.menu.title': {
-    en: '🌐 *Select the network this channel will listen to*\nThe bot posts tokens only from the selected network.',
-    tr: '🌐 *Bu kanalın dinleyeceği ağı seçin*\nBot sadece seçtiğiniz ağdaki tokenleri paylaşır.',
-    ru: '🌐 *Выберите сеть для этого канала*\nБот публикует токены только из выбранной сети.',
+    en: '🌐 *Select the network for this channel*\nThis bot shares tokens on *Solana* only — confirm below.',
+    tr: '🌐 *Bu kanalın ağını seçin*\nBu bot yalnızca *Solana* ağında paylaşım yapar — aşağıdan onaylayın.',
+    ru: '🌐 *Выберите сеть для канала*\nБот публикует только в сети *Solana* — подтвердите ниже.',
   },
   'settings.chain.saved': { en: 'Network saved.', tr: 'Ağ kaydedildi.', ru: 'Сеть сохранена.' },
   'settings.chain.sanitizedMulti': {
@@ -521,9 +521,9 @@ const STRINGS = {
       '⚠️ *Неверный список сетей*\nБот поддерживает *только Solana*. Список исправлен на *{kept}*. Удалено: {removed}.\n_(В channels.json: ["solana"].)_',
   },
   'settings.chain.required': {
-    en: '⚠️ Solana network must be enabled for this channel.',
-    tr: '⚠️ Bu kanal için Solana ağı etkin olmalıdır.',
-    ru: '⚠️ Для этого канала должна быть включена сеть Solana.',
+    en: '⚠️ Please select a network first — the bot will not post until you choose Solana.',
+    tr: '⚠️ Önce ağ seçimi yapınız — ◎ Solana seçene kadar bot mesaj atmaz.',
+    ru: '⚠️ Сначала выберите сеть — бот не будет публиковать, пока не выберете Solana.',
   },
   'settings.filterHeader': {
     en: '⚙️ *Configure the bot\'s filter settings*',

@@ -62,7 +62,7 @@ function buildMainMenu(chatId) {
   // ─ Chain (ağ) etiketi — seçilen tek ağ ya da 'seçilmedi' ─
   const chList = Array.isArray(s.chains) ? s.chains : [];
   const chainLabel = '◎ Solana';
-  const chainSet = chList.includes('solana') || chList.length === 0;
+  const chainSet = chList.includes('solana');
 
   const riskCodeMap = { VERY_LOW: 'risk.veryLow', LOW: 'risk.low', MEDIUM: 'risk.medium', HIGH: 'risk.high' };
   const riskLabel = t(riskCodeMap[channels.normalizeRisk(s.maxRiskLevel)] || 'risk.high', lang);
@@ -858,14 +858,17 @@ function buildLangMenu(chatId) {
   };
 }
 
-// ─ Chain (ağ) seçim menüsü — tek seçim radio (TON ya da BSC)
+// ─ Chain (ağ) — yalnızca Solana (TON'daki TON/BSC menüsünün Solana karşılığı)
 function buildChainMenu(chatId) {
+  const s = channels.getSettings(chatId);
   const lang = L(chatId);
-  channels.updateSetting(chatId, 'chains', ['solana']);
+  const chList = Array.isArray(s.chains) ? s.chains : [];
+  const cur = chList.includes('solana') ? 'solana' : null;
+  const mark = (code) => (cur === code ? '✅ ' : '');
   return {
-    text: `${PANEL_RULE}\n◎ *Solana*\n\n${lang === 'tr' ? 'Bu bot yalnızca Solana ağını destekler.' : 'This bot supports Solana only.'}`,
+    text: `${PANEL_RULE}\n${t('settings.chain.menu.title', lang)}`,
     keyboard: [
-      [{ text: '✅ ◎ Solana', callback_data: 'set:chain:solana' }],
+      [{ text: `${mark('solana')}◎ Solana`, callback_data: 'set:chain:solana' }],
       [{ text: t('settings.back', lang), callback_data: 'menu:main' }],
     ],
   };
@@ -991,8 +994,9 @@ function handleCallback(data, chatId) {
 
     // chain (ağ) change — tek seçim, diğer ağları temizle
     if (key === 'chain') {
+      if (value !== 'solana') return { toast: '?' };
       channels.updateSetting(chatId, 'chains', ['solana']);
-      return { menu: 'main', toast: '◎ Solana' };
+      return { menu: 'main', toast: t('settings.chain.saved', lang) };
     }
 
     channels.updateSetting(chatId, key, value);

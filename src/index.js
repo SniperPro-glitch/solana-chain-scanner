@@ -283,6 +283,8 @@ const pendingPost = new Map();
 const POST_TTL_MS = 10 * 60 * 1000;
 const dmTarget = new Map();
 const pendingBannerUpload = new Map();
+/** Kanal butonundan geldi; dil seçilince bu kanalın ayar paneli açılır (TON akışı). */
+const pendingChannelAfterLang = new Map();
 
 function setPendingPost(userId, data) {
   pendingPost.set(String(userId), { ...data, expiresAt: Date.now() + POST_TTL_MS });
@@ -552,19 +554,39 @@ bindTextCommand(/^\/ping(@\w+)?$/i, async (msg) => {
   await bot.sendMessage(msg.chat.id, '🏓 pong — bot çalışıyor');
 });
 
+async function openDmChannelSettings(dmChatId, userId, channelId) {
+  const targetId = String(channelId);
+  const ch = channels.get(targetId);
+  const lang = users.getLang(userId) || ch?.settings?.lang || DEFAULT_LANG;
+  if (!ch) {
+    return bot.sendMessage(dmChatId, t('cmd.channelNotFound', lang));
+  }
+  if (!(await isChatAdmin(targetId, userId))) {
+    return bot.sendMessage(dmChatId, t('cmd.notChannelAdmin', lang));
+  }
+  setDmTarget(userId, targetId);
+  const welcomeId = ch.settings?.welcomeMessageId;
+  if (welcomeId) {
+    bot.deleteMessage(targetId, welcomeId).catch(() => {});
+    channels.updateSetting(targetId, 'welcomeMessageId', null);
+  }
+  const { text, keyboard } = settingsUI.renderMenu('main', targetId);
+  const composed = `${t('cmd.settingsFor', lang, { name: ch.title })}\n\n${text}`;
+  return sendSettingsWithBanner(dmChatId, composed, keyboard);
+}
+
 async function handleSettings(msg) {
   const lang = langForMsg(msg);
   const uid = actorUserId(msg);
 
   if (msg.chat.type !== 'private') {
-    if (!(await canManageChat(msg))) {
-      return bot.sendMessage(msg.chat.id, t('cmd.adminOnly', lang));
-    }
-    if (!channels.get(msg.chat.id)) channels.add(msg.chat, msg.from?.username || 'channel');
-    channels.updateSetting(msg.chat.id, 'chains', ['solana']);
-    if (uid) setDmTarget(uid, msg.chat.id);
-    const { text, keyboard } = settingsUI.renderMenu('main', msg.chat.id);
-    return sendSettingsWithBanner(msg.chat.id, text, keyboard);
+    return bot.sendMessage(
+      msg.chat.id,
+      lang === 'tr'
+        ? '⚙️ Ayarlar özel mesajda açılır. Kanaldaki *Ayarları aç (DM)* butonuna basın.'
+        : '⚙️ Settings open in DM. Use the *Open Settings (DM)* button in the channel.',
+      { parse_mode: 'Markdown' },
+    );
   }
 
   if (!uid) {
@@ -600,25 +622,21 @@ bindTextCommand(/^\/start(@\w+)?(\s+(.+))?$/, async (msg, match) => {
 
   const param = (match && match[3] || '').trim();
   if (param.startsWith('settings_') && msg.chat.type === 'private') {
-    const targetId = parseInt(param.slice('settings_'.length), 10);
-    if (!isNaN(targetId)) {
-      const ch = channels.get(targetId);
-      const lang = langForMsg(msg);
-      if (!ch) {
-        return bot.sendMessage(msg.chat.id, t('cmd.channelNotFound', lang));
+    const targetId = param.slice('settings_'.length).trim();
+    if (targetId) {
+      if (!users.getLang(msg.from.id)) {
+        pendingChannelAfterLang.set(String(msg.from.id), targetId);
+        return bot.sendMessage(msg.chat.id, t('welcome.langPick', 'en'), {
+          reply_markup: {
+            inline_keyboard: [[
+              { text: '🇬🇧 English', callback_data: 'startlang:en' },
+              { text: '🇹🇷 Türkçe', callback_data: 'startlang:tr' },
+              { text: '🇷🇺 Русский', callback_data: 'startlang:ru' },
+            ]],
+          },
+        });
       }
-      if (!(await isChatAdmin(targetId, msg.from.id))) {
-        return bot.sendMessage(msg.chat.id, t('cmd.notChannelAdmin', lang));
-      }
-      setDmTarget(msg.from.id, targetId);
-      const welcomeId = ch.settings?.welcomeMessageId;
-      if (welcomeId) {
-        bot.deleteMessage(targetId, welcomeId).catch(() => {});
-        channels.updateSetting(targetId, 'welcomeMessageId', null);
-      }
-      const { text, keyboard } = settingsUI.renderMenu('main', targetId);
-      const composed = `${t('cmd.settingsFor', lang, { name: ch.title })}\n\n${text}`;
-      return sendSettingsWithBanner(msg.chat.id, composed, keyboard);
+      return openDmChannelSettings(msg.chat.id, msg.from.id, targetId);
     }
   }
 
@@ -635,7 +653,7 @@ bindTextCommand(/^\/start(@\w+)?(\s+(.+))?$/, async (msg, match) => {
   }
 
   const lang = langForMsg(msg);
-  await bot.sendMessage(msg.chat.id, t('welcome.start', lang), { parse_mode: 'HTML' });
+  await bot.sendMessage(msg.chat.id, t('welcome.start', lang), { parse_mode: 'Markdown' });
 });
 
 bindTextCommand(/^\/post(@\w+)?(?:\s+([\s\S]+))?$/, async (msg, match) => {
@@ -707,8 +725,7 @@ bot.on('my_chat_member', async (upd) => {
 
   if (['administrator', 'member'].includes(newStatus) && !['administrator', 'member'].includes(oldStatus)) {
     channels.add(chat, upd.from?.username || 'auto');
-    channels.updateSetting(chat.id, 'chains', ['solana']);
-    console.log(`➕ ${chat.title || chat.id} (${chat.type})`);
+    console.log(`➕ ${chat.title || chat.id} (${chat.type}) — Toplam: ${channels.count().total}`);
 
     if (newStatus === 'administrator' && chat.type !== 'private') {
       const channelName = chat.title || 'Channel';
@@ -759,14 +776,26 @@ bot.on('callback_query', async (cb) => {
   const isDM = cb.message?.chat?.type === 'private';
 
   if (cb.data?.startsWith('startlang:')) {
-    const code = cb.data.slice('startlang:'.length);
+    const code = normalizeLang(cb.data.slice('startlang:'.length));
     users.setLang(userId, code);
-    await bot.editMessageText(t('welcome.langSet', code), {
+    const pendingCh = pendingChannelAfterLang.get(String(userId));
+    if (pendingCh) {
+      pendingChannelAfterLang.delete(String(userId));
+      channels.updateSetting(pendingCh, 'lang', code);
+      await bot.editMessageText(t('welcome.langSet', code), {
+        chat_id: fromChatId,
+        message_id: cb.message.message_id,
+      }).catch(() => {});
+      await bot.answerCallbackQuery(cb.id, { text: t('welcome.langSet', code) });
+      return openDmChannelSettings(fromChatId, userId, pendingCh);
+    }
+    const newText = `${t('welcome.langSet', code)}\n\n${t('welcome.start', code)}`;
+    await bot.editMessageText(newText, {
       chat_id: fromChatId,
       message_id: cb.message.message_id,
+      parse_mode: 'Markdown',
     }).catch(() => {});
-    await bot.sendMessage(fromChatId, t('welcome.start', code), { parse_mode: 'HTML' });
-    return bot.answerCallbackQuery(cb.id);
+    return bot.answerCallbackQuery(cb.id, { text: t('welcome.langSet', code) });
   }
 
   if (cb.data?.startsWith('pickchat:')) {
