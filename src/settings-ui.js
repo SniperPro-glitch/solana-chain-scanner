@@ -287,28 +287,23 @@ function buildCatChannel(chatId) {
     : lang === 'ru'
       ? '_Откуда и как публикуются токены._'
       : '_Where & how tokens are shared._';
-  const dexHintTon = lang === 'tr'
-    ? '🏛 *İzinli DEX’ler* — TON: DeDust, STON.fi'
+  const dexHintSol = lang === 'tr'
+    ? '🏛 *İzinli DEX’ler* — Solana: Raydium, Orca, Meteora, Jupiter…'
     : lang === 'ru'
-      ? '🏛 *Разрешённые DEX* — TON: DeDust, STON.fi'
-      : '🏛 *Allowed DEXes* — TON: DeDust, STON.fi';
-  const dexHintBsc = lang === 'tr'
-    ? '🏛 *İzinli DEX’ler* — BSC: PancakeSwap, BiSwap, … (DexScreener)'
-    : lang === 'ru'
-      ? '🏛 *Разрешённые DEX* — BSC: PancakeSwap, BiSwap, … (DexScreener)'
-      : '🏛 *Allowed DEXes* — BSC: PancakeSwap, BiSwap, … (DexScreener)';
+      ? '🏛 *DEX* — Solana: Raydium, Orca, Meteora, Jupiter…'
+      : '🏛 *Allowed DEXes* — Solana: Raydium, Orca, Meteora, Jupiter…';
   const hints = lang === 'tr'
     ? [
-        dexHintBsc,
+        dexHintSol,
         '🔕 *Sessiz Bildirim* — sessiz post (titreşim/ses yok)',
       ]
     : lang === 'ru'
       ? [
-          dexHintBsc,
+          dexHintSol,
           '🔕 *Тихое уведомление* — без звука/вибрации',
         ]
       : [
-          dexHintBsc,
+          dexHintSol,
           '🔕 *Silent Notification* — post without sound',
         ];
   const text =

@@ -2,7 +2,7 @@
 
 const { t, normalizeLang } = require('./i18n');
 const { buildAnalysisCommentBody } = require('./analysis');
-const { botLogoHtml } = require('./emojiPack');
+const { botLogoHtml, customEmojiHtml } = require('./emojiPack');
 const { formatContractSecurityBlock } = require('./contractSecurityBlock');
 const { formatLinksTradeBlock, DIVIDER } = require('./commentLinksTrade');
 
@@ -18,12 +18,33 @@ function dividerBlock(body) {
   return `${DIVIDER}\n${bodyStr}`;
 }
 
+/** YEŞİL/SARI/KIRMIZI kart açıklaması (slim kartta üstte yok; bot yorumunda). */
+function formatRatingBlock(token, lang = 'en', level = 'green') {
+  const L = normalizeLang(lang);
+  const chain = token?.chain || 'solana';
+  const ce = (emoji) => customEmojiHtml(emoji, chain);
+  const ratingKey = (level === 'yellow' || level === 'critical' || level === 'red') ? level : 'green';
+  const ratingDot = ratingKey === 'green' ? ce('🟢')
+    : ratingKey === 'yellow' ? ce('🟡')
+      : ratingKey === 'critical' ? ce('🟠')
+        : ce('🔴');
+  const prefix = chain === 'solana' ? 'sol' : (chain === 'bsc' ? 'bsc' : 'ton');
+  return [
+    `${ratingDot} ${t(`${prefix}.rating.${ratingKey}.header`, L)}`,
+    t(`${prefix}.rating.${ratingKey}.body`, L),
+    t(`${prefix}.rating.signature`, L),
+  ].join('\n');
+}
+
 /** Tam kanal yorum gövdesi (üst başlık: $SYMBOL ayrı eklenir). */
-function formatChannelComment(token, audit, lang = 'en') {
+function formatChannelComment(token, audit, lang = 'en', level = 'green') {
   if (!token || !audit) return '';
   const L = normalizeLang(lang);
   const chain = token.chain || 'solana';
   const blocks = [];
+
+  const rating = formatRatingBlock(token, L, level);
+  if (rating) blocks.push(rating);
 
   const analysisBody = buildAnalysisCommentBody(token, audit, L, {
     includeAuditWarnings: false,
@@ -45,4 +66,5 @@ function formatChannelComment(token, audit, lang = 'en') {
 
 module.exports = {
   formatChannelComment,
+  formatRatingBlock,
 };

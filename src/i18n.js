@@ -210,6 +210,51 @@ const STRINGS = {
     en: '<i>— BSC SCANNER BOT MESSAGE</i>',
     ru: '<i>— BSC SCANNER BOT СООБЩЕНИЕ</i>',
   },
+  'sol.rating.green.header': {
+    tr: '<b>Bu Token YEŞİL kart ile derecelendirildi.</b>',
+    en: '<b>This token has been rated as a GREEN card.</b>',
+    ru: '<b>Этот токен оценён как ЗЕЛЁНАЯ карта.</b>',
+  },
+  'sol.rating.green.body': {
+    tr: 'Yeşil kart, Solana ağında neredeyse tüm testlerden geçmiş, olumlu sonuçlar elde etmiş tokenlerde paylaşılır.',
+    en: 'A green card is shared on Solana only for tokens that passed nearly all checks with positive results.',
+    ru: 'Зелёная карта на Solana — только для токенов, прошедших почти все проверки с положительным результатом.',
+  },
+  'sol.rating.yellow.header': {
+    tr: '<b>Bu Token SARI kart ile derecelendirildi.</b>',
+    en: '<b>This token has been rated as a YELLOW card.</b>',
+    ru: '<b>Этот токен оценён как ЖЁЛТАЯ карта.</b>',
+  },
+  'sol.rating.yellow.body': {
+    tr: 'Sarı kart, Solana’da düşük-orta seviye risk işaretleri tespit edilen tokenlerde paylaşılır. Yatırım öncesi inceleme önerilir.',
+    en: 'A yellow card is shared on Solana for tokens with low-to-medium risk signals. Review recommended before investing.',
+    ru: 'Жёлтая карта на Solana — токены с низкими-средними признаками риска. Рекомендуется проверить перед инвестированием.',
+  },
+  'sol.rating.critical.header': {
+    tr: '<b>Bu Token KRİTİK kart ile derecelendirildi.</b>',
+    en: '<b>This token has been rated as a CRITICAL card.</b>',
+    ru: '<b>Этот токен оценён как КРИТИЧЕСКАЯ карта.</b>',
+  },
+  'sol.rating.critical.body': {
+    tr: 'Kritik kart, Solana’da yüksek seviye risk testlerinde olumsuz sonuç vermiş tokenlerde paylaşılır. Yatırım öncesi dikkat ediniz.',
+    en: 'A critical card is shared on Solana for tokens that failed high-level risk checks. Exercise caution before investing.',
+    ru: 'Критическая карта на Solana — токены, не прошедшие высокоуровневые проверки. Будьте осторожны.',
+  },
+  'sol.rating.red.header': {
+    tr: '<b>Bu Token KIRMIZI kart ile derecelendirildi.</b>',
+    en: '<b>This token has been rated as a RED card.</b>',
+    ru: '<b>Этот токен оценён как КРАСНАЯ карта.</b>',
+  },
+  'sol.rating.red.body': {
+    tr: 'Kırmızı kart, Solana’da testleri karşılayamamış scam/rug-pull belirtileri taşıyan tokenlerde paylaşılır. Yatırım yapmayın.',
+    en: 'A red card is shared on Solana for tokens that failed checks and show scam/rug-pull signals. Do not invest.',
+    ru: 'Красная карта на Solana — токены с признаками scam/rug-pull. Не инвестируйте.',
+  },
+  'sol.rating.signature': {
+    tr: '<i>— SOLANA SCANNER BOT MESAJI</i>',
+    en: '<i>— SOLANA SCANNER BOT MESSAGE</i>',
+    ru: '<i>— SOLANA SCANNER BOT СООБЩЕНИЕ</i>',
+  },
   'card.advice.critical': {
     en: 'CRITICAL risk — buying this token is EXTREMELY dangerous. Single wallet dominates supply, rug-pull risk very high.',
     tr: 'KRİTİK risk — bu tokene girmek ÇOK tehlikeli. Tek cüzdan supply\'ı domine ediyor, rug riski çok yüksek.',
@@ -402,37 +447,37 @@ const STRINGS = {
   },
   'settings.intel.body': {
     en:
-      '*Live checks (BSC)*\n' +
-      '• *Honeypot.is* — buy/sell simulation and tax hints\n' +
-      '• *GoPlus* — Token Security API (free tier, no API key)\n' +
-      '• *BscScan* — contract verified flag when an API key is set on the host\n\n' +
+      '*Live checks (Solana)*\n' +
+      '• *DexScreener* — price, liquidity, volume, pool age\n' +
+      '• *SPL mint/freeze* — authority flags (RPC / Helius when configured)\n' +
+      '• *Holder distribution* — top holder / top 10 concentration\n\n' +
       '*On-chain extras (when available)*\n' +
-      '• LP burn / lock signals\n' +
+      '• LP burn / lock hints from pool metadata\n' +
       '• Early-buyer cluster (sybil-style) hints\n\n' +
       '*Posts*\n' +
-      '• Risk-coloured cards, then a separate *bot analysis* message with tool links (Bubblemaps, GoPlus UI, etc.)\n\n' +
+      '• Risk-coloured cards, then a separate *bot analysis* message (Jupiter, Solscan, DexScreener links)\n\n' +
       '_Information only. Not financial advice — DYOR._',
     tr:
-      '*Canlı kontroller (BSC)*\n' +
-      '• *Honeypot.is* — al/sat simülasyonu ve vergi ipuçları\n' +
-      '• *GoPlus* — Token Security API (ücretsiz katman, API anahtarı yok)\n' +
-      '• *BscScan* — kontrat doğrulama (sunucuda API key varsa)\n\n' +
+      '*Canlı kontroller (Solana)*\n' +
+      '• *DexScreener* — fiyat, likidite, hacim, havuz yaşı\n' +
+      '• *SPL mint/freeze* — yetki bayrakları (RPC / Helius yapılandırıldıysa)\n' +
+      '• *Holder dağılımı* — en büyük holder / top 10 yoğunluğu\n\n' +
       '*Zincir üstü ekler (veri varsa)*\n' +
-      '• LP yakım / kilit sinyalleri\n' +
+      '• LP yakım / kilit ipuçları\n' +
       '• Erken alıcı kümesi (sybil tarzı) ipuçları\n\n' +
       '*Paylaşımlar*\n' +
-      '• Risk renkli kartlar, ardından ayrı *bot analizi* mesajı ve araç linkleri (Bubblemaps, GoPlus arayüzü vb.)\n\n' +
+      '• Risk renkli kartlar, ardından ayrı *bot analizi* (Jupiter, Solscan, DexScreener linkleri)\n\n' +
       '_Bilgilendirme amaçlıdır. Yatırım tavsiyesi değildir — DYOR._',
     ru:
-      '*Проверки в реальном времени (BSC)*\n' +
-      '• *Honeypot.is* — симуляция покупки/продажи и налоги\n' +
-      '• *GoPlus* — Token Security API (бесплатный уровень, без ключа)\n' +
-      '• *BscScan* — верификация контракта при наличии API-ключа на сервере\n\n' +
+      '*Проверки в реальном времени (Solana)*\n' +
+      '• *DexScreener* — цена, ликвидность, объём, возраст пула\n' +
+      '• *SPL mint/freeze* — флаги authority (RPC / Helius при настройке)\n' +
+      '• *Распределение холдеров* — топ holder / top 10\n\n' +
       '*On-chain (если есть данные)*\n' +
-      '• Сжигание / блокировка LP\n' +
-      '• Подсказки по кластерам покупателей (sybil)\n\n' +
+      '• Подсказки по сжиганию / блокировке LP\n' +
+      '• Кластеры ранних покупателей (sybil)\n\n' +
       '*Посты*\n' +
-      '• Карточки по риску, затем отдельное сообщение *анализа бота* и ссылки на инструменты\n\n' +
+      '• Карточки по риску, затем отдельное сообщение *анализа бота* (Jupiter, Solscan, DexScreener)\n\n' +
       '_Только информация. Не финансовый совет — DYOR._',
   },
   'settings.pickChannel': { en: 'Pick a channel to configure:', tr: 'Ayarlamak için bir kanal seç:', ru: 'Выберите канал для настройки:' },
@@ -469,16 +514,16 @@ const STRINGS = {
   'settings.chain.saved': { en: 'Network saved.', tr: 'Ağ kaydedildi.', ru: 'Сеть сохранена.' },
   'settings.chain.sanitizedMulti': {
     en:
-      '⚠️ *Invalid network list*\nThis bot runs *one chain per channel*. Several networks were set at once; only *{kept}* is kept now. Removed: {removed}.\n_(If you edit channels.json by hand, keep a single entry: ["ton"] or ["bsc"].)_',
+      '⚠️ *Invalid network list*\nThis bot supports *Solana only*. The channel list was corrected to *{kept}*. Removed: {removed}.\n_(In channels.json use: ["solana"].)_',
     tr:
-      '⚠️ *Geçersiz ağ listesi*\nBu bot *tek kanalda tek zincir* çalıştırır. Aynı anda birden fazla ağ yazılmış; yalnızca *{kept}* bırakıldı. Silinenler: {removed}.\n_(channels.json elle düzenleniyorsa yalnızca ["ton"] veya ["bsc"] kullanın.)_',
+      '⚠️ *Geçersiz ağ listesi*\nBu bot *yalnızca Solana* destekler. Kanal listesi *{kept}* olarak düzeltildi. Silinenler: {removed}.\n_(channels.json: ["solana"])_',
     ru:
-      '⚠️ *Неверный список сетей*\nБот работает *с одной сетью на канал*. Было указано несколько сетей; оставлена только *{kept}*. Удалено: {removed}.\n_(При ручном редактировании channels.json оставьте одну запись: ["ton"] или ["bsc"].)_',
+      '⚠️ *Неверный список сетей*\nБот поддерживает *только Solana*. Список исправлен на *{kept}*. Удалено: {removed}.\n_(В channels.json: ["solana"].)_',
   },
   'settings.chain.required': {
-    en: '⚠️ Please select a network first — the bot will not post until you choose TON or BSC.',
-    tr: '⚠️ Önce ağ seçimi yapınız — TON veya BSC seçene kadar bot mesaj atmaz.',
-    ru: '⚠️ Сначала выберите сеть — бот не будет публиковать, пока не выберете TON или BSC.',
+    en: '⚠️ Solana network must be enabled for this channel.',
+    tr: '⚠️ Bu kanal için Solana ağı etkin olmalıdır.',
+    ru: '⚠️ Для этого канала должна быть включена сеть Solana.',
   },
   'settings.filterHeader': {
     en: '⚙️ *Configure the bot\'s filter settings*',
@@ -536,9 +581,14 @@ const STRINGS = {
 
   'settings.dex.title': { en: '🏛 DEX filter', tr: '🏛 DEX filtresi', ru: '🏛 Фильтр DEX' },
   'settings.dex.hintBsc': {
-    en: '_Empty = all BSC DEXes on DexScreener. Check to allow only selected venues._',
-    tr: '_Boş = tüm BSC DEX’leri (DexScreener). İşaretlersen sadece seçilenler._',
-    ru: '_Пусто = все DEX BSC. Иначе только отмеченные._',
+    en: '_Empty = all Solana DEXes on DexScreener. Check to allow only selected venues._',
+    tr: '_Boş = tüm Solana DEX’leri (DexScreener). İşaretlersen sadece seçilenler._',
+    ru: '_Пусто = все DEX Solana. Иначе только отмеченные._',
+  },
+  'settings.dex.hintSol': {
+    en: '_Empty = all Solana DEXes on DexScreener. Check to allow only selected venues._',
+    tr: '_Boş = tüm Solana DEX’leri (DexScreener). İşaretlersen sadece seçilenler._',
+    ru: '_Пусто = все DEX Solana. Иначе только отмеченные._',
   },
   'settings.dex.hintTon': {
     en: '_Empty = both TON DEXes. Check to restrict to one._',
@@ -629,9 +679,9 @@ const STRINGS = {
 
   // ─── Welcome ───
   'welcome.short': {
-    en: 'Hi! I scan new TON tokens and post the ones that pass your filters.',
-    tr: 'Selam! TON üzerindeki yeni tokenleri tarayıp filtrene uyanları yayınlıyorum.',
-    ru: 'Привет! Я сканирую новые токены TON и публикую те, что проходят ваши фильтры.',
+    en: 'Hi! I scan new Solana tokens and post the ones that pass your filters.',
+    tr: 'Selam! Solana’daki yeni tokenleri tarayıp filtrene uyanları yayınlıyorum.',
+    ru: 'Привет! Я сканирую новые токены Solana и публикую те, что проходят ваши фильтры.',
   },
   'welcome.added': {
     en: '✅ *{name}* — successfully added.\n\nManage settings using the button below.',
@@ -639,9 +689,9 @@ const STRINGS = {
     ru: '✅ *{name}* — успешно добавлен.\n\nНастройки управляются кнопкой ниже.',
   },
   'welcome.start': {
-    en: '👋 *TON Chain Scanner*\n\nI automatically discover and audit new tokens on the TON network and share them with the channels/groups I am added to.\n\n*Quick start:*\n1. Add me to your channel as admin\n2. Tap the *“Open Settings”* button when I send the welcome message\n3. Configure your filters there\n\n*Commands:* /settings /ping /stats',
-    tr: '👋 *TON Chain Scanner*\n\nTON ağındaki yeni tokenleri otomatik olarak bulup denetler ve eklendiğim kanal/gruplara paylaşırım.\n\n*Hızlı başlangıç:*\n1. Bu botu kanalına admin olarak ekle\n2. Eklendiğimde gelen mesajdaki *“Ayarları aç”* butonuna bas\n3. Buradan ayarları düzenle\n\n*Komutlar:* /settings /ping /stats',
-    ru: '👋 *TON Chain Scanner*\n\nЯ автоматически нахожу и проверяю новые токены в сети TON и делюсь ими в каналах/группах, куда меня добавили.\n\n*Быстрый старт:*\n1. Добавьте меня в канал как администратора\n2. Нажмите кнопку *«Открыть настройки»* в приветственном сообщении\n3. Настройте фильтры\n\n*Команды:* /settings /ping /stats',
+    en: '👋 *Solana Chain Scanner*\n\nI automatically discover and audit new tokens on the Solana network and share them with the channels/groups I am added to.\n\n*Quick start:*\n1. Add me to your channel as admin\n2. Tap the *“Open Settings”* button when I send the welcome message\n3. Configure your filters there\n\n*Commands:* /settings /ping /stats /post',
+    tr: '👋 *Solana Chain Scanner*\n\nSolana ağındaki yeni tokenleri otomatik olarak bulup denetler ve eklendiğim kanal/gruplara paylaşırım.\n\n*Hızlı başlangıç:*\n1. Bu botu kanalına admin olarak ekle\n2. Eklendiğimde gelen mesajdaki *“Ayarları aç”* butonuna bas\n3. Buradan ayarları düzenle\n\n*Komutlar:* /settings /ping /stats /post',
+    ru: '👋 *Solana Chain Scanner*\n\nЯ автоматически нахожу и проверяю новые токены в сети Solana и делюсь ими в каналах/группах, куда меня добавили.\n\n*Быстрый старт:*\n1. Добавьте меня в канал как администратора\n2. Нажмите кнопку *«Открыть настройки»* в приветственном сообщении\n3. Настройте фильтры\n\n*Команды:* /settings /ping /stats /post',
   },
 
   // ─── Komutlar ───

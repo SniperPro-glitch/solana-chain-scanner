@@ -224,10 +224,10 @@ async function editCardMessage(msg, opts) {
   }
 }
 
-async function sendBotAnalysisFollowup(ch, cmEntry, token, audit, lang) {
+async function sendBotAnalysisFollowup(ch, cmEntry, token, audit, lang, cardLevel = 'green') {
   if (!ch || !cmEntry || !token || !audit) return;
   const sym = token.tokenSymbol || '?';
-  const body = formatAnalysisOnly(token, audit, lang);
+  const body = formatAnalysisOnly(token, audit, lang, cardLevel);
   if (!String(body || '').trim()) return;
   let text = `<b>$${sym}</b>\n${body}`;
   text = wrapEmojis(text, 'solana');
@@ -367,7 +367,7 @@ async function shareTokenToChannel(ch, token, audit, opts = {}) {
   const isRisky = !isCritical && (audit.risk.code === 'HIGH' || audit.risk.code === 'MEDIUM');
   const cardLevel = isCritical ? 'critical' : (isRisky ? 'yellow' : 'green');
   const bannerLevel = cardLevel === 'yellow' ? 'yellow' : (isCritical ? 'critical' : 'green');
-  const message = formatTokenCard(token, audit, chLang, cardLevel, { compact: true });
+  const message = formatTokenCard(token, audit, chLang, cardLevel, { slim: true });
   const silent = ch.settings?.silentNotification === true;
   const banner = opts.customBannerFileId
     ? { photoFileId: opts.customBannerFileId }
@@ -385,7 +385,7 @@ async function shareTokenToChannel(ch, token, audit, opts = {}) {
     via: r.via,
   } : null;
   if (cmEntry) {
-    await sendBotAnalysisFollowup(ch, cmEntry, token, audit, chLang);
+    await sendBotAnalysisFollowup(ch, cmEntry, token, audit, chLang, cardLevel);
     registerWatch(token, audit, [cmEntry]);
   }
   channels.recordSuccess(ch.id);
@@ -429,7 +429,7 @@ async function processManualPost(chatId, userId, arg, lang) {
   const isCritical = audit.isCritical === true;
   const isRisky = !isCritical && (audit.risk.code === 'HIGH' || audit.risk.code === 'MEDIUM');
   const cardLevel = isCritical ? 'critical' : (isRisky ? 'yellow' : 'green');
-  let preview = wrapEmojis(formatTokenCard(token, audit, lang, cardLevel, { compact: true }), 'solana');
+  let preview = wrapEmojis(formatTokenCard(token, audit, lang, cardLevel, { slim: true }), 'solana');
   try {
     if (userbot.isEnabled()) await userbot.sendMessage(chatId, preview, { silent: false });
     else await bot.sendMessage(chatId, preview, { parse_mode: 'HTML', disable_web_page_preview: true });

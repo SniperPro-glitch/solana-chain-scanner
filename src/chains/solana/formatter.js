@@ -1,4 +1,4 @@
-// Solana kart + bot yorumu formatı (compact üst kart; detay yorumda).
+// Solana zinciri — Telegram kart (BSC slim ile aynı yapı; metin/emoji Solana).
 
 const { customEmojiHtml, whitelistTitleSuffix, formatTrustedGreenTitle } = require('../../emojiPack');
 const { t, normalizeLang } = require('../../i18n');
@@ -22,6 +22,13 @@ function fmtUsd(n) {
   if (n < 1_000_000) return `$${(n / 1_000).toFixed(2)}K`;
   if (n < 1_000_000_000) return `$${(n / 1_000_000).toFixed(2)}M`;
   return `$${(n / 1_000_000_000).toFixed(2)}B`;
+}
+
+function fmtPercent(n) {
+  if (n === null || n === undefined || isNaN(n)) return '—';
+  const sign = n > 0 ? '+' : '';
+  const emoji = n > 0 ? ce('📊') : n < 0 ? ce('🌡') : '➖';
+  return `${emoji} ${sign}${n.toFixed(2)}%`;
 }
 
 function liqStrengthEmoji(liq) {
@@ -51,6 +58,18 @@ function ageLabel(age, lang) {
   return '?';
 }
 
+function volRatioLabel(vr, lang) {
+  if (!vr || vr.ratio === null) return '?';
+  const codeMap = { extreme: 'volratio.extreme', high: 'volratio.high', normal: 'volratio.normal', low: 'volratio.low' };
+  return `${vr.ratio.toFixed(2)}× — ${t(codeMap[vr.code] || 'volratio.normal', lang)}`;
+}
+
+function balanceLabel(b, lang) {
+  if (!b) return '';
+  if (b.code === 'none') return t('txn.none', lang);
+  return `${b.buys} / ${b.sells} ${t('txn.balance', lang)}`;
+}
+
 function dexLabel(dex) {
   const d = String(dex || '').toLowerCase();
   const map = {
@@ -58,61 +77,91 @@ function dexLabel(dex) {
     'raydium-clmm': 'Raydium CLMM',
     orca: 'Orca',
     meteora: 'Meteora',
+    meteora_dlmm: 'Meteora DLMM',
     pumpswap: 'PumpSwap',
     pumpfun: 'Pump.fun',
+    jupiter: 'Jupiter',
   };
   return map[d] || dex;
 }
 
 /**
- * Üst kart (compact): fiyat, likidite, hacim, yaş, risk, uyarılar (max 3).
- * Kontrat / holder / link / swap / bot analizi kartta yok.
+ * Üst kart — BSC slim ile aynı alanlar; analiz/kontrat güvenliği yorumda.
+ * opts.slim / opts.compact → aynı layout.
  */
 function formatTokenCard(token, audit, lang = 'en', level = 'green', opts = {}) {
   const L = normalizeLang(lang);
+  const slim = opts.slim === true || opts.compact === true;
+  const contractInComment = true;
   const lines = [];
 
   let titleEmoji;
   let titleKey;
+  let tokenEmoji;
   if (level === 'yellow') {
     titleEmoji = ce('⚠️');
     titleKey = 'card.title.yellow';
-  } else if (level === 'critical' || level === 'red') {
+    tokenEmoji = `${ce('🟡')}${ce('⚠️')}`;
+  } else if (level === 'critical') {
     titleEmoji = ce('🚨');
-    titleKey = level === 'red' ? 'card.title.red' : 'card.title.critical';
+    titleKey = 'card.title.critical';
+    tokenEmoji = `${ce('🔴')}${ce('🚨')}`;
+  } else if (level === 'red') {
+    titleEmoji = ce('🚨');
+    titleKey = 'card.title.red';
+    tokenEmoji = `${ce('⭕')}${ce('🚨')}`;
   } else {
     titleEmoji = ce('🆕');
     titleKey = 'card.newToken';
+    tokenEmoji = ce('◎');
   }
 
-  const chainFlag = ce('◎');
+  const solFlag = ce('◎');
   const trustedGreenTitle = level === 'green' ? formatTrustedGreenTitle(token, L, 'solana', t, h) : null;
   if (trustedGreenTitle) {
     const titleRows = trustedGreenTitle.split('\n');
-    lines.push(`${chainFlag} ${titleRows[0]}`);
+    lines.push(`${solFlag} ${titleRows[0]}`);
     for (let i = 1; i < titleRows.length; i++) lines.push(titleRows[i]);
   } else {
     lines.push(
-      `${chainFlag} ${titleEmoji} <b>${t(titleKey, L)}:</b> $${h(token.tokenSymbol)}${whitelistTitleSuffix(token.trustedWhitelist, L, 'solana', t, h)}`,
+      `${solFlag} ${titleEmoji} <b>${t(titleKey, L)}:</b> $${h(token.tokenSymbol)}${whitelistTitleSuffix(token.trustedWhitelist, L, 'solana', t, h)}`,
     );
   }
-  lines.push(`${ce('📛')} ${h(token.tokenName)}`);
+  {
+    let suffix = '';
+    if (level === 'yellow') suffix = ` ${ce('❗')} ${ce('🛰')}`;
+    else if (level === 'critical' || level === 'red') suffix = ` ${ce('🚨')}`;
+    lines.push(`${ce('🪐')} ${h(token.tokenName)}${suffix}`);
+  }
+
+  lines.push(`${ce('🔐')} <b>${t('card.contract', L)}:</b>`);
+  lines.push(`<code>${h(token.tokenAddress)}</code>`);
   lines.push('');
 
   lines.push(`${ce('💲')} <b>${t('card.price', L)}:</b> ${h(fmtUsd(token.priceUsd))}`);
+  if (token.fdvUsd) lines.push(`${ce('💰')} <b>${t('card.fdv', L)}:</b> ${h(fmtUsd(token.fdvUsd))}`);
+  if (token.marketCapUsd) lines.push(`${ce('📦')} <b>${t('card.mcap', L)}:</b> ${h(fmtUsd(token.marketCapUsd))}`);
+  lines.push('');
 
   const liq = audit.breakdown.liquidity;
   lines.push(`${ce('💧')} <b>${t('card.liquidity', L)}:</b> ${h(fmtUsd(token.liquidityUsd))} ${ce(liqStrengthEmoji(liq))} <b>${liqLabel(liq.code, L)}</b>`);
 
   lines.push(`${ce('📊')} <b>${t('card.volume24h', L)}:</b> ${h(fmtUsd(token.volume24h))}`);
+  if (audit.breakdown.volumeLiquidityRatio.ratio !== null) {
+    lines.push(`   <i>${t('card.volLiqRatio', L)}:</i> ${h(volRatioLabel(audit.breakdown.volumeLiquidityRatio, L))}`);
+  }
 
-  lines.push(`${ce('⏱️')} <b>${t('card.age', L)}:</b> ${h(ageLabel(audit.breakdown.age, L))}`);
+  lines.push(`<b>${t('card.price1h', L)}:</b> ${fmtPercent(token.priceChange1h)}`);
+  lines.push(`<b>${t('card.price24h', L)}:</b> ${fmtPercent(token.priceChange24h)}`);
   lines.push('');
+
+  lines.push(`${ce('➡️')} <b>${t('card.txns24h', L)}:</b> ${h(balanceLabel(audit.breakdown.buyerSellerBalance, L))}`);
+  lines.push(`${ce('⏱️')} <b>${t('card.age', L)}:</b> ${h(ageLabel(audit.breakdown.age, L))}`);
 
   lines.push(formatRiskLine(audit, L, ce, riskLabel));
 
   if (audit.warnings && audit.warnings.length > 0) {
-    const maxW = 3;
+    const maxW = slim ? 3 : 6;
     const warnList = audit.warnings.slice(0, maxW);
     lines.push('');
     lines.push(`⚠️ <b>${t('card.warnings', L)}:</b>`);
@@ -132,10 +181,10 @@ function formatTokenCard(token, audit, lang = 'en', level = 'green', opts = {}) 
   return lines.join('\n');
 }
 
-function formatAnalysisOnly(token, audit, lang = 'en') {
+function formatAnalysisOnly(token, audit, lang = 'en', level = 'green') {
   try {
     const { formatChannelComment } = require('../../channelComment');
-    return formatChannelComment(token, audit, lang);
+    return formatChannelComment(token, audit, lang, level);
   } catch (e) {
     console.error('[solana/formatter] channelComment:', e?.message);
     return '';

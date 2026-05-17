@@ -95,7 +95,7 @@ function createScanRunner(deps) {
           const isCritical = audit.isCritical === true;
           const isRisky = !isCritical && (audit.risk.code === 'HIGH' || audit.risk.code === 'MEDIUM');
           const cardLevel = isCritical ? 'critical' : (isRisky ? 'yellow' : 'green');
-          const message = formatTokenCard(token, audit, chLang, cardLevel, { compact: true });
+          const message = formatTokenCard(token, audit, chLang, cardLevel, { slim: true });
           const silent = ch.settings?.silentNotification === true;
           const bannerLevel = isCritical ? 'critical' : (isRisky ? 'yellow' : 'green');
 
@@ -118,7 +118,7 @@ function createScanRunner(deps) {
             } : null;
             if (cmEntry) {
               channelMessages.push(cmEntry);
-              await sendBotAnalysisFollowup(ch, cmEntry, token, audit, chLang);
+              await sendBotAnalysisFollowup(ch, cmEntry, token, audit, chLang, cardLevel);
             }
             channels.recordSuccess(ch.id);
             sentToAny = true;

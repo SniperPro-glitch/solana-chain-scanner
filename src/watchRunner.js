@@ -107,7 +107,7 @@ function createWatchRunner(deps) {
         const msgLang = msg.lang || DEFAULT_LANG;
 
         if (freshToken && freshAudit) {
-          const card = formatTokenCard(freshToken, freshAudit, msgLang, cardLevel, { compact: true });
+          const card = formatTokenCard(freshToken, freshAudit, msgLang, cardLevel, { slim: true });
           const banner = solanaBannerSource(cardLevel === 'red' ? 'red' : 'yellow');
           const editRes = await editCardMessage(msg, {
             hasPhoto: msg.hasPhoto,
