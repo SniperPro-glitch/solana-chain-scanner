@@ -8,8 +8,9 @@ async function scanNewTokens(opts = {}) {
 }
 
 async function resolveTokenFromInput(input) {
-  const token = await adapter.resolveTokenFromInput(input);
-  if (!token) return null;
+  const result = await adapter.resolveTokenFromInput(input);
+  if (!result?.token) return null;
+  const token = result.token;
   await risk.enrichToken(token).catch(() => {});
   return token;
 }

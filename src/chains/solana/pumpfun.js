@@ -343,6 +343,30 @@ async function enrichPumpGraduation(token) {
   return token;
 }
 
+/** Manuel paylaşım / mint: DexScreener yoksa Pump.fun API veya minimal pumpfun çifti. */
+async function resolvePumpPairForMint(mint) {
+  if (!mint) return null;
+  const coin = await fetchPumpCoinByMint(mint);
+  if (coin) return pumpCoinToDexPair(coin);
+  if (isPumpMintAddress(mint)) {
+    let pair = null;
+    try {
+      const { fetchTopPairForToken } = require('./adapter');
+      pair = await fetchTopPairForToken(mint);
+    } catch {
+      /* skip */
+    }
+    if (pair?.chainId === 'solana') return pair;
+    return pumpCoinToDexPair({
+      mint,
+      symbol: 'PUMP',
+      name: 'Pump.fun',
+      complete: false,
+    });
+  }
+  return null;
+}
+
 module.exports = {
   PUMP_BONDING_PROGRAM,
   isPumpMintAddress,
@@ -350,6 +374,7 @@ module.exports = {
   fetchPumpPairs,
   fetchRecentMintsFromRpc,
   pumpCoinToDexPair,
+  resolvePumpPairForMint,
   enrichPumpGraduation,
   inferPumpGraduationFromDex,
 };

@@ -513,11 +513,18 @@ async function processManualPost(chatId, userId, arg, lang, customBannerFileId =
       audit = sol.auditToken(token);
     }
   } catch (err) {
+    if (err.code === 'WRONG_CHAIN') {
+      return bot.sendMessage(
+        chatId,
+        t('post.wrongChain', lang, { chain: err.foreignChain || '?' }),
+        { parse_mode: 'HTML' },
+      );
+    }
     console.error('[post]', err.message);
-    return bot.sendMessage(chatId, t('post.notFound', lang));
+    return bot.sendMessage(chatId, t('post.notFound', lang), { parse_mode: 'HTML' });
   }
   if (!token || !audit) {
-    return bot.sendMessage(chatId, t('post.notFound', lang));
+    return bot.sendMessage(chatId, t('post.notFound', lang), { parse_mode: 'HTML' });
   }
 
   setPendingPost(userId, { token, audit, customBannerFileId: customBannerFileId || null });
@@ -967,7 +974,7 @@ bot.on('callback_query', async (cb) => {
     }
     setPendingManualInput(userId);
     const prompt = cbLang === 'tr'
-      ? '📤 <b>Manuel Paylaş</b>\n\n<b>1)</b> İstersen önce özel banner fotoğrafı gönder (opsiyonel).\n<b>2)</b> Sonra Solana mint veya DexScreener linki gönderin.\n\n<i>5 dakika içinde.</i>'
+      ? '📤 <b>Manuel Paylaş</b>\n\n<b>1)</b> İstersen önce özel banner fotoğrafı gönder (opsiyonel).\n<b>2)</b> Sonra gönder:\n• Solana mint\n• DexScreener <b>solana</b> linki\n• <code>pump.fun/coin/MINT</code>\n• Solscan token linki\n\n<i>5 dakika içinde.</i>'
       : cbLang === 'ru'
         ? '📤 <b>Ручной пост</b>\n\n<b>1)</b> По желанию сначала фото-баннер.\n<b>2)</b> Затем mint Solana или ссылка DexScreener.\n\n<i>5 минут.</i>'
         : '📤 <b>Manual post</b>\n\n<b>1)</b> Optional custom banner photo first.\n<b>2)</b> Then send a Solana mint or DexScreener link.\n\n<i>Within 5 minutes.</i>';

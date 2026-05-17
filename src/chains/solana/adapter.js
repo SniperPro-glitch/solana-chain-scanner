@@ -4,6 +4,8 @@ const axios = require('axios');
 const config = require('./config');
 const pumpfun = require('./pumpfun');
 
+const SOLANA_ADDR = config.addressPattern;
+
 const http = axios.create({
   timeout: 15_000,
   headers: { Accept: 'application/json', 'User-Agent': 'solana-chain-scanner/adapter' },
@@ -117,24 +119,85 @@ async function fetchTopPairForToken(tokenAddr) {
   return null;
 }
 
+/**
+ * Link veya metinden Solana mint/pool çıkarır; başka zincir URL'si ise wrong_chain.
+ * @returns {{ type: 'address', address: string } | { type: 'wrong_chain', chain: string } | { type: 'empty' }}
+ */
+function parseSolanaInput(input) {
+  const s = String(input || '').trim();
+  if (!s) return { type: 'empty' };
+
+  const foreignDs = s.match(/dexscreener\.com\/(?!solana\/)([a-z0-9_-]+)\//i);
+  if (foreignDs) return { type: 'wrong_chain', chain: foreignDs[1] };
+
+  const foreignGt = s.match(/geckoterminal\.com\/(?!solana\/)([a-z0-9_-]+)\//i);
+  if (foreignGt) return { type: 'wrong_chain', chain: foreignGt[1] };
+
+  const tryAddr = (re) => {
+    const m = s.match(re);
+    return m ? m[1] : null;
+  };
+
+  const fromUrl =
+    tryAddr(/dexscreener\.com\/solana\/([1-9A-HJ-NP-Za-km-z]{32,44})/i)
+    || tryAddr(/geckoterminal\.com\/solana\/(?:pools\/)?([1-9A-HJ-NP-Za-km-z]{32,44})/i)
+    || tryAddr(/pump\.fun\/(?:coin\/)?([1-9A-HJ-NP-Za-km-z]{32,44})/i)
+    || tryAddr(/solscan\.io\/token\/([1-9A-HJ-NP-Za-km-z]{32,44})/i)
+    || tryAddr(/birdeye\.so\/token\/([1-9A-HJ-NP-Za-km-z]{32,44})/i)
+    || tryAddr(/jup\.ag\/(?:swap\/[^/]*-)?([1-9A-HJ-NP-Za-km-z]{32,44})/i)
+    || tryAddr(/raydium\.io\/[^?\s]*[?&]mint=([1-9A-HJ-NP-Za-km-z]{32,44})/i);
+
+  if (fromUrl) return { type: 'address', address: fromUrl };
+
+  const bare = s.match(SOLANA_ADDR);
+  if (bare) return { type: 'address', address: bare[0] };
+
+  return { type: 'empty' };
+}
+
 function extractAddress(text) {
-  if (!text || typeof text !== 'string') return null;
-  const pumpUrl = text.match(/pump\.fun\/(?:coin\/)?([1-9A-HJ-NP-Za-km-z]{32,44})/i);
-  if (pumpUrl) return pumpUrl[1];
-  const m = text.match(config.addressPattern);
-  return m ? m[0] : null;
+  const p = parseSolanaInput(text);
+  return p.type === 'address' ? p.address : null;
+}
+
+function pairChainMismatch(pair) {
+  if (!pair?.chainId) return null;
+  if (pair.chainId !== 'solana') return pair.chainId;
+  return null;
 }
 
 async function resolveTokenFromInput(input) {
-  if (!input) return null;
-  const addr = extractAddress(input);
-  if (!addr) return null;
+  if (!input) return { error: 'not_found' };
 
+  const parsed = parseSolanaInput(input);
+  if (parsed.type === 'wrong_chain') {
+    return { error: 'wrong_chain', chain: parsed.chain };
+  }
+  if (parsed.type !== 'address') {
+    return { error: 'not_found' };
+  }
+
+  const addr = parsed.address;
   let pair = await fetchPairByPoolAddress(addr);
-  if (!pair) pair = await fetchTopPairForToken(addr);
-  if (!pair) return null;
+  let mismatch = pairChainMismatch(pair);
+  if (mismatch) return { error: 'wrong_chain', chain: mismatch };
 
-  return normalizePair(pair);
+  if (!pair) {
+    pair = await fetchTopPairForToken(addr);
+    mismatch = pairChainMismatch(pair);
+    if (mismatch) return { error: 'wrong_chain', chain: mismatch };
+  }
+
+  if (!pair && (pumpfun.isPumpMintAddress(addr) || addr.toLowerCase().endsWith('pump'))) {
+    pair = await pumpfun.resolvePumpPairForMint(addr);
+    mismatch = pairChainMismatch(pair);
+    if (mismatch) return { error: 'wrong_chain', chain: mismatch };
+  }
+
+  if (!pair) return { error: 'not_found' };
+
+  const token = normalizePair(pair);
+  return { token };
 }
 
 async function _fetchPairsByTokens(tokenAddrs) {
@@ -291,6 +354,7 @@ async function fetchPoolLiquidity(poolAddress) {
 module.exports = {
   scanNewTokens,
   resolveTokenFromInput,
+  parseSolanaInput,
   extractAddress,
   fetchPoolLiquidity,
   normalizePair,

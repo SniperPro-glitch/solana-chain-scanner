@@ -771,12 +771,21 @@ const STRINGS = {
 
   // ─── /post (manuel paylaşım) ───
   'post.usage': {
-    en: 'Usage: <code>/post &lt;link or contract address&gt;</code>\n\nExample:\n<code>/post EQAbc...xyz</code>',
-    tr: 'Kullanım: <code>/post &lt;link veya kontrat adresi&gt;</code>\n\nÖrnek:\n<code>/post EQAbc...xyz</code>',
-    ru: 'Использование: <code>/post &lt;ссылка или адрес контракта&gt;</code>\n\nПример:\n<code>/post EQAbc...xyz</code>',
+    en: 'Usage: <code>/post MINT_OR_LINK</code>\n• Solana mint\n• DexScreener / Gecko <b>solana</b> link\n• <code>pump.fun/coin/MINT</code>\n• Solscan token link',
+    tr: 'Kullanım: <code>/post MINT_VEYA_LINK</code>\n• Solana mint\n• DexScreener / Gecko <b>solana</b> linki\n• <code>pump.fun/coin/MINT</code>\n• Solscan token linki',
+    ru: 'Использование: <code>/post MINT_ИЛИ_ССЫЛКА</code>\n• Mint Solana\n• DexScreener / Gecko <b>solana</b>\n• <code>pump.fun/coin/MINT</code>\n• Solscan',
+  },
+  'post.wrongChain': {
+    en: '❌ The token you sent is <b>not on Solana</b> (network: <code>{chain}</code>). This bot only shares Solana tokens.',
+    tr: '❌ Gönderdiğiniz token <b>Solana ağına ait değil</b> (algılanan ağ: <code>{chain}</code>). Bu bot yalnızca Solana paylaşır.',
+    ru: '❌ Токен <b>не в сети Solana</b> (сеть: <code>{chain}</code>). Бот публикует только Solana.',
   },
   'post.fetching': { en: '🔍 Fetching token data...', tr: '🔍 Token verisi alınıyor...', ru: '🔍 Получение данных токена...' },
-  'post.notFound': { en: '❌ Token or pool not found. Make sure the link/address is valid.', tr: '❌ Token veya havuz bulunamadı. Link/adresin doğru olduğundan emin ol.', ru: '❌ Токен или пул не найден. Убедитесь, что ссылка/адрес верны.' },
+  'post.notFound': {
+    en: '❌ Token or pool not found on Solana. Check mint, DexScreener solana link, or pump.fun URL.',
+    tr: '❌ Solana üzerinde token/havuz bulunamadı. Mint, DexScreener solana linki veya pump.fun adresini kontrol edin.',
+    ru: '❌ Токен/пул на Solana не найден. Проверьте mint, ссылку DexScreener solana или pump.fun.',
+  },
   'post.pickChannel': { en: '📤 Which channel should I post to?', tr: '📤 Hangi kanala gönderilsin?', ru: '📤 В какой канал отправить?' },
   'post.allChannels': { en: '📢 All channels', tr: '📢 Tüm kanallar', ru: '📢 Все каналы' },
   'post.filterFail': { en: '⛔ Token didn\'t pass channel filter: {reason}', tr: '⛔ Token kanal filtresine takıldı: {reason}', ru: '⛔ Токен не прошёл фильтр канала: {reason}' },

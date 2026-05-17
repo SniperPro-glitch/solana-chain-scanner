@@ -1,6 +1,7 @@
 const config = require('./config');
 const adapter = require('./adapter');
 const risk = require('./risk');
+const pumpfun = require('./pumpfun');
 const { auditToken } = require('../../auditor');
 
 async function scanNewTokens(opts = {}) {
@@ -8,9 +9,17 @@ async function scanNewTokens(opts = {}) {
 }
 
 async function resolveTokenFromInput(input) {
-  const token = await adapter.resolveTokenFromInput(input);
-  if (!token) return null;
+  const result = await adapter.resolveTokenFromInput(input);
+  if (result?.error === 'wrong_chain') {
+    const e = new Error('wrong_chain');
+    e.code = 'WRONG_CHAIN';
+    e.foreignChain = result.chain || '?';
+    throw e;
+  }
+  if (!result?.token) return null;
+  const token = result.token;
   await risk.enrichToken(token).catch(() => {});
+  await pumpfun.enrichPumpGraduation(token).catch(() => {});
   return token;
 }
 
