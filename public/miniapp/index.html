@@ -3,17 +3,18 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
-  <title>Solana Scanner</title>
+  <title>SNIPER DEX SCANNER</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script src="https://unpkg.com/lightweight-charts@4.2.0/dist/lightweight-charts.standalone.production.js"></script>
   <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="sniper-theme.css" />
 </head>
 <body>
   <div id="loading" class="boot-screen">
-    <div class="boot-logo">SOLANA SCANNER</div>
+    <div class="boot-logo">SNIPER DEX SCANNER</div>
     <div class="boot-spinner"></div>
     <p>Veriler yükleniyor…</p>
   </div>
@@ -24,62 +25,64 @@
     <button type="button" class="btn-neon" id="btnErrorHome">Ana ekrana dön</button>
   </div>
 
-  <!-- Ana scanner (referans tasarım) -->
+  <!-- SNIPER DEX SCANNER home -->
   <div id="scanner-home" class="scanner-home hidden">
     <header class="scan-header">
       <div class="scan-brand">
-        <span class="brand-icon">◎</span>
+        <span class="brand-crosshair" aria-hidden="true">
+          <svg viewBox="0 0 32 32" width="32" height="32"><circle cx="16" cy="16" r="14" fill="none" stroke="currentColor" stroke-width="1.5"/><line x1="16" y1="2" x2="16" y2="30" stroke="currentColor" stroke-width="1.5"/><line x1="2" y1="16" x2="30" y2="16" stroke="currentColor" stroke-width="1.5"/><circle cx="16" cy="16" r="3" fill="currentColor"/></svg>
+        </span>
         <div class="brand-titles">
-          <span class="brand-main">SOLANA</span>
+          <span class="brand-main">SNIPER</span>
           <span class="brand-sub">DEX SCANNER</span>
         </div>
       </div>
-      <button type="button" class="btn-connect" id="btnConnect">Connect</button>
+      <div class="header-actions">
+        <button type="button" class="btn-connect" id="btnConnect"><span class="wallet-ico">👛</span> Connect</button>
+        <button type="button" class="btn-settings" aria-label="Ayarlar">⚙</button>
+      </div>
     </header>
 
     <div class="search-row">
       <div class="search-box">
         <span class="search-ico">⌕</span>
-        <input type="text" placeholder="Token veya çift ara…" disabled />
+        <input type="text" placeholder="Search token, pair or contract…" disabled />
       </div>
       <button type="button" class="btn-filter" aria-label="Filtre">☰</button>
     </div>
 
     <div class="chain-scroll">
-      <button type="button" class="chain-chip active">◎ Solana</button>
-      <button type="button" class="chain-chip" disabled>Ξ ETH</button>
-      <button type="button" class="chain-chip" disabled>BNB</button>
-      <button type="button" class="chain-chip" disabled>TON</button>
+      <button type="button" class="chain-chip active" data-chain="all">All</button>
+      <button type="button" class="chain-chip" data-chain="solana">◎ Solana</button>
+      <button type="button" class="chain-chip disabled" disabled>Ξ ETH</button>
+      <button type="button" class="chain-chip disabled" disabled>BSC</button>
+      <button type="button" class="chain-chip disabled" disabled>TON</button>
+      <button type="button" class="chain-chip disabled" disabled>Base</button>
     </div>
 
     <div class="quick-scroll" id="quickCards"></div>
 
-    <div class="feed-tabs">
-      <button type="button" class="feed-tab active" data-feed="trending">Trend</button>
-      <button type="button" class="feed-tab" data-feed="new">Yeni çiftler</button>
-      <button type="button" class="feed-tab" data-feed="refresh" id="btnFeedRefresh" title="Yenile">↻</button>
+    <div class="token-table-wrap">
+      <div class="token-thead">
+        <span>#</span><span>TOKEN / PAIR</span><span>PRICE</span><span>1H</span><span>24H</span><span>RISK</span>
+      </div>
+      <div class="feed-loading hidden" id="feedLoading">Liste yükleniyor…</div>
+      <div class="token-list" id="homeTokenList"></div>
     </div>
-
-    <div class="section-label">
-      <span id="feedLabel">Canlı tarama</span>
-      <span class="live-dot"></span>
-    </div>
-
-    <div class="feed-loading hidden" id="feedLoading">Liste yükleniyor…</div>
-
-    <div class="token-list" id="homeTokenList"></div>
 
     <div class="market-footer" id="marketFooter">
-      <div class="mf-item"><span>24H VOL</span><strong id="statVol">—</strong></div>
-      <div class="mf-item"><span>LISTED</span><strong id="statCount">—</strong></div>
+      <div class="mf-item"><span>24H VOLUME</span><strong id="statVol">—</strong><em class="up" id="statVolChg"></em></div>
+      <div class="mf-item"><span>NEW PAIRS</span><strong id="statNew">—</strong><em class="up" id="statNewChg"></em></div>
+      <div class="mf-item"><span>LIQUIDITY</span><strong id="statLiq">—</strong><em class="up" id="statLiqChg"></em></div>
+      <div class="mf-item"><span>ACTIVE NOW</span><strong id="statActive">—</strong><em class="up" id="statActiveChg"></em></div>
     </div>
 
     <nav class="bottom-nav">
-      <button type="button" class="bnav active" data-nav="home">⌂</button>
-      <button type="button" class="bnav" data-nav="trend">↗</button>
-      <button type="button" class="bnav" data-nav="new">+</button>
-      <button type="button" class="bnav" data-nav="scan">◎</button>
-      <button type="button" class="bnav" data-nav="watch">★</button>
+      <button type="button" class="bnav active" data-nav="home"><span class="bnav-ico">⌂</span><span class="bnav-lbl">Home</span></button>
+      <button type="button" class="bnav" data-nav="trend"><span class="bnav-ico">🔥</span><span class="bnav-lbl">Trending</span></button>
+      <button type="button" class="bnav" data-nav="new"><span class="bnav-ico">✦</span><span class="bnav-lbl">New Pairs</span></button>
+      <button type="button" class="bnav" data-nav="scan"><span class="bnav-ico">◎</span><span class="bnav-lbl">Scanner</span></button>
+      <button type="button" class="bnav" data-nav="watch"><span class="bnav-ico">★</span><span class="bnav-lbl">Watchlist</span></button>
     </nav>
   </div>
 

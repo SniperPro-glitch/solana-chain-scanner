@@ -38,21 +38,29 @@
     return `${x >= 0 ? '+' : ''}${x.toFixed(1)}%`;
   }
 
+  function chgClass(n) {
+    if (n == null || Number.isNaN(Number(n))) return '';
+    return Number(n) >= 0 ? 'up' : 'down';
+  }
+
   function renderFeedRow(item, extraClass = '') {
     const risk = item.risk || {};
     const rc = risk.band || 'mid';
     const label = risk.label || 'SCAN';
-    const chg = item.change24h;
-    const up = chg == null ? true : Number(chg) >= 0;
+    const chg24 = item.change24h;
+    const chg1 = item.change1h;
+    const up24 = chg24 == null ? true : Number(chg24) >= 0;
+    const pairShort = escHtml((item.pairLabel || 'SOL').replace(/^.*\//, '') || 'SOL');
     const avatar = item.imageUrl
       ? `<img class="tr-img" src="${escHtml(item.imageUrl)}" alt="" loading="lazy" />`
       : `<span class="tr-avatar">${escHtml((item.symbol || '?').slice(0, 2))}</span>`;
     return `<article class="token-row ${extraClass}" data-mint="${escHtml(item.mint)}">
       <span class="tr-rank">${item.rank ?? '·'}</span>
-      ${avatar}
-      <div class="tr-info"><h3>${escHtml(item.symbol)}</h3><p>MCap ${escHtml(item.marketCapUsdFmt)} · ${escHtml(item.pairLabel || item.dex || 'SOL')}</p></div>
-      <div class="tr-right"><div class="tr-price">${escHtml(item.priceUsdFmt)}</div><span class="tr-chg ${up ? 'up' : 'down'}">${formatPct(chg)}</span><span class="risk-badge ${rc}">${escHtml(label)}</span></div>
-      ${miniSparkline(up)}
+      <div class="tr-token">${avatar}<div class="tr-meta"><div class="tr-name">${escHtml(item.symbol)}<span class="tr-pair"> / ${pairShort}</span></div><div class="tr-sub">MCap ${escHtml(item.marketCapUsdFmt)} · Liq ${escHtml(item.liquidityUsdFmt || '—')}</div></div></div>
+      <span class="tr-price">${escHtml(item.priceUsdFmt)}</span>
+      <span class="tr-pct ${chgClass(chg1)}">${formatPct(chg1)}</span>
+      <span class="tr-pct ${chgClass(chg24)}">${formatPct(chg24)}</span>
+      <div class="tr-risk-col">${miniSparkline(up24)}<span class="risk-badge ${rc}">${escHtml(label)}</span></div>
     </article>`;
   }
 
@@ -110,19 +118,12 @@
 
   function setFeedTab(tab) {
     feedTab = tab === 'new' ? 'new' : 'trending';
-    document.querySelectorAll('.feed-tab[data-feed]').forEach((btn) => {
-      const f = btn.dataset.feed;
-      if (f === 'refresh') return;
-      btn.classList.toggle('active', f === feedTab);
-    });
     document.querySelectorAll('.bnav[data-nav]').forEach((btn) => {
       const n = btn.dataset.nav;
       const onTab =
         (feedTab === 'trending' && n === 'trend') || (feedTab === 'new' && n === 'new');
       btn.classList.toggle('active', n === 'home' || onTab);
     });
-    const label = $('feedLabel');
-    if (label) label.textContent = feedTab === 'new' ? 'Yeni çiftler' : 'Trend · canlı';
   }
 
   function renderLastReportRow() {
@@ -146,17 +147,22 @@
   function updateQuickCards(stats, items) {
     const qc = $('quickCards');
     if (!qc) return;
-    const top = items[0];
     const cards = [
-      { icon: '🔥', title: 'Trend', val: stats?.volume24hFmt || 'Canlı', accent: 'accent-pink' },
-      { icon: '✦', title: 'Yeni', val: feedTab === 'new' ? 'Aktif' : 'Çiftler', accent: 'accent-green' },
-      { icon: '◎', title: 'Likidite', val: top?.liquidityUsdFmt || 'Scanner', accent: 'accent-cyan' },
-      { icon: '◆', title: 'Güvenlik', val: top?.trustScore != null ? `${top.trustScore}%` : 'RugCheck', accent: 'accent-purple' },
-      { icon: '★', title: 'Liste', val: String(stats?.count || items.length), accent: 'accent-gold' },
+      { icon: '🔥', title: 'Live Trending', val: (stats?.count || items.length).toLocaleString('en-US'), accent: 'accent-pink', action: 'trending' },
+      { icon: '✦', title: 'New Pairs', val: String(stats?.newPairs ?? items.length), accent: 'accent-green', action: 'new' },
+      { icon: '◎', title: 'Liquidity Scanner', val: stats?.liquidityFmt || stats?.volume24hFmt || '—', accent: 'accent-cyan', action: null },
+      { icon: '🐋', title: 'Whale Buys', val: String(Math.min(99, items.length)), accent: 'accent-purple', action: null },
+      { icon: '🛡', title: 'AI Risk Check', val: 'Protected', accent: 'accent-gold', action: null },
     ];
     qc.innerHTML = cards.map(
-      (c) => `<article class="quick-card ${c.accent}"><div class="qc-icon">${c.icon}</div><div class="qc-title">${c.title}</div><div class="qc-val">${c.val}</div></article>`,
+      (c) => `<article class="quick-card ${c.accent}${c.action ? ' quick-card-tap' : ''}" data-action="${c.action || ''}"><div class="qc-icon">${c.icon}</div><div class="qc-title">${c.title}</div><div class="qc-val">${c.val}</div></article>`,
     ).join('');
+    qc.querySelectorAll('.quick-card-tap').forEach((card) => {
+      card.addEventListener('click', () => {
+        const a = card.dataset.action;
+        if (a === 'trending' || a === 'new') fetchFeed(a);
+      });
+    });
   }
 
   async function fetchFeed(tab) {

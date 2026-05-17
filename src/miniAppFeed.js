@@ -91,12 +91,17 @@ async function buildFeed(tab = 'trending', limit = 24) {
   }
 
   const totalVol = raw.reduce((s, t) => s + (t.volume24h || 0), 0);
+  const totalLiq = raw.reduce((s, t) => s + (t.liquidityUsd || 0), 0);
+  const newPairs = raw.filter((t) => (t.ageMinutes ?? 99999) < 120).length;
   return {
     tab,
     updatedAt: Date.now(),
     stats: {
       count: items.length,
       volume24hFmt: fmtUsd(totalVol),
+      liquidityFmt: fmtUsd(totalLiq),
+      newPairs,
+      activeNow: items.length,
     },
     items,
   };
