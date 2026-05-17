@@ -113,7 +113,7 @@ function formatTokenCard(token, audit, lang = 'en', level = 'green', opts = {}) 
   } else {
     titleEmoji = ce('🆕');
     titleKey = 'card.newToken';
-    tokenEmoji = ce('🪙');
+    tokenEmoji = ce('◎');
   }
 
   const solFlag = ce('🪙');
@@ -131,10 +131,14 @@ function formatTokenCard(token, audit, lang = 'en', level = 'green', opts = {}) 
     let suffix = '';
     if (level === 'yellow') suffix = ` ${ce('❤️')} ${ce('🛰')}`;
     else if (level === 'critical' || level === 'red') suffix = ` ${ce('🚨')}`;
-    lines.push(`${ce('🪙')} ${h(token.tokenName)}${suffix}`);
+    lines.push(`${ce('🪐')} ${h(token.tokenName)}${suffix}`);
   }
 
-  lines.push(`${ce('🪙')} <b>${t('card.contract', L)}:</b>`);
+  if (token.dex) {
+    lines.push(`${ce(dexEmojiCharFor(token))} <b>${t('card.dex', L)}:</b> ${h(dexLabel(token.dex))}`);
+  }
+
+  lines.push(`${ce('🔐')} <b>${t('card.contract', L)}:</b>`);
   lines.push(`<code>${h(token.tokenAddress)}</code>`);
   lines.push('');
 
@@ -144,7 +148,7 @@ function formatTokenCard(token, audit, lang = 'en', level = 'green', opts = {}) 
   lines.push('');
 
   const liq = audit.breakdown.liquidity;
-  lines.push(`${ce('🪙')} <b>${t('card.liquidity', L)}:</b> ${h(fmtUsd(token.liquidityUsd))} ${ce(liqStrengthEmoji(liq))} <b>${liqLabel(liq.code, L)}</b>`);
+  lines.push(`${ce('💧')} <b>${t('card.liquidity', L)}:</b> ${h(fmtUsd(token.liquidityUsd))} ${ce(liqStrengthEmoji(liq))} <b>${liqLabel(liq.code, L)}</b>`);
 
   lines.push(`${ce('📊')} <b>${t('card.volume24h', L)}:</b> ${h(fmtUsd(token.volume24h))}`);
   if (audit.breakdown.volumeLiquidityRatio.ratio !== null) {
@@ -157,11 +161,6 @@ function formatTokenCard(token, audit, lang = 'en', level = 'green', opts = {}) 
 
   lines.push(`${ce('➡️')} <b>${t('card.txns24h', L)}:</b> ${h(balanceLabel(audit.breakdown.buyerSellerBalance, L))}`);
   lines.push(`${ce('⏱️')} <b>${t('card.age', L)}:</b> ${h(ageLabel(audit.breakdown.age, L))}`);
-
-  if (token.dex) {
-    lines.push(`${ce(dexEmojiCharFor(token))} <b>${t('card.dex', L)}:</b> ${h(dexLabel(token.dex))}`);
-  }
-
   lines.push(formatRiskLine(audit, L, ce, riskLabel));
 
   if (audit.warnings && audit.warnings.length > 0) {

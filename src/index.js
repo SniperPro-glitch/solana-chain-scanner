@@ -25,6 +25,7 @@ const whitelist = require('./whitelist');
 const { ensureShareEnrichment } = require('./shareEnrich');
 const { t, normalizeLang, DEFAULT_LANG } = require('./i18n');
 const { wrapEmojis } = require('./emojiPack');
+const { trimForCaption } = require('./cardCaption');
 const userbot = require('./userbot');
 const { createScanRunner } = require('./scanRunner');
 const { createWatchRunner } = require('./watchRunner');
@@ -231,6 +232,17 @@ function telegramLocalPhotoFileOpts(photoArg) {
   return undefined;
 }
 
+function prepareCardHtml(text, chain, hasPhoto) {
+  if (hasPhoto) {
+    const { text: trimmed, trimmed: wasTrimmed, visible } = trimForCaption(text, chain);
+    if (wasTrimmed) {
+      console.warn(`[card] caption kırpıldı (~${visible} görünür karakter)`);
+    }
+    return trimmed;
+  }
+  return wrapEmojis(text, chain);
+}
+
 async function sendCardToChannel(ch, opts) {
   const ubStrict = isChannelUserbotStrict();
   const wantUserbot = preferUserbotForChannel() && ch?.settings?.userbotEnabled !== false;
@@ -241,6 +253,7 @@ async function sendCardToChannel(ch, opts) {
   const photoLocalPath = opts.photoLocalPath || null;
   const hasPhoto = !!(photoFileId || photoLocalPath);
   const chain = opts.chain || 'solana';
+  const html = prepareCardHtml(text, chain, hasPhoto);
   const sendAsChannel = process.env.USERBOT_SEND_AS_CHANNEL === '1';
 
   if (ubStrict && !hasUserbotCredentials()) {
@@ -256,16 +269,15 @@ async function sendCardToChannel(ch, opts) {
   }
 
   if (useUserbot) {
-    const captionText = wrapEmojis(text, chain);
     try {
       if (hasPhoto) {
         const buf = await _resolvePhotoBuffer(photoFileId, photoLocalPath);
         if (buf) {
-          const r = await userbot.sendFile(ch.id, buf, captionText, { silent, sendAsChannel });
+          const r = await userbot.sendFile(ch.id, buf, html, { silent, sendAsChannel });
           if (r.ok) return { ok: true, messageId: r.messageId, via: 'userbot' };
         }
       }
-      const r = await userbot.sendMessage(ch.id, captionText, { silent, sendAsChannel });
+      const r = await userbot.sendMessage(ch.id, html, { silent, sendAsChannel });
       if (r.ok) return { ok: true, messageId: r.messageId, via: 'userbot' };
     } catch (e) {
       if (ubStrict) {
@@ -278,14 +290,14 @@ async function sendCardToChannel(ch, opts) {
     if (hasPhoto) {
       const photoArg = photoLocalPath || photoFileId;
       const msg = await bot.sendPhoto(ch.id, photoArg, {
-        caption: wrapEmojis(text, chain),
+        caption: html,
         parse_mode: 'HTML',
         disable_notification: silent,
         ...telegramLocalPhotoFileOpts(photoArg),
       });
       return { ok: true, messageId: msg.message_id, via: 'bot' };
     }
-    const msg = await bot.sendMessage(ch.id, wrapEmojis(text, chain), {
+    const msg = await bot.sendMessage(ch.id, html, {
       parse_mode: 'HTML',
       disable_notification: silent,
       disable_web_page_preview: true,
@@ -301,17 +313,18 @@ async function editCardMessage(msg, opts) {
   const chain = opts.chain || 'solana';
   const via = msg.via || 'bot';
 
+  const prepared = prepareCardHtml(caption || fullText || '', chain, hasPhoto);
+
   if (via === 'userbot' && userbot.isEnabled()) {
-    const wrapped = wrapEmojis(caption || fullText || '', chain);
     try {
       if (hasPhoto && (photoFileId || photoLocalPath)) {
         const buf = await _resolvePhotoBuffer(photoFileId, photoLocalPath);
         if (buf) {
-          const r = await userbot.editMessageMedia(msg.chatId, msg.messageId, buf, wrapped);
+          const r = await userbot.editMessageMedia(msg.chatId, msg.messageId, buf, prepared);
           if (r.ok) return { ok: true, via: 'userbot' };
         }
       } else {
-        const r = await userbot.editMessage(msg.chatId, msg.messageId, wrapped);
+        const r = await userbot.editMessage(msg.chatId, msg.messageId, prepared);
         if (r.ok) return { ok: true, via: 'userbot' };
       }
     } catch (e) {
@@ -321,13 +334,13 @@ async function editCardMessage(msg, opts) {
 
   try {
     if (hasPhoto) {
-      await bot.editMessageCaption(wrapEmojis(caption || '', chain), {
+      await bot.editMessageCaption(prepared, {
         chat_id: msg.chatId,
         message_id: msg.messageId,
         parse_mode: 'HTML',
       });
     } else {
-      await bot.editMessageText(wrapEmojis(fullText || caption || '', chain), {
+      await bot.editMessageText(prepared, {
         chat_id: msg.chatId,
         message_id: msg.messageId,
         parse_mode: 'HTML',
