@@ -340,18 +340,144 @@ async function editCardMessage(msg, opts) {
   }
 }
 
+const linkedDiscussionCache = new Map();
+
+async function getLinkedDiscussionChatId(channelChatId) {
+  const key = String(channelChatId);
+  if (linkedDiscussionCache.has(key)) return linkedDiscussionCache.get(key);
+  try {
+    const info = await bot.getChat(channelChatId);
+    const linked = info.linked_chat_id || null;
+    linkedDiscussionCache.set(key, linked);
+    return linked;
+  } catch (e) {
+    linkedDiscussionCache.set(key, null);
+    return null;
+  }
+}
+
+/** Kanal postunun tartışma grubundaki karşılığı (yorum için). */
+async function resolveDiscussionReplyTarget(channelChatId, channelPostMessageId) {
+  try {
+    const dm = await bot._request('getDiscussionMessage', {
+      form: { chat_id: channelChatId, message_id: channelPostMessageId },
+    });
+    if (dm?.chat?.id && dm?.message?.message_id) {
+      return { chatId: dm.chat.id, messageId: dm.message.message_id, mode: 'discussion' };
+    }
+  } catch (_) { /* tartışma yok veya API */ }
+
+  const linked = await getLinkedDiscussionChatId(channelChatId);
+  if (linked) {
+    return {
+      chatId: linked,
+      messageId: channelPostMessageId,
+      mode: 'reply_parameters',
+      channelChatId,
+    };
+  }
+  return null;
+}
+
+async function sendTextToChat(chatId, text, opts = {}) {
+  const chain = opts.chain || 'solana';
+  const silent = opts.silent === true;
+  const wrapped = wrapEmojis(text, chain);
+  const replyTo = opts.replyTo;
+  const replyParameters = opts.replyParameters;
+
+  const tryUserbot = opts.useUserbot === true && userbot.isEnabled();
+  if (tryUserbot && replyTo) {
+    const r = await userbot.sendMessage(chatId, wrapped, { silent, replyTo });
+    if (r.ok) return { ok: true, messageId: r.messageId, via: 'userbot' };
+  }
+
+  try {
+    const form = {
+      chat_id: chatId,
+      text: wrapped,
+      parse_mode: 'HTML',
+      disable_notification: silent,
+      disable_web_page_preview: true,
+    };
+    if (replyParameters) {
+      form.reply_parameters = JSON.stringify(replyParameters);
+    } else if (replyTo) {
+      form.reply_to_message_id = replyTo;
+    }
+    const msg = await bot._request('sendMessage', { form });
+    return { ok: true, messageId: msg.message_id, via: 'bot' };
+  } catch (e) {
+    return { ok: false, error: e.message, via: 'bot' };
+  }
+}
+
+/** Bot analizi — kanal postunun altındaki yorum (tartışma grubu). */
+async function sendAnalysisAsChannelComment(ch, channelPostMessageId, text, opts = {}) {
+  const target = await resolveDiscussionReplyTarget(ch.id, channelPostMessageId);
+  if (!target) return { ok: false, error: 'no_discussion', asComment: false };
+
+  if (target.mode === 'reply_parameters') {
+    const r = await sendTextToChat(target.chatId, text, {
+      ...opts,
+      replyParameters: {
+        message_id: target.messageId,
+        chat_id: target.channelChatId,
+      },
+    });
+    return { ...r, asComment: !!r.ok };
+  }
+
+  const wantUserbot = preferUserbotForChannel() && ch?.settings?.userbotEnabled !== false && userbot.isEnabled();
+  if (wantUserbot) {
+    const r = await userbot.sendMessage(
+      target.chatId,
+      wrapEmojis(text, opts.chain || 'solana'),
+      { silent: opts.silent === true, replyTo: target.messageId },
+    );
+    if (r.ok) return { ok: true, messageId: r.messageId, via: 'userbot', asComment: true };
+  }
+
+  const r = await sendTextToChat(target.chatId, text, {
+    ...opts,
+    replyTo: target.messageId,
+  });
+  return { ...r, asComment: !!r.ok };
+}
+
 async function sendBotAnalysisFollowup(ch, cmEntry, token, audit, lang, cardLevel = 'green') {
   if (!ch || !cmEntry || !token || !audit) return;
   const sym = token.tokenSymbol || '?';
-  const body = formatAnalysisOnly(token, audit, lang, cardLevel);
-  if (!String(body || '').trim()) return;
+  let body;
+  try {
+    body = formatAnalysisOnly(token, audit, lang, cardLevel);
+  } catch (e) {
+    console.error('[followup] formatAnalysisOnly:', sym, e?.message);
+    return;
+  }
+  if (!String(body || '').trim()) {
+    console.warn('[followup] boş yorum gövdesi, atlandı:', sym);
+    return;
+  }
+  if (!cmEntry.messageId) {
+    console.warn('[followup] kart messageId yok:', sym);
+    return;
+  }
+
   let text = `<b>$${sym}</b>\n${body}`;
-  text = wrapEmojis(text, 'solana');
   if (text.length > 4080) text = `${text.slice(0, 4056)}\n<i>…</i>`;
-  const ar = await sendCardToChannel(ch, { text, silent: true, chain: 'solana' });
+
+  let ar = await sendAnalysisAsChannelComment(ch, cmEntry.messageId, text, { silent: true, chain: 'solana' });
+  if (!ar?.ok) {
+    console.warn('[followup] tartışma yorumu yok (%s) → kanala 2. mesaj:', ar?.error || '?', sym);
+    ar = await sendCardToChannel(ch, { text, silent: true, chain: 'solana' });
+  }
   if (ar?.ok && ar.messageId) {
     cmEntry.analysisMessageId = ar.messageId;
     cmEntry.analysisVia = ar.via;
+    cmEntry.analysisAsComment = ar.asComment === true;
+  } else {
+    console.error('[followup] analiz gönderilemedi:', sym, ar?.error);
   }
 }
 
