@@ -294,6 +294,51 @@ const M = {
     tr: 'GoPlus API yanıt vermedi: ${err}',
     ru: 'GoPlus API: ${err}',
   },
+  rugcheckHead: {
+    en: '🛡️ <b>RugCheck</b> (Solana)',
+    tr: '🛡️ <b>RugCheck</b> (Solana)',
+    ru: '🛡️ <b>RugCheck</b> (Solana)',
+  },
+  rugcheckScore: {
+    en: 'RugCheck score: ${score} · LP locked ${lp}%',
+    tr: 'RugCheck skor: ${score} · LP kilit ${lp}%',
+    ru: 'RugCheck score: ${score} · LP ${lp}%',
+  },
+  rugcheckRugged: {
+    en: 'RugCheck: token marked <b>rugged</b>',
+    tr: 'RugCheck: token <b>rugged</b> işaretli',
+    ru: 'RugCheck: <b>rugged</b>',
+  },
+  rugcheckRisk: {
+    en: 'RugCheck: ${name}',
+    tr: 'RugCheck: ${name}',
+    ru: 'RugCheck: ${name}',
+  },
+  solMintOpen: {
+    en: 'GoPlus: mint authority active',
+    tr: 'GoPlus: mint yetkisi aktif',
+    ru: 'GoPlus: mint активен',
+  },
+  solFreeze: {
+    en: 'GoPlus: freeze authority active',
+    tr: 'GoPlus: freeze yetkisi aktif',
+    ru: 'GoPlus: freeze активен',
+  },
+  solMetaMutable: {
+    en: 'GoPlus: metadata mutable',
+    tr: 'GoPlus: metadata değiştirilebilir',
+    ru: 'GoPlus: metadata изменяема',
+  },
+  solNotTrusted: {
+    en: 'GoPlus: not in trusted token list',
+    tr: 'GoPlus: güvenilir token listesinde değil',
+    ru: 'GoPlus: не в trusted list',
+  },
+  solHeliusHolders: {
+    en: 'Helius RPC: top holder ${t1}% · top 10: ${t10}%',
+    tr: 'Helius RPC: en büyük ${t1}% · top 10: ${t10}%',
+    ru: 'Helius: top ${t1}% · top10 ${t10}%',
+  },
   auditWarnSection: {
     en: '<b>Scanner warnings</b>',
     tr: '<b>Tarayıcı uyarıları</b>',
@@ -659,6 +704,71 @@ function collectAnalysisMetrics(token, audit, lang = 'en', _opts = {}) {
     }
   }
 
+  if (token.chain === 'solana' && c2?.solana_extra) {
+    const sx = c2.solana_extra;
+    const rc = sx.rugcheck;
+    const gp = sx.goplus;
+
+    if (rc && !rc.error) {
+      deepLines.push(pick(M.rugcheckHead, lang));
+      const sc = rc.score_normalised ?? rc.score;
+      if (sc != null) {
+        deepLines.push(`📊 ${fill(pick(M.rugcheckScore, lang), {
+          score: String(sc),
+          lp: rc.lpLockedPct != null ? String(Math.round(rc.lpLockedPct)) : '?',
+        })}`);
+        if (sc >= 5000) badCount += 2;
+        else if (sc >= 1000) warnCount++;
+      }
+      if (rc.rugged) {
+        deepLines.push(`❌ ${pick(M.rugcheckRugged, lang)}`);
+        badCount += 3;
+      }
+      for (const risk of (rc.risks || []).slice(0, 4)) {
+        const name = risk?.name || risk?.description || risk?.value || String(risk);
+        deepLines.push(`⚠️ ${fill(pick(M.rugcheckRisk, lang), { name: escapeHtml(String(name).slice(0, 120)) })}`);
+        warnCount++;
+      }
+      if (rc.mintAuthority) {
+        deepLines.push(`⚠️ ${pick(M.solMintOpen, lang)} (RugCheck)`);
+        warnCount++;
+      }
+      if (rc.freezeAuthority) {
+        deepLines.push(`⚠️ ${pick(M.solFreeze, lang)} (RugCheck)`);
+        warnCount++;
+      }
+    }
+
+    if (gp) {
+      if (String(gp.mintable_status) === '1') {
+        deepLines.push(`❌ ${pick(M.solMintOpen, lang)}`);
+        badCount++;
+      }
+      if (String(gp.freezable_status) === '1') {
+        deepLines.push(`⚠️ ${pick(M.solFreeze, lang)}`);
+        warnCount++;
+      }
+      if (String(gp.metadata_mutable_status) === '1') {
+        deepLines.push(`⚠️ ${pick(M.solMetaMutable, lang)}`);
+        warnCount++;
+      }
+      if (gp.trusted_token === 0) {
+        deepLines.push(`⚠️ ${pick(M.solNotTrusted, lang)}`);
+        warnCount++;
+      }
+    } else if (sx.goplus_error && sx.goplus_error !== 'disabled') {
+      deepLines.push(`⚠️ ${fill(pick(M.goplusFetchErr, lang), { err: escapeHtml(String(sx.goplus_error)).slice(0, 80) })}`);
+    }
+
+    const hl = sx.helius_holders;
+    if (hl?.topHolderPct != null) {
+      deepLines.push(`👥 ${fill(pick(M.solHeliusHolders, lang), {
+        t1: hl.topHolderPct.toFixed(1),
+        t10: (hl.top10Pct ?? hl.topHolderPct).toFixed(1),
+      })}`);
+    }
+  }
+
   return { items, deepLines, goodCount, warnCount, badCount };
 }
 
@@ -703,7 +813,7 @@ function pickVerdictHtml(token, audit, lang, counts) {
   const c2 = token.contract;
   const riskCode = audit.risk.code;
   let verdict;
-  if (badCount >= 3 || riskCode === 'HIGH' || (token.chain === 'bsc' && c2?.is_scam === true)) {
+  if (badCount >= 3 || riskCode === 'HIGH' || c2?.is_scam === true) {
     verdict = pick(VERDICT.dangerous, lang);
   } else if (badCount >= 1 || riskCode === 'MEDIUM') {
     verdict = badCount >= 2 ? pick(VERDICT.risky, lang) : pick(VERDICT.mixed, lang);
@@ -719,13 +829,21 @@ function collectRedFlags(token, lang) {
   const flags = [];
   const c2 = token.contract;
   const gp = c2?.bsc_extra?.goplus;
-  if (token.chain === 'bsc' && c2?.is_scam === true) {
-    flags.push({ sev: 'bad', text: lang === 'tr' ? 'Honeypot — satış engelli' : lang === 'ru' ? 'Honeypot' : 'Honeypot — sells blocked' });
-  } else if (gp && String(gp.is_honeypot) === '1') {
+  const sgp = c2?.solana_extra?.goplus;
+  if (c2?.is_scam === true || c2?.solana_extra?.rugcheck?.rugged) {
+    const lbl = token.chain === 'solana'
+      ? (lang === 'tr' ? 'RugCheck: rugged / scam' : lang === 'ru' ? 'RugCheck: rugged' : 'RugCheck: rugged')
+      : (lang === 'tr' ? 'Honeypot — satış engelli' : lang === 'ru' ? 'Honeypot' : 'Honeypot — sells blocked');
+    flags.push({ sev: 'bad', text: lbl });
+  } else if (token.chain === 'bsc' && gp && String(gp.is_honeypot) === '1') {
     flags.push({ sev: 'warn', text: lang === 'tr' ? 'GoPlus: honeypot şüphesi' : lang === 'ru' ? 'GoPlus: honeypot' : 'GoPlus: possible honeypot' });
   }
-  if (c2?.mintable === true || (gp && String(gp.is_mintable) === '1')) {
+  if (c2?.mintable === true || (gp && String(gp.is_mintable) === '1')
+    || (sgp && String(sgp.mintable_status) === '1')) {
     flags.push({ sev: 'warn', text: lang === 'tr' ? 'Mint açık' : lang === 'ru' ? 'Mint открыт' : 'Mint open' });
+  }
+  if (sgp && String(sgp.freezable_status) === '1') {
+    flags.push({ sev: 'warn', text: lang === 'tr' ? 'Freeze yetkisi' : lang === 'ru' ? 'Freeze' : 'Freeze authority' });
   }
   if (gp && String(gp.cannot_sell_all) === '1') {
     flags.push({ sev: 'bad', text: lang === 'tr' ? 'Tam satış kısıtı' : lang === 'ru' ? 'Ограничение продажи' : 'Cannot sell all' });

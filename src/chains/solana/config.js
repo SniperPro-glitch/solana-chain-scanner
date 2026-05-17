@@ -28,6 +28,8 @@ module.exports = {
   api: {
     dexScreenerBase: 'https://api.dexscreener.com',
     geckoTerminalBase: 'https://api.geckoterminal.com/api/v2',
+    rugcheckBase: 'https://api.rugcheck.xyz',
+    goplusBase: 'https://api.gopluslabs.io',
   },
   discoveryPollMs: 60_000,
   wrappedNative: 'So11111111111111111111111111111111111111112',

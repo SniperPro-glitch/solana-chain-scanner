@@ -1,7 +1,8 @@
-// Solana SPL risk — mint/freeze (RPC/Helius), holder özeti (DexScreener / Helius).
+// Solana SPL risk — RugCheck + GoPlus + Helius RPC + RPC mint/freeze yedek.
 
 const axios = require('axios');
 const config = require('./config');
+const { scanTokenSecurity } = require('./securityScan');
 
 const http = axios.create({
   timeout: 12_000,
@@ -31,9 +32,7 @@ async function rpcCall(method, params) {
     const st = e.response?.status;
     if (st === 401 && !rpcWarned401) {
       rpcWarned401 = true;
-      console.warn('[solana/risk] RPC 401 — HELIUS_API_KEY Railway\'de düzeltin (her token için tekrarlanmaz)');
-    } else if (!rpcWarned401 || st !== 401) {
-      console.warn(`[solana/risk] ${method}:`, e.message);
+      console.warn('[solana/risk] RPC 401 — HELIUS_API_KEY Railway\'de düzeltin');
     }
     return null;
   }
@@ -43,18 +42,11 @@ async function fetchMintParsed(mint) {
   try {
     const result = await rpcCall('getAccountInfo', [mint, { encoding: 'jsonParsed' }]);
     return result?.value?.data?.parsed?.info || null;
-  } catch (e) {
-    console.warn('[solana/risk] getAccountInfo:', e.message);
+  } catch {
     return null;
   }
 }
 
-async function fetchHoldersFromHelius(_mint) {
-  // v0 token-metadata deprecated; holder özeti DexScreener + getAccountInfo (RPC) yeterli.
-  return null;
-}
-
-/** DexScreener pair üzerinden holder sayısı (varsa). */
 async function fetchHoldersFromDex(token) {
   const mint = token?.tokenAddress;
   if (!mint) return null;
@@ -79,7 +71,39 @@ async function fetchHoldersFromDex(token) {
   return null;
 }
 
-async function enrichToken(token, _opts = {}) {
+function applySecurityScan(contract, scan) {
+  if (!scan) return contract;
+
+  if (scan.mintable != null) contract.mintable = scan.mintable;
+  if (scan.freezeAuthority) {
+    contract.adminAddress = typeof scan.freezeAuthority === 'string'
+      ? scan.freezeAuthority
+      : 'freeze_authority';
+    contract.verification = 'freeze_authority';
+  }
+  if (scan.topHolderPct != null) contract.topHolderPct = scan.topHolderPct;
+  if (scan.top10Pct != null) contract.top10Pct = scan.top10Pct;
+  if (scan.holdersCount != null) {
+    contract.holdersCount = scan.holdersCount;
+  }
+  if (scan.rugged) {
+    contract.is_scam = true;
+    contract.verification = 'rugcheck_rugged';
+  }
+
+  contract.solana_extra = {
+    rugcheck: scan.rugcheck,
+    goplus: scan.goplus,
+    goplus_error: scan.goplus_error,
+    helius_holders: scan.helius_holders,
+    helius_error: scan.helius_error,
+    riskScore: scan.riskScore,
+    fetchedAt: scan.fetchedAt,
+  };
+  return contract;
+}
+
+async function enrichToken(token, opts = {}) {
   if (!token?.tokenAddress) return token;
 
   const contract = {
@@ -89,21 +113,32 @@ async function enrichToken(token, _opts = {}) {
     top10Pct: null,
     holdersCount: token.holdersCount ?? null,
     verification: null,
+    is_scam: false,
   };
+
+  const scan = await scanTokenSecurity(token.tokenAddress, { deep: opts.deep === true }).catch((e) => {
+    console.warn('[solana/security]', e.message);
+    return null;
+  });
+  applySecurityScan(contract, scan);
 
   const parsed = await fetchMintParsed(token.tokenAddress);
   if (parsed) {
-    contract.mintable = parsed.mintAuthority != null;
-    const freeze = parsed.freezeAuthority;
-    const mintAuth = parsed.mintAuthority;
-    contract.adminAddress = freeze || mintAuth || null;
-    if (freeze) contract.verification = 'freeze_authority';
+    if (contract.mintable == null) contract.mintable = parsed.mintAuthority != null;
+    if (!contract.adminAddress) {
+      const freeze = parsed.freezeAuthority;
+      const mintAuth = parsed.mintAuthority;
+      contract.adminAddress = freeze || mintAuth || null;
+      if (freeze && !contract.verification) contract.verification = 'freeze_authority';
+    }
   }
 
   const dsH = await fetchHoldersFromDex(token);
-  if (dsH?.holdersCount != null) {
+  if (dsH?.holdersCount != null && contract.holdersCount == null) {
     contract.holdersCount = dsH.holdersCount;
     token.holdersCount = dsH.holdersCount;
+  } else if (contract.holdersCount != null) {
+    token.holdersCount = contract.holdersCount;
   }
 
   token.contract = contract;
@@ -111,4 +146,4 @@ async function enrichToken(token, _opts = {}) {
   return token;
 }
 
-module.exports = { enrichToken };
+module.exports = { enrichToken, scanTokenSecurity };
