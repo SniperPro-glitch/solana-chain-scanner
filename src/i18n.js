@@ -41,6 +41,26 @@ const STRINGS = {
     tr: 'Bot analizi',
     ru: 'Анализ бота',
   },
+  'comment.riskReportTitle': {
+    en: 'RISK REPORT',
+    tr: 'RİSK RAPORU',
+    ru: 'ОТЧЁТ О РИСКЕ',
+  },
+  'comment.riskReportHighlights': {
+    en: 'Key findings',
+    tr: 'Öne çıkanlar',
+    ru: 'Главное',
+  },
+  'comment.riskReportMore': {
+    en: '+{n} more signals in full audit',
+    tr: '+{n} ek sinyal (tam denetim)',
+    ru: '+{n} сигналов (полный аудит)',
+  },
+  'comment.riskReportVerdict': {
+    en: 'Assessment',
+    tr: 'Değerlendirme',
+    ru: 'Вердикт',
+  },
   'comment.tradeTitle': {
     en: 'Buy / Sell',
     tr: 'Al / Sat',

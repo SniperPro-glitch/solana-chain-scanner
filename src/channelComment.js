@@ -1,7 +1,7 @@
 // Kanal bot yorumu — yalnızca "Bot analizi" başlığı; diğer bölümler ayırıcı + içerik.
 
 const { t, normalizeLang } = require('./i18n');
-const { buildAnalysisCommentBody } = require('./analysis');
+const { buildRiskReportBody } = require('./analysis');
 const { botLogoHtml, customEmojiHtml, formatWhitelistKnownProjectBlock, analysisSeverityEmojiHtml } = require('./emojiPack');
 const { isLiquidityDrained } = require('./liquidityDrain');
 const { formatContractSecurityBlock } = require('./contractSecurityBlock');
@@ -60,9 +60,10 @@ function formatChannelComment(token, audit, lang = 'en', level = 'green') {
   const rating = formatRatingBlock(token, L, level);
   if (rating) blocks.push(rating);
 
-  const analysisBody = buildAnalysisCommentBody(token, audit, L, {
-    includeAuditWarnings: false,
+  const analysisBody = buildRiskReportBody(token, audit, L, {
     chain,
+    skipContractDupes: true,
+    initialLiquidity: token.initialLiquidity,
   });
   blocks.push(sectionBlock(
     `${botLogoHtml(chain)} <b>${t('comment.botTitle', L)}</b>`,

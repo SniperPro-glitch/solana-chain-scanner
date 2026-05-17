@@ -909,6 +909,165 @@ function prioritizeItems(items, max = 5) {
   return [...items].sort((a, b) => rank(a) - rank(b)).slice(0, max);
 }
 
+const REPORT_LEDGER = '┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈';
+
+function stripHtml(s) {
+  return String(s || '').replace(/<[^>]+>/g, '').trim();
+}
+
+/** Özet satırında zaten var — tekrar etme. */
+function isReportSummaryDuplicate(text, lang) {
+  const s = stripHtml(text).toLowerCase();
+  if (!s) return true;
+  if (/likidite|liquidity|ликвид/i.test(s)) return true;
+  if (/havuz|pool depth|derinliği|orta seviye|thin pool|ince havuz/i.test(s) && /lik|liq|\$|usd/i.test(s)) return true;
+  if (/token.*\d+\s*(dk|dakika|saat|gün|m\b|h\b|d\b|min|hour|day)/i.test(s)) return true;
+  if (/çok taze|too fresh|hâlâ erken|still early|observe more|güvenmek için erken/i.test(s)) return true;
+  if (/volume\/liq|hacim\/lik|vol\/liq/i.test(s)) return true;
+  return false;
+}
+
+/** Kontrat güvenliği bloğunda zaten gösterilir. */
+function isContractSectionDuplicate(text) {
+  const s = stripHtml(text).toLowerCase();
+  if (/holder|top\s*10|top10|cüzdan|holders|mint.*açık|mint open|freeze|admin|kara liste|blacklist/i.test(s)) {
+    return true;
+  }
+  return false;
+}
+
+function buildReportSummaryLine(token, audit, lang) {
+  const { safetyPercent, fmtPct, safetyTierLabel } = require('./riskDisplay');
+  const L = lang;
+  const safe = safetyPercent(audit.riskPercent);
+  const liqUsd = fmtUsd(token.liquidityUsd || 0);
+  const liqWord = liqSummaryWord(audit.breakdown.liquidity, L);
+  const ageTxt = ageSummary(audit.breakdown.age, L);
+  const sep = L === 'tr' ? ' · ' : ' · ';
+  const parts = [
+    `${fmtPct(safe, L)} ${t('card.safetyWord', L)} — ${safetyTierLabel(safe, L)}`,
+    `${liqUsd} (${liqWord})`,
+  ];
+  if (ageTxt) parts.push(ageTxt);
+  return parts.join(sep);
+}
+
+function collectReportBullets(items, redFlags, lang, opts = {}) {
+  const max = opts.maxBullets ?? 4;
+  const out = [];
+  const seen = new Set();
+  const add = (sev, text) => {
+    const plain = stripHtml(text).slice(0, 140);
+    if (!plain) return;
+    const key = plain.toLowerCase().replace(/\s+/g, ' ').slice(0, 72);
+    if (seen.has(key)) return;
+    if (isReportSummaryDuplicate(plain, lang)) return;
+    if (opts.skipContractDupes && isContractSectionDuplicate(plain)) return;
+    seen.add(key);
+    out.push({ sev, text: plain });
+  };
+
+  for (const f of redFlags) add(f.sev, f.text);
+
+  const rankIcon = (icon) => {
+    if (icon === '❌' || icon === '⭕' || icon === '🚫') return 0;
+    if (icon === '⚠️' || icon === '🌡' || icon === '🐻' || icon === '🚨') return 1;
+    return 2;
+  };
+  const sorted = [...items].sort((a, b) => rankIcon(a.icon) - rankIcon(b.icon));
+  for (const i of sorted) {
+    if (i.icon === '✅' || i.icon === '🤔') continue;
+    if (i.icon === '⚖️' && !/sell|satış|pressure/i.test(i.text)) continue;
+    if (i.icon === '📈' && !/extreme|pump|yüksek|high/i.test(i.text)) continue;
+    if (i.icon === '🗄') continue;
+    const sev = (i.icon === '❌') ? 'bad' : 'warn';
+    add(sev, i.text);
+    if (out.length >= max) break;
+  }
+  return out.slice(0, max);
+}
+
+function buildRugCheckCompactLine(token, lang) {
+  const rc = token?.contract?.solana_extra?.rugcheck;
+  if (!rc || rc.error) return '';
+  const parts = [];
+  const sc = rc.score_normalised ?? rc.score;
+  if (sc != null) {
+    parts.push(lang === 'tr' ? `Skor ${sc}` : lang === 'ru' ? `Скор ${sc}` : `Score ${sc}`);
+  }
+  if (rc.lpLockedPct != null) {
+    parts.push(lang === 'tr' ? `LP %${Math.round(rc.lpLockedPct)}` : `LP ${Math.round(rc.lpLockedPct)}%`);
+  }
+  if (rc.rugged) {
+    parts.push(lang === 'tr' ? 'RUGGED' : 'RUGGED');
+  }
+  for (const risk of (rc.risks || []).slice(0, 2)) {
+    const name = stripHtml(risk?.name || risk?.description || risk?.value || '')
+      .replace(/^RugCheck:\s*/i, '')
+      .slice(0, 48);
+    if (name) parts.push(name);
+  }
+  return parts.join(' · ');
+}
+
+/**
+ * Kanal yorumu — defter / risk raporu (özet + öne çıkanlar + RugCheck tek satır).
+ * Karttaki likidite/risk tekrarlanmaz; kontrat satırları ayrı blokta kalır.
+ */
+function buildRiskReportBody(token, audit, lang = 'en', opts = {}) {
+  const { items, deepLines, goodCount, warnCount, badCount } = collectAnalysisMetrics(token, audit, lang, opts);
+  const chain = opts.chain || token.chain || 'ton';
+  const { isLiquidityDrained } = require('./liquidityDrain');
+  const liquidityDrained = isLiquidityDrained(token, opts);
+  const { customEmojiHtml, analysisSeverityEmojiHtml } = require('./emojiPack');
+  const ce = (emoji) => customEmojiHtml(emoji, chain);
+
+  const lines = [];
+  lines.push(`📋 <b>${t('comment.riskReportTitle', lang)}</b>`);
+  lines.push(REPORT_LEDGER);
+  lines.push(`<i>${escapeHtml(buildReportSummaryLine(token, audit, lang))}</i>`);
+
+  const redFlags = collectRedFlags(token, lang);
+  const bullets = collectReportBullets(items, redFlags, lang, {
+    maxBullets: 4,
+    skipContractDupes: opts.skipContractDupes === true,
+  });
+  const totalSignals = items.length + redFlags.length;
+
+  if (bullets.length) {
+    lines.push('');
+    lines.push(`<b>${t('comment.riskReportHighlights', lang)}</b>`);
+    for (const b of bullets) {
+      const icon = analysisSeverityEmojiHtml(b.sev === 'bad' ? 'bad' : 'warn', chain, liquidityDrained);
+      lines.push(`• ${icon} ${escapeHtml(b.text)}`);
+    }
+    const hidden = totalSignals - bullets.length;
+    if (hidden > 0) {
+      lines.push(`<i>${escapeHtml(t('comment.riskReportMore', lang, { n: hidden }))}</i>`);
+    }
+  }
+
+  const rcCompact = buildRugCheckCompactLine(token, lang);
+  if (rcCompact) {
+    lines.push('');
+    lines.push(`${ce('🔥')} <b>RugCheck</b> · ${escapeHtml(rcCompact)}`);
+  } else {
+    const extra = deepLines
+      .filter((d) => !/rugcheck/i.test(stripHtml(d)))
+      .slice(0, 1);
+    for (const d of extra) {
+      lines.push('');
+      lines.push(wrapAnalysisLineEmojis(d, ce, chain, liquidityDrained));
+    }
+  }
+
+  const verdictHtml = pickVerdictHtml(token, audit, lang, { goodCount, warnCount, badCount });
+  lines.push(REPORT_LEDGER);
+  lines.push(`<b>${t('comment.riskReportVerdict', lang)}:</b> ${verdictHtml}`);
+
+  return lines.join('\n');
+}
+
 /** Kanal bot yorumu — düzenli çok satırlı analiz gövdesi (başlık ayrı eklenir). */
 function buildAnalysisCommentBody(token, audit, lang = 'en', opts = {}) {
   const { items, deepLines, goodCount, warnCount, badCount } = collectAnalysisMetrics(token, audit, lang, opts);
@@ -1136,4 +1295,9 @@ function buildAnalysisOneLine(token, audit, lang = 'en', opts = {}) {
   return line;
 }
 
-module.exports = { buildAnalysis, buildAnalysisOneLine, buildAnalysisCommentBody };
+module.exports = {
+  buildAnalysis,
+  buildAnalysisOneLine,
+  buildAnalysisCommentBody,
+  buildRiskReportBody,
+};
