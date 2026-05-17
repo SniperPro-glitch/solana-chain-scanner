@@ -20,6 +20,9 @@ function getChainLinks(token) {
   const tokenAddr = token?.tokenAddress || '';
   const poolAddr = token?.poolAddress || '';
   const ref = poolAddr || tokenAddr;
+  const dex = String(token?.dex || '').toLowerCase();
+  const onPumpCurve = token?.isPumpFun || dex === 'pumpfun' || (tokenAddr && tokenAddr.endsWith('pump'));
+  const pumpUrl = onPumpCurve && dex !== 'raydium' ? `https://pump.fun/coin/${tokenAddr}` : null;
   return {
     chain: 'solana',
     dsUrl: token?.dexScreener?.url || `https://dexscreener.com/solana/${ref}`,
@@ -29,8 +32,9 @@ function getChainLinks(token) {
     explorerUrl: `https://solscan.io/token/${tokenAddr}`,
     explorerName: 'Solscan',
     explorerEmoji: '🔍',
-    swapUrl: `https://jup.ag/swap/SOL-${tokenAddr}`,
-    swapName: 'Jupiter',
+    swapUrl: pumpUrl || `https://jup.ag/swap/SOL-${tokenAddr}`,
+    swapName: pumpUrl ? 'Pump.fun' : 'Jupiter',
+    pumpUrl,
   };
 }
 
@@ -67,11 +71,13 @@ function formatLinksSection(token, lang = 'en') {
   const L = normalizeLang(lang);
   const ce = (emoji) => customEmojiHtml(emoji, chain);
   const cl = getChainLinks(token);
-  const body = [
+  const linkLines = [
     `${ce('🦅')} <a href="${cl.dsUrl}">DexScreener</a>`,
     `${ce('🦎')} <a href="${cl.gtUrl}">GeckoTerminal</a>`,
     `${ce(cl.explorerEmoji)} <a href="${cl.explorerUrl}">${cl.explorerName}</a>`,
-  ].join('\n');
+  ];
+  if (cl.pumpUrl) linkLines.push(`${ce('🎯')} <a href="${cl.pumpUrl}">Pump.fun</a>`);
+  const body = linkLines.join('\n');
   return dividerBlock(body);
 }
 

@@ -292,20 +292,29 @@ function buildCatChannel(chatId) {
     : lang === 'ru'
       ? '🏛 *DEX* — Solana: Raydium, Orca, Meteora, Jupiter…'
       : '🏛 *Allowed DEXes* — Solana: Raydium, Orca, Meteora, Jupiter…';
+  const pumpGradHint = lang === 'tr'
+    ? '🎓 *Pump mezuniyet* — sadece %100 dolmuş (PumpSwap) veya sadece curve'
+    : lang === 'ru'
+      ? '🎓 *Pump выпуск* — только 100% или только на кривой'
+      : '🎓 *Pump graduation* — only 100% migrated or only on bonding curve';
   const hints = lang === 'tr'
     ? [
         dexHintSol,
+        pumpGradHint,
         '🔕 *Sessiz Bildirim* — sessiz post (titreşim/ses yok)',
       ]
     : lang === 'ru'
       ? [
           dexHintSol,
+          pumpGradHint,
           '🔕 *Тихое уведомление* — без звука/вибрации',
         ]
       : [
           dexHintSol,
+          pumpGradHint,
           '🔕 *Silent Notification* — post without sound',
         ];
+  const pumpGradStatus = pumpGradLabel(s.pumpGraduationMode, lang);
   const text =
     `${PANEL_RULE}\n` +
     `*${t('settings.groupChannel', lang)}*\n\n` +
@@ -314,6 +323,7 @@ function buildCatChannel(chatId) {
     `${PANEL_RULE}\n` +
     `*${curP(lang)}*\n` +
     `🏛 DEX: *${dexFilter}*\n` +
+    `🎓 ${t('settings.pumpGrad.short', lang)}: *${pumpGradStatus}*\n` +
     `🔕 ${t('settings.silent', lang)}: *${silentLabel}*`;
   const userbotStatus2 = s.userbotEnabled ? t('common.on', lang) : t('common.off', lang);
   const userbotLbl = lang === 'tr' ? 'Premium Userbot' : lang === 'ru' ? 'Premium юзербот' : 'Premium Userbot';
@@ -325,6 +335,7 @@ function buildCatChannel(chatId) {
     text,
     keyboard: [
       [{ text: '🏛 DEX', callback_data: 'menu:dex' }],
+      [{ text: `🎓 ${t('settings.pumpGrad.short', lang)}`, callback_data: 'menu:pumpGrad' }],
       [{ text: `🔕 ${t('settings.silent', lang)}: ${silentLabel}`, callback_data: 'tgl:silent' }],
       [{ text: `🤖 ${userbotLbl}: ${userbotStatus2}`, callback_data: 'tgl:userbot' }],
       [{ text: `⏰ ${hoursLbl}: ${hoursStatus}`, callback_data: 'menu:hours' }],
@@ -753,6 +764,7 @@ function buildShowFiltersMenu(chatId) {
   const sybilLabel = (Number(s.maxSybilRatio) || 0) > 0
     ? `${(s.maxSybilRatio * 100).toFixed(0)}%`
     : t('common.off', lang);
+  const pumpGradShort = pumpGradLabel(s.pumpGraduationMode, lang);
   return {
     text:
       `${PANEL_RULE}\n` +
@@ -772,6 +784,7 @@ function buildShowFiltersMenu(chatId) {
       `  🕵️ ${L_SYBIL}: *${sybilLabel}*\n\n` +
       `📡 *${L_CHANNEL}*\n` +
       `  🏛 ${L_DEX}: *${dexLabel}*\n` +
+      `  🎓 ${t('settings.pumpGrad.short', lang)}: *${pumpGradShort}*\n` +
       `  🔕 ${L_SILENT}: *${fmtOnOff(s.silentNotification)}*\n` +
       `  🤖 ${L_USERBOT}: *${fmtOnOff(s.userbotEnabled)}*\n` +
       `  ⏰ ${L_HOURS}: *${hours}*`,
@@ -803,6 +816,9 @@ function buildShowFiltersMenu(chatId) {
       // Channel grubu
       [
         { text: `🏛 ${L_DEX}`, callback_data: 'menu:dex' },
+        { text: `🎓 ${t('settings.pumpGrad.short', lang)}`, callback_data: 'menu:pumpGrad' },
+      ],
+      [
         { text: `⏰ ${L_HOURS}`, callback_data: 'menu:hours' },
       ],
       [
@@ -815,6 +831,37 @@ function buildShowFiltersMenu(chatId) {
 }
 
 // ─── Sybil filter menu ───
+function pumpGradLabel(mode, lang) {
+  const m = String(mode || 'off').toLowerCase();
+  if (m === 'graduated_only') return t('settings.pumpGrad.modeGraduated', lang);
+  if (m === 'curve_only') return t('settings.pumpGrad.modeCurve', lang);
+  return t('settings.pumpGrad.modeOff', lang);
+}
+
+function buildPumpGradMenu(chatId) {
+  const s = channels.getSettings(chatId);
+  const lang = L(chatId);
+  const cur = String(s.pumpGraduationMode || 'off').toLowerCase();
+  const mark = (v) => cur === v ? '✅ ' : '';
+  const text =
+    `${PANEL_RULE}\n` +
+    `🎓 *${t('settings.pumpGrad.menuTitle', lang)}*\n\n` +
+    `${t('settings.pumpGrad.desc', lang)}\n\n` +
+    `${PANEL_RULE}\n` +
+    `*${curP(lang)}*\n` +
+    `\`${pumpGradLabel(cur, lang)}\``;
+  return {
+    text,
+    keyboard: [
+      [{ text: `${mark('off')}⚪ ${t('settings.pumpGrad.modeOff', lang)}`, callback_data: 'set:pumpGraduationMode:off' }],
+      [{ text: `${mark('graduated_only')}🎓 ${t('settings.pumpGrad.modeGraduated', lang)}`, callback_data: 'set:pumpGraduationMode:graduated_only' }],
+      [{ text: `${mark('curve_only')}📈 ${t('settings.pumpGrad.modeCurve', lang)}`, callback_data: 'set:pumpGraduationMode:curve_only' }],
+      [{ text: defBtn(lang), callback_data: 'rst:pumpGrad' }],
+      [{ text: t('settings.back', lang), callback_data: 'menu:catChannel' }],
+    ],
+  };
+}
+
 function buildSybilMenu(chatId) {
   const s = channels.getSettings(chatId);
   const lang = L(chatId);
@@ -964,6 +1011,7 @@ function handleCallback(data, chatId) {
       mcap: { minMarketCapUsd: 0, maxMarketCapUsd: 0 },
       hours: { activeHoursEnabled: false, activeHoursStart: 10, activeHoursEnd: 23 },
       sybil: { maxSybilRatio: 0 },
+      pumpGrad: { pumpGraduationMode: 'off' },
     };
     const cfg = resets[which];
     if (!cfg) return { toast: '?' };
@@ -999,6 +1047,13 @@ function handleCallback(data, chatId) {
       return { menu: 'main', toast: t('settings.chain.saved', lang) };
     }
 
+    if (key === 'pumpGraduationMode') {
+      const allowed = new Set(['off', 'graduated_only', 'curve_only']);
+      if (!allowed.has(String(value))) return { toast: '?' };
+      channels.updateSetting(chatId, 'pumpGraduationMode', value);
+      return { menu: 'pumpGrad', toast: '✅' };
+    }
+
     channels.updateSetting(chatId, key, value);
     // Alt-menüde kal — kullanıcı hangi alt-menüdeyse orayı yenile (değer tazelensin)
     const back =
@@ -1011,7 +1066,8 @@ function handleCallback(data, chatId) {
       key === 'watchDelayMinutes' ? 'watch' :
       key.includes('MarketCap') ? 'mcap' :
       key.includes('activeHours') ? 'hours' :
-      key === 'maxSybilRatio' ? 'sybil' : 'main';
+      key === 'maxSybilRatio' ? 'sybil' :
+      key === 'pumpGraduationMode' ? 'pumpGrad' : 'main';
     return { menu: back, toast: '✅' };
   }
 
@@ -1083,6 +1139,7 @@ function _renderMenuInner(menu, chatId) {
     case 'mcap':   return buildMcapMenu(chatId);
     case 'hours':  return buildHoursMenu(chatId);
     case 'sybil':  return buildSybilMenu(chatId);
+    case 'pumpGrad': return buildPumpGradMenu(chatId);
     case 'profile': return buildProfileMenu(chatId);
     case 'showFilters': return buildShowFiltersMenu(chatId);
     case 'intel':    return buildIntelMenu(chatId);

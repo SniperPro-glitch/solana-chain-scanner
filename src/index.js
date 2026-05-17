@@ -1,6 +1,7 @@
 // Solana Chain Scanner — Bot 2 (TON/BSC bağlantısı yok)
 
 require('dotenv').config();
+require('./envBootstrap').applyHeliusEnv();
 if (process.env.NTBA_FIX_350 === undefined || String(process.env.NTBA_FIX_350).trim() === '') {
   process.env.NTBA_FIX_350 = '1';
 }
@@ -87,11 +88,20 @@ function applyTokenBadges(token) {
   return token;
 }
 
+function hasUserbotCredentials() {
+  return !!(
+    process.env.TG_API_ID
+    && process.env.TG_API_HASH
+    && String(process.env.TG_SESSION || '').trim()
+  );
+}
+
+/** true = userbot yoksa kanala post gitmez. Session yokken false döner (Bot API fallback). */
 function isChannelUserbotRequired() {
   const v = (process.env.CHANNEL_USERBOT_REQUIRED || '').trim().toLowerCase();
   if (v === '0' || v === 'false' || v === 'off') return false;
-  if (v === '1' || v === 'true' || v === 'on') return true;
-  return !!(process.env.TG_API_ID && process.env.TG_API_HASH && process.env.TG_SESSION);
+  if (v === '1' || v === 'true' || v === 'on') return hasUserbotCredentials();
+  return hasUserbotCredentials();
 }
 
 async function _resolvePhotoBuffer(photoFileId, photoLocalPath) {
@@ -283,6 +293,40 @@ const pendingPost = new Map();
 const POST_TTL_MS = 10 * 60 * 1000;
 const dmTarget = new Map();
 const pendingBannerUpload = new Map();
+/** Ayarlar → Manuel Paylaş sonrası mint/link bekleme (TON ile aynı). */
+const pendingManualInput = new Map();
+const MANUAL_INPUT_TIMEOUT_MS = 5 * 60 * 1000;
+
+function setPendingManualInput(userId) {
+  pendingManualInput.set(String(userId), {
+    expiresAt: Date.now() + MANUAL_INPUT_TIMEOUT_MS,
+    bannerFileId: null,
+  });
+}
+function getPendingManualInput(userId) {
+  const s = pendingManualInput.get(String(userId));
+  if (!s) return null;
+  if (s.expiresAt < Date.now()) {
+    pendingManualInput.delete(String(userId));
+    return null;
+  }
+  return s;
+}
+function attachPendingManualBanner(userId, fileId) {
+  const s = getPendingManualInput(userId);
+  if (!s) return false;
+  s.bannerFileId = fileId;
+  s.expiresAt = Date.now() + MANUAL_INPUT_TIMEOUT_MS;
+  pendingManualInput.set(String(userId), s);
+  return true;
+}
+function consumePendingManualInput(userId) {
+  const s = pendingManualInput.get(String(userId));
+  if (!s) return null;
+  pendingManualInput.delete(String(userId));
+  if (s.expiresAt < Date.now()) return null;
+  return s;
+}
 /** Kanal butonundan geldi; dil seçilince bu kanalın ayar paneli açılır (TON akışı). */
 const pendingChannelAfterLang = new Map();
 
@@ -444,7 +488,7 @@ async function shareTokenToChannel(ch, token, audit, opts = {}) {
   return { ok: true, cmEntry };
 }
 
-async function processManualPost(chatId, userId, arg, lang) {
+async function processManualPost(chatId, userId, arg, lang, customBannerFileId = null) {
   if (!arg) {
     return bot.sendMessage(chatId, t('post.usage', lang), { parse_mode: 'HTML' });
   }
@@ -476,7 +520,7 @@ async function processManualPost(chatId, userId, arg, lang) {
     return bot.sendMessage(chatId, t('post.notFound', lang));
   }
 
-  setPendingPost(userId, { token, audit });
+  setPendingPost(userId, { token, audit, customBannerFileId: customBannerFileId || null });
 
   const isCritical = audit.isCritical === true;
   const isRisky = !isCritical && (audit.risk.code === 'HIGH' || audit.risk.code === 'MEDIUM');
@@ -712,6 +756,15 @@ bindTextCommand(/^\/wl(?:@\w+)?(?:\s+(.+))?$/i, async (msg, match) => {
   return bot.sendMessage(msg.chat.id, '<code>/wl add solana MINT... Etiket</code>', { parse_mode: 'HTML' });
 });
 
+bot.on('message', async (msg) => {
+  if (msg.chat.type !== 'private' || !msg.from?.id || !msg.text) return;
+  if (msg.text.startsWith('/')) return;
+  const state = consumePendingManualInput(msg.from.id);
+  if (!state) return;
+  const lang = langForMsg(msg);
+  return processManualPost(msg.chat.id, msg.from.id, msg.text.trim(), lang, state.bannerFileId || null);
+});
+
 bindTextCommand(/^\/stats(@\w+)?$/i, (msg) => {
   const lang = langForMsg(msg);
   const ch = channels.count();
@@ -768,6 +821,18 @@ bot.on('my_chat_member', async (upd) => {
 bot.on('photo', async (msg) => {
   if (!msg.from || !msg.photo?.length) return;
   const userId = msg.from.id;
+  if (msg.chat.type === 'private' && getPendingManualInput(userId)) {
+    const fileId = msg.photo[msg.photo.length - 1].file_id;
+    attachPendingManualBanner(userId, fileId);
+    const lang = langForMsg(msg);
+    const okMsg = lang === 'tr'
+      ? '🖼 Banner kaydedildi. Şimdi Solana mint veya DexScreener linki gönderin.'
+      : lang === 'ru'
+        ? '🖼 Баннер сохранён. Отправьте mint Solana или ссылку DexScreener.'
+        : '🖼 Banner saved. Now send a Solana mint or DexScreener link.';
+    await bot.sendMessage(msg.chat.id, okMsg).catch(() => {});
+    return;
+  }
   const targetChatId = msg.chat.type === 'private' ? getDmTarget(userId) : msg.chat.id;
   if (!targetChatId || !consumePendingBanner(targetChatId, userId)) return;
   if (!(await isChatAdmin(targetChatId, userId))) return;
@@ -846,7 +911,9 @@ bot.on('callback_query', async (cb) => {
     if (!fc.pass) {
       return bot.answerCallbackQuery(cb.id, { text: fc.reason, show_alert: true });
     }
-    const r = await shareTokenToChannel(ch, pending.token, pending.audit);
+    const r = await shareTokenToChannel(ch, pending.token, pending.audit, {
+      customBannerFileId: pending.customBannerFileId || null,
+    });
     clearPendingPost(userId);
     await bot.deleteMessage(fromChatId, cb.message.message_id).catch(() => {});
     if (r.ok) {
@@ -858,22 +925,38 @@ bot.on('callback_query', async (cb) => {
   }
 
   if (cb.data === 'manual:start') {
-    const targetChatId = isDM ? (getDmTarget(userId) || fromChatId) : fromChatId;
-    if (targetChatId) setDmTarget(userId, targetChatId);
+    if (isDM && !getDmTarget(userId)) {
+      return bot.answerCallbackQuery(cb.id, {
+        text: t('cmd.noChannelPicked', cbLang),
+        show_alert: true,
+      });
+    }
+    if (isDM) {
+      const tgt = getDmTarget(userId);
+      if (!(await isChatAdmin(tgt, userId))) {
+        return bot.answerCallbackQuery(cb.id, { text: t('cmd.notChannelAdmin', cbLang), show_alert: true });
+      }
+    }
+    setPendingManualInput(userId);
     const prompt = cbLang === 'tr'
-      ? '📤 <b>Manuel Paylaş</b>\n\nSolana mint veya DexScreener linki gönderin.\n<i>5 dakika içinde.</i>'
+      ? '📤 <b>Manuel Paylaş</b>\n\n<b>1)</b> İstersen önce özel banner fotoğrafı gönder (opsiyonel).\n<b>2)</b> Sonra Solana mint veya DexScreener linki gönderin.\n\n<i>5 dakika içinde.</i>'
       : cbLang === 'ru'
-        ? '📤 <b>Ручной пост</b>\n\nОтправьте mint Solana или ссылку DexScreener.\n<i>5 минут.</i>'
-        : '📤 <b>Manual post</b>\n\nSend a Solana mint or DexScreener link.\n<i>Within 5 minutes.</i>';
+        ? '📤 <b>Ручной пост</b>\n\n<b>1)</b> По желанию сначала фото-баннер.\n<b>2)</b> Затем mint Solana или ссылка DexScreener.\n\n<i>5 минут.</i>'
+        : '📤 <b>Manual post</b>\n\n<b>1)</b> Optional custom banner photo first.\n<b>2)</b> Then send a Solana mint or DexScreener link.\n\n<i>Within 5 minutes.</i>';
     await bot.sendMessage(fromChatId, prompt, { parse_mode: 'HTML' }).catch(() => {});
     return bot.answerCallbackQuery(cb.id);
+  }
+
+  if (cb.data === 'close') {
+    await bot.deleteMessage(fromChatId, cb.message.message_id).catch(() => {});
+    return bot.answerCallbackQuery(cb.id, { text: t('cmd.closed', cbLang) });
   }
 
   if (cb.data?.startsWith('menu:') || cb.data?.startsWith('set:') || cb.data?.startsWith('dex:')
     || cb.data?.startsWith('tgl:') || cb.data?.startsWith('tgf:') || cb.data?.startsWith('profile:')
     || cb.data?.startsWith('rst:') || cb.data?.startsWith('banner:') || cb.data === 'reset') {
-    const targetChatId = isDM ? (getDmTarget(userId) || fromChatId) : fromChatId;
-    if (!targetChatId) {
+    const targetChatId = isDM ? getDmTarget(userId) : fromChatId;
+    if (!targetChatId || !channels.get(targetChatId)) {
       return bot.answerCallbackQuery(cb.id, { text: t('cmd.noChannelPicked', cbLang), show_alert: true });
     }
     if (!(await isChatAdmin(targetChatId, userId))) {
@@ -961,6 +1044,23 @@ async function main() {
   ]).catch((e) => console.warn('setMyCommands:', e?.message));
 
   await userbot.getClient();
+
+  const ubOn = userbot.isEnabled();
+  const ubReqEnv = ['1', 'true', 'on'].includes(
+    String(process.env.CHANNEL_USERBOT_REQUIRED || '').trim().toLowerCase(),
+  );
+  if (ubOn) {
+    console.log('   Userbot: AÇIK (premium emoji kanal postları)');
+  } else if (ubReqEnv && !hasUserbotCredentials()) {
+    console.warn('   ⚠️ CHANNEL_USERBOT_REQUIRED=1 ama TG_SESSION/API yok → postlar Bot API ile (emoji düz metin)');
+  } else {
+    console.log('   Userbot: kapalı → Bot API');
+  }
+  const enabledCh = channels.listEnabled().filter((c) => {
+    const chList = c.settings?.chains;
+    return Array.isArray(chList) && chList.includes('solana');
+  });
+  console.log(`   Kanal: ${channels.count().total} kayıtlı, ${enabledCh.length} aktif+Solana seçili`);
 
   if (SOLANA_SCAN_ENABLED) {
     setTimeout(() => runScan('cron'), 15_000);

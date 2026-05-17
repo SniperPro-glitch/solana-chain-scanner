@@ -2,6 +2,7 @@
 
 const axios = require('axios');
 const config = require('./config');
+const pumpfun = require('./pumpfun');
 
 const http = axios.create({
   timeout: 15_000,
@@ -26,12 +27,17 @@ function normalizePair(pair) {
     ageMinutes = Math.round((Date.now() - pair.pairCreatedAt) / 60_000);
   }
 
+  const dexRaw = (pair.dexId || 'raydium').toLowerCase();
+  const isPump = pumpfun.isPumpDexId(dexRaw) || pumpfun.isPumpMintAddress(tokenAddress);
+
   return {
     chain: 'solana',
     poolId: `solana_${poolAddress || tokenAddress}`,
     poolAddress,
     poolName: `${pair.baseToken.symbol} / ${pair.quoteToken?.symbol || 'SOL'}`,
-    dex: (pair.dexId || 'raydium').toLowerCase(),
+    dex: isPump ? (dexRaw === 'pumpswap' ? 'pumpswap' : 'pumpfun') : dexRaw,
+    isPumpFun: isPump,
+    discoverySource: pair._pumpSource || null,
     createdAt: pair.pairCreatedAt ? new Date(pair.pairCreatedAt).toISOString() : null,
     ageMinutes,
 
@@ -113,6 +119,8 @@ async function fetchTopPairForToken(tokenAddr) {
 
 function extractAddress(text) {
   if (!text || typeof text !== 'string') return null;
+  const pumpUrl = text.match(/pump\.fun\/(?:coin\/)?([1-9A-HJ-NP-Za-km-z]{32,44})/i);
+  if (pumpUrl) return pumpUrl[1];
   const m = text.match(config.addressPattern);
   return m ? m[0] : null;
 }
@@ -214,19 +222,38 @@ async function fetchPoolsFromGecko() {
 }
 
 async function fetchPoolsHybrid() {
+  const seen = new Set();
+  const out = [];
+
+  const merge = (pairs, label) => {
+    for (const p of pairs || []) {
+      const id = p.pairAddress || p.baseToken?.address;
+      if (!id || seen.has(id)) continue;
+      seen.add(id);
+      if (label && !p._pumpSource) p._pumpSource = label;
+      out.push(p);
+    }
+  };
+
+  if (['1', 'true', 'on', 'yes'].includes(String(process.env.PUMP_DISCOVERY_ENABLED || '1').trim().toLowerCase())) {
+    try {
+      const pumpPairs = await pumpfun.fetchPumpPairs({
+        fetchPairsByTokens: _fetchPairsByTokens,
+        fetchTopPairForToken: fetchTopPairForToken,
+      });
+      merge(pumpPairs, 'pumpfun');
+    } catch (e) {
+      console.warn('[solana/adapter] pump discovery:', e.message);
+    }
+  }
+
   let pairs = await fetchPoolsFromDexScreener();
   if (!pairs?.length) {
     console.log('[solana/adapter] DexScreener boş → GeckoTerminal');
     pairs = await fetchPoolsFromGecko();
   }
-  const seen = new Set();
-  const out = [];
-  for (const p of pairs || []) {
-    const id = p.pairAddress || p.baseToken?.address;
-    if (!id || seen.has(id)) continue;
-    seen.add(id);
-    out.push(p);
-  }
+  merge(pairs, 'dexscreener');
+
   out.sort((a, b) => (b.pairCreatedAt || 0) - (a.pairCreatedAt || 0));
   return out;
 }

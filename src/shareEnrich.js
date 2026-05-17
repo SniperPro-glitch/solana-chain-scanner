@@ -9,6 +9,12 @@ async function ensureShareEnrichment(token, _chainId = 'solana') {
   } catch (e) {
     console.warn('[shareEnrich]', e.message);
   }
+  try {
+    const pumpfun = require('./chains/solana/pumpfun');
+    await pumpfun.enrichPumpGraduation(token);
+  } catch (e) {
+    console.warn('[shareEnrich] pump:', e.message);
+  }
   token._shareEnriched = true;
   token.chain = token.chain || 'solana';
   return token;

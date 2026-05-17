@@ -31,4 +31,9 @@ module.exports = {
   },
   discoveryPollMs: 60_000,
   wrappedNative: 'So11111111111111111111111111111111111111112',
+  pump: {
+    bondingProgram: '6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P',
+    swapProgram: 'pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA',
+    tradeUrl: (mint) => `https://pump.fun/coin/${mint}`,
+  },
 };

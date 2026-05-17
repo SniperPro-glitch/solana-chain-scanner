@@ -93,6 +93,8 @@ const DEFAULT_SETTINGS = {
   activeHoursEnd: 23,          // 0-23 (start < end)
   // ─ V3: Sybil filtre ─
   maxSybilRatio: 0,            // 0 = kapalı; 0.5 = %50 ortak funder ele, 0.75 = sadece ağır sybil ele
+  // ─ Pump.fun mezuniyet (bonding %100 → PumpSwap) ─
+  pumpGraduationMode: 'off',   // off | graduated_only | curve_only
 };
 
 // Risk seviye sıralaması (canonical kodlar)
@@ -239,6 +241,22 @@ function tokenPassesChannelFilters(token, audit, channel, opts = {}) {
       return { pass: false, reason: `DEX not allowed (${token.dex})` };
     }
   }
+  const pumpMode = String(s.pumpGraduationMode || 'off').toLowerCase();
+  if (pumpMode !== 'off') {
+    const mint = token.tokenAddress || '';
+    const isPump = token.isPumpFun || mint.endsWith('pump');
+    if (isPump) {
+      const graduated = token.pumpGraduated === true;
+      if (pumpMode === 'graduated_only' && !graduated) {
+        const pct = token.pumpBondingPct;
+        const pctStr = pct != null ? `${pct}%` : '?';
+        return { pass: false, reason: `Pump bonding incomplete (${pctStr}, need 100%)` };
+      }
+      if (pumpMode === 'curve_only' && graduated) {
+        return { pass: false, reason: 'Pump already graduated (100%)' };
+      }
+    }
+  }
   // Yeni filtreler — TON jetton: holdersCount; BSC risk.js: holders_count + token.holdersCount
   const holdersCount = Number(
     token.contract?.holdersCount ?? token.contract?.holders_count ?? token.holdersCount ?? 0,
@@ -330,6 +348,7 @@ function categorizeFilterReason(reason) {
   if (r.includes('lp ')) return 'lp';
   if (r.includes('sybil')) return 'sybil';
   if (r.includes('active hours')) return 'hours';
+  if (r.includes('pump bonding') || r.includes('pump already graduated')) return 'pump_grad';
   if (r.includes('disabled')) return 'disabled';
   return 'other';
 }

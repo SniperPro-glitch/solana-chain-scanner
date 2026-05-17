@@ -12,8 +12,14 @@ const { TelegramClient } = require('telegram');
 const { StringSession } = require('telegram/sessions');
 const input = require('input');
 
-const apiId = 30729652;
-const apiHash = '19695ca4369837995f8e6cedde8a3fb6';
+require('dotenv').config({ path: require('path').join(__dirname, '..', '.env') });
+
+const apiId = parseInt(process.env.TG_API_ID || '', 10);
+const apiHash = (process.env.TG_API_HASH || '').trim();
+if (!apiId || !apiHash) {
+  console.error('❌ .env içinde TG_API_ID ve TG_API_HASH tanımlı olmalı (https://my.telegram.org/apps)');
+  process.exit(1);
+}
 const stringSession = new StringSession(''); // boş başlat
 
 (async () => {

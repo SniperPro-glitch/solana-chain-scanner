@@ -659,6 +659,32 @@ const STRINGS = {
   'settings.view.h247': { en: '24/7', tr: '7/24', ru: '24/7' },
   'settings.view.ageUnitMinutes': { en: 'm', tr: 'dk', ru: 'мин' },
 
+  'settings.pumpGrad.menuTitle': {
+    en: 'Pump.fun graduation',
+    tr: 'Pump.fun mezuniyet',
+    ru: 'Pump.fun выпуск',
+  },
+  'settings.pumpGrad.desc': {
+    en: '_Pump.fun tokens start on a bonding curve. At 100% the pool migrates to PumpSwap (graduation)._\n_Choose whether to post only graduated tokens, only on-curve, or all._',
+    tr: '_Pump.fun tokenleri önce bonding curve’de işlem görür. %100 dolunca havuz PumpSwap’a geçer (mezuniyet)._\n_Sadece mezun olanları, sadece curve’de olanları veya hepsini paylaşmayı seçin._',
+    ru: '_Токены Pump.fun сначала на bonding curve. При 100% пул переходит на PumpSwap (выпуск)._\n_Публикуйте только выпущенные, только на кривой или все._',
+  },
+  'settings.pumpGrad.modeOff': { en: 'Off (all Pump tokens)', tr: 'Kapalı (tümü)', ru: 'Выкл (все)' },
+  'settings.pumpGrad.modeGraduated': {
+    en: 'Graduated only (100%)',
+    tr: 'Sadece mezun (%100)',
+    ru: 'Только выпуск (100%)',
+  },
+  'settings.pumpGrad.modeCurve': {
+    en: 'On curve only (before 100%)',
+    tr: 'Sadece curve (öncesi)',
+    ru: 'Только на кривой',
+  },
+  'settings.pumpGrad.short': {
+    en: 'Pump graduation',
+    tr: 'Pump mezuniyet',
+    ru: 'Pump выпуск',
+  },
   'settings.sybil.menuTitle': { en: 'Sybil filter', tr: 'Sybil filtresi', ru: 'Sybil-фильтр' },
   'settings.sybil.desc': {
     en: '_If early buyers funded from the same wallet exceed this ratio, the token is skipped._\n_Detects coordinated wash / sybil patterns._',
