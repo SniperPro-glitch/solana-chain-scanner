@@ -163,18 +163,31 @@ async function fetchPumpFunApiCoins() {
   };
   if (jwt) headers.Authorization = `Bearer ${jwt}`;
 
-  const paths = ['/coins/latest', '/coins/currently/live'];
-  for (const path of paths) {
-    try {
-      const { data } = await http.get(`${base}${path}`, { headers, timeout: 12_000 });
-      const coins = Array.isArray(data) ? data : (data?.coins || data?.results || []);
-      if (coins.length) {
-        console.log(`[solana/pumpfun] API ${path}: ${coins.length} coin`);
-        return coins.map(pumpCoinToDexPair).filter(Boolean);
+  const path = '/coins/latest';
+  try {
+    const { data, status } = await http.get(`${base}${path}`, {
+      headers,
+      timeout: 12_000,
+      validateStatus: () => true,
+    });
+    if (status === 404) return [];
+    if (status === 401 || status === 403) {
+      if (!jwt) {
+        console.warn('[solana/pumpfun] Pump API auth gerekli (PUMP_FUN_JWT) — DexScreener keşfi kullanılıyor');
       }
-    } catch (e) {
-      console.warn(`[solana/pumpfun] API ${path}:`, e.message);
+      return [];
     }
+    if (status >= 400) {
+      console.warn(`[solana/pumpfun] API ${path}: HTTP ${status}`);
+      return [];
+    }
+    const coins = Array.isArray(data) ? data : (data?.coins || data?.results || []);
+    if (coins.length) {
+      console.log(`[solana/pumpfun] API ${path}: ${coins.length} coin`);
+      return coins.map(pumpCoinToDexPair).filter(Boolean);
+    }
+  } catch (e) {
+    console.warn(`[solana/pumpfun] API ${path}:`, e.message);
   }
   return [];
 }

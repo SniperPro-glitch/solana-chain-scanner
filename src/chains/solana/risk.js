@@ -14,16 +14,29 @@ function is429(e) {
   return e?.response?.status === 429 || /429/i.test(String(e?.message || ''));
 }
 
+let rpcWarned401 = false;
+
 async function rpcCall(method, params) {
   const rpc = (process.env.SOLANA_RPC_URL || '').trim();
-  if (!rpc) return null;
-  const { data } = await http.post(rpc, {
-    jsonrpc: '2.0',
-    id: 1,
-    method,
-    params,
-  });
-  return data?.result ?? null;
+  if (!rpc || !/^https?:\/\//i.test(rpc)) return null;
+  try {
+    const { data } = await http.post(rpc, {
+      jsonrpc: '2.0',
+      id: 1,
+      method,
+      params,
+    });
+    return data?.result ?? null;
+  } catch (e) {
+    const st = e.response?.status;
+    if (st === 401 && !rpcWarned401) {
+      rpcWarned401 = true;
+      console.warn('[solana/risk] RPC 401 — HELIUS_API_KEY Railway\'de düzeltin (her token için tekrarlanmaz)');
+    } else if (!rpcWarned401 || st !== 401) {
+      console.warn(`[solana/risk] ${method}:`, e.message);
+    }
+    return null;
+  }
 }
 
 async function fetchMintParsed(mint) {
@@ -36,17 +49,25 @@ async function fetchMintParsed(mint) {
   }
 }
 
+let heliusRestWarned401 = false;
+
 async function fetchHoldersFromHelius(mint) {
   const key = (process.env.HELIUS_API_KEY || '').trim();
   if (!key) return null;
   try {
     const { data } = await http.get(
-      `https://api.helius.xyz/v0/token-metadata?api-key=${key}&mint=${mint}`,
+      `https://api.helius.xyz/v0/token-metadata?api-key=${encodeURIComponent(key)}&mint=${mint}`,
     );
     const meta = Array.isArray(data) ? data[0] : data;
     return meta?.onChainMetadata || meta || null;
   } catch (e) {
-    console.warn('[solana/risk] Helius:', e.message);
+    const st = e.response?.status;
+    if (st === 401 && !heliusRestWarned401) {
+      heliusRestWarned401 = true;
+      console.warn('[solana/risk] Helius REST 401 — HELIUS_API_KEY geçersiz');
+    } else if (st !== 401) {
+      console.warn('[solana/risk] Helius:', e.message);
+    }
     return null;
   }
 }

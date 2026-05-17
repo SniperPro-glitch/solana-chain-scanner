@@ -161,7 +161,12 @@ function createScanRunner(deps) {
         errors: result.errors,
       });
       lastScanResult = result;
-      console.log(`✅ [solana] tarama: ${postedTokens} token, ${result.sharedToChannels} mesaj (${result.durationMs}ms)`);
+      const rej = Object.keys(rejectionsByCategory).length
+        ? ` · red: ${Object.entries(rejectionsByCategory).map(([k, v]) => `${k}=${v}`).join(', ')}`
+        : '';
+      console.log(
+        `✅ [solana] tarama: bulunan=${result.found} paylaşılan=${postedTokens} mesaj=${result.sharedToChannels} atlanan=${result.skipped}${rej} (${result.durationMs}ms)`,
+      );
     } catch (err) {
       console.error('❌ [solana] tarama:', err.message);
       result.errors++;

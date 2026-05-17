@@ -318,6 +318,7 @@ async function fetchPoolsHybrid() {
   merge(pairs, 'dexscreener');
 
   out.sort((a, b) => (b.pairCreatedAt || 0) - (a.pairCreatedAt || 0));
+  if (out.length) console.log(`[solana/adapter] keşif: ${out.length} havuz`);
   return out;
 }
 

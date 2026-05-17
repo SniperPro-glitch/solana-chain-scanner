@@ -1399,6 +1399,8 @@ async function main() {
   const enabledCh = channels.listEnabled().filter((c) => channels.isSolanaSelected(c.id));
   console.log(`   Özet: ${enabledCh.length} kanal aktif ve ◎ Solana seçili (post için)`);
 
+  await require('./envBootstrap').verifyHeliusRpc().catch(() => {});
+
   if (SOLANA_SCAN_ENABLED) {
     setTimeout(() => runScan('cron'), 15_000);
     setInterval(() => runScan('cron'), SOLANA_SCAN_INTERVAL_MIN * 60 * 1000);
