@@ -2,7 +2,8 @@
 
 const { t, normalizeLang } = require('./i18n');
 const { buildAnalysisCommentBody } = require('./analysis');
-const { botLogoHtml, customEmojiHtml, formatWhitelistKnownProjectBlock } = require('./emojiPack');
+const { botLogoHtml, customEmojiHtml, formatWhitelistKnownProjectBlock, analysisSeverityEmojiHtml } = require('./emojiPack');
+const { isLiquidityDrained } = require('./liquidityDrain');
 const { formatContractSecurityBlock } = require('./contractSecurityBlock');
 const { formatLinksTradeBlock, DIVIDER } = require('./commentLinksTrade');
 
@@ -31,9 +32,15 @@ function formatRatingBlock(token, lang = 'en', level = 'green') {
     return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   });
 
-  const ratingDot = ratingKey === 'green' ? ce('🟢')
-    : ratingKey === 'yellow' || ratingKey === 'critical' ? ce('❤️')
-      : ce('🔴');
+  const liqDrained = isLiquidityDrained(token);
+  let ratingDot;
+  if (ratingKey === 'green') {
+    ratingDot = ce('🟢');
+  } else if (ratingKey === 'red') {
+    ratingDot = analysisSeverityEmojiHtml('bad', chain, liqDrained);
+  } else {
+    ratingDot = ce('❤️');
+  }
   const ratingHeader = `${ratingDot} ${t(`${prefix}.rating.${ratingKey}.header`, L)}`;
   const ratingSignature = `${botLogoHtml(chain)} ${t(`${prefix}.rating.signature`, L)}`;
 

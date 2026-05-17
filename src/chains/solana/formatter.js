@@ -100,7 +100,7 @@ function formatTokenCard(token, audit, lang = 'en', level = 'green', opts = {}) 
     titleKey = 'card.title.critical';
     tokenEmoji = `${ce('🔴')}${ce('🚨')}`;
   } else if (level === 'red') {
-    titleEmoji = ce('🚨');
+    titleEmoji = ce('⭕');
     titleKey = 'card.title.red';
     tokenEmoji = `${ce('⭕')}${ce('🚨')}`;
   } else {

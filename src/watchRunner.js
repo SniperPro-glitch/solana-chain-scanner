@@ -5,6 +5,7 @@ const RISK_DROP_THRESHOLD = 0.5;
 const RISK_DROP_WITH_SILENCE = 0.35;
 const RISK_MIN_LIQ_USD = 500;
 const WATCH_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
+const { isLiquidityDrained } = require('./liquidityDrain');
 
 function createWatchRunner(deps) {
   const {
@@ -29,7 +30,7 @@ function createWatchRunner(deps) {
   }
 
   function classifyRisk({ initial, current, buys5m }) {
-    if (current < 50 || (initial > 0 && current < initial * 0.05)) return 'red';
+    if (isLiquidityDrained(null, { initialLiquidity: initial, currentLiquidity: current })) return 'red';
     const dropRatio = initial > 0 ? (initial - current) / initial : 0;
     if (dropRatio >= RISK_DROP_THRESHOLD) return 'yellow';
     if (buys5m === 0 && dropRatio >= RISK_DROP_WITH_SILENCE) return 'yellow';
@@ -93,6 +94,7 @@ function createWatchRunner(deps) {
         freshToken = await chain.resolveTokenFromInput(w.tokenAddress || w.poolAddress);
         if (freshToken) {
           freshToken.chain = CHAIN_ID;
+          freshToken.initialLiquidity = w.initialLiquidity || freshToken.liquidityUsd || 0;
           freshAudit = chain.auditToken(freshToken);
         }
       } catch (e) {

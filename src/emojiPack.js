@@ -244,7 +244,7 @@ const SOLANA_EMOJI_BASE = {
   '🟡': '5431822693752122387',
   '🟠': '5431822693752122387',
   '🔴': '5305696237461189630',
-  '⭕': '5949785441728205181',
+  '⭕': '5949785441728205181',   // SCAM tabelası — yalnızca analysisSeverityEmojiHtml (likidite çekildi)
   '❌': '5949785441728205181',
   '🚫': '5949785441728205181',
   '⚠️': '5463021280355705884',
@@ -400,6 +400,30 @@ function customEmojiHtml(emoji, chain = 'solana') {
   const id = getEmojiId(emoji, chain);
   if (!id) return emoji;
   return `<tg-emoji emoji-id="${id}">${emoji}</tg-emoji>`;
+}
+
+/** SCAM tabelası (⭕) — yalnızca likidite çekildiğinde; aksi halde ❤️ uyarı. */
+const SCAM_SIGN_CHAR = '⭕';
+
+function analysisSeverityEmojiHtml(severity, chain = 'solana', liquidityDrained = false) {
+  if (chain !== 'solana') {
+    if (severity === 'bad') return customEmojiHtml('❌', chain);
+    if (severity === 'warn') return customEmojiHtml('⚠️', chain);
+    return customEmojiHtml('✅', chain);
+  }
+  if (severity === 'bad' && liquidityDrained) return customEmojiHtml(SCAM_SIGN_CHAR, chain);
+  if (severity === 'bad' || severity === 'warn') return customEmojiHtml('❤️', chain);
+  return customEmojiHtml('🤔', chain);
+}
+
+/** Solana analiz satırı — ❌/🚫/⭕ → likidite çekilmediyse ❤️. */
+function resolveAnalysisLineIcon(icon, chain = 'solana', liquidityDrained = false) {
+  if (chain !== 'solana') return icon;
+  if (icon === '❌' || icon === '🚫' || icon === '⭕') {
+    return liquidityDrained ? SCAM_SIGN_CHAR : '❤️';
+  }
+  if (icon === '⚠️' || icon === '⚠') return '❤️';
+  return icon;
 }
 
 function solscanEmojiHtml(chain = 'solana') {
@@ -576,6 +600,9 @@ module.exports = {
   botLogoHtml,
   botCommentTitleHtml,
   customEmojiHtml,
+  SCAM_SIGN_CHAR,
+  analysisSeverityEmojiHtml,
+  resolveAnalysisLineIcon,
   solscanEmojiHtml,
   phantomEmojiHtml,
   raydiumEmojiHtml,

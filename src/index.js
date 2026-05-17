@@ -840,6 +840,7 @@ async function processManualPost(chatId, userId, arg, lang, customBannerFileId =
     token = await sol.resolveTokenFromInput(arg);
     if (token) {
       token.chain = 'solana';
+      token.initialLiquidity = token.liquidityUsd || 0;
       await ensureShareEnrichment(token);
       applyTokenBadges(token);
       audit = sol.auditToken(token);

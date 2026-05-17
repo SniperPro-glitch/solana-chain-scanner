@@ -424,9 +424,11 @@ function analysisOkIcon(chain = 'solana') {
   return chain === 'solana' ? '🤔' : '✅';
 }
 
-function formatAnalysisItemLine(item, ce, chain) {
+function formatAnalysisItemLine(item, ce, chain, liquidityDrained = false) {
   let icon = chain === 'solana' && item.icon === '✅' ? '🤔' : item.icon;
   if (chain === 'solana' && icon === '🗄') icon = '🗄️';
+  const { resolveAnalysisLineIcon } = require('./emojiPack');
+  icon = resolveAnalysisLineIcon(icon, chain, liquidityDrained);
   if (ce && icon && !icon.includes('<')) {
     return `${ce(icon)} ${item.text}`;
   }
@@ -434,14 +436,16 @@ function formatAnalysisItemLine(item, ce, chain) {
 }
 
 /** Derin analiz satırı — baştaki unicode ikonu premium emoji yapar. */
-function wrapAnalysisLineEmojis(line, ce) {
+function wrapAnalysisLineEmojis(line, ce, chain = 'solana', liquidityDrained = false) {
   if (!line || !ce || line.includes('<tg-emoji')) return line;
+  const { resolveAnalysisLineIcon } = require('./emojiPack');
   const icons = [
-    '⚠️', '⚠', '❌', '🚨', '👥', '🔗', '🔒', '🔓', '🧪', '📝', '🌡️', '🌡', '🏷', '✅', '📊', '🗄️', '🗄',
+    '⚠️', '⚠', '❌', '🚫', '⭕', '🚨', '👥', '🔗', '🔒', '🔓', '🧪', '📝', '🌡️', '🌡', '🏷', '✅', '📊', '🗄️', '🗄',
   ];
   for (const icon of icons) {
     if (line.startsWith(`${icon} `)) {
-      return `${ce(icon)} ${line.slice(icon.length).trimStart()}`;
+      const resolved = resolveAnalysisLineIcon(icon, chain, liquidityDrained);
+      return `${ce(resolved)} ${line.slice(icon.length).trimStart()}`;
     }
   }
   return line;
@@ -859,11 +863,13 @@ function collectRedFlags(token, lang) {
   const c2 = token.contract;
   const gp = c2?.bsc_extra?.goplus;
   const sgp = c2?.solana_extra?.goplus;
+  const { isLiquidityDrained } = require('./liquidityDrain');
+  const liqDrained = isLiquidityDrained(token);
   if (c2?.is_scam === true || c2?.solana_extra?.rugcheck?.rugged) {
     const lbl = token.chain === 'solana'
       ? (lang === 'tr' ? 'RugCheck: rugged / scam' : lang === 'ru' ? 'RugCheck: rugged' : 'RugCheck: rugged')
       : (lang === 'tr' ? 'Honeypot — satış engelli' : lang === 'ru' ? 'Honeypot' : 'Honeypot — sells blocked');
-    flags.push({ sev: 'bad', text: lbl });
+    flags.push({ sev: liqDrained ? 'bad' : 'warn', text: lbl });
   } else if (token.chain === 'bsc' && gp && String(gp.is_honeypot) === '1') {
     flags.push({ sev: 'warn', text: lang === 'tr' ? 'GoPlus: honeypot şüphesi' : lang === 'ru' ? 'GoPlus: honeypot' : 'GoPlus: possible honeypot' });
   }
@@ -896,8 +902,8 @@ function collectRedFlags(token, lang) {
 
 function prioritizeItems(items, max = 5) {
   const rank = (i) => {
-    if (i.icon === '❌') return 0;
-    if (i.icon === '⚠️' || i.icon === '🌡' || i.icon === '🐻') return 1;
+    if (i.icon === '❌' || i.icon === '⭕' || i.icon === '🚫') return 0;
+    if (i.icon === '⚠️' || i.icon === '🌡' || i.icon === '🐻' || i.icon === '❤️') return 1;
     return 2;
   };
   return [...items].sort((a, b) => rank(a) - rank(b)).slice(0, max);
@@ -907,7 +913,9 @@ function prioritizeItems(items, max = 5) {
 function buildAnalysisCommentBody(token, audit, lang = 'en', opts = {}) {
   const { items, deepLines, goodCount, warnCount, badCount } = collectAnalysisMetrics(token, audit, lang, opts);
   const chain = opts.chain || token.chain || 'ton';
-  const { customEmojiHtml } = require('./emojiPack');
+  const { isLiquidityDrained } = require('./liquidityDrain');
+  const liquidityDrained = isLiquidityDrained(token, opts);
+  const { customEmojiHtml, analysisSeverityEmojiHtml } = require('./emojiPack');
   const ce = (emoji) => customEmojiHtml(emoji, chain);
 
   const lines = [];
@@ -924,7 +932,7 @@ function buildAnalysisCommentBody(token, audit, lang = 'en', opts = {}) {
   const redFlags = collectRedFlags(token, lang);
   if (redFlags.length) {
     for (const f of redFlags.slice(0, 4)) {
-      const icon = f.sev === 'bad' ? ce('❌') : ce('❤️');
+      const icon = analysisSeverityEmojiHtml(f.sev === 'bad' ? 'bad' : 'warn', chain, liquidityDrained);
       lines.push(`${icon} ${escapeHtml(f.text)}`);
     }
   }
@@ -932,7 +940,7 @@ function buildAnalysisCommentBody(token, audit, lang = 'en', opts = {}) {
   const picked = prioritizeItems(items, 5);
   if (picked.length) {
     for (const i of picked) {
-      lines.push(formatAnalysisItemLine(i, ce, chain));
+      lines.push(formatAnalysisItemLine(i, ce, chain, liquidityDrained));
     }
     if (items.length > picked.length) {
       const more = items.length - picked.length;
@@ -947,7 +955,7 @@ function buildAnalysisCommentBody(token, audit, lang = 'en', opts = {}) {
 
   const deepPick = deepLines.slice(0, 4);
   if (deepPick.length) {
-    for (const d of deepPick) lines.push(wrapAnalysisLineEmojis(d, ce));
+    for (const d of deepPick) lines.push(wrapAnalysisLineEmojis(d, ce, chain, liquidityDrained));
     if (deepLines.length > deepPick.length) {
       const n = deepLines.length - deepPick.length;
       const lbl = lang === 'tr' ? `+${n} on-chain not` : lang === 'ru' ? `+${n} ончейн` : `+${n} on-chain notes`;

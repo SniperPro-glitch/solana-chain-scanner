@@ -66,7 +66,7 @@ function formatContractSecurityBlock(token, lang = 'en', chain = 'ton', opts = {
   if (c.verification === 'whitelist') {
     lines.push(`${ce(chain === 'solana' ? '🤔' : '✅')} ${t('card.verified', L)}`);
   } else if (c.verification === 'blacklist') {
-    lines.push(`${ce('🚫')} Blacklisted`);
+    lines.push(`${ce(chain === 'solana' ? '❤️' : '🚫')} Blacklisted`);
   }
 
   return lines.join('\n');

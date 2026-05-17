@@ -77,6 +77,7 @@ function createScanRunner(deps) {
         }
 
         token.chain = CHAIN_ID;
+        token.initialLiquidity = token.liquidityUsd || 0;
         await ensureShareEnrichment(token, CHAIN_ID).catch(() => {});
         applyTokenBadges(token);
         let audit = chain.auditToken(token);
