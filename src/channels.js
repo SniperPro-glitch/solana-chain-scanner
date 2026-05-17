@@ -264,7 +264,11 @@ async function syncFromBotApi(bot) {
       if (added) synced += 1;
       ok.push(id);
     } catch (e) {
-      console.warn(`[channels] env-sync atlandı ${id}: ${e.message}`);
+      if (cache.channels[id] && isChatUnavailableError(e)) {
+        purgeChannel(id, 'env-sync-gone');
+      } else {
+        console.warn(`[channels] env-sync atlandı ${id}: ${e.message}`);
+      }
     }
   }
   if (ids.size) {
@@ -527,16 +531,31 @@ function categorizeFilterReason(reason) {
   return 'other';
 }
 
-function markChannelLeft(chatId, reason = 'left') {
+/** Kanaldan atılma / kanal silindi — kayıt tamamen silinir (tarama listesinde kalmaz). */
+function purgeChannel(chatId, reason = 'gone') {
   const id = String(chatId);
+  const title = cache.channels[id]?.title || id;
   if (!cache.channels[id]) return false;
-  cache.channels[id].archivedAt = new Date().toISOString();
-  cache.channels[id].leftReason = reason;
-  if (cache.channels[id].settings) cache.channels[id].settings.enabled = false;
+  delete cache.channels[id];
   save(cache);
-  console.log(`[channels] arşivlendi (silinmedi): ${cache.channels[id].title || id} · ${reason}`);
+  console.log(`[channels] kayıt silindi: ${title} (${id}) · ${reason}`);
+  if (parseChannelIdList(process.env.TELEGRAM_CHANNEL_IDS || process.env.TELEGRAM_CHANNEL_ID).includes(id)) {
+    console.warn(`[channels] Railway TELEGRAM_CHANNEL_IDS içinden ${id} kaldırın (bot artık bu kanalda değil)`);
+  }
   logEnvBackupHint();
   return true;
+}
+
+/** @deprecated Geriye uyumluluk — artık purgeChannel kullanın */
+function markChannelLeft(chatId, reason = 'left') {
+  return purgeChannel(chatId, reason);
+}
+
+function isChatUnavailableError(e) {
+  const msg = String(e?.message || e?.response?.body?.description || e || '').toLowerCase();
+  const code = e?.response?.statusCode;
+  return code === 400 || code === 403
+    || /chat not found|not found|kicked|forbidden|group chat was deactivated|channel.*invalid|have no rights|not a member/i.test(msg);
 }
 
 function reactivateChannelRecord(id, reason = 'restore') {
@@ -590,22 +609,33 @@ function addChannel(chat, addedBy = 'auto') {
   return { added: !existed, channel: cache.channels[id] };
 }
 
-/** Arşivlenmiş ama bot hâlâ üye olduğu kanalları tekrar aç (deploy SIGTERM sonrası). */
+/** Deploy sonrası: hâlâ admin olan arşivli kanalları aç; yoksa kaydı sil. */
 async function restoreArchivedIfStillMember(bot) {
-  if (!bot?.getChat) return { restored: 0 };
+  if (!bot?.getChat || !bot?.getChatMember) return { restored: 0, purged: 0 };
+  const me = await bot.getMe().catch(() => null);
+  if (!me?.id) return { restored: 0, purged: 0 };
   let restored = 0;
+  let purged = 0;
   for (const id of Object.keys(cache.channels)) {
     const ch = cache.channels[id];
     if (!ch?.archivedAt && ch?.settings?.enabled !== false) continue;
     try {
       await bot.getChat(id);
+      const member = await bot.getChatMember(id, me.id);
+      if (!['administrator', 'creator'].includes(member.status)) {
+        try { await bot.leaveChat(id); } catch (_) { /* yoksay */ }
+        if (purgeChannel(id, 'not_admin')) purged += 1;
+        continue;
+      }
       if (reactivateChannelRecord(id, 'boot-restore')) restored += 1;
-    } catch {
-      /* bot kanalda değil */
+    } catch (e) {
+      if (isChatUnavailableError(e) && purgeChannel(id, 'chat_gone')) purged += 1;
     }
   }
-  if (restored) console.log(`[channels] boot: ${restored} kanal arşivden geri alındı`);
-  return { restored };
+  if (restored || purged) {
+    console.log(`[channels] boot: ${restored} geri aktif, ${purged} silindi`);
+  }
+  return { restored, purged };
 }
 
 /** Bot + env + userbot ile tüm bilinen kanalları yeniden kaydeder. */
@@ -637,9 +667,10 @@ module.exports = {
   add: addChannel,
 
   remove(chatId) {
-    return markChannelLeft(chatId, 'remove');
+    return purgeChannel(chatId, 'remove');
   },
 
+  purge: purgeChannel,
   markLeft: markChannelLeft,
 
   setEnabled(chatId, enabled) {
@@ -740,6 +771,8 @@ module.exports = {
   rediscoverAllChannels,
   restoreArchivedIfStillMember,
   reactivateChannelRecord,
+  purgeChannel,
+  isChatUnavailableError,
   getChannelIdsForEnv,
 
   tokenPassesChannelFilters,

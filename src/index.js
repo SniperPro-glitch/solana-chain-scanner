@@ -1009,6 +1009,25 @@ bindTextCommand(/^\/stats(@\w+)?$/i, (msg) => {
   bot.sendMessage(msg.chat.id, body + tail, { parse_mode: 'HTML', disable_web_page_preview: true });
 });
 
+function isBroadcastChat(chat) {
+  return chat && ['channel', 'supergroup', 'group'].includes(chat.type);
+}
+
+/** Atılma, kanal silinmesi veya admin düşürülmesi — leaveChat + kayıt sil. */
+async function handleChannelDeparted(chat, reason) {
+  if (!chat?.id || !isBroadcastChat(chat)) return;
+  try {
+    await bot.leaveChat(chat.id);
+    console.log(`[channels] leaveChat: ${chat.title || chat.id} (${reason})`);
+  } catch (e) {
+    const msg = String(e?.message || '');
+    if (!/not a member|already|kicked|not found|forbidden|deactivated/i.test(msg)) {
+      console.warn(`[channels] leaveChat ${chat.id}:`, msg);
+    }
+  }
+  channels.purge(chat.id, reason);
+}
+
 bot.on('my_chat_member', async (upd) => {
   try {
   const chat = upd.chat;
@@ -1067,6 +1086,19 @@ bot.on('my_chat_member', async (upd) => {
     return;
   }
 
+  // Admin yetkisi kaldırıldı — kanalda kalmayıp kaydı sil
+  const demotedFromAdmin = oldStatus === 'administrator'
+    && ['member', 'restricted'].includes(newStatus);
+  if (demotedFromAdmin && isBroadcastChat(chat)) {
+    if (Date.now() - BOT_BOOT_TIME < CHANNEL_LEFT_GRACE_MS) {
+      console.log(`[channels] admin düşürme atlandı (deploy grace): ${chat.id}`);
+      return;
+    }
+    console.log(`[channels] admin yetkisi kaldırıldı: ${chat.title || chat.id}`);
+    await handleChannelDeparted(chat, 'admin_removed');
+    return;
+  }
+
   if (['left', 'kicked'].includes(newStatus)) {
     if (Date.now() - BOT_BOOT_TIME < CHANNEL_LEFT_GRACE_MS) {
       console.log(`[channels] left atlandı (deploy grace ${CHANNEL_LEFT_GRACE_MS / 1000}s): ${chat.id}`);
@@ -1077,7 +1109,7 @@ bot.on('my_chat_member', async (upd) => {
       console.log(`[channels] left atlandı (zaten kanalda değildi: ${oldStatus}): ${chat.id}`);
       return;
     }
-    channels.markLeft(chat.id, newStatus);
+    await handleChannelDeparted(chat, newStatus);
   }
   } catch (e) {
     console.error('[my_chat_member]', e?.message, e?.stack);
@@ -1329,10 +1361,22 @@ bot.on('callback_query', async (cb) => {
 
 bot.on('polling_error', handlePollingError);
 process.on('unhandledRejection', (e) => console.error('unhandledRejection:', e?.message || e));
-process.on('SIGINT', () => {
-  console.log('\n👋 Kapatılıyor...');
-  bot.stopPolling().finally(() => process.exit(0));
-});
+
+let shuttingDown = false;
+async function gracefulShutdown(signal) {
+  if (shuttingDown) return;
+  shuttingDown = true;
+  console.log(`\n👋 ${signal} — bot kapatılıyor (Railway yeni deploy / restart ise normaldir)`);
+  try {
+    await bot.stopPolling();
+  } catch (_) { /* yoksay */ }
+  try {
+    await userbot.disconnect();
+  } catch (_) { /* yoksay */ }
+  process.exit(0);
+}
+process.on('SIGINT', () => { gracefulShutdown('SIGINT'); });
+process.on('SIGTERM', () => { gracefulShutdown('SIGTERM'); });
 
 async function main() {
   await startBotPolling();
