@@ -971,7 +971,7 @@ function buildAnalysisCommentBody(token, audit, lang = 'en', opts = {}) {
 
   const verdictHtml = pickVerdictHtml(token, audit, lang, { goodCount, warnCount, badCount });
   const verdictLbl = lang === 'tr' ? 'Değerlendirme:' : lang === 'ru' ? 'Вердикт:' : 'Verdict:';
-  lines.push(`${ce('💬')} <b>${verdictLbl}</b> ${verdictHtml}`);
+  lines.push(`<b>${verdictLbl}</b> ${verdictHtml}`);
 
   return lines.join('\n');
 }

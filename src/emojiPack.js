@@ -165,18 +165,23 @@ const BSC_EMOJI_MAP = {
   '⚖️': '5314613581705132533',
 };
 
-// ── Solana premium emoji — kullanım haritası (SOLANA_CUSTOM_EMOJI_JSON ile güncelle) ──
-// 🪙 5843946791740905640 → kart: Solana başlık, kontrat, likidite, risk; yorum: kontrat güvenliği başlığı
-// 🪙 5280476129369543392 → yalnızca Solscan linki (solscanEmojiHtml — karttaki 🪙 ile karıştırma)
-// 🆕 5190801313922847501 → yeşil kart “Yeni Token” başlığı
-// ❤️ 5424733863114980704 → sarı/kritik kart, uyarılar, rating, kontrat riski, dikkat satırları
-// 💬 5420465103709423748 → kart “yorumu oku”, yorum “Bot analizi” başlığı, değerlendirme satırı
-// 🤔 4940452364638225625 → olumlu kontroller (✅ yerine; kontrat güvenliği + analiz)
-// 💊 5440882540715986311 → Pump.fun + DEX pump/pumpswap (kart + yorum al/sat)
-// 💰 5328025123893029024 → Raydium DEX (kart + yorum al/sat)
-// ☄️ 5382292151642114303 → Meteora DEX (kart + yorum al/sat)
-// 👻 5289552365928589580 → Phantom al/sat linkleri (yorum)
-// 🤑 5251414920355931519 → rezerv (henüz UI’da atanmadı)
+// ── Solana premium emoji — SENİN TARİFİN (alt açıklama = yorum bloğu) ──
+//
+// KART (üst foto caption):
+//   🪙 5843946791740905640 → Sol kontrat satırı, risk yazısı, likidite satırı (+ başlık Solana rozeti)
+//   🆕 5190801313922847501 → “Yeni Token” / New olan yerler
+//   ❤️ 5424733863114980704 → dikkat emojileri (sarı kart, uyarı listesi)
+//   💬 5420465103709423748 → yalnızca “bot yorumu işareti” (↓ yorumu oku ipucu)
+//   💊/💰/☄️ → kart DEX satırı (Pump / Raydium / Meteora)
+//
+// YORUM (alt açıklama — formatChannelComment):
+//   🟢/❤️/🔴 → YEŞİL/SARI/KIRMIZI rating bloğu
+//   🪙 → “Bot analizi” altı: risk, likidite, yaş (kartla aynı mantık)
+//   🤔 4940452364638225625 → tik / onay işaretleri (kontrat güvenliği + analiz maddeleri)
+//   ❤️ → dikkat / holder / mint uyarıları
+//   🪙 5280476129369543392 → yalnızca Solscan linki (solscanEmojiHtml)
+//   💊 → Pump.fun logosu + pump DEX; 💰 Raydium; ☄️ Meteora; 👻 Phantom al/sat
+//   🤑 5251414920355931519 → (mesajında yer belirtilmedi — ID kayıtlı)
 const SOLANA_EMOJI_BASE = {
   '◎': '5998906604735437913',
   '🪐': '5998906604735437913',
@@ -220,7 +225,7 @@ const SOLANA_EMOJI_BASE = {
   '🧠': '5767368031659368530',
   '🤖': '5767368031659368530',
   '👥': '5996963995322424988',
-  '💬': '5420465103709423748',   // Bot yorumu ipucu (kart)
+  '💬': '5420465103709423748',   // Kart: bot yorumu işareti (↓ yorumu oku)
   '🤔': '4940452364638225625',   // Onay / olumlu tik (✅ yerine)
   '⏱': '5391343181038106387',
   '⏱️': '5391343181038106387',
