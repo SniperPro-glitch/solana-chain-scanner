@@ -6,14 +6,12 @@
 const fs = require('fs');
 const path = require('path');
 
-const DATA_DIR = path.join(__dirname, '..', 'data');
+const { DATA_DIR, ensureDataDir } = require('./data-path');
 const SEEN_FILE = path.join(DATA_DIR, 'seen.json');
 const MAX_SEEN_ENTRIES = 5000; // En eski kayıtları otomatik temizle
 
 function ensureDir() {
-  if (!fs.existsSync(DATA_DIR)) {
-    fs.mkdirSync(DATA_DIR, { recursive: true });
-  }
+  ensureDataDir();
 }
 
 function load() {

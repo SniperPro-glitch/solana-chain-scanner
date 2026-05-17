@@ -3,11 +3,11 @@
 const fs = require('fs');
 const path = require('path');
 
-const DATA_DIR = path.join(__dirname, '..', 'data');
+const { DATA_DIR, ensureDataDir } = require('./data-path');
 const USERS_FILE = path.join(DATA_DIR, 'users.json');
 
 function ensureDir() {
-  if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
+  ensureDataDir();
 }
 
 function load() {

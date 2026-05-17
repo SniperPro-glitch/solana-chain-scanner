@@ -3,6 +3,7 @@
 const fs = require('fs');
 const path = require('path');
 const { t, normalizeLang } = require('./i18n');
+const { DATA_DIR, ensureDataDir, isPersistentDataDir } = require('./data-path');
 
 const VALID_CHAIN_IDS = new Set(['solana']);
 /** Kanal ayarları panelinde bir kez gösterilecek uyarı (normalize sonrası). */
@@ -58,7 +59,6 @@ function consumeChainsSanitizeNotice(chatId) {
   return msg;
 }
 
-const DATA_DIR = path.join(__dirname, '..', 'data');
 const CHANNELS_FILE = path.join(DATA_DIR, 'channels.json');
 
 // ─────────────────────────────────────────────────────────────
@@ -112,7 +112,7 @@ function normalizeRisk(r) {
 }
 
 function ensureDir() {
-  if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
+  ensureDataDir();
 }
 
 function load() {
@@ -137,12 +137,49 @@ function save(state) {
 
 let cache = load();
 
+function parseChannelIdList(raw) {
+  if (!raw || !String(raw).trim()) return [];
+  return String(raw)
+    .split(/[,;\s]+/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
+/** Deploy sonrası env'deki kanal id'lerini Telegram'dan doğrular ve kayda ekler. */
+async function syncFromBotApi(bot) {
+  if (!bot?.getChat) return { synced: 0, ids: [] };
+  const ids = new Set(parseChannelIdList(process.env.TELEGRAM_CHANNEL_ID));
+  for (const id of parseChannelIdList(process.env.TELEGRAM_CHANNEL_IDS || process.env.CHANNEL_IDS)) {
+    ids.add(id);
+  }
+  let synced = 0;
+  const ok = [];
+  for (const id of ids) {
+    try {
+      const chat = await bot.getChat(id);
+      const { added } = addChannel(chat, 'env-sync');
+      if (added) synced += 1;
+      ok.push(id);
+    } catch (e) {
+      console.warn(`[channels] env-sync atlandı ${id}: ${e.message}`);
+    }
+  }
+  if (ids.size) {
+    console.log(`[channels] env-sync: ${ok.length}/${ids.size} kanal (${synced} yeni)`);
+  }
+  return { synced, ids: [...ok] };
+}
+
 function logBootSummary() {
   const list = Object.values(cache.channels || {});
   const fileExists = fs.existsSync(CHANNELS_FILE);
-  console.log(`[channels] ${list.length} kanal yüklendi · dosya=${fileExists ? 'var' : 'YOK'} · ${CHANNELS_FILE}`);
+  const persist = isPersistentDataDir() ? 'KALICI' : 'GEÇİCİ (deploy sıfırlar)';
+  console.log(`[channels] ${list.length} kanal · depo=${persist} · ${CHANNELS_FILE}`);
+  if (!isPersistentDataDir()) {
+    console.warn('[channels] ⚠️ Railway: Volume ekle → Mount Path /data (veya DATA_DIR=/data). TELEGRAM_CHANNEL_IDS yedek olarak kullanılabilir.');
+  }
   if (!list.length) {
-    console.log('[channels] (boş — Railway Volume /app/data önerilir, yoksa deploy sonrası ayarlar silinir)');
+    console.log('[channels] (boş — bot kanala eklenince veya userbot sync ile dolar)');
     return;
   }
   for (const ch of list) {
@@ -385,6 +422,28 @@ function categorizeFilterReason(reason) {
   return 'other';
 }
 
+function addChannel(chat, addedBy = 'auto') {
+  const id = String(chat.id);
+  const existed = Boolean(cache.channels[id]);
+  cache.channels[id] = {
+    id,
+    title: chat.title || chat.username || 'Bilinmiyor',
+    username: chat.username || null,
+    type: chat.type,
+    addedAt: cache.channels[id]?.addedAt || new Date().toISOString(),
+    addedBy,
+    lastError: null,
+    settings: cache.channels[id]?.settings || { ...DEFAULT_SETTINGS },
+  };
+  const n = normalizeChainsSetting(cache.channels[id].settings.chains);
+  if (n.changed) cache.channels[id].settings.chains = n.chains;
+  if (!existed) {
+    cache.channels[id].settings.chains = null;
+  }
+  save(cache);
+  return { added: !existed, channel: cache.channels[id] };
+}
+
 module.exports = {
   DEFAULT_SETTINGS,
   RISK_ORDER,
@@ -396,27 +455,7 @@ module.exports = {
     return Array.isArray(chList) && chList.includes('solana');
   },
 
-  add(chat, addedBy = 'auto') {
-    const id = String(chat.id);
-    const existed = Boolean(cache.channels[id]);
-    cache.channels[id] = {
-      id,
-      title: chat.title || chat.username || 'Bilinmiyor',
-      username: chat.username || null,
-      type: chat.type,
-      addedAt: cache.channels[id]?.addedAt || new Date().toISOString(),
-      addedBy,
-      lastError: null,
-      settings: cache.channels[id]?.settings || { ...DEFAULT_SETTINGS },
-    };
-    const n = normalizeChainsSetting(cache.channels[id].settings.chains);
-    if (n.changed) cache.channels[id].settings.chains = n.chains;
-    if (!existed) {
-      cache.channels[id].settings.chains = null;
-    }
-    save(cache);
-    return { added: !existed, channel: cache.channels[id] };
-  },
+  add: addChannel,
 
   remove(chatId) {
     const id = String(chatId);
@@ -517,6 +556,7 @@ module.exports = {
   },
 
   consumeChainsSanitizeNotice,
+  syncFromBotApi,
 
   tokenPassesChannelFilters,
 };

@@ -3,7 +3,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const DATA_DIR = path.join(__dirname, '..', 'data');
+const { DATA_DIR, ensureDataDir } = require('./data-path');
 const FILE = path.join(DATA_DIR, 'whitelist.json');
 
 function defaultStore() {
@@ -20,7 +20,7 @@ function normalizeAddress(chain, address) {
 
 function load() {
   try {
-    if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
+    ensureDataDir();
     if (!fs.existsSync(FILE)) return defaultStore();
     const data = JSON.parse(fs.readFileSync(FILE, 'utf8'));
     if (!Array.isArray(data.entries)) return defaultStore();
@@ -33,7 +33,7 @@ function load() {
 
 function save(store) {
   try {
-    if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
+    ensureDataDir();
     fs.writeFileSync(FILE, JSON.stringify(store, null, 2));
   } catch (e) {
     console.error('whitelist.json yazma:', e.message);

@@ -1110,6 +1110,8 @@ async function main() {
   } else {
     console.log('   Userbot: kapalı → Bot API');
   }
+  await channels.syncFromBotApi(bot);
+  await userbot.syncAdminChannels(channels, bot);
   channels.logBootSummary();
   const enabledCh = channels.listEnabled().filter((c) => channels.isSolanaSelected(c.id));
   console.log(`   Özet: ${enabledCh.length} kanal aktif ve ◎ Solana seçili (post için)`);

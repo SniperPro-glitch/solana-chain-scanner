@@ -219,6 +219,74 @@ function getUserId() {
   return _userId || null;
 }
 
+function entityToBotChatId(entity) {
+  if (!entity) return null;
+  const cn = entity.className;
+  if (cn === 'Channel') return `-100${entity.id}`;
+  if (cn === 'Chat') return `-${entity.id}`;
+  return String(entity.id);
+}
+
+/**
+ * Userbot hesabının admin olduğu kanal/süpergrupları yeniden kaydeder (deploy sonrası liste boşsa).
+ * @param {{ add: Function }} channelsMod
+ * @param {import('node-telegram-bot-api')} [bot] — bot üye mi doğrulaması
+ */
+async function syncAdminChannels(channelsMod, bot = null) {
+  const client = await getClient();
+  if (!client || !channelsMod?.add) return { synced: 0, scanned: 0 };
+
+  let meBot = null;
+  if (bot?.getMe) {
+    try { meBot = await bot.getMe(); } catch (_) { /* yoksay */ }
+  }
+
+  let synced = 0;
+  let scanned = 0;
+  try {
+    const dialogs = await client.getDialogs({ limit: 300 });
+    for (const d of dialogs) {
+      const ent = d.entity;
+      if (!ent) continue;
+      if (ent.className !== 'Channel' && ent.className !== 'Chat') continue;
+      if (ent.className === 'Channel' && !ent.broadcast && !ent.megagroup) continue;
+
+      scanned += 1;
+      const chatId = entityToBotChatId(ent);
+      if (!chatId) continue;
+
+      if (meBot && bot?.getChatMember) {
+        try {
+          const m = await bot.getChatMember(chatId, meBot.id);
+          if (['left', 'kicked'].includes(m.status)) continue;
+        } catch {
+          continue;
+        }
+      }
+
+      try {
+        const perms = await client.getPermissions(ent, 'me');
+        if (!perms?.isAdmin && !perms?.isCreator) continue;
+      } catch {
+        continue;
+      }
+
+      const chat = {
+        id: chatId,
+        title: ent.title || d.name || ent.username || chatId,
+        username: ent.username || null,
+        type: ent.broadcast ? 'channel' : 'supergroup',
+      };
+      const { added } = channelsMod.add(chat, 'userbot-sync');
+      if (added) synced += 1;
+    }
+    console.log(`[userbot] kanal sync: ${scanned} tarandı, ${synced} yeni kayıt`);
+  } catch (e) {
+    console.warn('[userbot] kanal sync hatası:', e.message);
+  }
+  return { synced, scanned };
+}
+
 module.exports = {
   getClient,
   isEnabled,
@@ -229,4 +297,5 @@ module.exports = {
   editMessage,
   editMessageMedia,
   disconnect,
+  syncAdminChannels,
 };
