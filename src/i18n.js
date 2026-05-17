@@ -61,6 +61,21 @@ const STRINGS = {
     tr: 'Değerlendirme',
     ru: 'Вердикт',
   },
+  'comment.trustCardTitle': {
+    en: 'TRUST CARD',
+    tr: 'GÜVEN KARTI',
+    ru: 'КАРТА ДОВЕРИЯ',
+  },
+  'comment.openAppHint': {
+    en: 'Tap the button below for the full audit report.',
+    tr: 'Tüm testler ve detaylar için alttaki butona dokunun.',
+    ru: 'Полный отчёт — кнопка ниже.',
+  },
+  'comment.openFullReport': {
+    en: '📊 Open full risk report',
+    tr: '📊 Tam risk raporunu aç',
+    ru: '📊 Полный отчёт о риске',
+  },
   'comment.tradeTitle': {
     en: 'Buy / Sell',
     tr: 'Al / Sat',

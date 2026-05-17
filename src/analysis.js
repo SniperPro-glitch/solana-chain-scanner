@@ -1300,4 +1300,11 @@ module.exports = {
   buildAnalysisOneLine,
   buildAnalysisCommentBody,
   buildRiskReportBody,
+  collectAnalysisMetrics,
+  collectRedFlags,
+  collectReportBullets,
+  buildRugCheckCompactLine,
+  pickVerdictHtml,
+  ageSummary,
+  liqSummaryWord,
 };

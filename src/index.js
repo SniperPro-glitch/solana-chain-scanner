@@ -29,6 +29,9 @@ const { trimForCaption } = require('./cardCaption');
 const userbot = require('./userbot');
 const { createScanRunner } = require('./scanRunner');
 const { createWatchRunner } = require('./watchRunner');
+const reportStore = require('./reportStore');
+const { formatTrustTeaserComment } = require('./trustTeaser');
+const { startMiniAppServer, buildWebAppUrl, getWebAppBaseUrl } = require('./miniAppServer');
 
 const BOT_TOKEN = process.env.BOT_TOKEN || process.env.TELEGRAM_BOT_TOKEN;
 const ADMIN_USER_ID = process.env.ADMIN_USER_ID ? String(process.env.ADMIN_USER_ID) : null;
@@ -421,6 +424,9 @@ async function sendTextToChat(chatId, text, opts = {}) {
     } else if (replyTo) {
       form.reply_to_message_id = replyTo;
     }
+    if (opts.reply_markup) {
+      form.reply_markup = JSON.stringify(opts.reply_markup);
+    }
     const msg = await bot._request('sendMessage', { form });
     return { ok: true, messageId: msg.message_id, via: 'bot' };
   } catch (e) {
@@ -438,7 +444,9 @@ async function sendAnalysisAsChannelComment(ch, channelPostMessageId, text, opts
   const html = wrapEmojis(text, chain);
   const useUb = userbot.isEnabled()
     && preferUserbotForChannel()
-    && ch?.settings?.userbotEnabled !== false;
+    && ch?.settings?.userbotEnabled !== false
+    && !opts.reply_markup
+    && opts.forceBot !== true;
 
   const replyTo = target.mode === 'discussion' ? target.messageId : undefined;
 
@@ -452,6 +460,8 @@ async function sendAnalysisAsChannelComment(ch, channelPostMessageId, text, opts
     const r = await sendTextToChat(target.chatId, text, {
       ...opts,
       useUserbot: false,
+      forceBot: opts.forceBot,
+      reply_markup: opts.reply_markup,
       replyParameters: {
         message_id: target.messageId,
         chat_id: target.channelChatId,
@@ -463,6 +473,8 @@ async function sendAnalysisAsChannelComment(ch, channelPostMessageId, text, opts
   const r = await sendTextToChat(target.chatId, text, {
     ...opts,
     useUserbot: false,
+    forceBot: opts.forceBot,
+    reply_markup: opts.reply_markup,
     replyTo: target.messageId,
   });
   return { ...r, asComment: !!r.ok };
@@ -473,9 +485,9 @@ async function sendBotAnalysisFollowup(ch, cmEntry, token, audit, lang, cardLeve
   const sym = token.tokenSymbol || '?';
   let body;
   try {
-    body = formatAnalysisOnly(token, audit, lang, cardLevel);
+    body = formatTrustTeaserComment(token, audit, lang, cardLevel);
   } catch (e) {
-    console.error('[followup] formatAnalysisOnly:', sym, e?.message);
+    console.error('[followup] formatTrustTeaser:', sym, e?.message);
     return;
   }
   if (!String(body || '').trim()) {
@@ -487,10 +499,34 @@ async function sendBotAnalysisFollowup(ch, cmEntry, token, audit, lang, cardLeve
     return;
   }
 
+  let reportId = null;
+  let replyMarkup;
+  try {
+    reportId = reportStore.saveReport({ token, audit, lang, level: cardLevel });
+    const webAppUrl = buildWebAppUrl(reportId);
+    if (webAppUrl && /^https:\/\//i.test(webAppUrl)) {
+      replyMarkup = {
+        inline_keyboard: [[{
+          text: t('comment.openFullReport', lang),
+          web_app: { url: webAppUrl },
+        }]],
+      };
+    } else if (webAppUrl) {
+      body += `\n\n🔗 <a href="${webAppUrl}">${t('comment.openFullReport', lang)}</a>`;
+    }
+  } catch (e) {
+    console.warn('[followup] report save:', e.message);
+  }
+
   let text = `<b>$${sym}</b>\n${body}`;
   if (text.length > 4080) text = `${text.slice(0, 4056)}\n<i>…</i>`;
 
-  let ar = await sendAnalysisAsChannelComment(ch, cmEntry.messageId, text, { silent: true, chain: 'solana' });
+  let ar = await sendAnalysisAsChannelComment(ch, cmEntry.messageId, text, {
+    silent: true,
+    chain: 'solana',
+    reply_markup: replyMarkup,
+    forceBot: !!replyMarkup,
+  });
   if (!ar?.ok) {
     console.warn('[followup] tartışma yorumu yok (%s) → metin yedek (kanal):', ar?.error || '?', sym);
     ar = await sendTextToChat(ch.id, text, { silent: true, chain: 'solana', useUserbot: true });
@@ -1523,6 +1559,7 @@ process.on('SIGINT', () => { gracefulShutdown('SIGINT'); });
 process.on('SIGTERM', () => { gracefulShutdown('SIGTERM'); });
 
 async function main() {
+  startMiniAppServer();
   await startBotPolling();
   const me = await bot.getMe().catch(() => ({ username: 'bot', id: '?' }));
   process.env.BOT_USERNAME = me.username ? `@${me.username}` : '';
@@ -1530,6 +1567,17 @@ async function main() {
   console.log('   Bu token yalnızca TEK yerde çalışmalı (Railway XOR yerel PC).');
   console.log(`   Tarama: ${SOLANA_SCAN_ENABLED ? `AÇIK (${SOLANA_SCAN_INTERVAL_MIN} dk)` : 'KAPALI'}`);
   console.log(`   İzleme: ${WATCH_INTERVAL_SEC} sn`);
+
+  const webBase = getWebAppBaseUrl();
+  if (/^https:\/\//i.test(webBase)) {
+    await bot.setChatMenuButton({
+      menu_button: {
+        type: 'web_app',
+        text: 'Risk Raporu',
+        web_app: { url: webBase },
+      },
+    }).catch((e) => console.warn('setChatMenuButton:', e?.message));
+  }
 
   await bot.setMyCommands([
     { command: 'start', description: 'Başlangıç / dil' },
