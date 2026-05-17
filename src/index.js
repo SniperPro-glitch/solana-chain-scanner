@@ -48,9 +48,9 @@ if (!BOT_TOKEN) {
 }
 
 const POLLING_PARAMS = {
-  allowed_updates: JSON.stringify([
+  allowed_updates: [
     'message', 'channel_post', 'my_chat_member', 'chat_member', 'callback_query',
-  ]),
+  ],
 };
 
 /** Polling başlamadan önce oluşturulur; main() içinde startPolling() çağrılır (409 / webhook çakışması önlemi). */
@@ -84,9 +84,9 @@ async function prepareTelegramConnection() {
 
 async function startBotPolling() {
   await prepareTelegramConnection();
-  await ingestPendingMyChatMemberUpdates();
+  // getUpdates ile kuyruk temizleme YAPMA — /start ve DM mesajları siliniyordu
   await bot.startPolling({ params: POLLING_PARAMS });
-  console.log('[bot] long polling başladı');
+  console.log('[bot] long polling başladı (mesajlar dinleniyor)');
 }
 
 function handlePollingError(err) {
@@ -497,38 +497,6 @@ function formatEmptyChannelsHelp() {
   );
 }
 
-async function ingestPendingMyChatMemberUpdates() {
-  const base = `https://api.telegram.org/bot${BOT_TOKEN}/getUpdates`;
-  let offset = 0;
-  let processed = 0;
-  const allowed = encodeURIComponent(JSON.stringify(['my_chat_member']));
-  try {
-    for (let batch = 0; batch < 10; batch++) {
-      const res = await fetch(`${base}?offset=${offset}&timeout=0&allowed_updates=${allowed}`);
-      const data = await res.json();
-      if (!data.ok || !data.result?.length) break;
-      for (const u of data.result) {
-        offset = u.update_id + 1;
-        const mcm = u.my_chat_member;
-        if (!mcm?.chat) continue;
-        const chat = mcm.chat;
-        if (!['channel', 'supergroup', 'group'].includes(chat.type)) continue;
-        const ns = mcm.new_chat_member?.status;
-        if (!['administrator', 'member', 'restricted', 'creator'].includes(ns)) continue;
-        const { added } = channels.add(chat, 'queue-sync');
-        if (added) processed += 1;
-      }
-    }
-    if (offset > 0) {
-      await fetch(`${base}?offset=${offset}&timeout=0`);
-    }
-    if (processed) console.log(`[channels] Telegram kuyruğu: +${processed} kanal kaydı`);
-  } catch (e) {
-    console.warn('[channels] getUpdates kuyruk okunamadı:', e.message);
-  }
-  return processed;
-}
-
 async function registerChannelFromForward(msg) {
   const src = msg.forward_from_chat;
   if (!src?.id) return false;
@@ -583,9 +551,12 @@ async function canManageChat(msg) {
 function bindTextCommand(regex, handler) {
   const run = async (msg, match) => {
     try {
+      if (process.env.BOT_DEBUG === '1') {
+        console.log('[cmd]', msg?.text, 'chat', msg?.chat?.id);
+      }
       await handler(msg, match);
     } catch (e) {
-      console.error('[cmd]', regex, msg?.text, e?.message);
+      console.error('[cmd]', regex, msg?.text, e?.message, e?.stack);
       bot.sendMessage(msg.chat.id, '⚠️ Komut işlenemedi. Lütfen bota özelden /settings yazın.').catch(() => {});
     }
   };
