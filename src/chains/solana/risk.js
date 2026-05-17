@@ -49,27 +49,9 @@ async function fetchMintParsed(mint) {
   }
 }
 
-let heliusRestWarned401 = false;
-
-async function fetchHoldersFromHelius(mint) {
-  const key = (process.env.HELIUS_API_KEY || '').trim();
-  if (!key) return null;
-  try {
-    const { data } = await http.get(
-      `https://api.helius.xyz/v0/token-metadata?api-key=${encodeURIComponent(key)}&mint=${mint}`,
-    );
-    const meta = Array.isArray(data) ? data[0] : data;
-    return meta?.onChainMetadata || meta || null;
-  } catch (e) {
-    const st = e.response?.status;
-    if (st === 401 && !heliusRestWarned401) {
-      heliusRestWarned401 = true;
-      console.warn('[solana/risk] Helius REST 401 — HELIUS_API_KEY geçersiz');
-    } else if (st !== 401) {
-      console.warn('[solana/risk] Helius:', e.message);
-    }
-    return null;
-  }
+async function fetchHoldersFromHelius(_mint) {
+  // v0 token-metadata deprecated; holder özeti DexScreener + getAccountInfo (RPC) yeterli.
+  return null;
 }
 
 /** DexScreener pair üzerinden holder sayısı (varsa). */
@@ -123,8 +105,6 @@ async function enrichToken(token, _opts = {}) {
     contract.holdersCount = dsH.holdersCount;
     token.holdersCount = dsH.holdersCount;
   }
-
-  await fetchHoldersFromHelius(token.tokenAddress).catch(() => {});
 
   token.contract = contract;
   token.chain = config.id;

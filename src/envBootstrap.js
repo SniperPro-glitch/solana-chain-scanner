@@ -10,8 +10,22 @@ function heliusRpcUrl(key) {
   return `https://mainnet.helius-rpc.com/?api-key=${encodeURIComponent(key)}`;
 }
 
+/** Railway’de tırnak, boşluk veya "HELIUS_API_KEY=..." ile yapıştırılmış değerleri düzelt. */
+function sanitizeHeliusKey(raw) {
+  let k = String(raw || '').trim();
+  if (
+    (k.startsWith('"') && k.endsWith('"'))
+    || (k.startsWith("'") && k.endsWith("'"))
+  ) {
+    k = k.slice(1, -1).trim();
+  }
+  k = k.replace(/^HELIUS_API_KEY\s*=\s*/i, '').trim();
+  return k;
+}
+
 function applyHeliusEnv() {
-  const key = (process.env.HELIUS_API_KEY || '').trim();
+  const key = sanitizeHeliusKey(process.env.HELIUS_API_KEY);
+  if (key) process.env.HELIUS_API_KEY = key;
   let rpc = (process.env.SOLANA_RPC_URL || '').trim();
 
   if (rpc && !isValidHttpUrl(rpc)) {
@@ -40,13 +54,28 @@ function applyHeliusEnv() {
   }
 }
 
-/** Açılışta Helius RPC + REST anahtarını doğrula (401 → Railway’de key düzelt). */
+async function rpcProbe(rpc, method, params = []) {
+  const { data, status } = await axios.post(
+    rpc,
+    { jsonrpc: '2.0', id: 1, method, params },
+    { timeout: 12_000, validateStatus: () => true },
+  );
+  return { data, status };
+}
+
+/** Açılışta Helius RPC doğrula (bot tarama/risk için RPC kullanır). */
 async function verifyHeliusRpc() {
-  const key = (process.env.HELIUS_API_KEY || '').trim();
+  applyHeliusEnv();
+  const key = sanitizeHeliusKey(process.env.HELIUS_API_KEY);
   const rpc = (process.env.SOLANA_RPC_URL || '').trim();
 
   if (!key) {
-    console.warn('[env] ⚠️ HELIUS_API_KEY yok — Railway Variables → helius.dev anahtarı ekleyin');
+    console.warn('[env] ⚠️ HELIUS_API_KEY yok — Railway Variables → dashboard.helius.dev → API Keys');
+    return false;
+  }
+
+  if (key.length < 20) {
+    console.error(`[env] ❌ HELIUS_API_KEY çok kısa (${key.length} karakter) — Project ID değil, API Key yapıştırın`);
     return false;
   }
 
@@ -56,28 +85,27 @@ async function verifyHeliusRpc() {
   }
 
   try {
-    const { data, status } = await axios.post(
-      rpc,
-      { jsonrpc: '2.0', id: 1, method: 'getHealth' },
-      { timeout: 12_000, validateStatus: () => true },
-    );
-    if (status === 401) {
-      console.error('[env] ❌ Helius RPC 401 — HELIUS_API_KEY Railway\'de yanlış veya eski');
+    const health = await rpcProbe(rpc, 'getHealth');
+    if (health.status === 401 || health.status === 403) {
+      console.error('[env] ❌ HELIUS_API_KEY geçersiz (RPC 401) — dashboard.helius.dev → API Keys → yeni key, SOLANA_RPC_URL silin');
       return false;
     }
-    if (data?.error) {
-      console.error(`[env] ❌ Helius RPC: ${data.error.message}`);
+    if (health.data?.error) {
+      console.error(`[env] ❌ Helius RPC: ${health.data.error.message}`);
       return false;
     }
-    const meta = await axios.get(
-      `https://api.helius.xyz/v0/token-metadata?api-key=${encodeURIComponent(key)}&mint=So11111111111111111111111111111111111111112`,
-      { timeout: 12_000, validateStatus: () => true },
-    );
-    if (meta.status === 401) {
-      console.error('[env] ❌ HELIUS_API_KEY geçersiz (REST 401) — dashboard.helius.dev → yeni API key');
+
+    const slot = await rpcProbe(rpc, 'getSlot');
+    if (slot.status === 401 || slot.status === 403) {
+      console.error('[env] ❌ HELIUS_API_KEY geçersiz (RPC 401) — anahtarı yenileyin');
       return false;
     }
-    console.log('[env] Helius RPC + API key: OK');
+    if (slot.data?.result == null && slot.data?.error) {
+      console.error(`[env] ❌ Helius RPC: ${slot.data.error.message}`);
+      return false;
+    }
+
+    console.log(`[env] Helius RPC: OK (slot ${slot.data?.result})`);
     return true;
   } catch (e) {
     const st = e.response?.status;
@@ -86,4 +114,4 @@ async function verifyHeliusRpc() {
   }
 }
 
-module.exports = { applyHeliusEnv, verifyHeliusRpc, isValidHttpUrl };
+module.exports = { applyHeliusEnv, verifyHeliusRpc, sanitizeHeliusKey, isValidHttpUrl };
