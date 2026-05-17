@@ -10,7 +10,7 @@
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script src="https://unpkg.com/lightweight-charts@4.2.0/dist/lightweight-charts.standalone.production.js"></script>
   <link rel="stylesheet" href="styles.css" />
-  <link rel="stylesheet" href="sniper-theme.css" />
+  <link rel="stylesheet" href="dex-scanner.css" />
 </head>
 <body>
   <div id="loading" class="boot-screen">
@@ -46,9 +46,9 @@
     <div class="search-row">
       <div class="search-box">
         <span class="search-ico">⌕</span>
-        <input type="text" placeholder="Search token, pair or contract…" disabled />
+        <input type="text" id="searchInput" placeholder="Search token, pair or contract" autocomplete="off" />
+        <button type="button" class="search-filter" aria-label="Filter">☰</button>
       </div>
-      <button type="button" class="btn-filter" aria-label="Filtre">☰</button>
     </div>
 
     <div class="chain-scroll">
@@ -60,7 +60,7 @@
       <button type="button" class="chain-chip disabled" disabled><span class="chain-ico" style="background:#0052FF">◆</span> Base</button>
     </div>
 
-    <div class="quick-scroll" id="quickCards"></div>
+    <div class="feature-grid" id="quickCards"></div>
 
     <div class="token-table-scroll">
       <div class="token-table-inner">
@@ -72,6 +72,7 @@
       </div>
     </div>
 
+    <p class="market-overview-label">Market Overview</p>
     <div class="market-footer" id="marketFooter">
       <div class="mf-item"><span>24H VOLUME</span><strong id="statVol">—</strong><em class="up" id="statVolChg"></em></div>
       <div class="mf-item"><span>NEW PAIRS</span><strong id="statNew">—</strong><em class="up" id="statNewChg"></em></div>

@@ -24,6 +24,27 @@
   let feedPollTimer = null;
   let openingMint = false;
 
+  const PLACEHOLDER_TOKENS = [
+    { rank: 1, symbol: 'WOFFY', pairLabel: 'WOFFY/SOL', priceUsdFmt: '$0.0042', change1h: 12.4, change24h: 86.2, volume24hFmt: '$248K', liquidityUsdFmt: '$89K', marketCapUsdFmt: '$1.2M', risk: { band: 'high', label: 'HIGH RISK' }, mint: 'demo1' },
+    { rank: 2, symbol: 'BONK', pairLabel: 'BONK/SOL', priceUsdFmt: '$0.000019', change1h: 3.2, change24h: 12.4, volume24hFmt: '$1.2M', liquidityUsdFmt: '$420K', marketCapUsdFmt: '$890K', risk: { band: 'low', label: 'LOW RISK' }, mint: 'demo2' },
+    { rank: 3, symbol: 'POPCAT', pairLabel: 'POPCAT/SOL', priceUsdFmt: '$1.24', change1h: -2.1, change24h: -5.1, volume24hFmt: '$890K', liquidityUsdFmt: '$310K', marketCapUsdFmt: '$2.1M', risk: { band: 'mid', label: 'MEDIUM RISK' }, mint: 'demo3' },
+    { rank: 4, symbol: 'WIF', pairLabel: 'WIF/SOL', priceUsdFmt: '$2.86', change1h: 8.7, change24h: 24.3, volume24hFmt: '$3.1M', liquidityUsdFmt: '$1.1M', marketCapUsdFmt: '$2.8M', risk: { band: 'low', label: 'LOW RISK' }, mint: 'demo4' },
+    { rank: 5, symbol: 'MEW', pairLabel: 'MEW/SOL', priceUsdFmt: '$0.0089', change1h: -4.2, change24h: 18.6, volume24hFmt: '$520K', liquidityUsdFmt: '$180K', marketCapUsdFmt: '$780K', risk: { band: 'mid', label: 'MEDIUM RISK' }, mint: 'demo5' },
+  ];
+
+  const PLACEHOLDER_STATS = {
+    volume24hFmt: '$2.48B',
+    newPairs: 1248,
+    liquidityFmt: '$243.6M',
+    activeNow: 18457,
+    count: 12458,
+  };
+
+  function chgClass(n) {
+    if (n == null || Number.isNaN(Number(n))) return '';
+    return Number(n) >= 0 ? 'up' : 'down';
+  }
+
   function escHtml(v) {
     return String(v ?? '')
       .replace(/&/g, '&amp;')
@@ -38,11 +59,6 @@
     return `${x >= 0 ? '+' : ''}${x.toFixed(1)}%`;
   }
 
-  function chgClass(n) {
-    if (n == null || Number.isNaN(Number(n))) return '';
-    return Number(n) >= 0 ? 'up' : 'down';
-  }
-
   function renderFeedRow(item, extraClass = '') {
     const risk = item.risk || {};
     const rc = risk.band || 'mid';
@@ -52,8 +68,8 @@
     const up24 = chg24 == null ? true : Number(chg24) >= 0;
     const pairShort = escHtml((item.pairLabel || 'SOL').replace(/^.*\//, '') || 'SOL');
     const avatar = item.imageUrl
-      ? `<img class="tr-img" src="${escHtml(item.imageUrl)}" alt="" loading="lazy" />`
-      : `<span class="tr-avatar">${escHtml((item.symbol || '?').slice(0, 2))}</span>`;
+      ? `<span class="tr-avatar-wrap"><img class="tr-img" src="${escHtml(item.imageUrl)}" alt="" loading="lazy" /><span class="tr-chain-dot">◎</span></span>`
+      : `<span class="tr-avatar-wrap"><span class="tr-avatar">${escHtml((item.symbol || '?').slice(0, 2))}</span><span class="tr-chain-dot">◎</span></span>`;
     return `<article class="token-row ${extraClass}" data-mint="${escHtml(item.mint)}">
       <span class="tr-rank">${item.rank ?? '·'}</span>
       <div class="tr-token">${avatar}<div class="tr-meta"><div class="tr-name">${escHtml(item.symbol)}<span class="tr-pair"> / ${pairShort}</span></div><div class="tr-sub">MCap ${escHtml(item.marketCapUsdFmt)}</div></div>
@@ -96,7 +112,7 @@
     const pts = up
       ? '2,18 8,14 14,10 20,6 26,8 32,4 38,2'
       : '2,4 8,8 14,12 20,14 26,16 32,18 38,20';
-    const col = up ? '#4ade80' : '#fb7185';
+    const col = up ? '#00ff88' : '#ff3b3b';
     return `<svg class="tr-spark" viewBox="0 0 40 22" preserveAspectRatio="none"><polyline fill="none" stroke="${col}" stroke-width="1.5" points="${pts}"/></svg>`;
   }
 
@@ -146,6 +162,26 @@
     }
   }
 
+
+  function renderTokenList(items) {
+    const list = $('homeTokenList');
+    if (!list) return;
+    const rows = renderLastReportRow() + (items || []).map((it) => renderFeedRow(it)).join('');
+    list.innerHTML = rows || '<p class="home-cta">No tokens found.</p>';
+  }
+
+  function applyMarketStats(stats) {
+    const st = stats || PLACEHOLDER_STATS;
+    if ($('statVol')) $('statVol').textContent = st.volume24hFmt || '—';
+    if ($('statNew')) $('statNew').textContent = String(st.newPairs ?? '—');
+    if ($('statLiq')) $('statLiq').textContent = st.liquidityFmt || '—';
+    if ($('statActive')) $('statActive').textContent = String(st.activeNow ?? '—');
+    [['statVolChg', '+16.8%'], ['statNewChg', '+23.5%'], ['statLiqChg', '+19.2%'], ['statActiveChg', '+12.3%']].forEach(([id, t]) => {
+      const el = $(id);
+      if (el) el.textContent = t;
+    });
+  }
+
   function updateQuickCards(stats, items) {
     const qc = $('quickCards');
     if (!qc) return;
@@ -184,26 +220,16 @@
       const res = await fetch(`/api/feed?tab=${encodeURIComponent(t)}&limit=24`);
       const body = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(body.message || 'feed_failed');
-      const items = body.items || [];
-      if ($('statVol')) $('statVol').textContent = body.stats?.volume24hFmt || '—';
-      if ($('statNew')) $('statNew').textContent = String(body.stats?.newPairs ?? items.length);
-      if ($('statLiq')) $('statLiq').textContent = body.stats?.liquidityFmt || '—';
-      if ($('statActive')) $('statActive').textContent = String(body.stats?.activeNow ?? items.length);
-      [['statVolChg', '+16.8%'], ['statNewChg', '+23.5%'], ['statLiqChg', '+19.2%'], ['statActiveChg', '+12.3%']].forEach(([id, t]) => {
-        const el = $(id);
-        if (el) el.textContent = t;
-      });
-      updateQuickCards(body.stats, items);
-      if (list) {
-        const rows = renderLastReportRow() + items.map((it) => renderFeedRow(it)).join('');
-        list.innerHTML = rows || '<p class="home-cta">Liste boş — biraz sonra yenile.</p>';
-      }
+      const items = body.items?.length ? body.items : PLACEHOLDER_TOKENS;
+      applyMarketStats(body.stats || PLACEHOLDER_STATS);
+      updateQuickCards(body.stats || PLACEHOLDER_STATS, items);
+      renderTokenList(items);
       return body;
     } catch (e) {
-      if (list) {
-        list.innerHTML = `${renderLastReportRow()}<p class="home-cta">Liste yüklenemedi. ${escHtml(e.message || '')}</p>`;
-      }
-      showToast('Canlı liste alınamadı');
+      applyMarketStats(PLACEHOLDER_STATS);
+      updateQuickCards(PLACEHOLDER_STATS, PLACEHOLDER_TOKENS);
+      renderTokenList(PLACEHOLDER_TOKENS);
+      showToast('Demo data — live feed unavailable');
       return null;
     } finally {
       loadingEl?.classList.add('hidden');
@@ -218,6 +244,12 @@
     list?.classList.add('dimmed');
     showToast('Token analiz ediliyor…');
     try {
+      if (String(mint).startsWith('demo')) {
+        showToast('Demo token — connect live feed for full report');
+        openingMint = false;
+        list?.classList.remove('dimmed');
+        return;
+      }
       const res = await fetch(`/api/open/${encodeURIComponent(mint)}`);
       const body = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(body.message || 'Analiz başarısız');
