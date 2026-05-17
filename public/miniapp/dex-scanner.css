@@ -131,6 +131,12 @@ html.tg-fullscreen .btn-connect {
   font-size: 11px;
 }
 
+/* Expand mod: Telegram üst şeridi — ekstra sol boşluk gerekmez */
+html.tg-expanded .scan-header {
+  padding-left: 12px;
+  padding-top: calc(6px + var(--tg-content-safe-top, 0px));
+}
+
 .btn-connect {
   display: inline-flex;
   align-items: center;

@@ -1,5 +1,6 @@
 /**
- * Telegram Mini App — tam ekran, güvenli alan, kapat düğmesi boşluğu.
+ * Telegram Mini App — genişletilmiş mod (expand), üstte ↓ ile küçültme.
+ * requestFullscreen KULLANILMAZ: o modda sol üstte X çıkar ve logoyla çakışır.
  */
 (function () {
   const tg = window.Telegram?.WebApp;
@@ -20,11 +21,14 @@
     const sTop = Number(sa.top) || 0;
     const sBottom = Number(sa.bottom) || 0;
 
-    /* Tam ekranda API bazen 0 döner; kapat (X) sol üstte — logo çakışmasın */
+    /* Yanlışlıkla fullscreen açıldıysa X boşluğu (normalde exitFullscreen çağrılır) */
     if (fullscreen) {
       if (cLeft < 44) cLeft = 56;
       if (cTop < 36) cTop = Math.max(sTop, 52);
-      if (cRight < 8) cRight = 12;
+    } else {
+      /* Expand mod: Telegram üst çubuğu — hafif üst boşluk, logo ortada/solda serbest */
+      if (cTop < 8) cTop = Math.max(sTop, 0);
+      cLeft = 0;
     }
 
     root.style.setProperty('--tg-safe-top', `${sTop}px`);
@@ -41,48 +45,52 @@
     }
 
     root.classList.toggle('tg-fullscreen', fullscreen);
+    root.classList.toggle('tg-expanded', !fullscreen);
   }
 
-  function applyFullscreen() {
+  function applyViewport() {
     tg.ready();
-    try {
-      if (typeof tg.disableVerticalSwipes === 'function') tg.disableVerticalSwipes();
-    } catch (_) { /* */ }
+
+    /* X’li tam ekrandan çık → üstte aşağı ok (küçült) modu */
+    if (tg.isFullscreen && typeof tg.exitFullscreen === 'function') {
+      try {
+        tg.exitFullscreen();
+      } catch (_) { /* */ }
+    }
+
     try {
       if (typeof tg.setHeaderColor === 'function') tg.setHeaderColor(BG);
       if (typeof tg.setBackgroundColor === 'function') tg.setBackgroundColor(BG);
     } catch (_) { /* */ }
+
     if (typeof tg.expand === 'function') tg.expand();
-    if (typeof tg.requestFullscreen === 'function') {
-      try {
-        tg.requestFullscreen();
-      } catch (_) { /* */ }
-    }
+
     applySafeArea();
-    /* contentSafeAreaInset bazen bir frame gecikmeli gelir */
-    setTimeout(applySafeArea, 80);
-    setTimeout(applySafeArea, 320);
+    setTimeout(applySafeArea, 100);
+    setTimeout(applySafeArea, 400);
   }
 
   document.documentElement.classList.add('tg-mini-app');
-  applyFullscreen();
+  applyViewport();
 
   if (typeof tg.onEvent === 'function') {
-    tg.onEvent('viewportChanged', applyFullscreen);
+    tg.onEvent('viewportChanged', applyViewport);
     tg.onEvent('safeAreaChanged', applySafeArea);
     tg.onEvent('contentSafeAreaChanged', applySafeArea);
-    tg.onEvent('fullscreenChanged', applySafeArea);
-    tg.onEvent('fullscreenFailed', () => {
-      root.classList.remove('tg-fullscreen');
-      if (typeof tg.expand === 'function') tg.expand();
+    tg.onEvent('fullscreenChanged', () => {
+      if (tg.isFullscreen && typeof tg.exitFullscreen === 'function') {
+        try {
+          tg.exitFullscreen();
+        } catch (_) { /* */ }
+      }
       applySafeArea();
     });
   }
 
   document.addEventListener('visibilitychange', () => {
-    if (!document.hidden) applyFullscreen();
+    if (!document.hidden) applyViewport();
   });
 
-  window.__tgApplyFullscreen = applyFullscreen;
+  window.__tgApplyFullscreen = applyViewport;
   window.__tgApplySafeArea = applySafeArea;
 })();
