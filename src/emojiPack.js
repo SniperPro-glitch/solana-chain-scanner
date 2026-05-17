@@ -1,6 +1,7 @@
-// Custom emoji ID eşleşmeleri.
-// Bot API kanal post'larında entity'ler stripleniyor → userbot (MTProto) gerekli.
-// wrapEmojis() HTML metnindeki unicode emoji'leri <tg-emoji> tag'i ile sarar.
+// Solana Chain Scanner — premium custom emoji (Telegram).
+// Kanal postlarında animasyon için userbot (TG_SESSION) gerekli.
+// wrapEmojis() unicode emoji'leri <tg-emoji emoji-id="..."> ile sarar.
+// Yeni ID: SOLANA_CUSTOM_EMOJI_JSON env veya SOLANA_EMOJI_MAP içinde güncelle.
 
 const EMOJI_MAP = {
   '⚡': '5258203794772085854',
@@ -33,7 +34,7 @@ const EMOJI_MAP = {
   '🔎': '5278456597092264192',
   '🦅': '5280877378099227736',
   '🦎': '5292232906557635306',
-  '🆕': '5233588456730427459',
+  '🆕': '5190801313922847501',   // Yeni Token kart başlığı
   // Turn 28-31'den çıkarılan ID'ler
   '💎': '5384398064301651592',  // TON orijinal logo (kristal)
   '🔐': '5377705435807619775',  // Anahtarlı kağıt — Contract
@@ -164,49 +165,60 @@ const BSC_EMOJI_MAP = {
   '⚖️': '5314613581705132533',
 };
 
-// Solana — premium emoji (BSC ile aynı sistem: zincir map + TON yedek)
-const SOLANA_EMOJI_MAP = {
+// ── Solana bot premium emoji (kart + yorum; SOLANA_CUSTOM_EMOJI_JSON ile güncelle) ──
+const SOLANA_EMOJI_BASE = {
   '◎': '5998906604735437913',
-  '🪐': '5830115502399166320',
-  '🔍': '4981381367154607055',
-  '🔎': '4981381367154607055',
-  '🌐': '4981381367154607055',
-  '✅': '5129631509224883014',
-  '⚡': '5195279659142506222',
-  '⚡️': '5195279659142506222',
-  '➡️': '5382082333899769147',
-  '👉': '5382082333899769147',
-  '📛': '5382082333899769147',
+  '🪐': '5998906604735437913',
   '💎': '5998906604735437913',
-  '🪙': '5998906604735437913',
-  '🏛': '5998906604735437913',
-  '🏛️': '5998906604735437913',
-  '💧': '5998906604735437913',
-  '🆕': '5237902107134147475',
-  '🛒': '6046155226426121683',
-  '💱': '6046155226426121683',
+  '🪙': '5843946791740905640',   // Solana: logo, kontrat, risk, likidite
+  '🤑': '5251414920355931519',
+  '🟣': '5998906604735437913',
+  '🔍': '5999337011998104831',
+  '🔎': '5278456597092264192',
+  '🌐': '5278456597092264192',
   '🦅': '5280877378099227736',
   '🦎': '5292232906557635306',
   '🔐': '5377705435807619775',
   '💲': '5208449313067258557',
-  '💰': '6046155226426121683',
-  '📦': '5345803067272994307',
-  '🏦': '5345803067272994307',
+  '💰': '5328025123893029024',   // Raydium logosu (DEX satırı)
+  '💧': '6046155226426121683',
+  '💱': '6046155226426121683',
+  '💸': '6046155226426121683',
+  '📦': '5264895611517300926',
+  '🏦': '5264895611517300926',
+  '🏛': '5998906604735437913',
+  '🏛️': '5998906604735437913',
+  '📊': '6048891472780992240',
+  '📈': '5406756195165810055',
+  '🗄': '5262529363710060188',
+  '🗄️': '5262529363710060188',
+  '✅': '5244556102397336171',
+  '⚡': '5445358072732064475',
+  '⚡️': '5445358072732064475',
+  '➡️': '5471978009449731768',
+  '👉': '5471978009449731768',
+  '👇': '5470177992950946662',
+  '📛': '5471978009449731768',
+  '🆕': '5190801313922847501',   // Yeni Token kart başlığı
+  '❤️': '5424733863114980704',   // Dikkat / risk uyarısı
+  '❤': '5424733863114980704',
   '🛡': '5424972470023104089',
   '🔥': '5424972470023104089',
   '🏅': '5814173103487456712',
-  '🚀': '5195279659142506222',
-  '🐻': '5767368031659368530',
+  '🚀': '5363909133269481082',
+  '🧠': '5767368031659368530',
   '🤖': '5767368031659368530',
   '👥': '5996963995322424988',
-  '💬': '5465300082628763143',
-  '📊': '6048891472780992240',
-  '📈': '5406756195165810055',
+  '💬': '5420465103709423748',   // Bot yorumu ipucu (kart)
+  '🤔': '4940452364638225625',   // Onay / olumlu tik (✅ yerine)
   '⏱': '5391343181038106387',
   '⏱️': '5391343181038106387',
+  '⏳': '5391343181038106387',
   '🕒': '5391343181038106387',
-  '❗': '5339425788162748336',
-  '❗️': '5339425788162748336',
+  '🕐': '5391343181038106387',
+  '⏰': '5391343181038106387',
+  '❗': '6120510039556884835',
+  '❗️': '6120510039556884835',
   '🛰': '6012792650615230712',
   '🛰️': '6012792650615230712',
   '🟢': '5893499826594649402',
@@ -214,27 +226,60 @@ const SOLANA_EMOJI_MAP = {
   '🟠': '5431822693752122387',
   '🔴': '5305696237461189630',
   '⭕': '5949785441728205181',
+  '❌': '5949785441728205181',
+  '🚫': '5949785441728205181',
   '⚠️': '5463021280355705884',
   '⚠': '5463021280355705884',
   '🚨': '5274002784725771629',
   '🌡': '5372980108493596586',
+  '🌡️': '5372980108493596586',
   '⚖️': '5314613581705132533',
+  '🔒': '5377705435807619775',
+  '🔓': '5377705435807619775',
+  '⭐': '6190262606251430342',
+  '🎉': '5415593910716096435',
+  '🛒': '6046155226426121683',   // Satın al
+  '💊': '5440882540715986311',   // Pump.fun logosu
+  '👻': '5289552365928589580',   // Phantom cüzdan (al/sat)
+  '☄️': '5382292151642114303',   // Meteora logosu (DEX satırı)
+  '☄': '5382292151642114303',
 };
 
+function loadSolanaEmojiOverrides() {
+  const raw = String(process.env.SOLANA_CUSTOM_EMOJI_JSON || '').trim();
+  if (!raw) return {};
+  try {
+    const o = JSON.parse(raw);
+    return o && typeof o === 'object' ? o : {};
+  } catch (e) {
+    console.warn('[emoji] SOLANA_CUSTOM_EMOJI_JSON:', e.message);
+    return {};
+  }
+}
+
+const SOLANA_EMOJI_MAP = { ...SOLANA_EMOJI_BASE, ...loadSolanaEmojiOverrides() };
+
+/** Solscan linki — 🪙 (karttaki 🪙 ile aynı karakter, ayrı ID) */
+const SOLSCAN_LINK_EMOJI_ID = '5280476129369543392';
+
+/** Raydium DEX satırı — 💰 (FDV / market cap satırında kullanılmaz) */
+const RAYDIUM_DEX_EMOJI_ID = '5328025123893029024';
+
+/** Meteora DEX satırı — ☄️ */
+const METEORA_DEX_EMOJI_ID = '5382292151642114303';
+
 /**
- * Zincire göre custom emoji ID.
- * @param {string} emoji - Unicode emoji
+ * @param {string} emoji
  * @param {'solana'|'bsc'|'ton'} chain
  */
 function getEmojiId(emoji, chain = 'solana') {
-  if (chain === 'solana') return SOLANA_EMOJI_MAP[emoji] || EMOJI_MAP[emoji];
+  if (chain === 'solana') return SOLANA_EMOJI_MAP[emoji] || null;
   if (chain === 'bsc') return BSC_EMOJI_MAP[emoji] || EMOJI_MAP[emoji];
   return EMOJI_MAP[emoji];
 }
 
-/** Zincir map + TON yedek. */
 function getWrapMap(chain = 'solana') {
-  if (chain === 'solana') return { ...EMOJI_MAP, ...SOLANA_EMOJI_MAP };
+  if (chain === 'solana') return { ...SOLANA_EMOJI_MAP };
   if (chain === 'bsc') return { ...EMOJI_MAP, ...BSC_EMOJI_MAP };
   return EMOJI_MAP;
 }
@@ -279,18 +324,17 @@ function bscLogoHtml() {
 
 // Chain-aware logo helper
 function solanaLogoHtml() {
-  return customEmojiHtml('◎', 'solana');
+  return customEmojiHtml('🪙', 'solana');
 }
 
 function chainLogoHtml(chain = 'solana') {
   if (chain === 'bsc') return bscLogoHtml();
-  if (chain === 'solana') return solanaLogoHtml();
-  return tonLogoHtml();
+  return solanaLogoHtml();
 }
 
 /** Manuel whitelist satırı — animasyonlu ateş rozeti (✅ yerine). */
-const WHITELIST_BADGE_EMOJI_ID = '5424972470023104089';
-const KNOWN_PROJECT_COIN_EMOJI_ID = '5814173103487456712';
+const WHITELIST_BADGE_EMOJI_ID = SOLANA_EMOJI_BASE['🔥'];
+const KNOWN_PROJECT_COIN_EMOJI_ID = SOLANA_EMOJI_BASE['🏅'];
 const KNOWN_PROJECT_COIN_CHAR = '🏅';
 
 function whitelistBadgeHtml(chain = 'solana') {
@@ -312,13 +356,12 @@ function knownProjectCoinHtml(chain = 'solana') {
   return `<tg-emoji emoji-id="${id}">${KNOWN_PROJECT_COIN_CHAR}</tg-emoji>`;
 }
 
-/** Kanal bot logosu (ayı / TonChainscanner). */
+/** Kanal yorumu — Solana ◎ (premium emoji). */
 function botLogoHtml(chain = 'solana') {
-  const id = chain === 'solana'
-    ? (SOLANA_EMOJI_MAP['🐻'] || SOLANA_EMOJI_MAP['🤖'] || '5767368031659368530')
-    : chain === 'bsc'
-      ? (BSC_EMOJI_MAP['🐻'] || BSC_EMOJI_MAP['🤖'] || '5767368031659368530')
-      : (EMOJI_MAP['🐻'] || EMOJI_MAP['🤖'] || '5767368031659368530');
+  if (chain === 'solana') return solanaLogoHtml();
+  const id = chain === 'bsc'
+    ? (BSC_EMOJI_MAP['🐻'] || BSC_EMOJI_MAP['🤖'] || '5767368031659368530')
+    : (EMOJI_MAP['🐻'] || EMOJI_MAP['🤖'] || '5767368031659368530');
   return `<tg-emoji emoji-id="${id}">🐻</tg-emoji>`;
 }
 
@@ -326,6 +369,38 @@ function customEmojiHtml(emoji, chain = 'solana') {
   const id = getEmojiId(emoji, chain);
   if (!id) return emoji;
   return `<tg-emoji emoji-id="${id}">${emoji}</tg-emoji>`;
+}
+
+function solscanEmojiHtml(chain = 'solana') {
+  if (chain !== 'solana') return '🔍';
+  return `<tg-emoji emoji-id="${SOLSCAN_LINK_EMOJI_ID}">🪙</tg-emoji>`;
+}
+
+function phantomEmojiHtml(chain = 'solana') {
+  if (chain !== 'solana') return '👻';
+  return customEmojiHtml('👻', 'solana');
+}
+
+function raydiumEmojiHtml(chain = 'solana') {
+  if (chain !== 'solana') return '💰';
+  return `<tg-emoji emoji-id="${RAYDIUM_DEX_EMOJI_ID}">💰</tg-emoji>`;
+}
+
+function meteoraEmojiHtml(chain = 'solana') {
+  if (chain !== 'solana') return '☄️';
+  return `<tg-emoji emoji-id="${METEORA_DEX_EMOJI_ID}">☄️</tg-emoji>`;
+}
+
+/** DEX satırı — kart + yorum (Pump 💊, Raydium 💰, Meteora ☄️, diğer 🪐). */
+function dexEmojiCharFor(tokenOrDex) {
+  const d = String(
+    typeof tokenOrDex === 'object' ? tokenOrDex?.dex : tokenOrDex,
+  ).toLowerCase();
+  if (!d) return '🪐';
+  if (d === 'pumpfun' || d === 'pump' || d === 'pumpswap') return '💊';
+  if (d === 'raydium' || d.startsWith('raydium')) return '💰';
+  if (d === 'meteora' || d.startsWith('meteora')) return '☄️';
+  return '🪐';
 }
 
 /** Kart caption sınırı için whitelist etiketi. */
@@ -402,7 +477,7 @@ function wrapEmojis(html, chain = 'solana') {
     });
   }
 
-  // BSC: <tg-emoji> içindeki ID'ler BSC paketine göre yeniden eşlenir; eşleşme yoksa aynı blok korunur.
+  // BSC (legacy):
   if (chain === 'bsc') {
     html = html.replace(/<tg-emoji\s+emoji-id="[^"]*">([\s\S]*?)<\/tg-emoji>/g, (full, inner) => {
       const emoji = inner.trim();
@@ -438,6 +513,7 @@ function wrapEmojis(html, chain = 'solana') {
 module.exports = {
   EMOJI_MAP,
   BSC_EMOJI_MAP,
+  SOLANA_EMOJI_BASE,
   SOLANA_EMOJI_MAP,
   solanaLogoHtml,
   getEmojiId,
@@ -452,6 +528,14 @@ module.exports = {
   KNOWN_PROJECT_COIN_EMOJI_ID,
   botLogoHtml,
   customEmojiHtml,
+  solscanEmojiHtml,
+  phantomEmojiHtml,
+  raydiumEmojiHtml,
+  meteoraEmojiHtml,
+  dexEmojiCharFor,
+  SOLSCAN_LINK_EMOJI_ID,
+  RAYDIUM_DEX_EMOJI_ID,
+  METEORA_DEX_EMOJI_ID,
   whitelistTitleSuffix,
   formatTrustedGreenTitle,
   truncateWhitelistLabel,

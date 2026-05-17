@@ -609,10 +609,8 @@ function langForMsg(msgOrCb) {
   const msg = msgOrCb.message || msgOrCb;
   const from = msgOrCb.from || msg?.from;
   if (!msg?.chat) return DEFAULT_LANG;
-  if (msg.chat.type === 'private') {
-    return users.getLang(from?.id) || normalizeLang(from?.language_code);
-  }
-  return channels.getSettings(msg.chat.id)?.lang || DEFAULT_LANG;
+  if (from?.id) return users.getLang(from.id);
+  return DEFAULT_LANG;
 }
 
 function escapeHtmlLite(s) {
@@ -890,7 +888,7 @@ bindTextCommand(/^\/start(@\w+)?(\s+(.+))?$/, async (msg, match) => {
   if (param.startsWith('settings_') && msg.chat.type === 'private') {
     const targetId = startTokenToChannelId(param.slice('settings_'.length).trim());
     if (targetId) {
-      if (!users.getLang(msg.from.id)) {
+      if (!users.hasChosenLang(msg.from.id)) {
         pendingChannelAfterLang.set(String(msg.from.id), targetId);
         return bot.sendMessage(msg.chat.id, t('welcome.langPick', 'en'), {
           reply_markup: {
@@ -906,7 +904,7 @@ bindTextCommand(/^\/start(@\w+)?(\s+(.+))?$/, async (msg, match) => {
     }
   }
 
-  if (msg.chat.type === 'private' && !users.getLang(msg.from.id)) {
+  if (msg.chat.type === 'private' && !users.hasChosenLang(msg.from.id)) {
     return bot.sendMessage(msg.chat.id, t('welcome.langPick', 'en'), {
       reply_markup: {
         inline_keyboard: [[
@@ -1051,7 +1049,7 @@ bot.on('my_chat_member', async (upd) => {
         return;
       }
       const channelName = chat.title || 'Channel';
-      const lang = channels.getSettings(chat.id)?.lang || DEFAULT_LANG;
+      const lang = channels.resolveCardLang(chRec, { userId: upd.from?.id });
       const me = await bot.getMe().catch(() => null);
       const username = me?.username || 'bot';
       const deeplink = `https://t.me/${username}?start=settings_${channelIdToStartToken(chat.id)}`;
@@ -1147,9 +1145,7 @@ bot.on('callback_query', async (cb) => {
   const userId = cb.from.id;
   const fromChatId = cb.message.chat.id;
   const isDM = cb.message.chat.type === 'private';
-  const cbLang = isDM
-    ? (users.getLang(userId) || normalizeLang(cb.from?.language_code))
-    : (channels.getSettings(fromChatId)?.lang || DEFAULT_LANG);
+  const cbLang = users.getLang(userId);
 
   if (cb.data === 'startcmd:settings') {
     await bot.answerCallbackQuery(cb.id).catch(() => {});
@@ -1161,12 +1157,10 @@ bot.on('callback_query', async (cb) => {
   }
 
   if (cb.data?.startsWith('startlang:')) {
-    const code = normalizeLang(cb.data.slice('startlang:'.length));
-    users.setLang(userId, code);
+    const code = channels.applyGlobalLang(userId, cb.data.slice('startlang:'.length));
     const pendingCh = pendingChannelAfterLang.get(String(userId));
     if (pendingCh) {
       pendingChannelAfterLang.delete(String(userId));
-      channels.updateSetting(pendingCh, 'lang', code);
       await bot.editMessageText(t('welcome.langSet', code), {
         chat_id: fromChatId,
         message_id: cb.message.message_id,
@@ -1276,10 +1270,10 @@ bot.on('callback_query', async (cb) => {
     if (!(await isChatAdmin(targetChatId, userId))) {
       return bot.answerCallbackQuery(cb.id, { text: t('cmd.adminOnlyShort', cbLang) });
     }
-    if (cb.data?.startsWith('set:lang:') && isDM) {
-      users.setLang(userId, cb.data.slice('set:lang:'.length));
+    if (cb.data?.startsWith('set:lang:')) {
+      channels.applyGlobalLang(userId, cb.data.slice('set:lang:'.length));
     }
-    const targetLang = channels.getSettings(targetChatId)?.lang || cbLang;
+    const targetLang = users.getLang(userId);
     const result = settingsUI.handleCallback(cb.data, targetChatId);
     if (result?.chainBlocked) {
       if (result.menu) {
@@ -1418,7 +1412,6 @@ async function main() {
   if (rediscover.added > 0) {
     console.log(`[channels] açılış keşfi: +${rediscover.added} kanal (${rediscover.before} → ${rediscover.after})`);
   }
-  channels.syncCardLangFromBot();
   channels.logBootSummary();
   const chTotal = channels.count().total;
   if (chTotal === 0 && ADMIN_IDS.length) {

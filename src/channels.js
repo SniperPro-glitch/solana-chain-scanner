@@ -86,8 +86,7 @@ const DEFAULT_SETTINGS = {
   maxTokensPerScan: 10,
   bannerFileId: null,          // Telegram file_id (channel owner uploads) — null = no banner
   welcomeMessageId: null,      // Welcome message id when bot added
-  lang: 'en',                  // 'en' / 'tr' / 'ru' — resolveCardLang ile kart dili
-  langUserChosen: false,       // true = ayarlardan elle seçildi (bot dili ezmez)
+  lang: 'en',                  // 'en' / 'tr' / 'ru' — applyGlobalLang ile senkron
   // ─ Chain (ağ) seçimi — her kanal tek ağ dinler. null = seçilmedi (bot mesaj atmaz) ─
   chains: null,                // null = DM'de ◎ Solana seçilene kadar paylaşım yok (TON ile aynı)
   // ─ Yeni filtreler ─
@@ -278,29 +277,36 @@ async function syncFromBotApi(bot) {
   return { synced, ids: [...ok] };
 }
 
-function syncCardLangFromBot() {
-  const { getBotDefaultLang, normalizeLang } = require('./i18n');
-  const botLang = getBotDefaultLang();
-  let updated = 0;
+/** DM /start veya ayarlar → Dil: kullanıcı + tüm kanallar aynı dilde. */
+function applyGlobalLang(userId, langCode) {
+  const { normalizeLang } = require('./i18n');
+  const users = require('./users');
+  const lang = normalizeLang(langCode);
+  users.setLang(userId, lang);
+  let n = 0;
   for (const ch of Object.values(cache.channels || {})) {
-    if (!ch?.settings || ch.settings.langUserChosen) continue;
-    if (normalizeLang(ch.settings.lang) !== botLang) {
-      ch.settings.lang = botLang;
-      updated += 1;
-    }
+    if (!ch?.settings) continue;
+    ch.settings.lang = lang;
+    n += 1;
   }
-  if (updated) {
-    save(cache);
-    console.log(`[channels] kart dili BOT_LANG → ${botLang} (${updated} kanal)`);
-  }
+  if (n) save(cache);
+  console.log(`[channels] global dil → ${lang} (kullanıcı ${userId}, ${n} kanal)`);
+  return lang;
 }
 
 function logBootSummary() {
   const list = Object.values(cache.channels || {});
   const fileExists = fs.existsSync(CHANNELS_FILE);
   const persist = isPersistentDataDir() ? 'KALICI' : 'GEÇİCİ (deploy sıfırlar)';
-  const { getBotDefaultLang } = require('./i18n');
-  console.log(`[channels] ${list.length} kanal · depo=${persist} · kart dili varsayılan=${getBotDefaultLang()} · ${CHANNELS_FILE}`);
+  let globalLang = 'en';
+  try {
+    const users = require('./users');
+    const adminRaw = String(process.env.ADMIN_USER_ID || '').trim();
+    if (adminRaw) {
+      globalLang = users.getLang(adminRaw.split(/[,;\s]+/)[0]);
+    }
+  } catch (_) { /* yoksay */ }
+  console.log(`[channels] ${list.length} kanal · depo=${persist} · global dil=${globalLang} · ${CHANNELS_FILE}`);
   if (!isPersistentDataDir()) {
     console.warn('[channels] ⚠️ Railway: Volume → Mount Path /app/data (veya TELEGRAM_CHANNEL_IDS yedek).');
   }
@@ -356,11 +362,12 @@ for (const id of Object.keys(cache.channels)) {
     ch.settings = { ...DEFAULT_SETTINGS };
     migrated = true;
   } else {
-    if (ch.settings.langUserChosen === undefined) {
-      ch.settings.langUserChosen = false;
-    }
     if (ch.settings.lang === undefined) {
-      ch.settings.lang = require('./i18n').getBotDefaultLang();
+      ch.settings.lang = 'en';
+      migrated = true;
+    }
+    if (ch.settings.langUserChosen !== undefined) {
+      delete ch.settings.langUserChosen;
       migrated = true;
     }
     // Eski TR risk değerlerini canonical'a çevir
@@ -596,49 +603,45 @@ function reactivateChannelRecord(id, reason = 'restore') {
 }
 
 function initialChannelLang(adderUserId) {
-  const { getBotDefaultLang, normalizeLang } = require('./i18n');
+  const { normalizeLang } = require('./i18n');
   if (adderUserId) {
     try {
       const users = require('./users');
-      const u = users.getLang(adderUserId);
-      if (u && u !== 'en') return normalizeLang(u);
+      return normalizeLang(users.getLang(adderUserId));
     } catch (_) { /* yoksay */ }
   }
-  return getBotDefaultLang();
+  return 'en';
 }
 
-/** Kanal kartı / yorum dili — BOT_LANG → kanal ayarı (elle seçildiyse) → ekleme yapan admin. */
+/** Kart / yorum dili — adminin ayarlardan seçtiği global dil (varsayılan en). */
 function resolveCardLang(channel, opts = {}) {
-  const { getBotDefaultLang, normalizeLang } = require('./i18n');
-  const s = channel?.settings;
-  if (!s) return getBotDefaultLang();
-  if (s.langUserChosen) return normalizeLang(s.lang);
+  const { normalizeLang } = require('./i18n');
+  const users = require('./users');
 
-  if (process.env.BOT_LANG || process.env.BOT_DEFAULT_LANG) {
-    return getBotDefaultLang();
-  }
-
-  const hintId = opts.userId || opts.adderUserId;
-  if (hintId) {
+  const fromUser = (uid) => {
+    if (!uid) return null;
     try {
-      const users = require('./users');
-      const ul = users.getLang(hintId);
-      if (ul) return normalizeLang(ul);
-    } catch (_) { /* yoksay */ }
-  }
+      return normalizeLang(users.getLang(String(uid)));
+    } catch (_) {
+      return null;
+    }
+  };
+
+  const hinted =
+    fromUser(opts.userId)
+    || fromUser(opts.adderUserId)
+    || fromUser(channel?.adderUserId);
+  if (hinted) return hinted;
 
   const adminRaw = String(process.env.ADMIN_USER_ID || '').trim();
   if (adminRaw) {
-    try {
-      const users = require('./users');
-      for (const aid of adminRaw.split(/[,;\s]+/)) {
-        const ul = users.getLang(aid.trim());
-        if (ul) return normalizeLang(ul);
-      }
-    } catch (_) { /* yoksay */ }
+    for (const aid of adminRaw.split(/[,;\s]+/)) {
+      const l = fromUser(aid.trim());
+      if (l) return l;
+    }
   }
 
-  return normalizeLang(s.lang || getBotDefaultLang());
+  return normalizeLang(channel?.settings?.lang || 'en');
 }
 
 function addChannel(chat, addedBy = 'auto', adderUserId = null) {
@@ -647,7 +650,7 @@ function addChannel(chat, addedBy = 'auto', adderUserId = null) {
   const prev = cache.channels[id];
   const wasArchived = Boolean(prev?.archivedAt);
   const settings = prev?.settings ? { ...prev.settings } : { ...DEFAULT_SETTINGS };
-  if (!existed && !settings.langUserChosen) {
+  if (!existed) {
     settings.lang = initialChannelLang(adderUserId);
   }
   cache.channels[id] = {
@@ -771,7 +774,6 @@ module.exports = {
     }
     if (key === 'lang') {
       cache.channels[id].settings.lang = normalizeLang(value);
-      cache.channels[id].settings.langUserChosen = true;
       save(cache);
       return true;
     }
@@ -853,8 +855,8 @@ module.exports = {
   purgeChannel,
   isChatUnavailableError,
   resolveCardLang,
+  applyGlobalLang,
   initialChannelLang,
-  syncCardLangFromBot,
   getChannelIdsForEnv,
 
   tokenPassesChannelFilters,

@@ -29,20 +29,20 @@ function formatContractSecurityBlock(token, lang = 'en', chain = 'ton', opts = {
   const lines = [];
 
   if (!opts.skipTitle) {
-    lines.push(`${ce('🔐')} <b>${t('card.contractSecurity', L)}</b>`);
+    lines.push(`${ce(chain === 'solana' ? '🪙' : '🔐')} <b>${t('card.contractSecurity', L)}</b>`);
   }
 
   if (c.mintable === false) {
-    lines.push(`${ce('✅')} ${t('card.mintLocked', L)}`);
+    lines.push(`${ce(chain === 'solana' ? '🤔' : '✅')} ${t('card.mintLocked', L)}`);
   } else if (c.mintable === true) {
-    lines.push(`${ce('⚠️')} ${t('card.mintOpen', L)}`);
+    lines.push(`${ce(chain === 'solana' ? '❤️' : '⚠️')} ${t('card.mintOpen', L)}`);
   }
 
   if (c.adminAddress === null) {
-    lines.push(`${ce('✅')} ${t('card.ownerRenounced', L)}`);
+    lines.push(`${ce(chain === 'solana' ? '🤔' : '✅')} ${t('card.ownerRenounced', L)}`);
   } else if (c.adminAddress) {
     const short = c.adminAddress.slice(0, 6) + '...' + c.adminAddress.slice(-4);
-    lines.push(`${ce('⚠️')} ${t('card.ownerActive', L)}: <code>${h(short)}</code>`);
+    lines.push(`${ce(chain === 'solana' ? '❤️' : '⚠️')} ${t('card.ownerActive', L)}: <code>${h(short)}</code>`);
   }
 
   if (c.topHolderPct !== null && c.topHolderPct !== undefined) {
@@ -64,7 +64,7 @@ function formatContractSecurityBlock(token, lang = 'en', chain = 'ton', opts = {
   }
 
   if (c.verification === 'whitelist') {
-    lines.push(`${ce('✅')} ${t('card.verified', L)}`);
+    lines.push(`${ce(chain === 'solana' ? '🤔' : '✅')} ${t('card.verified', L)}`);
   } else if (c.verification === 'blacklist') {
     lines.push(`${ce('🚫')} Blacklisted`);
   }

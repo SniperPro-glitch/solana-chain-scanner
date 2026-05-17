@@ -1,6 +1,6 @@
 // Solana zinciri — Telegram kart (BSC slim ile aynı yapı; metin/emoji Solana).
 
-const { customEmojiHtml, whitelistTitleSuffix, formatTrustedGreenTitle } = require('../../emojiPack');
+const { customEmojiHtml, dexEmojiCharFor, whitelistTitleSuffix, formatTrustedGreenTitle } = require('../../emojiPack');
 const { t, normalizeLang } = require('../../i18n');
 const { formatRiskLine } = require('../../riskDisplay');
 
@@ -99,9 +99,9 @@ function formatTokenCard(token, audit, lang = 'en', level = 'green', opts = {}) 
   let titleKey;
   let tokenEmoji;
   if (level === 'yellow') {
-    titleEmoji = ce('⚠️');
+    titleEmoji = ce('❤️');
     titleKey = 'card.title.yellow';
-    tokenEmoji = `${ce('🟡')}${ce('⚠️')}`;
+    tokenEmoji = `${ce('🟡')}${ce('❤️')}`;
   } else if (level === 'critical') {
     titleEmoji = ce('🚨');
     titleKey = 'card.title.critical';
@@ -113,10 +113,10 @@ function formatTokenCard(token, audit, lang = 'en', level = 'green', opts = {}) 
   } else {
     titleEmoji = ce('🆕');
     titleKey = 'card.newToken';
-    tokenEmoji = ce('◎');
+    tokenEmoji = ce('🪙');
   }
 
-  const solFlag = ce('◎');
+  const solFlag = ce('🪙');
   const trustedGreenTitle = level === 'green' ? formatTrustedGreenTitle(token, L, 'solana', t, h) : null;
   if (trustedGreenTitle) {
     const titleRows = trustedGreenTitle.split('\n');
@@ -129,22 +129,22 @@ function formatTokenCard(token, audit, lang = 'en', level = 'green', opts = {}) 
   }
   {
     let suffix = '';
-    if (level === 'yellow') suffix = ` ${ce('❗')} ${ce('🛰')}`;
+    if (level === 'yellow') suffix = ` ${ce('❤️')} ${ce('🛰')}`;
     else if (level === 'critical' || level === 'red') suffix = ` ${ce('🚨')}`;
-    lines.push(`${ce('🪐')} ${h(token.tokenName)}${suffix}`);
+    lines.push(`${ce('🪙')} ${h(token.tokenName)}${suffix}`);
   }
 
-  lines.push(`${ce('🔐')} <b>${t('card.contract', L)}:</b>`);
+  lines.push(`${ce('🪙')} <b>${t('card.contract', L)}:</b>`);
   lines.push(`<code>${h(token.tokenAddress)}</code>`);
   lines.push('');
 
   lines.push(`${ce('💲')} <b>${t('card.price', L)}:</b> ${h(fmtUsd(token.priceUsd))}`);
-  if (token.fdvUsd) lines.push(`${ce('💰')} <b>${t('card.fdv', L)}:</b> ${h(fmtUsd(token.fdvUsd))}`);
+  if (token.fdvUsd) lines.push(`${ce('💲')} <b>${t('card.fdv', L)}:</b> ${h(fmtUsd(token.fdvUsd))}`);
   if (token.marketCapUsd) lines.push(`${ce('📦')} <b>${t('card.mcap', L)}:</b> ${h(fmtUsd(token.marketCapUsd))}`);
   lines.push('');
 
   const liq = audit.breakdown.liquidity;
-  lines.push(`${ce('💧')} <b>${t('card.liquidity', L)}:</b> ${h(fmtUsd(token.liquidityUsd))} ${ce(liqStrengthEmoji(liq))} <b>${liqLabel(liq.code, L)}</b>`);
+  lines.push(`${ce('🪙')} <b>${t('card.liquidity', L)}:</b> ${h(fmtUsd(token.liquidityUsd))} ${ce(liqStrengthEmoji(liq))} <b>${liqLabel(liq.code, L)}</b>`);
 
   lines.push(`${ce('📊')} <b>${t('card.volume24h', L)}:</b> ${h(fmtUsd(token.volume24h))}`);
   if (audit.breakdown.volumeLiquidityRatio.ratio !== null) {
@@ -158,13 +158,17 @@ function formatTokenCard(token, audit, lang = 'en', level = 'green', opts = {}) 
   lines.push(`${ce('➡️')} <b>${t('card.txns24h', L)}:</b> ${h(balanceLabel(audit.breakdown.buyerSellerBalance, L))}`);
   lines.push(`${ce('⏱️')} <b>${t('card.age', L)}:</b> ${h(ageLabel(audit.breakdown.age, L))}`);
 
+  if (token.dex) {
+    lines.push(`${ce(dexEmojiCharFor(token))} <b>${t('card.dex', L)}:</b> ${h(dexLabel(token.dex))}`);
+  }
+
   lines.push(formatRiskLine(audit, L, ce, riskLabel));
 
   if (audit.warnings && audit.warnings.length > 0) {
     const maxW = slim ? 3 : 6;
     const warnList = audit.warnings.slice(0, maxW);
     lines.push('');
-    lines.push(`⚠️ <b>${t('card.warnings', L)}:</b>`);
+    lines.push(`${ce('❤️')} <b>${t('card.warnings', L)}:</b>`);
     for (const w of warnList) {
       const text = typeof w === 'string' ? w : t(w.key, L, w.vars);
       lines.push(`  • ${h(text)}`);
@@ -193,11 +197,12 @@ function formatAnalysisOnly(token, audit, lang = 'en', level = 'green') {
 
 function formatRiskBanner({ tokenSymbol, tokenName, initialLiquidity, lastLiquidity, buys5m }, lang = 'en') {
   const L = normalizeLang(lang);
+  const att = ce('❤️');
   const lines = [];
   const dropPct = initialLiquidity > 0
     ? ((initialLiquidity - lastLiquidity) / initialLiquidity * 100).toFixed(1)
     : '?';
-  lines.push(`⚠️ <b>${t('risk.bannerTitle', L)}</b> ⚠️`);
+  lines.push(`${att} <b>${t('risk.bannerTitle', L)}</b> ${att}`);
   if (tokenSymbol || tokenName) {
     const sym = tokenSymbol ? `$${h(tokenSymbol)}` : '';
     const name = tokenName ? ` (${h(tokenName)})` : '';

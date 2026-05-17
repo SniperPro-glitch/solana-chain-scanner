@@ -1,5 +1,5 @@
 // /settings inline-button panel. Per-channel admin tweaks the channel's settings.
-// All UI text is i18n-aware (uses the channel's saved language).
+// All UI text is i18n-aware (uses global user language synced to channel settings).
 
 const channels = require('./channels');
 const { t, normalizeLang, langName, SUPPORTED } = require('./i18n');
@@ -1065,11 +1065,10 @@ function handleCallback(data, chatId) {
     // float değerler (sybil ratio gibi)
     else if (/^\d*\.\d+$/.test(rawVal)) value = parseFloat(rawVal);
 
-    // lang change
+    // lang — index.js applyGlobalLang ile tüm kanallara yazılır
     if (key === 'lang') {
       if (!SUPPORTED.includes(value)) return { toast: '?' };
-      channels.updateSetting(chatId, 'lang', value);
-      return { menu: 'main', toast: t('settings.langSaved', value) };
+      return { menu: 'main', toast: t('settings.langSaved', lang) };
     }
 
     // chain (ağ) change — tek seçim, diğer ağları temizle

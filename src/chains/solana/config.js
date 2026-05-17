@@ -4,7 +4,7 @@ module.exports = {
   id: 'solana',
   name: 'Solana',
   native: 'SOL',
-  emoji: '◎',
+  emoji: '🪙',
   brandColor: '#9945FF',
   explorer: {
     base: 'https://solscan.io',
@@ -12,10 +12,33 @@ module.exports = {
     address: (addr) => `https://solscan.io/account/${addr}`,
     tx: (hash) => `https://solscan.io/tx/${hash}`,
   },
+  wrappedSol: 'So11111111111111111111111111111111111111112',
   dex: {
     primary: 'Raydium',
+    /** Jupiter (tarayıcı) — TRADE_LINK_PROVIDER=jupiter */
     swap: (tokenAddr) => `https://jup.ag/swap/SOL-${tokenAddr}`,
     jupiter: (tokenAddr) => `https://jup.ag/swap/SOL-${tokenAddr}`,
+    /** Phantom in-app swap — CAIP-19 solana:101/address:{mint} */
+    phantomBuy: (mint) => {
+      const buy = encodeURIComponent(`solana:101/address:${mint}`);
+      return `https://phantom.app/ul/v1/swap?buy=${buy}&sell=`;
+    },
+    phantomSell: (mint) => {
+      const sell = encodeURIComponent(`solana:101/address:${mint}`);
+      return `https://phantom.app/ul/v1/swap?sell=${sell}&buy=`;
+    },
+    raydiumBuy: (mint, wsol = 'So11111111111111111111111111111111111111112') =>
+      `https://raydium.io/swap/?inputMint=${wsol}&outputMint=${mint}`,
+    raydiumSell: (mint, wsol = 'So11111111111111111111111111111111111111112') =>
+      `https://raydium.io/swap/?inputMint=${mint}&outputMint=${wsol}`,
+    orcaBuy: (mint, wsol = 'So11111111111111111111111111111111111111112') =>
+      `https://www.orca.so/?inputCurrency=${wsol}&outputCurrency=${mint}`,
+    orcaSell: (mint, wsol = 'So11111111111111111111111111111111111111112') =>
+      `https://www.orca.so/?inputCurrency=${mint}&outputCurrency=${wsol}`,
+    meteoraBuy: (mint, wsol = 'So11111111111111111111111111111111111111112') =>
+      `https://app.meteora.ag/swap?inputMint=${wsol}&outputMint=${mint}`,
+    meteoraSell: (mint, wsol = 'So11111111111111111111111111111111111111112') =>
+      `https://app.meteora.ag/swap?inputMint=${mint}&outputMint=${wsol}`,
   },
   data: {
     dexScreener: (poolOrMint) => `https://dexscreener.com/solana/${poolOrMint}`,

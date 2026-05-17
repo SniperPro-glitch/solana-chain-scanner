@@ -25,9 +25,8 @@ function formatRatingBlock(token, lang = 'en', level = 'green') {
   const ce = (emoji) => customEmojiHtml(emoji, chain);
   const ratingKey = (level === 'yellow' || level === 'critical' || level === 'red') ? level : 'green';
   const ratingDot = ratingKey === 'green' ? ce('🟢')
-    : ratingKey === 'yellow' ? ce('🟡')
-      : ratingKey === 'critical' ? ce('🟠')
-        : ce('🔴');
+    : ratingKey === 'yellow' || ratingKey === 'critical' ? ce('❤️')
+      : ce('🔴');
   const prefix = chain === 'solana' ? 'sol' : (chain === 'bsc' ? 'bsc' : 'ton');
   return [
     `${ratingDot} ${t(`${prefix}.rating.${ratingKey}.header`, L)}`,

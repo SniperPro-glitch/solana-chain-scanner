@@ -868,17 +868,12 @@ const STRINGS = {
 
 const SUPPORTED = ['en', 'tr', 'ru'];
 
-/** Railway BOT_LANG=tr — tüm kartlar varsayılan bu dilde (kanal özel seçmediyse). */
+/** Varsayılan bot dili — kullanıcı ayarlardan seçene kadar İngilizce. */
 function getBotDefaultLang() {
-  const raw = String(process.env.BOT_LANG || process.env.BOT_DEFAULT_LANG || '').trim();
-  if (raw) {
-    const l = raw.toLowerCase().slice(0, 2);
-    if (SUPPORTED.includes(l)) return l;
-  }
   return 'en';
 }
 
-const DEFAULT_LANG = getBotDefaultLang();
+const DEFAULT_LANG = 'en';
 
 function normalizeLang(lang) {
   if (!lang) return DEFAULT_LANG;

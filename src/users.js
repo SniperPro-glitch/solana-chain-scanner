@@ -32,6 +32,12 @@ function save(state) {
 
 let cache = load();
 
+function hasChosenLang(userId) {
+  const u = cache.users[String(userId)];
+  return Boolean(u?.lang);
+}
+
+/** Ayarlardan seçilmediyse İngilizce; seçildiyse kayıtlı dil. */
 function getLang(userId) {
   const u = cache.users[String(userId)];
   return u?.lang || 'en';
@@ -43,4 +49,4 @@ function setLang(userId, lang) {
   save(cache);
 }
 
-module.exports = { getLang, setLang };
+module.exports = { getLang, setLang, hasChosenLang };

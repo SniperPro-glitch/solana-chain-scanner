@@ -420,8 +420,22 @@ function fmtTax(n) {
 // ─────────────────────────────────────────────────────────────
 // Ortak metrik toplama (tam blok + tek satır özet aynı sayaçlarla)
 // ─────────────────────────────────────────────────────────────
+function analysisOkIcon(chain = 'solana') {
+  return chain === 'solana' ? '🤔' : '✅';
+}
+
+function formatAnalysisItemLine(item, ce, chain) {
+  const icon = chain === 'solana' && item.icon === '✅' ? '🤔' : item.icon;
+  if (ce && icon && !icon.includes('<')) {
+    return `${ce(icon)} ${item.text}`;
+  }
+  return `${icon} ${item.text}`;
+}
+
 function collectAnalysisMetrics(token, audit, lang = 'en', _opts = {}) {
-  const items = []; // { icon: ✅|⚠️|❌, text }
+  const chain = token?.chain || _opts.chain || 'solana';
+  const ok = analysisOkIcon(chain);
+  const items = []; // { icon: 🤔|✅|⚠️|❌, text }
   let goodCount = 0;
   let warnCount = 0;
   let badCount = 0;
@@ -449,7 +463,7 @@ function collectAnalysisMetrics(token, audit, lang = 'en', _opts = {}) {
   // 2) Age
   const age = audit.breakdown.age;
   if (age.code === 'days') {
-    items.push({ icon: '✅', text: fill(pick(M.ageMature, lang), { d: age.value }) });
+    items.push({ icon: ok, text: fill(pick(M.ageMature, lang), { d: age.value }) });
     goodCount++;
   } else if (age.code === 'hours') {
     items.push({ icon: '⚠️', text: fill(pick(M.ageHours, lang), { h: age.hours }) });
@@ -507,7 +521,7 @@ function collectAnalysisMetrics(token, audit, lang = 'en', _opts = {}) {
         items.push({ icon: '⚠️', text: fill(pick(M.topHolderMid, lang), { p }) });
         warnCount++;
       } else {
-        items.push({ icon: '✅', text: fill(pick(M.topHolderLow, lang), { p }) });
+        items.push({ icon: ok, text: fill(pick(M.topHolderLow, lang), { p }) });
         goodCount++;
       }
     }
@@ -522,7 +536,7 @@ function collectAnalysisMetrics(token, audit, lang = 'en', _opts = {}) {
         items.push({ icon: '⚠️', text: fill(pick(M.top10Mid, lang), { p }) });
         warnCount++;
       } else {
-        items.push({ icon: '✅', text: fill(pick(M.top10Good, lang), { p }) });
+        items.push({ icon: ok, text: fill(pick(M.top10Good, lang), { p }) });
         goodCount++;
       }
     }
@@ -532,7 +546,7 @@ function collectAnalysisMetrics(token, audit, lang = 'en', _opts = {}) {
       items.push({ icon: '❌', text: pick(M.mintOpen, lang) });
       badCount++;
     } else if (c.mintable === false) {
-      items.push({ icon: '✅', text: pick(M.mintClosed, lang) });
+      items.push({ icon: ok, text: pick(M.mintClosed, lang) });
       goodCount++;
     }
 
@@ -541,7 +555,7 @@ function collectAnalysisMetrics(token, audit, lang = 'en', _opts = {}) {
       items.push({ icon: '⚠️', text: pick(M.adminSet, lang) });
       warnCount++;
     } else if (c.adminAddress === null || c.adminAddress === '') {
-      items.push({ icon: '✅', text: pick(M.adminNone, lang) });
+      items.push({ icon: ok, text: pick(M.adminNone, lang) });
       goodCount++;
     }
 
@@ -887,7 +901,7 @@ function buildAnalysisCommentBody(token, audit, lang = 'en', opts = {}) {
 
   const liqUsd = fmtUsd(token.liquidityUsd || 0);
   const liq = audit.breakdown.liquidity;
-  lines.push(`${ce('💧')} <b>${t('card.liquidity', lang)}:</b> <b>${escapeHtml(liqUsd)}</b> — ${escapeHtml(liqSummaryWord(liq, lang))}`);
+  lines.push(`${ce('🪙')} <b>${t('card.liquidity', lang)}:</b> <b>${escapeHtml(liqUsd)}</b> — ${escapeHtml(liqSummaryWord(liq, lang))}`);
 
   const ageTxt = ageSummary(audit.breakdown.age, lang);
   if (ageTxt) lines.push(`${ce('⏱️')} <b>${t('card.age', lang)}:</b> ${escapeHtml(ageTxt)}`);
@@ -903,7 +917,7 @@ function buildAnalysisCommentBody(token, audit, lang = 'en', opts = {}) {
   const picked = prioritizeItems(items, 5);
   if (picked.length) {
     for (const i of picked) {
-      lines.push(`${i.icon} ${i.text}`);
+      lines.push(formatAnalysisItemLine(i, ce, chain));
     }
     if (items.length > picked.length) {
       const more = items.length - picked.length;
@@ -941,8 +955,8 @@ function buildAnalysisCommentBody(token, audit, lang = 'en', opts = {}) {
   }
 
   const verdictHtml = pickVerdictHtml(token, audit, lang, { goodCount, warnCount, badCount });
-  const verdictLabel = lang === 'tr' ? '💬 <b>Değerlendirme:</b>' : lang === 'ru' ? '💬 <b>Вердикт:</b>' : '💬 <b>Verdict:</b>';
-  lines.push(`${verdictLabel} ${verdictHtml}`);
+  const verdictLbl = lang === 'tr' ? 'Değerlendirme:' : lang === 'ru' ? 'Вердикт:' : 'Verdict:';
+  lines.push(`${ce('💬')} <b>${verdictLbl}</b> ${verdictHtml}`);
 
   return lines.join('\n');
 }
