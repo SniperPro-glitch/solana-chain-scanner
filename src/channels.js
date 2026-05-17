@@ -137,6 +137,38 @@ function save(state) {
 
 let cache = load();
 
+function logBootSummary() {
+  const list = Object.values(cache.channels || {});
+  const fileExists = fs.existsSync(CHANNELS_FILE);
+  console.log(`[channels] ${list.length} kanal yüklendi · dosya=${fileExists ? 'var' : 'YOK'} · ${CHANNELS_FILE}`);
+  if (!list.length) {
+    console.log('[channels] (boş — Railway Volume /app/data önerilir, yoksa deploy sonrası ayarlar silinir)');
+    return;
+  }
+  for (const ch of list) {
+    const s = ch.settings || {};
+    const net = Array.isArray(s.chains) && s.chains.includes('solana')
+      ? 'solana'
+      : (Array.isArray(s.chains) && s.chains.length ? s.chains.join(',') : 'AĞ-SEÇİLMEDİ');
+    const filt = [
+      `liq≥$${s.minLiquidityUsd || 0}`,
+      `vol≥$${s.minVolume24hUsd || 0}`,
+      `risk≤${s.maxRiskLevel || 'HIGH'}`,
+      `holders≥${s.minHolders || 0}`,
+      `audit≥${s.minAuditScore || 0}`,
+      `mcap $${s.minMarketCapUsd || 0}-$${s.maxMarketCapUsd || '∞'}`,
+    ].join(' ');
+    const extra = [
+      `pumpGrad=${s.pumpGraduationMode || 'off'}`,
+      `sybil=${s.maxSybilRatio || 0}`,
+      `dex=${(s.allowedDexes || []).length ? s.allowedDexes.join(',') : 'all'}`,
+      `watch=${s.watchDelayMinutes || 0}m`,
+      s.requireLpLocked ? 'lpLock' : null,
+    ].filter(Boolean).join(' ');
+    console.log(`[channels] · ${ch.title || ch.id} | ${net} | ${filt} | ${extra} | ${s.enabled !== false ? 'ON' : 'OFF'}`);
+  }
+}
+
 // Eski yapılandırmadan TELEGRAM_CHANNEL_ID varsa ilk seferinde kayda al
 if (process.env.TELEGRAM_CHANNEL_ID && Object.keys(cache.channels).length === 0) {
   const id = process.env.TELEGRAM_CHANNEL_ID;
@@ -358,6 +390,11 @@ module.exports = {
   RISK_ORDER,
   normalizeRisk,
   categorizeFilterReason,
+  logBootSummary,
+  isSolanaSelected(chatId) {
+    const chList = cache.channels[String(chatId)]?.settings?.chains;
+    return Array.isArray(chList) && chList.includes('solana');
+  },
 
   add(chat, addedBy = 'auto') {
     const id = String(chat.id);

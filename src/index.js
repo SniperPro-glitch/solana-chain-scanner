@@ -820,9 +820,13 @@ bot.on('my_chat_member', async (upd) => {
     return;
   }
 
-  // Restart sonrası Telegram güncellemesi: kanalı kaydet ama hoş geldin atma
+  // Restart sonrası Telegram güncellemesi: kanalı kaydet ama hoş geldin / chains sıfırlama yok
   if (['administrator', 'member'].includes(newStatus) && (oldStatus == null || oldStatus === '')) {
+    const existed = Boolean(channels.get(chat.id));
     channels.add(chat, upd.from?.username || 'auto');
+    if (!existed) {
+      console.log(`[channels] sync kayıt (deploy): ${chat.title || chat.id} — ağ seçimi DM'den yapılmalı`);
+    }
     return;
   }
 
@@ -948,6 +952,13 @@ bot.on('callback_query', async (cb) => {
         show_alert: true,
       });
     }
+    const manualChId = isDM ? getDmTarget(userId) : fromChatId;
+    if (manualChId && !channels.isSolanaSelected(manualChId)) {
+      return bot.answerCallbackQuery(cb.id, {
+        text: t('settings.chain.pickFirstAlert', cbLang),
+        show_alert: true,
+      });
+    }
     if (isDM) {
       const tgt = getDmTarget(userId);
       if (!(await isChatAdmin(tgt, userId))) {
@@ -984,6 +995,25 @@ bot.on('callback_query', async (cb) => {
     }
     const targetLang = channels.getSettings(targetChatId)?.lang || cbLang;
     const result = settingsUI.handleCallback(cb.data, targetChatId);
+    if (result?.chainBlocked) {
+      if (result.menu) {
+        const { text, keyboard } = settingsUI.renderMenu(result.menu, targetChatId);
+        const markup = inlineKeyboard(keyboard);
+        const editOpts = {
+          chat_id: fromChatId,
+          message_id: cb.message.message_id,
+          parse_mode: 'Markdown',
+          reply_markup: markup,
+        };
+        const isPhoto = !!cb.message?.photo;
+        if (isPhoto) await bot.editMessageCaption(text, editOpts).catch(() => {});
+        else await bot.editMessageText(text, editOpts).catch(() => {});
+      }
+      return bot.answerCallbackQuery(cb.id, {
+        text: result.toast || t('settings.chain.pickFirstAlert', cbLang),
+        show_alert: true,
+      });
+    }
     if (result?.close) {
       await bot.deleteMessage(fromChatId, cb.message.message_id).catch(() => {});
       return bot.answerCallbackQuery(cb.id, { text: t('cmd.closed', cbLang) });
@@ -1073,11 +1103,9 @@ async function main() {
   } else {
     console.log('   Userbot: kapalı → Bot API');
   }
-  const enabledCh = channels.listEnabled().filter((c) => {
-    const chList = c.settings?.chains;
-    return Array.isArray(chList) && chList.includes('solana');
-  });
-  console.log(`   Kanal: ${channels.count().total} kayıtlı, ${enabledCh.length} aktif+Solana seçili`);
+  channels.logBootSummary();
+  const enabledCh = channels.listEnabled().filter((c) => channels.isSolanaSelected(c.id));
+  console.log(`   Özet: ${enabledCh.length} kanal aktif ve ◎ Solana seçili (post için)`);
 
   if (SOLANA_SCAN_ENABLED) {
     setTimeout(() => runScan('cron'), 15_000);

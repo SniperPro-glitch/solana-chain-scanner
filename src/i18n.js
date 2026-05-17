@@ -525,6 +525,16 @@ const STRINGS = {
     tr: '⚠️ Önce ağ seçimi yapınız — ◎ Solana seçene kadar bot mesaj atmaz.',
     ru: '⚠️ Сначала выберите сеть — бот не будет публиковать, пока не выберете Solana.',
   },
+  'settings.chain.setupPanel': {
+    en: '👇 *Start here:* tap **◎ Solana** under Network below.\nOther settings stay locked until the network is confirmed.',
+    tr: '👇 *Başlangıç:* aşağıdan **◎ Solana** ağını seçin.\nAğ onaylanana kadar diğer ayarlar kilitlidir.',
+    ru: '👇 *Сначала:* нажмите **◎ Solana** в разделе сети.\nОстальные настройки заблокированы до выбора сети.',
+  },
+  'settings.chain.pickFirstAlert': {
+    en: 'Select ◎ Solana network first. Other settings are locked.',
+    tr: 'Önce ◎ Solana ağını seçin. Diğer ayarlar kilitli.',
+    ru: 'Сначала выберите сеть ◎ Solana. Остальные настройки заблокированы.',
+  },
   'settings.filterHeader': {
     en: '⚙️ *Configure the bot\'s filter settings*',
     tr: '⚙️ *Botun filtre ayarlamasını yapınız*',

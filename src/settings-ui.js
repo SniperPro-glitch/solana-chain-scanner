@@ -25,6 +25,30 @@ function L(chatId) {
   return normalizeLang(channels.getSettings(chatId).lang);
 }
 
+function isSolanaChainSelected(chatId) {
+  const chList = channels.getSettings(chatId).chains;
+  return Array.isArray(chList) && chList.includes('solana');
+}
+
+/** Ağ seçilmeden izin verilen callback'ler */
+function isChainSetupAllowed(data) {
+  if (!data) return false;
+  if (data === 'menu:main' || data === 'menu:chain' || data === 'close') return true;
+  if (data.startsWith('set:lang:')) return true;
+  if (data === 'set:chain:solana') return true;
+  return false;
+}
+
+function chainGuard(chatId, data, lang) {
+  if (isSolanaChainSelected(chatId)) return null;
+  if (isChainSetupAllowed(data)) return null;
+  return {
+    menu: 'chain',
+    toast: t('settings.chain.pickFirstAlert', lang),
+    chainBlocked: true,
+  };
+}
+
 /** Bu projede yalnızca Solana. */
 function primaryChainFor(_chatId) {
   return 'solana';
@@ -80,7 +104,9 @@ function buildMainMenu(chatId) {
   const displaySummary = `🖼 ${bannerLabel} · 🌐 ${langName(lang)}`;
 
   // Ağ seçimi yapılmadıysa en üstte uyarı
-  const chainWarning = chainSet ? '' : `⚠️ ${t('settings.chain.required', lang)}\n\n`;
+  const chainWarning = chainSet
+    ? ''
+    : `${t('settings.chain.required', lang)}\n\n${t('settings.chain.setupPanel', lang)}\n\n`;
 
   const text =
     `${t('settings.title', lang)}
@@ -118,38 +144,41 @@ ${PANEL_RULE}
     : `⚠️ ${t('settings.chain', lang)}: ${chainLabel}`;
   const langBtnLbl = `${t('settings.language', lang)}: ${langName(lang)}`;
 
-  const keyboard = [
-    // EN ÜSTTE: Dil | Ağ yan yana — bot setup başlangıcı
-    [
-      { text: langBtnLbl, callback_data: 'menu:lang' },
-      { text: chainBtnLbl, callback_data: 'menu:chain' },
-    ],
-    [
-      { text: s.enabled ? `⏸ ${statusLabel}` : `▶️ ${statusLabel}`, callback_data: 'tgl:enabled' },
-    ],
-    [
-      { text: profileLbl, callback_data: 'menu:profile' },
-      { text: showFiltersLbl, callback_data: 'menu:showFilters' },
-    ],
-    [
-      { text: t('settings.groupFilters', lang), callback_data: 'menu:catFilters' },
-      { text: t('settings.groupQuality', lang), callback_data: 'menu:catQuality' },
-    ],
-    [
-      { text: t('settings.groupChannel', lang), callback_data: 'menu:catChannel' },
-      { text: t('settings.groupDisplay', lang), callback_data: 'menu:catDisplay' },
-    ],
-    [
-      { text: t('settings.intelButton', lang), callback_data: 'menu:intel' },
-    ],
-    [
-      { text: manualLbl, callback_data: 'manual:start' },
-    ],
-    [
-      { text: `🔄 ${resetLbl}`, callback_data: 'reset' },
-      { text: `✖ ${t('settings.close', lang)}`, callback_data: 'close' },
-    ],
-  ];
+  const keyboard = chainSet
+    ? [
+      [
+        { text: langBtnLbl, callback_data: 'menu:lang' },
+        { text: chainBtnLbl, callback_data: 'menu:chain' },
+      ],
+      [
+        { text: s.enabled ? `⏸ ${statusLabel}` : `▶️ ${statusLabel}`, callback_data: 'tgl:enabled' },
+      ],
+      [
+        { text: profileLbl, callback_data: 'menu:profile' },
+        { text: showFiltersLbl, callback_data: 'menu:showFilters' },
+      ],
+      [
+        { text: t('settings.groupFilters', lang), callback_data: 'menu:catFilters' },
+        { text: t('settings.groupQuality', lang), callback_data: 'menu:catQuality' },
+      ],
+      [
+        { text: t('settings.groupChannel', lang), callback_data: 'menu:catChannel' },
+        { text: t('settings.groupDisplay', lang), callback_data: 'menu:catDisplay' },
+      ],
+      [{ text: t('settings.intelButton', lang), callback_data: 'menu:intel' }],
+      [{ text: manualLbl, callback_data: 'manual:start' }],
+      [
+        { text: `🔄 ${resetLbl}`, callback_data: 'reset' },
+        { text: `✖ ${t('settings.close', lang)}`, callback_data: 'close' },
+      ],
+    ]
+    : [
+      [
+        { text: langBtnLbl, callback_data: 'menu:lang' },
+        { text: chainBtnLbl, callback_data: 'menu:chain' },
+      ],
+      [{ text: `✖ ${t('settings.close', lang)}`, callback_data: 'close' }],
+    ];
 
   return { text, keyboard };
 }
@@ -926,6 +955,9 @@ function buildChainMenu(chatId) {
 // ─────────────────────────────────────────────────────────────
 function handleCallback(data, chatId) {
   const lang = L(chatId);
+
+  const blocked = chainGuard(chatId, data, lang);
+  if (blocked) return blocked;
 
   if (data === 'tgl:enabled') {
     const cur = channels.getSettings(chatId).enabled;
