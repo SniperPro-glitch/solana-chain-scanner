@@ -2,6 +2,9 @@
 
 const axios = require('axios');
 
+/** Helius yokken mint/freeze/holder RPC (rate limit — prod için Helius önerilir). */
+const PUBLIC_SOLANA_RPC = 'https://api.mainnet-beta.solana.com';
+
 function isValidHttpUrl(s) {
   return /^https?:\/\/.+/i.test(String(s || '').trim());
 }
@@ -57,7 +60,15 @@ function applyHeliusEnv() {
     delete process.env.SOLANA_RPC_URL;
   }
 
-  if (!key) return;
+  if (!key) {
+    if (!rpc && !customRpc) {
+      process.env.SOLANA_RPC_URL = PUBLIC_SOLANA_RPC;
+      console.log(
+        '[env] SOLANA_RPC_URL ← public cluster (Helius yok; ücretsiz key: dashboard.helius.dev → API Keys)',
+      );
+    }
+    return;
+  }
 
   // HELIUS_API_KEY varsa varsayılan: her zaman Helius RPC (eski yanlış SOLANA_RPC_URL üzerine yaz)
   if (!customRpc) {
@@ -93,7 +104,22 @@ async function verifyHeliusRpc() {
   const rpc = (process.env.SOLANA_RPC_URL || '').trim();
 
   if (!key) {
-    console.warn('[env] ⚠️ HELIUS_API_KEY yok — Railway Variables → dashboard.helius.dev → API Keys');
+    if (rpc) {
+      try {
+        const slot = await rpcProbe(rpc, 'getSlot');
+        if (slot.data?.result != null) {
+          console.log(
+            `[env] RPC OK (Helius yok, slot ${slot.data.result}) — holder analizi için HELIUS_API_KEY ekleyin`,
+          );
+          return true;
+        }
+      } catch {
+        /* fall through */
+      }
+    }
+    console.warn(
+      '[env] Helius yok — Railway Variables: HELIUS_API_KEY = dashboard.helius.dev API Keys tablosundaki UUID',
+    );
     return false;
   }
 
