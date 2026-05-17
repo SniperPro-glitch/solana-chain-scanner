@@ -47,15 +47,58 @@ if (!BOT_TOKEN) {
   process.exit(1);
 }
 
-const bot = new TelegramBot(BOT_TOKEN, {
-  polling: {
-    params: {
-      allowed_updates: JSON.stringify([
-        'message', 'channel_post', 'my_chat_member', 'chat_member', 'callback_query',
-      ]),
-    },
-  },
-});
+const POLLING_PARAMS = {
+  allowed_updates: JSON.stringify([
+    'message', 'channel_post', 'my_chat_member', 'chat_member', 'callback_query',
+  ]),
+};
+
+/** Polling başlamadan önce oluşturulur; main() içinde startPolling() çağrılır (409 / webhook çakışması önlemi). */
+const bot = new TelegramBot(BOT_TOKEN, { polling: false });
+
+let polling409Streak = 0;
+
+function isPollingConflictError(err) {
+  const msg = String(err?.message || err?.response?.body?.description || err || '');
+  const code = err?.response?.statusCode || err?.code;
+  return code === 409 || /409|Conflict|terminated by other getUpdates|another bot instance/i.test(msg);
+}
+
+async function prepareTelegramConnection() {
+  try {
+    await bot.deleteWebHook({ drop_pending_updates: false });
+  } catch (e) {
+    console.warn('[bot] deleteWebHook:', e?.message || e);
+  }
+  const wh = await bot.getWebHookInfo().catch(() => null);
+  if (wh?.url) {
+    console.warn(`[bot] Önceki webhook kaldırıldı: ${wh.url}`);
+  }
+}
+
+async function startBotPolling() {
+  await prepareTelegramConnection();
+  await bot.startPolling({ params: POLLING_PARAMS });
+  console.log('[bot] long polling başladı');
+}
+
+function handlePollingError(err) {
+  const msg = err?.message || String(err);
+  console.error('Polling error:', msg);
+  if (!isPollingConflictError(err)) return;
+
+  polling409Streak += 1;
+  console.error('❌ 409 Conflict — aynı BOT_TOKEN başka bir yerde de dinleniyor.');
+  console.error('   • PC\'de `npm run dev` / `npm start` çalışıyorsa KAPATIN (sadece Railway kalsın).');
+  console.error('   • Railway\'de bu token ile ikinci servis/replica olmamalı (Replicas = 1).');
+  console.error('   • TON bot token\'ı ile Solana token\'ı karıştırmayın — her bot ayrı BOT_TOKEN.');
+  console.error('   • BotFather → /mybots → bot → API Token = Railway BOT_TOKEN ile aynı olmalı.');
+
+  if (polling409Streak >= 5) {
+    console.error('[bot] 5x 409 → polling durduruluyor (çift instance).');
+    bot.stopPolling().finally(() => process.exit(1));
+  }
+}
 
 const ASSETS_SOL = path.join(__dirname, '..', 'assets', 'solana');
 const BANNER = {
@@ -1080,12 +1123,18 @@ bot.on('callback_query', async (cb) => {
   }
 });
 
-bot.on('polling_error', (err) => console.error('Polling error:', err?.message || err));
+bot.on('polling_error', handlePollingError);
 process.on('unhandledRejection', (e) => console.error('unhandledRejection:', e?.message || e));
+process.on('SIGINT', () => {
+  console.log('\n👋 Kapatılıyor...');
+  bot.stopPolling().finally(() => process.exit(0));
+});
 
 async function main() {
+  await startBotPolling();
   const me = await bot.getMe();
-  console.log(`✅ Solana bot: @${me.username}`);
+  console.log(`✅ Solana bot: @${me.username} (id=${me.id})`);
+  console.log('   Bu token yalnızca TEK yerde çalışmalı (Railway XOR yerel PC).');
   console.log(`   Tarama: ${SOLANA_SCAN_ENABLED ? `AÇIK (${SOLANA_SCAN_INTERVAL_MIN} dk)` : 'KAPALI'}`);
   console.log(`   İzleme: ${WATCH_INTERVAL_SEC} sn`);
 
