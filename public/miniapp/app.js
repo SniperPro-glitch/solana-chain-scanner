@@ -1,11 +1,10 @@
 ﻿(function () {
   const tg = window.Telegram?.WebApp;
-  if (tg) {
-    tg.ready();
-    tg.expand();
-    if (tg.themeParams.bg_color) {
-      document.documentElement.style.setProperty('--bg', tg.themeParams.bg_color);
-    }
+  if (tg?.themeParams?.bg_color) {
+    document.documentElement.style.setProperty('--bg', tg.themeParams.bg_color);
+  }
+  if (typeof window.__tgApplyFullscreen === 'function') {
+    window.__tgApplyFullscreen();
   }
 
   const $ = (id) => document.getElementById(id);
@@ -71,7 +70,8 @@
     const avatar = item.imageUrl
       ? `<span class="tr-avatar-wrap"><img class="tr-img" src="${escHtml(item.imageUrl)}" alt="" loading="lazy" data-fb="${escHtml((item.imageFallbacks || []).join('|'))}" /><span class="tr-chain-dot">◎</span></span>`
       : `<span class="tr-avatar-wrap"><span class="tr-avatar">${escHtml((item.symbol || '?').slice(0, 2))}</span><span class="tr-chain-dot">◎</span></span>`;
-    return `<article class="token-row ${extraClass}" data-mint="${escHtml(item.mint)}">
+    const reportAttr = item.reportId ? ` data-report="${escHtml(item.reportId)}"` : '';
+    return `<article class="token-row ${extraClass}" data-mint="${escHtml(item.mint)}"${reportAttr}>
       <span class="tr-rank">${item.rank ?? '·'}</span>
       <div class="tr-token">${avatar}<div class="tr-meta"><div class="tr-name">${escHtml(item.symbol)}<span class="tr-pair"> / ${pairShort}</span></div><div class="tr-sub">MCap ${escHtml(item.marketCapUsdFmt)}</div></div>
       <span class="tr-price">${escHtml(item.priceUsdFmt)}</span>
@@ -124,15 +124,21 @@
     $('view-detail')?.classList.add('hidden');
   }
 
+  function refreshTgViewport() {
+    if (typeof window.__tgApplyFullscreen === 'function') window.__tgApplyFullscreen();
+  }
+
   function showScannerHome() {
     hideAllViews();
     $('scanner-home')?.classList.remove('hidden');
+    refreshTgViewport();
     initScannerHome();
   }
 
   function showDetailView() {
     hideAllViews();
     $('view-detail')?.classList.remove('hidden');
+    refreshTgViewport();
   }
 
   function setFeedTab(tab) {
@@ -187,7 +193,7 @@
     const list = $('homeTokenList');
     if (!list) return;
     const rows = renderLastReportRow() + (items || []).map((it) => renderFeedRow(it)).join('');
-    list.innerHTML = rows || '<p class="home-cta">No tokens found.</p>';
+    list.innerHTML = rows || '<p class="home-cta">Henüz bot paylaşımı yok. Kanala token düştükçe burada listelenecek.</p>';
     bindFeedRowLogos(list);
   }
 
@@ -241,16 +247,23 @@
       const res = await fetch(`/api/feed?tab=${encodeURIComponent(t)}&limit=24`);
       const body = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(body.message || 'feed_failed');
-      const items = body.items?.length ? body.items : PLACEHOLDER_TOKENS;
+      if (body.empty && body.emptyMessage) {
+        applyMarketStats({ count: 0, volume24hFmt: '—', liquidityFmt: '—', newPairs: 0, activeNow: 0 });
+        updateQuickCards({ count: 0, newPairs: 0, liquidityFmt: '—' }, []);
+        renderTokenList([]);
+        showToast(body.emptyMessage.slice(0, 80));
+        return body;
+      }
+      const items = body.items?.length ? body.items : [];
       applyMarketStats(body.stats || PLACEHOLDER_STATS);
       updateQuickCards(body.stats || PLACEHOLDER_STATS, items);
       renderTokenList(items);
       return body;
     } catch (e) {
       applyMarketStats(PLACEHOLDER_STATS);
-      updateQuickCards(PLACEHOLDER_STATS, PLACEHOLDER_TOKENS);
-      renderTokenList(PLACEHOLDER_TOKENS);
-      showToast('Demo data — live feed unavailable');
+      updateQuickCards(PLACEHOLDER_STATS, []);
+      renderTokenList([]);
+      showToast('Liste yüklenemedi — bot paylaşımlarını bekleyin');
       return null;
     } finally {
       loadingEl?.classList.add('hidden');

@@ -1,5 +1,20 @@
 /* SNIPER DEX SCANNER — spec palette & layout (375px mobile-first) */
 
+:root {
+  --app-height: 100dvh;
+  --tg-safe-top: env(safe-area-inset-top, 0px);
+  --tg-safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+html.tg-mini-app,
+html.tg-mini-app body {
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+  overscroll-behavior: none;
+  background: #0a0e1a;
+}
+
 .scanner-home {
   --bg: #0a0e1a;
   --card: #0f1526;
@@ -17,13 +32,18 @@
 
   max-width: var(--w);
   margin: 0 auto;
-  min-height: 100vh;
+  width: 100%;
+  min-height: var(--app-height, 100dvh);
+  height: var(--app-height, 100dvh);
   background: var(--bg);
   color: var(--text);
   font-family: 'Inter', system-ui, sans-serif;
-  padding-bottom: calc(var(--nav-h) + var(--market-h) + 8px);
+  padding-top: var(--tg-safe-top, 0px);
+  padding-bottom: calc(var(--nav-h) + var(--market-h) + var(--tg-safe-bottom, 0px) + 8px);
   position: relative;
   overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .scanner-home::before {
@@ -517,7 +537,7 @@
   position: fixed;
   left: 0;
   right: 0;
-  bottom: var(--nav-h);
+  bottom: calc(var(--nav-h) + var(--tg-safe-bottom, 0px));
   max-width: var(--w);
   margin: 0 auto;
   display: flex;
@@ -578,8 +598,8 @@
   display: flex;
   justify-content: space-around;
   align-items: center;
-  height: var(--nav-h);
-  padding-bottom: env(safe-area-inset-bottom);
+  height: calc(var(--nav-h) + var(--tg-safe-bottom, 0px));
+  padding-bottom: var(--tg-safe-bottom, env(safe-area-inset-bottom, 0px));
   background: var(--card);
   border-top: 1px solid var(--border);
   z-index: 50;
@@ -629,6 +649,9 @@
 }
 
 .boot-screen {
+  min-height: var(--app-height, 100dvh);
+  padding-top: var(--tg-safe-top, 0px);
+  padding-bottom: var(--tg-safe-bottom, 0px);
   background: var(--bg);
   color: var(--muted);
 }

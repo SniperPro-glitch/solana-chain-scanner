@@ -25,6 +25,7 @@
 html, body {
   margin: 0;
   min-height: 100%;
+  min-height: var(--app-height, 100dvh);
   font-family: var(--font);
   background: var(--bg);
   color: var(--text);
@@ -37,7 +38,9 @@ html, body {
 
 /* Boot */
 .boot-screen {
-  min-height: 100vh;
+  min-height: var(--app-height, 100dvh);
+  padding-top: var(--tg-safe-top, 0px);
+  padding-bottom: var(--tg-safe-bottom, 0px);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -447,8 +450,13 @@ html, body {
 .view-detail {
   max-width: 480px;
   margin: 0 auto;
-  min-height: 100vh;
-  padding-bottom: calc(var(--trade-h) + env(safe-area-inset-bottom));
+  width: 100%;
+  min-height: var(--app-height, 100dvh);
+  height: var(--app-height, 100dvh);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-top: var(--tg-safe-top, 0px);
+  padding-bottom: calc(var(--trade-h) + var(--tg-safe-bottom, env(safe-area-inset-bottom, 0px)));
 }
 
 .detail-top {
@@ -459,7 +467,7 @@ html, body {
   border-bottom: 1px solid var(--border);
   background: rgba(5, 8, 10, 0.9);
   position: sticky;
-  top: 0;
+  top: var(--tg-safe-top, 0px);
   z-index: 40;
   backdrop-filter: blur(10px);
 }

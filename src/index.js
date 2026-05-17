@@ -506,6 +506,19 @@ async function sendBotAnalysisFollowup(ch, cmEntry, token, audit, lang, cardLeve
   try {
     reportId = reportStore.saveReport({ token, audit, lang, level: cardLevel });
     console.log(`[report] kaydedildi id=${reportId} sembol=${sym}`);
+    try {
+      require('./botFeedStore').recordShare({
+        token,
+        audit,
+        lang,
+        level: cardLevel,
+        reportId,
+        channelId: ch?.id,
+        channelTitle: ch?.title,
+      });
+    } catch (e) {
+      console.warn('[botFeed] record:', e.message);
+    }
     const webAppUrl = buildWebAppUrl(reportId);
     if (webAppUrl && /^https:\/\//i.test(webAppUrl)) {
       replyMarkup = {

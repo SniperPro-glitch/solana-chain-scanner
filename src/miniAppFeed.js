@@ -1,12 +1,12 @@
-// Mini App — canlı token listesi + tıklanınca tam rapor.
+// Mini App — liste yalnızca botun kanala paylaştığı tokenler.
 
 const adapter = require('./chains/solana/adapter');
 const solana = require('./chains/solana');
 const reportStore = require('./reportStore');
+const botFeedStore = require('./botFeedStore');
 const { safetyPercent } = require('./riskDisplay');
 const { buildMarketFromToken } = require('./marketData');
 const { buildLogoCandidates } = require('./tokenLogo');
-const { buildSeedFeedItems, mergeFeedItems } = require('./miniAppSeed');
 
 function fmtUsd(n) {
   if (n == null || Number.isNaN(n)) return '—';
@@ -30,6 +30,15 @@ function riskBandFromAudit(audit) {
   return { band: 'low', label: 'LOW RISK' };
 }
 
+function auditFromFeedEntry(entry) {
+  if (!entry) return null;
+  return {
+    isCritical: entry.isCritical,
+    risk: { code: entry.riskCode || 'LOW' },
+    riskPercent: entry.riskPercent,
+  };
+}
+
 function quickAudit(token) {
   try {
     return solana.auditToken(token);
@@ -38,18 +47,17 @@ function quickAudit(token) {
   }
 }
 
-function tokenToFeedItem(token, audit, rank, logo = null) {
+function tokenToFeedItem(token, audit, rank, reportId = null) {
   const risk = riskBandFromAudit(audit);
   const safe = audit ? safetyPercent(audit.riskPercent) : null;
   const candidates = buildLogoCandidates(token, null);
-  const imageUrl = logo?.url || token.tokenImage || candidates[0] || null;
-  const imageFallbacks = logo?.fallbacks?.length
-    ? logo.fallbacks
-    : candidates.filter((u) => u !== imageUrl).slice(0, 4);
+  const imageUrl = token.tokenImage || candidates[0] || null;
+  const imageFallbacks = candidates.filter((u) => u !== imageUrl).slice(0, 4);
   return {
     rank,
     mint: token.tokenAddress,
     poolId: token.poolId,
+    reportId,
     symbol: token.tokenSymbol,
     name: token.tokenName,
     imageUrl,
@@ -66,57 +74,70 @@ function tokenToFeedItem(token, audit, rank, logo = null) {
     risk,
     trustScore: safe,
     level: cardLevelFromAudit(audit),
+    postedAt: null,
   };
 }
 
-async function fetchRawPairs(tab = 'trending', limit = 24) {
-  const pairs = await adapter.fetchPoolsHybrid();
-  const tokens = [];
-  for (const pair of pairs) {
-    const token = adapter.normalizePair(pair);
-    if (!token?.tokenAddress) continue;
-    tokens.push(token);
+async function refreshTokenFromDex(storedToken) {
+  try {
+    const pair = await adapter.fetchTopPairForToken(storedToken.tokenAddress);
+    if (pair) return adapter.normalizePair(pair);
+  } catch {
+    /* yedek snapshot */
   }
-
-  if (tab === 'new') {
-    tokens.sort((a, b) => (a.ageMinutes ?? 99999) - (b.ageMinutes ?? 99999));
-  } else {
-    tokens.sort((a, b) => (b.volume24h || 0) - (a.volume24h || 0));
-  }
-
-  return tokens.slice(0, limit);
+  return storedToken;
 }
 
-async function buildFeed(tab = 'trending', limit = 24) {
-  const [raw, seedItems] = await Promise.all([
-    fetchRawPairs(tab, limit),
-    buildSeedFeedItems(tokenToFeedItem, quickAudit),
-  ]);
+async function buildFeedFromBotShares(tab = 'trending', limit = 24) {
+  const entries = botFeedStore.listRecent(limit, tab);
+  const items = [];
+  let rank = 1;
 
-  const liveItems = [];
-  for (const token of raw) {
-    const audit = quickAudit(token);
-    liveItems.push(tokenToFeedItem(token, audit, 0));
+  for (const entry of entries) {
+    let token = await refreshTokenFromDex(entry.token);
+    if (!token?.tokenAddress) token = entry.token;
+    token.chain = 'solana';
+
+    let audit = null;
+    if (entry.reportId) {
+      const meta = reportStore.getReportMeta(entry.reportId);
+      if (meta.status === 'ok') audit = meta.report.audit;
+    }
+    if (!audit) audit = auditFromFeedEntry(entry) || quickAudit(token);
+
+    const item = tokenToFeedItem(token, audit, rank, entry.reportId);
+    item.postedAt = entry.postedAt;
+    item.channelTitle = entry.channelTitle;
+    items.push(item);
+    rank += 1;
   }
 
-  const items = mergeFeedItems(seedItems, liveItems, limit);
-  const totalVol = raw.reduce((s, t) => s + (t.volume24h || 0), 0);
-  const totalLiq = raw.reduce((s, t) => s + (t.liquidityUsd || 0), 0);
-  const newPairs = raw.filter((t) => (t.ageMinutes ?? 99999) < 120).length;
+  const now = Date.now();
+  const newPairs = entries.filter((e) => now - (e.postedAt || 0) < 2 * 60 * 60 * 1000).length;
+  const volFromTokens = entries.reduce((s, e) => s + (e.token?.volume24h || 0), 0);
 
   return {
     tab,
+    source: 'bot_channel',
     updatedAt: Date.now(),
-    seeded: seedItems.length,
+    botCount: botFeedStore.feedCount(),
     stats: {
       count: items.length,
-      volume24hFmt: fmtUsd(totalVol),
-      liquidityFmt: fmtUsd(totalLiq),
-      newPairs: Math.max(newPairs, seedItems.length),
+      volume24hFmt: fmtUsd(volFromTokens),
+      liquidityFmt: fmtUsd(entries.reduce((s, e) => s + (e.token?.liquidityUsd || 0), 0)),
+      newPairs,
       activeNow: items.length,
     },
     items,
+    empty: items.length === 0,
+    emptyMessage: items.length === 0
+      ? 'Henüz kanal paylaşımı yok. Bot kanala admin ekleyin, /settings ile Solana seçin, SOLANA_SCAN_ENABLED=1 yapın.'
+      : null,
   };
+}
+
+async function buildFeed(tab = 'trending', limit = 24) {
+  return buildFeedFromBotShares(tab, limit);
 }
 
 async function analyzeMintAndSave(mint, lang = 'tr') {
