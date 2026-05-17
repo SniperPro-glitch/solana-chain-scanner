@@ -112,6 +112,15 @@ async function _resolvePhotoBuffer(photoFileId, photoLocalPath) {
   return null;
 }
 
+function inlineKeyboard(keyboard) {
+  if (!keyboard) return undefined;
+  if (keyboard.inline_keyboard) return keyboard;
+  return { inline_keyboard: keyboard };
+}
+
+const INFO_BANNER_LOCAL_PATH = path.join(__dirname, '..', 'assets', 'settings-banner.jpg');
+let INFO_BANNER_FILE_ID = process.env.BOT_INFO_BANNER_FILE_ID || null;
+
 function telegramLocalPhotoFileOpts(photoArg) {
   if (typeof photoArg !== 'string') return undefined;
   try {
@@ -445,18 +454,103 @@ async function processManualPost(chatId, userId, arg, lang) {
 }
 
 async function sendSettingsWithBanner(chatId, text, keyboard) {
-  const local = localBanner('green');
-  if (local) {
-    return bot.sendPhoto(chatId, local, {
+  const replyMarkup = inlineKeyboard(keyboard);
+  const CAPTION_LIMIT = 1024;
+  const tooLong = text && text.length > CAPTION_LIMIT;
+
+  async function sendCombined(photoArg) {
+    const fo = telegramLocalPhotoFileOpts(photoArg);
+    const opts = {
       caption: text,
       parse_mode: 'Markdown',
-      reply_markup: keyboard,
-    });
+      reply_markup: replyMarkup,
+    };
+    try {
+      return fo
+        ? await bot.sendPhoto(chatId, photoArg, opts, fo)
+        : await bot.sendPhoto(chatId, photoArg, opts);
+    } catch (e) {
+      console.warn('[settings] caption markdown fail:', e?.message);
+      const plain = text.replace(/\*/g, '');
+      const opts2 = { caption: plain, reply_markup: replyMarkup };
+      return fo
+        ? await bot.sendPhoto(chatId, photoArg, opts2, fo)
+        : await bot.sendPhoto(chatId, photoArg, opts2);
+    }
   }
-  return bot.sendMessage(chatId, text, { parse_mode: 'Markdown', reply_markup: keyboard });
+
+  if (!tooLong) {
+    if (INFO_BANNER_FILE_ID) {
+      try {
+        return await sendCombined(INFO_BANNER_FILE_ID);
+      } catch (e) {
+        INFO_BANNER_FILE_ID = null;
+      }
+    }
+    const local = fs.existsSync(INFO_BANNER_LOCAL_PATH)
+      ? INFO_BANNER_LOCAL_PATH
+      : localBanner('green');
+    if (local) {
+      try {
+        const sent = await sendCombined(local);
+        const photos = sent?.photo;
+        if (photos?.length) INFO_BANNER_FILE_ID = photos[photos.length - 1].file_id;
+        return sent;
+      } catch (e) {
+        console.warn('[settings] banner upload fail:', e?.message);
+      }
+    }
+  }
+
+  try {
+    return await bot.sendMessage(chatId, text, { parse_mode: 'Markdown', reply_markup: replyMarkup });
+  } catch (e) {
+    const plain = text.replace(/\*/g, '');
+    return bot.sendMessage(chatId, plain, { reply_markup: replyMarkup });
+  }
 }
 
-bot.onText(/^\/start(@\w+)?/, async (msg) => {
+bot.onText(/^\/start(@\w+)?(\s+(.+))?$/, async (msg, match) => {
+  if (msg.chat.type !== 'private') {
+    channels.add(msg.chat, msg.from?.username || 'cmd');
+  }
+
+  const param = (match && match[3] || '').trim();
+  if (param.startsWith('settings_') && msg.chat.type === 'private') {
+    const targetId = parseInt(param.slice('settings_'.length), 10);
+    if (!isNaN(targetId)) {
+      const ch = channels.get(targetId);
+      const lang = langForMsg(msg);
+      if (!ch) {
+        return bot.sendMessage(msg.chat.id, t('cmd.channelNotFound', lang));
+      }
+      if (!(await isChatAdmin(targetId, msg.from.id))) {
+        return bot.sendMessage(msg.chat.id, t('cmd.notChannelAdmin', lang));
+      }
+      setDmTarget(msg.from.id, targetId);
+      const welcomeId = ch.settings?.welcomeMessageId;
+      if (welcomeId) {
+        bot.deleteMessage(targetId, welcomeId).catch(() => {});
+        channels.updateSetting(targetId, 'welcomeMessageId', null);
+      }
+      const { text, keyboard } = settingsUI.renderMenu('main', targetId);
+      const composed = `${t('cmd.settingsFor', lang, { name: ch.title })}\n\n${text}`;
+      return sendSettingsWithBanner(msg.chat.id, composed, keyboard);
+    }
+  }
+
+  if (msg.chat.type === 'private' && !users.getLang(msg.from.id)) {
+    return bot.sendMessage(msg.chat.id, t('welcome.langPick', 'en'), {
+      reply_markup: {
+        inline_keyboard: [[
+          { text: '🇬🇧 English', callback_data: 'startlang:en' },
+          { text: '🇹🇷 Türkçe', callback_data: 'startlang:tr' },
+          { text: '🇷🇺 Русский', callback_data: 'startlang:ru' },
+        ]],
+      },
+    });
+  }
+
   const lang = langForMsg(msg);
   await bot.sendMessage(msg.chat.id, t('welcome.start', lang), { parse_mode: 'HTML' });
 });
@@ -531,6 +625,7 @@ bot.onText(/^\/settings(@\w+)?$/, async (msg) => {
     }
     if (!channels.get(msg.chat.id)) channels.add(msg.chat, msg.from?.username || 'cmd');
     channels.updateSetting(msg.chat.id, 'chains', ['solana']);
+    setDmTarget(msg.from.id, msg.chat.id);
     const { text, keyboard } = settingsUI.renderMenu('main', msg.chat.id);
     return sendSettingsWithBanner(msg.chat.id, text, keyboard);
   }
@@ -552,11 +647,42 @@ bot.onText(/^\/settings(@\w+)?$/, async (msg) => {
 
 bot.on('my_chat_member', async (upd) => {
   const chat = upd.chat;
-  const st = upd.new_chat_member?.status;
-  if (st === 'administrator' || st === 'member') {
+  const newStatus = upd.new_chat_member?.status;
+  const oldStatus = upd.old_chat_member?.status;
+
+  if (['administrator', 'member'].includes(newStatus) && !['administrator', 'member'].includes(oldStatus)) {
     channels.add(chat, upd.from?.username || 'auto');
     channels.updateSetting(chat.id, 'chains', ['solana']);
-    console.log(`📢 Kanal: ${chat.title || chat.id}`);
+    console.log(`➕ ${chat.title || chat.id} (${chat.type})`);
+
+    if (newStatus === 'administrator' && chat.type !== 'private') {
+      const channelName = chat.title || 'Channel';
+      const lang = channels.getSettings(chat.id)?.lang || DEFAULT_LANG;
+      const me = await bot.getMe().catch(() => null);
+      const username = me?.username || 'bot';
+      const deeplink = `https://t.me/${username}?start=settings_${chat.id}`;
+      const welcomeMsg = t('welcome.added', lang, { name: channelName });
+      const sent = await bot.sendMessage(chat.id, welcomeMsg, {
+        parse_mode: 'Markdown',
+        disable_web_page_preview: true,
+        reply_markup: {
+          inline_keyboard: [[
+            { text: t('settings.open', lang), url: deeplink },
+          ]],
+        },
+      }).catch((e) => {
+        console.warn('[welcome] channel msg fail:', e?.message);
+        return null;
+      });
+      if (sent?.message_id) {
+        channels.updateSetting(chat.id, 'welcomeMessageId', sent.message_id);
+      }
+    }
+  }
+
+  if (['left', 'kicked'].includes(newStatus)) {
+    channels.remove(chat.id);
+    console.log(`➖ ${chat.title || chat.id} silindi`);
   }
 });
 
@@ -575,17 +701,33 @@ bot.on('callback_query', async (cb) => {
   const userId = cb.from.id;
   const fromChatId = cb.message?.chat?.id;
   const cbLang = langForMsg(cb);
+  const isDM = cb.message?.chat?.type === 'private';
 
-  if (cb.data?.startsWith('pickchat:')) {
-    const chId = cb.data.slice('pickchat:'.length);
-    setDmTarget(userId, chId);
-    const { text, keyboard } = settingsUI.renderMenu('main', chId);
-    await bot.editMessageText(text, {
+  if (cb.data?.startsWith('startlang:')) {
+    const code = cb.data.slice('startlang:'.length);
+    users.setLang(userId, code);
+    await bot.editMessageText(t('welcome.langSet', code), {
       chat_id: fromChatId,
       message_id: cb.message.message_id,
-      parse_mode: 'Markdown',
-      reply_markup: keyboard,
     }).catch(() => {});
+    await bot.sendMessage(fromChatId, t('welcome.start', code), { parse_mode: 'HTML' });
+    return bot.answerCallbackQuery(cb.id);
+  }
+
+  if (cb.data?.startsWith('pickchat:')) {
+    const targetId = parseInt(cb.data.slice('pickchat:'.length), 10);
+    const ch = channels.get(targetId);
+    if (!ch) {
+      return bot.answerCallbackQuery(cb.id, { text: t('cmd.channelNotFound', cbLang), show_alert: true });
+    }
+    if (!(await isChatAdmin(targetId, userId))) {
+      return bot.answerCallbackQuery(cb.id, { text: t('cmd.notChannelAdmin', cbLang), show_alert: true });
+    }
+    setDmTarget(userId, targetId);
+    const { text, keyboard } = settingsUI.renderMenu('main', targetId);
+    const composed = `${t('cmd.settingsFor', cbLang, { name: ch.title })}\n\n${text}`;
+    await bot.deleteMessage(fromChatId, cb.message.message_id).catch(() => {});
+    await sendSettingsWithBanner(fromChatId, composed, keyboard);
     return bot.answerCallbackQuery(cb.id);
   }
 
@@ -618,26 +760,70 @@ bot.on('callback_query', async (cb) => {
     return bot.answerCallbackQuery(cb.id);
   }
 
-  if (cb.data?.startsWith('menu:') || cb.data?.startsWith('set:') || cb.data?.startsWith('dex:') || cb.data?.startsWith('tgl:')) {
-    const targetChatId = cb.message.chat.type === 'private' ? (getDmTarget(userId) || fromChatId) : fromChatId;
+  if (cb.data === 'manual:start') {
+    const targetChatId = isDM ? (getDmTarget(userId) || fromChatId) : fromChatId;
+    if (targetChatId) setDmTarget(userId, targetChatId);
+    const prompt = cbLang === 'tr'
+      ? '📤 <b>Manuel Paylaş</b>\n\nSolana mint veya DexScreener linki gönderin.\n<i>5 dakika içinde.</i>'
+      : cbLang === 'ru'
+        ? '📤 <b>Ручной пост</b>\n\nОтправьте mint Solana или ссылку DexScreener.\n<i>5 минут.</i>'
+        : '📤 <b>Manual post</b>\n\nSend a Solana mint or DexScreener link.\n<i>Within 5 minutes.</i>';
+    await bot.sendMessage(fromChatId, prompt, { parse_mode: 'HTML' }).catch(() => {});
+    return bot.answerCallbackQuery(cb.id);
+  }
+
+  if (cb.data?.startsWith('menu:') || cb.data?.startsWith('set:') || cb.data?.startsWith('dex:')
+    || cb.data?.startsWith('tgl:') || cb.data?.startsWith('tgf:') || cb.data?.startsWith('profile:')
+    || cb.data?.startsWith('rst:') || cb.data === 'reset') {
+    const targetChatId = isDM ? (getDmTarget(userId) || fromChatId) : fromChatId;
+    if (!targetChatId) {
+      return bot.answerCallbackQuery(cb.id, { text: t('cmd.noChannelPicked', cbLang), show_alert: true });
+    }
     if (!(await isChatAdmin(targetChatId, userId))) {
-      return bot.answerCallbackQuery(cb.id, { text: t('cmd.adminOnly', cbLang) });
+      return bot.answerCallbackQuery(cb.id, { text: t('cmd.adminOnlyShort', cbLang) });
     }
     if (cb.data === 'menu:banner') {
       setPendingBanner(targetChatId, userId);
       return bot.answerCallbackQuery(cb.id, { text: t('cmd.bannerPrompt', cbLang) || 'Foto gönder' });
     }
+    if (cb.data?.startsWith('set:lang:') && isDM) {
+      users.setLang(userId, cb.data.slice('set:lang:'.length));
+    }
     const result = settingsUI.handleCallback(cb.data, targetChatId);
+    if (result?.close) {
+      await bot.deleteMessage(fromChatId, cb.message.message_id).catch(() => {});
+      return bot.answerCallbackQuery(cb.id, { text: t('cmd.closed', cbLang) });
+    }
+    if (result?.awaitBannerUpload) setPendingBanner(targetChatId, userId);
     if (result?.toast) bot.answerCallbackQuery(cb.id, { text: result.toast }).catch(() => {});
     else bot.answerCallbackQuery(cb.id).catch(() => {});
     if (result?.menu) {
       const { text, keyboard } = settingsUI.renderMenu(result.menu, targetChatId);
-      await bot.editMessageText(text, {
+      const markup = inlineKeyboard(keyboard);
+      const isPhoto = !!cb.message?.photo;
+      const editOpts = {
         chat_id: fromChatId,
         message_id: cb.message.message_id,
         parse_mode: 'Markdown',
-        reply_markup: keyboard,
-      }).catch(() => {});
+        reply_markup: markup,
+      };
+      const editFn = isPhoto
+        ? () => bot.editMessageCaption(text, editOpts)
+        : () => bot.editMessageText(text, editOpts);
+      await editFn().catch(async (err) => {
+        if (String(err?.message || '').includes('not modified')) return;
+        const plain = text.replace(/\*/g, '');
+        const plainOpts = {
+          chat_id: fromChatId,
+          message_id: cb.message.message_id,
+          reply_markup: markup,
+        };
+        if (isPhoto) {
+          await bot.editMessageCaption(plain, plainOpts).catch(() => {});
+        } else {
+          await bot.editMessageText(plain, plainOpts).catch(() => {});
+        }
+      });
     }
     return;
   }
