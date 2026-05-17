@@ -53,21 +53,23 @@
 
     <div class="chain-scroll">
       <button type="button" class="chain-chip active" data-chain="all">All</button>
-      <button type="button" class="chain-chip" data-chain="solana">◎ Solana</button>
-      <button type="button" class="chain-chip disabled" disabled>Ξ ETH</button>
-      <button type="button" class="chain-chip disabled" disabled>BSC</button>
-      <button type="button" class="chain-chip disabled" disabled>TON</button>
-      <button type="button" class="chain-chip disabled" disabled>Base</button>
+      <button type="button" class="chain-chip" data-chain="solana"><span class="chain-ico" style="background:linear-gradient(135deg,#9945FF,#14F195)">◎</span> Solana</button>
+      <button type="button" class="chain-chip disabled" disabled><span class="chain-ico" style="background:#627EEA">Ξ</span> Ethereum</button>
+      <button type="button" class="chain-chip disabled" disabled><span class="chain-ico" style="background:#F0B90B;color:#000">B</span> BSC</button>
+      <button type="button" class="chain-chip disabled" disabled><span class="chain-ico" style="background:#0088cc">T</span> TON</button>
+      <button type="button" class="chain-chip disabled" disabled><span class="chain-ico" style="background:#0052FF">◆</span> Base</button>
     </div>
 
     <div class="quick-scroll" id="quickCards"></div>
 
-    <div class="token-table-wrap">
-      <div class="token-thead">
-        <span>#</span><span>TOKEN / PAIR</span><span>PRICE</span><span>1H</span><span>24H</span><span>RISK</span>
+    <div class="token-table-scroll">
+      <div class="token-table-inner">
+        <div class="token-thead">
+          <span>#</span><span>TOKEN / PAIR</span><span>PRICE</span><span>1H %</span><span>24H %</span><span>VOL 24H</span><span>LIQUIDITY</span><span>RISK</span>
+        </div>
+        <div class="feed-loading hidden" id="feedLoading">Liste yükleniyor…</div>
+        <div class="token-list" id="homeTokenList"></div>
       </div>
-      <div class="feed-loading hidden" id="feedLoading">Liste yükleniyor…</div>
-      <div class="token-list" id="homeTokenList"></div>
     </div>
 
     <div class="market-footer" id="marketFooter">

@@ -56,10 +56,12 @@
       : `<span class="tr-avatar">${escHtml((item.symbol || '?').slice(0, 2))}</span>`;
     return `<article class="token-row ${extraClass}" data-mint="${escHtml(item.mint)}">
       <span class="tr-rank">${item.rank ?? '·'}</span>
-      <div class="tr-token">${avatar}<div class="tr-meta"><div class="tr-name">${escHtml(item.symbol)}<span class="tr-pair"> / ${pairShort}</span></div><div class="tr-sub">MCap ${escHtml(item.marketCapUsdFmt)} · Liq ${escHtml(item.liquidityUsdFmt || '—')}</div></div></div>
+      <div class="tr-token">${avatar}<div class="tr-meta"><div class="tr-name">${escHtml(item.symbol)}<span class="tr-pair"> / ${pairShort}</span></div><div class="tr-sub">MCap ${escHtml(item.marketCapUsdFmt)}</div></div>
       <span class="tr-price">${escHtml(item.priceUsdFmt)}</span>
       <span class="tr-pct ${chgClass(chg1)}">${formatPct(chg1)}</span>
       <span class="tr-pct ${chgClass(chg24)}">${formatPct(chg24)}</span>
+      <span class="tr-vol">${escHtml(item.volume24hFmt || '—')}</span>
+      <span class="tr-liq">${escHtml(item.liquidityUsdFmt || '—')}</span>
       <div class="tr-risk-col">${miniSparkline(up24)}<span class="risk-badge ${rc}">${escHtml(label)}</span></div>
     </article>`;
   }
@@ -94,7 +96,7 @@
     const pts = up
       ? '2,18 8,14 14,10 20,6 26,8 32,4 38,2'
       : '2,4 8,8 14,12 20,14 26,16 32,18 38,20';
-    const col = up ? '#22ff88' : '#ff4d6d';
+    const col = up ? '#4ade80' : '#fb7185';
     return `<svg class="tr-spark" viewBox="0 0 40 22" preserveAspectRatio="none"><polyline fill="none" stroke="${col}" stroke-width="1.5" points="${pts}"/></svg>`;
   }
 
@@ -134,10 +136,10 @@
       const up = (last.chg || 0) >= 0;
       return `<article class="token-row token-row-last" data-report="${escHtml(last.id)}">
         <span class="tr-rank">★</span>
-        <span class="tr-avatar">${escHtml((last.symbol || '?').slice(0, 2))}</span>
-        <div class="tr-info"><h3>${escHtml(last.symbol)} · Son analiz</h3><p>MCap ${escHtml(last.mcap || '—')} · Tekrar aç</p></div>
-        <div class="tr-right"><div class="tr-price">${escHtml(last.price || '—')}</div><span class="risk-badge ${r.cls}">${r.text}</span></div>
-        ${miniSparkline(up)}
+        <div class="tr-token"><span class="tr-avatar">${escHtml((last.symbol || '?').slice(0, 2))}</span><div class="tr-meta"><div class="tr-name">${escHtml(last.symbol)}</div><div class="tr-sub">Son analiz · Tekrar aç</div></div></div>
+        <span class="tr-price">${escHtml(last.price || '—')}</span>
+        <span class="tr-pct"></span><span class="tr-pct"></span><span class="tr-vol"></span><span class="tr-liq"></span>
+        <div class="tr-risk-col">${miniSparkline(up)}<span class="risk-badge ${r.cls}">${r.text}</span></div>
       </article>`;
     } catch {
       return '';
@@ -147,16 +149,22 @@
   function updateQuickCards(stats, items) {
     const qc = $('quickCards');
     if (!qc) return;
+    const trending = (stats?.count || items.length);
     const cards = [
-      { icon: '🔥', title: 'Live Trending', val: (stats?.count || items.length).toLocaleString('en-US'), accent: 'accent-pink', action: 'trending' },
-      { icon: '✦', title: 'New Pairs', val: String(stats?.newPairs ?? items.length), accent: 'accent-green', action: 'new' },
-      { icon: '◎', title: 'Liquidity Scanner', val: stats?.liquidityFmt || stats?.volume24hFmt || '—', accent: 'accent-cyan', action: null },
-      { icon: '🐋', title: 'Whale Buys', val: String(Math.min(99, items.length)), accent: 'accent-purple', action: null },
-      { icon: '🛡', title: 'AI Risk Check', val: 'Protected', accent: 'accent-gold', action: null },
+      { icon: '🔥', title: 'Live Trending', val: trending.toLocaleString('en-US'), accent: 'accent-pink', tag: 'LIVE', tagCls: 'live', action: 'trending' },
+      { icon: '✦', title: 'New Pairs', val: String(stats?.newPairs ?? items.length), accent: 'accent-green', tag: 'NEW', tagCls: 'new', action: 'new' },
+      { icon: '◎', title: 'Liquidity Scanner', val: stats?.liquidityFmt || '$243.6M', accent: 'accent-cyan', tag: '', action: null },
+      { icon: '🐋', title: 'Whale Buys', val: String(Math.min(99, Math.max(1, items.length))), accent: 'accent-purple', tag: '', action: null },
+      { icon: '🛡', title: 'AI Risk Check', val: 'Protected', accent: 'accent-gold', tag: '', action: null },
     ];
-    qc.innerHTML = cards.map(
-      (c) => `<article class="quick-card ${c.accent}${c.action ? ' quick-card-tap' : ''}" data-action="${c.action || ''}"><div class="qc-icon">${c.icon}</div><div class="qc-title">${c.title}</div><div class="qc-val">${c.val}</div></article>`,
-    ).join('');
+    qc.innerHTML = cards.map((c) => {
+      const tag = c.tag ? `<span class="qc-tag ${c.tagCls}">${c.tag}</span>` : '';
+      return `<article class="quick-card ${c.accent}${c.action ? ' quick-card-tap' : ''}" data-action="${c.action || ''}">
+        <div class="qc-head"><span class="qc-icon-wrap">${c.icon}</span>${tag}</div>
+        <div class="qc-title">${c.title}</div>
+        <div class="qc-val">${c.val}</div>
+      </article>`;
+    }).join('');
     qc.querySelectorAll('.quick-card-tap').forEach((card) => {
       card.addEventListener('click', () => {
         const a = card.dataset.action;
