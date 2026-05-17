@@ -425,11 +425,26 @@ function analysisOkIcon(chain = 'solana') {
 }
 
 function formatAnalysisItemLine(item, ce, chain) {
-  const icon = chain === 'solana' && item.icon === '✅' ? '🤔' : item.icon;
+  let icon = chain === 'solana' && item.icon === '✅' ? '🤔' : item.icon;
+  if (chain === 'solana' && icon === '🗄') icon = '🗄️';
   if (ce && icon && !icon.includes('<')) {
     return `${ce(icon)} ${item.text}`;
   }
   return `${icon} ${item.text}`;
+}
+
+/** Derin analiz satırı — baştaki unicode ikonu premium emoji yapar. */
+function wrapAnalysisLineEmojis(line, ce) {
+  if (!line || !ce || line.includes('<tg-emoji')) return line;
+  const icons = [
+    '⚠️', '⚠', '❌', '🚨', '👥', '🔗', '🔒', '🔓', '🧪', '📝', '🌡️', '🌡', '🏷', '✅', '📊', '🗄️', '🗄',
+  ];
+  for (const icon of icons) {
+    if (line.startsWith(`${icon} `)) {
+      return `${ce(icon)} ${line.slice(icon.length).trimStart()}`;
+    }
+  }
+  return line;
 }
 
 function collectAnalysisMetrics(token, audit, lang = 'en', _opts = {}) {
@@ -901,7 +916,7 @@ function buildAnalysisCommentBody(token, audit, lang = 'en', opts = {}) {
 
   const liqUsd = fmtUsd(token.liquidityUsd || 0);
   const liq = audit.breakdown.liquidity;
-  lines.push(`${ce('🪙')} <b>${t('card.liquidity', lang)}:</b> <b>${escapeHtml(liqUsd)}</b> — ${escapeHtml(liqSummaryWord(liq, lang))}`);
+  lines.push(`${ce('💧')} <b>${t('card.liquidity', lang)}:</b> <b>${escapeHtml(liqUsd)}</b> — ${escapeHtml(liqSummaryWord(liq, lang))}`);
 
   const ageTxt = ageSummary(audit.breakdown.age, lang);
   if (ageTxt) lines.push(`${ce('⏱️')} <b>${t('card.age', lang)}:</b> ${escapeHtml(ageTxt)}`);
@@ -909,7 +924,7 @@ function buildAnalysisCommentBody(token, audit, lang = 'en', opts = {}) {
   const redFlags = collectRedFlags(token, lang);
   if (redFlags.length) {
     for (const f of redFlags.slice(0, 4)) {
-      const icon = f.sev === 'bad' ? '❌' : '⚠️';
+      const icon = f.sev === 'bad' ? ce('❌') : ce('❤️');
       lines.push(`${icon} ${escapeHtml(f.text)}`);
     }
   }
@@ -932,7 +947,7 @@ function buildAnalysisCommentBody(token, audit, lang = 'en', opts = {}) {
 
   const deepPick = deepLines.slice(0, 4);
   if (deepPick.length) {
-    for (const d of deepPick) lines.push(d);
+    for (const d of deepPick) lines.push(wrapAnalysisLineEmojis(d, ce));
     if (deepLines.length > deepPick.length) {
       const n = deepLines.length - deepPick.length;
       const lbl = lang === 'tr' ? `+${n} on-chain not` : lang === 'ru' ? `+${n} ончейн` : `+${n} on-chain notes`;

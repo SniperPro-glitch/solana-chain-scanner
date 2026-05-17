@@ -399,9 +399,12 @@ async function sendTextToChat(chatId, text, opts = {}) {
   const replyTo = opts.replyTo;
   const replyParameters = opts.replyParameters;
 
-  const tryUserbot = opts.useUserbot === true && userbot.isEnabled();
-  if (tryUserbot && replyTo) {
-    const r = await userbot.sendMessage(chatId, wrapped, { silent, replyTo });
+  const tryUserbot = opts.useUserbot !== false && userbot.isEnabled();
+  if (tryUserbot) {
+    const r = await userbot.sendMessage(chatId, wrapped, {
+      silent,
+      replyTo: Number.isInteger(replyTo) ? replyTo : undefined,
+    });
     if (r.ok) return { ok: true, messageId: r.messageId, via: 'userbot' };
   }
 
@@ -425,14 +428,30 @@ async function sendTextToChat(chatId, text, opts = {}) {
   }
 }
 
-/** Bot analizi — kanal postunun altındaki yorum (tartışma grubu). */
+/** Bot analizi — tartışma grubunda (premium emoji için önce userbot). */
 async function sendAnalysisAsChannelComment(ch, channelPostMessageId, text, opts = {}) {
   const target = await resolveDiscussionReplyTarget(ch.id, channelPostMessageId);
   if (!target) return { ok: false, error: 'no_discussion', asComment: false };
 
+  const chain = opts.chain || 'solana';
+  const silent = opts.silent === true;
+  const html = wrapEmojis(text, chain);
+  const useUb = userbot.isEnabled()
+    && preferUserbotForChannel()
+    && ch?.settings?.userbotEnabled !== false;
+
+  const replyTo = target.mode === 'discussion' ? target.messageId : undefined;
+
+  if (useUb) {
+    const r = await userbot.sendMessage(target.chatId, html, { silent, replyTo });
+    if (r.ok) return { ok: true, messageId: r.messageId, via: 'userbot', asComment: true };
+    console.warn('[comment] userbot gönderilemedi:', r.error);
+  }
+
   if (target.mode === 'reply_parameters') {
     const r = await sendTextToChat(target.chatId, text, {
       ...opts,
+      useUserbot: false,
       replyParameters: {
         message_id: target.messageId,
         chat_id: target.channelChatId,
@@ -441,18 +460,9 @@ async function sendAnalysisAsChannelComment(ch, channelPostMessageId, text, opts
     return { ...r, asComment: !!r.ok };
   }
 
-  const wantUserbot = preferUserbotForChannel() && ch?.settings?.userbotEnabled !== false && userbot.isEnabled();
-  if (wantUserbot) {
-    const r = await userbot.sendMessage(
-      target.chatId,
-      wrapEmojis(text, opts.chain || 'solana'),
-      { silent: opts.silent === true, replyTo: target.messageId },
-    );
-    if (r.ok) return { ok: true, messageId: r.messageId, via: 'userbot', asComment: true };
-  }
-
   const r = await sendTextToChat(target.chatId, text, {
     ...opts,
+    useUserbot: false,
     replyTo: target.messageId,
   });
   return { ...r, asComment: !!r.ok };
@@ -482,8 +492,8 @@ async function sendBotAnalysisFollowup(ch, cmEntry, token, audit, lang, cardLeve
 
   let ar = await sendAnalysisAsChannelComment(ch, cmEntry.messageId, text, { silent: true, chain: 'solana' });
   if (!ar?.ok) {
-    console.warn('[followup] tartışma yorumu yok (%s) → kanala 2. mesaj:', ar?.error || '?', sym);
-    ar = await sendCardToChannel(ch, { text, silent: true, chain: 'solana' });
+    console.warn('[followup] tartışma yorumu yok (%s) → metin yedek (kanal):', ar?.error || '?', sym);
+    ar = await sendTextToChat(ch.id, text, { silent: true, chain: 'solana', useUserbot: true });
   }
   if (ar?.ok && ar.messageId) {
     cmEntry.analysisMessageId = ar.messageId;
