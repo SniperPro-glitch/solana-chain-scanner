@@ -131,7 +131,6 @@ function auditToken(t) {
   // Warnings (i18n key + optional vars)
   const warnings = [];
   if (liq.score >= 3) warnings.push({ key: 'warn.lowLiq' });
-  if (age.score >= 3) warnings.push({ key: 'warn.veryNew' });
   if (volRatio.score >= 3) warnings.push({ key: 'warn.pumpDump' });
   if (pc24 < -50) warnings.push({ key: 'warn.priceDrop' });
   if (pc1 > 200) warnings.push({ key: 'warn.priceSpike' });

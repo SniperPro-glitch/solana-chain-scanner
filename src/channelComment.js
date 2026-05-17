@@ -31,29 +31,15 @@ function formatRatingBlock(token, lang = 'en', level = 'green') {
     return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   });
 
-  if (wlBlock) {
-    const parts = [wlBlock];
-    if (level === 'green') {
-      parts.push(t(`${prefix}.rating.green.body`, L), t(`${prefix}.rating.signature`, L));
-    } else {
-      const ratingDot = ratingKey === 'yellow' || ratingKey === 'critical' ? ce('❤️') : ce('🔴');
-      parts.push(
-        `${ratingDot} ${t(`${prefix}.rating.${ratingKey}.header`, L)}`,
-        t(`${prefix}.rating.${ratingKey}.body`, L),
-        t(`${prefix}.rating.signature`, L),
-      );
-    }
-    return parts.join('\n');
-  }
-
   const ratingDot = ratingKey === 'green' ? ce('🟢')
     : ratingKey === 'yellow' || ratingKey === 'critical' ? ce('❤️')
       : ce('🔴');
-  return [
-    `${ratingDot} ${t(`${prefix}.rating.${ratingKey}.header`, L)}`,
-    t(`${prefix}.rating.${ratingKey}.body`, L),
-    t(`${prefix}.rating.signature`, L),
-  ].join('\n');
+  const ratingHeader = `${ratingDot} ${t(`${prefix}.rating.${ratingKey}.header`, L)}`;
+
+  if (wlBlock) {
+    return [wlBlock, ratingHeader].join('\n');
+  }
+  return ratingHeader;
 }
 
 /** Tam kanal yorum gövdesi (üst başlık: $SYMBOL ayrı eklenir). */

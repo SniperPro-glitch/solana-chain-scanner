@@ -37,19 +37,6 @@ function fmtPercent(n) {
   return `${emoji} ${sign}${n.toFixed(2)}%`;
 }
 
-function liqStrengthEmoji(liq) {
-  if (!liq) return '🟢';
-  if (liq.code === 'STRONG') return '⚡';
-  return liq.emoji || '🟢';
-}
-
-function liqLabel(code, lang) {
-  const map = {
-    POOR: 'liq.poor', WEAK: 'liq.weak', OK: 'liq.ok', GOOD: 'liq.good', STRONG: 'liq.strong',
-  };
-  return t(map[code] || 'liq.ok', lang);
-}
-
 function riskLabel(code, lang) {
   const map = { VERY_LOW: 'risk.veryLow', LOW: 'risk.low', MEDIUM: 'risk.medium', HIGH: 'risk.high' };
   return t(map[code] || 'risk.medium', lang);
@@ -131,13 +118,6 @@ function formatTokenCard(token, audit, lang = 'en', level = 'green', opts = {}) 
       `${titleFlag} ${titleEmoji} <b>${t(titleKey, L)}:</b> $${h(token.tokenSymbol)}${whitelistTitleSuffix(token.trustedWhitelist, L, 'solana', t, h)}`,
     );
   }
-  {
-    let suffix = '';
-    if (level === 'yellow') suffix = ` ${ce('❤️')} ${ce('🛰')}`;
-    else if (level === 'critical' || level === 'red') suffix = ` ${ce('🚨')}`;
-    lines.push(`${ce('🪐')} ${h(token.tokenName)}${suffix}`);
-  }
-
   if (token.dex) {
     lines.push(`${ce(dexEmojiCharFor(token))} <b>${t('card.dex', L)}:</b> ${h(dexLabel(token.dex))}`);
   }
@@ -150,9 +130,6 @@ function formatTokenCard(token, audit, lang = 'en', level = 'green', opts = {}) 
   if (token.fdvUsd) lines.push(`${ce('💲')} <b>${t('card.fdv', L)}:</b> ${h(fmtUsd(token.fdvUsd))}`);
   if (token.marketCapUsd) lines.push(`${ce('📦')} <b>${t('card.mcap', L)}:</b> ${h(fmtUsd(token.marketCapUsd))}`);
   lines.push('');
-
-  const liq = audit.breakdown.liquidity;
-  lines.push(`${ce('🪙')} <b>${t('card.liquidity', L)}:</b> ${h(fmtUsd(token.liquidityUsd))} ${ce(liqStrengthEmoji(liq))} <b>${liqLabel(liq.code, L)}</b>`);
 
   lines.push(`${ce('📊')} <b>${t('card.volume24h', L)}:</b> ${h(fmtUsd(token.volume24h))}`);
   if (audit.breakdown.volumeLiquidityRatio.ratio !== null) {
@@ -173,6 +150,8 @@ function formatTokenCard(token, audit, lang = 'en', level = 'green', opts = {}) 
     lines.push('');
     lines.push(`${ce('❤️')} <b>${t('card.warnings', L)}:</b>`);
     for (const w of warnList) {
+      const key = typeof w === 'string' ? null : w?.key;
+      if (key === 'warn.veryNew') continue;
       const text = typeof w === 'string' ? w : t(w.key, L, w.vars);
       lines.push(`  • ${h(text)}`);
     }
