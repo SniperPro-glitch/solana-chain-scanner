@@ -604,8 +604,7 @@
       const link = page
         ? `<a class="dex-chart-link" href="${escHtml(page)}" target="_blank" rel="noopener">DexScreener’da grafiği aç</a>`
         : '';
-      container.innerHTML = `<div class="empty-chart">Mum verisi yok. ${link}</motion>`;
-      container.innerHTML = container.innerHTML.replace('</motion>', '');
+      container.innerHTML = `<div class="empty-chart">Mum verisi yok. ${link}</div>`;
       return;
     }
 
