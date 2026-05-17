@@ -1273,13 +1273,11 @@ process.on('SIGINT', () => {
 async function main() {
   await startBotPolling();
   const me = await bot.getMe().catch(() => ({ username: 'bot', id: '?' }));
+  process.env.BOT_USERNAME = me.username ? `@${me.username}` : '';
   console.log(`✅ Solana bot: @${me.username} (id=${me.id})`);
   console.log('   Bu token yalnızca TEK yerde çalışmalı (Railway XOR yerel PC).');
   console.log(`   Tarama: ${SOLANA_SCAN_ENABLED ? `AÇIK (${SOLANA_SCAN_INTERVAL_MIN} dk)` : 'KAPALI'}`);
   console.log(`   İzleme: ${WATCH_INTERVAL_SEC} sn`);
-
-  const me = await bot.getMe();
-  process.env.BOT_USERNAME = me.username ? `@${me.username}` : '';
 
   await bot.setMyCommands([
     { command: 'start', description: 'Başlangıç / dil' },
