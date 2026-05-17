@@ -4,6 +4,13 @@
   --app-height: 100dvh;
   --tg-safe-top: env(safe-area-inset-top, 0px);
   --tg-safe-bottom: env(safe-area-inset-bottom, 0px);
+  --tg-content-safe-top: 0px;
+  --tg-content-safe-bottom: 0px;
+  --tg-content-safe-left: 0px;
+  --tg-content-safe-right: 0px;
+  --nav-h: 72px;
+  --market-h: 88px;
+  --footer-stack: calc(var(--nav-h) + var(--market-h) + var(--tg-safe-bottom, 0px) + 8px);
 }
 
 html.tg-mini-app,
@@ -26,20 +33,21 @@ html.tg-mini-app body {
   --text: #ffffff;
   --muted: #8892a4;
   --radius: 12px;
-  --w: 375px;
+  --w: 100%;
   --nav-h: 72px;
   --market-h: 88px;
 
-  max-width: var(--w);
-  margin: 0 auto;
   width: 100%;
+  max-width: 100%;
+  margin: 0;
   min-height: var(--app-height, 100dvh);
   height: var(--app-height, 100dvh);
   background: var(--bg);
   color: var(--text);
   font-family: 'Inter', system-ui, sans-serif;
-  padding-top: var(--tg-safe-top, 0px);
-  padding-bottom: calc(var(--nav-h) + var(--market-h) + var(--tg-safe-bottom, 0px) + 8px);
+  padding-top: 0;
+  padding-bottom: var(--footer-stack);
+  box-sizing: border-box;
   position: relative;
   overflow-x: hidden;
   overflow-y: auto;
@@ -50,8 +58,9 @@ html.tg-mini-app body {
   content: '';
   position: fixed;
   inset: 0;
-  max-width: var(--w);
-  margin: 0 auto;
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
   pointer-events: none;
   z-index: 0;
   background:
@@ -63,15 +72,28 @@ html.tg-mini-app body {
 
 .scanner-home > * { position: relative; z-index: 1; }
 
-/* Header */
+/* Header — Telegram kapat (X) sol üst; logo sağa kayar */
 .scan-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 14px 16px 10px;
+  gap: 10px;
+  min-height: 52px;
+  padding:
+    calc(10px + var(--tg-content-safe-top, 0px))
+    calc(12px + var(--tg-content-safe-right, 0px))
+    10px
+    calc(12px + var(--tg-content-safe-left, 0px));
+  box-sizing: border-box;
 }
 
-.scan-brand { display: flex; align-items: center; gap: 10px; }
+.scan-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+}
 
 .brand-crosshair {
   width: 36px;
@@ -96,7 +118,18 @@ html.tg-mini-app body {
   color: var(--cyan);
 }
 
-.header-actions { display: flex; align-items: center; gap: 8px; }
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+html.tg-fullscreen .btn-connect {
+  max-width: 110px;
+  padding: 8px 10px;
+  font-size: 11px;
+}
 
 .btn-connect {
   display: inline-flex;
@@ -537,9 +570,11 @@ html.tg-mini-app body {
   position: fixed;
   left: 0;
   right: 0;
+  width: 100%;
+  max-width: 100%;
   bottom: calc(var(--nav-h) + var(--tg-safe-bottom, 0px));
-  max-width: var(--w);
-  margin: 0 auto;
+  margin: 0;
+  box-sizing: border-box;
   display: flex;
   gap: 8px;
   padding: 8px 16px 10px;
@@ -592,9 +627,11 @@ html.tg-mini-app body {
   position: fixed;
   left: 0;
   right: 0;
+  width: 100%;
+  max-width: 100%;
   bottom: 0;
-  max-width: var(--w);
-  margin: 0 auto;
+  margin: 0;
+  box-sizing: border-box;
   display: flex;
   justify-content: space-around;
   align-items: center;
