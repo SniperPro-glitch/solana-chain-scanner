@@ -42,7 +42,13 @@ async function _connect() {
     _userId = String(me.id);
     return client;
   } catch (e) {
-    console.error('❌ Userbot bağlantı hatası:', e.message);
+    const msg = String(e.message || e);
+    console.error('❌ Userbot bağlantı hatası:', msg);
+    if (/AUTH_KEY_DUPLICATED|406/.test(msg)) {
+      console.error('   → Aynı TG_SESSION iki yerde açık (PC + Railway veya iki deploy).');
+      console.error('   → Çözüm: PC botunu kapatın, yeni session üretin, sadece Railway\'de kullanın.');
+      console.error('   → Geçici: CHANNEL_USERBOT_REQUIRED=0 ve TG_SESSION silin → Bot API ile post.');
+    }
     _disabled = true;
     return null;
   }

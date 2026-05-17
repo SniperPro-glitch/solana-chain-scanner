@@ -1287,6 +1287,9 @@ async function main() {
     { command: 'stats', description: 'İstatistikler' },
   ]).catch((e) => console.warn('setMyCommands:', e?.message));
 
+  const dataPath = require('./data-path');
+  console.log(`[data] DATA_DIR=${dataPath.DATA_DIR} · kalıcı=${dataPath.isPersistentDataDir() ? 'EVET' : 'HAYIR (Volume /data ekleyin)'}`);
+
   await userbot.getClient();
 
   const ubOn = userbot.isEnabled();
@@ -1296,7 +1299,9 @@ async function main() {
   } else if (ubStrict && !hasUserbotCredentials()) {
     console.warn('   ⚠️ CHANNEL_USERBOT_REQUIRED=1 ama TG_API_ID/HASH/SESSION yok → kanala post GİTMEZ');
   } else if (ubStrict && hasUserbotCredentials()) {
-    console.warn('   ⚠️ TG_SESSION var ama userbot bağlanamadı → postlar Bot API (session yenileyin)');
+    console.warn('   ⚠️ TG_SESSION var ama userbot bağlanamadı → kanala post GİTMEZ (CHANNEL_USERBOT_REQUIRED=0 yapın veya session yenileyin)');
+  } else if (!ubOn && hasUserbotCredentials()) {
+    console.warn('   ⚠️ Userbot kapalı (TG_SESSION hatalı/çift) → Bot API ile post (CHANNEL_USERBOT_REQUIRED=0 olmalı)');
   } else {
     console.log('   Userbot: kapalı → Bot API');
   }
