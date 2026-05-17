@@ -75,10 +75,15 @@ function pumpCoinToDexPair(coin) {
 
 async function rpcCall(method, params) {
   const rpc = (process.env.SOLANA_RPC_URL || '').trim();
-  if (!rpc) return null;
-  const { data } = await http.post(rpc, { jsonrpc: '2.0', id: 1, method, params });
-  if (data?.error) throw new Error(data.error.message || 'rpc error');
-  return data?.result ?? null;
+  if (!rpc || !/^https?:\/\//i.test(rpc)) return null;
+  try {
+    const { data } = await http.post(rpc, { jsonrpc: '2.0', id: 1, method, params });
+    if (data?.error) throw new Error(data.error.message || 'rpc error');
+    return data?.result ?? null;
+  } catch (e) {
+    console.warn('[solana/pumpfun] RPC:', e.message);
+    return null;
+  }
 }
 
 function extractPumpMintsFromTx(tx) {
