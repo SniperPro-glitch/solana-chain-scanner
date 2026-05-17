@@ -884,9 +884,9 @@ bot.on('my_chat_member', async (upd) => {
   // Restart sonrası Telegram güncellemesi: kanalı kaydet ama hoş geldin / chains sıfırlama yok
   if (['administrator', 'member'].includes(newStatus) && (oldStatus == null || oldStatus === '')) {
     const existed = Boolean(channels.get(chat.id));
-    channels.add(chat, upd.from?.username || 'auto');
+    channels.add(chat, 'boot-sync');
     if (!existed) {
-      console.log(`[channels] sync kayıt (deploy): ${chat.title || chat.id} — ağ seçimi DM'den yapılmalı`);
+      console.log(`[channels] deploy sync: ${chat.title || chat.id} (◎ Solana otomatik)`);
     }
     return;
   }
@@ -1170,9 +1170,32 @@ async function main() {
   } else {
     console.log('   Userbot: kapalı → Bot API');
   }
-  await channels.syncFromBotApi(bot);
-  await userbot.syncAdminChannels(channels, bot);
+  const rediscover = await channels.rediscoverAllChannels(bot, channels);
+  if (rediscover.added > 0) {
+    console.log(`[channels] açılış keşfi: +${rediscover.added} kanal (${rediscover.before} → ${rediscover.after})`);
+  }
   channels.logBootSummary();
+  const chTotal = channels.count().total;
+  if (chTotal === 0 && ADMIN_IDS.length) {
+    const hint = 'Kanal listesi boş. Railway: Volume /data + TELEGRAM_CHANNEL_IDS veya TG_SESSION ile userbot sync.';
+    for (const adminId of ADMIN_IDS) {
+      bot.sendMessage(adminId, `⚠️ ${hint}`).catch(() => {});
+    }
+  } else if (chTotal > 0 && !require('./data-path').isPersistentDataDir()) {
+    const ids = channels.getChannelIdsForEnv();
+    const hasEnvBackup = String(
+      process.env.TELEGRAM_CHANNEL_IDS || process.env.TELEGRAM_CHANNEL_ID || '',
+    ).trim();
+    if (ids && !hasEnvBackup && ADMIN_IDS.length) {
+      for (const adminId of ADMIN_IDS) {
+        bot.sendMessage(
+          adminId,
+          `📋 Kanal deploy'da silinmesin diye Railway'e ekleyin:\n<code>TELEGRAM_CHANNEL_IDS=${ids}</code>\n\nKalıcı çözüm: Volume mount <code>/data</code>`,
+          { parse_mode: 'HTML' },
+        ).catch(() => {});
+      }
+    }
+  }
   const enabledCh = channels.listEnabled().filter((c) => channels.isSolanaSelected(c.id));
   console.log(`   Özet: ${enabledCh.length} kanal aktif ve ◎ Solana seçili (post için)`);
 

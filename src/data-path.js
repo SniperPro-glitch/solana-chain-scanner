@@ -12,6 +12,12 @@ function resolveDataDir() {
   const railwayMount = String(process.env.RAILWAY_VOLUME_MOUNT_PATH || '').trim();
   if (railwayMount) return path.resolve(railwayMount);
 
+  // Railway Volume çoğu kurulumda /data — env gelmese bile mount varsa kullan
+  const onRailway = !!(process.env.RAILWAY_ENVIRONMENT || process.env.RAILWAY_PROJECT_ID);
+  if (onRailway && fs.existsSync('/data')) {
+    return '/data';
+  }
+
   return LEGACY_DATA_DIR;
 }
 

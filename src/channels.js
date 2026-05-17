@@ -60,6 +60,16 @@ function consumeChainsSanitizeNotice(chatId) {
 }
 
 const CHANNELS_FILE = path.join(DATA_DIR, 'channels.json');
+const CHANNEL_IDS_FILE = path.join(DATA_DIR, 'channel_ids.txt');
+
+/** Deploy sonrası yeniden kayıtta ◎ Solana otomatik seçilsin (env-sync / userbot / boot). */
+function shouldAutoSelectSolanaOnAdd(addedBy, existed) {
+  if (existed) return false;
+  if (['env-sync', 'userbot-sync', 'boot-sync'].includes(addedBy)) return true;
+  return ['1', 'true', 'on', 'yes'].includes(
+    String(process.env.AUTO_SELECT_SOLANA_ON_SYNC || '1').trim().toLowerCase(),
+  );
+}
 
 // ─────────────────────────────────────────────────────────────
 // Varsayılan kanal ayarları (her kanal kendi tercihini saklar)
@@ -115,14 +125,66 @@ function ensureDir() {
   ensureDataDir();
 }
 
+function mergeChannelIdsFile(state) {
+  if (!fs.existsSync(CHANNEL_IDS_FILE)) return state;
+  try {
+    const ids = fs.readFileSync(CHANNEL_IDS_FILE, 'utf8')
+      .split(/[\n,;]+/)
+      .map((s) => s.trim())
+      .filter(Boolean);
+    for (const id of ids) {
+      if (state.channels[id]) continue;
+      state.channels[id] = {
+        id,
+        title: `Kanal ${id}`,
+        username: null,
+        type: 'channel',
+        addedAt: new Date().toISOString(),
+        addedBy: 'ids-file',
+        lastError: null,
+        settings: { ...DEFAULT_SETTINGS, chains: ['solana'] },
+      };
+    }
+  } catch (e) {
+    console.warn('[channels] channel_ids.txt okunamadı:', e.message);
+  }
+  return state;
+}
+
+function writeChannelIdsBackup(state) {
+  try {
+    ensureDir();
+    const ids = Object.keys(state.channels || {});
+    fs.writeFileSync(CHANNEL_IDS_FILE, `${ids.join('\n')}\n`, 'utf8');
+  } catch (e) {
+    console.warn('[channels] channel_ids.txt yazılamadı:', e.message);
+  }
+}
+
+function getChannelIdsForEnv() {
+  return Object.keys(cache.channels || {}).join(',');
+}
+
+function logEnvBackupHint() {
+  const ids = getChannelIdsForEnv();
+  if (!ids) return;
+  if (isPersistentDataDir()) return;
+  console.warn('[channels] 📋 Railway Variables yedek (deploy sonrası kanal kaybolmasın):');
+  console.warn(`[channels] TELEGRAM_CHANNEL_IDS=${ids}`);
+}
+
 function load() {
   try {
     ensureDir();
-    if (!fs.existsSync(CHANNELS_FILE)) return { channels: {} };
-    return JSON.parse(fs.readFileSync(CHANNELS_FILE, 'utf8'));
+    let state = { channels: {} };
+    if (fs.existsSync(CHANNELS_FILE)) {
+      state = JSON.parse(fs.readFileSync(CHANNELS_FILE, 'utf8'));
+    }
+    state = mergeChannelIdsFile(state);
+    return state;
   } catch (err) {
     console.error('channels.json okuma hatası:', err.message);
-    return { channels: {} };
+    return mergeChannelIdsFile({ channels: {} });
   }
 }
 
@@ -130,6 +192,7 @@ function save(state) {
   try {
     ensureDir();
     fs.writeFileSync(CHANNELS_FILE, JSON.stringify(state, null, 2));
+    writeChannelIdsBackup(state);
   } catch (err) {
     console.error('channels.json yazma hatası:', err.message);
   }
@@ -179,9 +242,11 @@ function logBootSummary() {
     console.warn('[channels] ⚠️ Railway: Volume ekle → Mount Path /data (veya DATA_DIR=/data). TELEGRAM_CHANNEL_IDS yedek olarak kullanılabilir.');
   }
   if (!list.length) {
-    console.log('[channels] (boş — bot kanala eklenince veya userbot sync ile dolar)');
+    console.log('[channels] (boş — TELEGRAM_CHANNEL_IDS env veya Volume /data gerekli)');
+    logEnvBackupHint();
     return;
   }
+  logEnvBackupHint();
   for (const ch of list) {
     const s = ch.settings || {};
     const net = Array.isArray(s.chains) && s.chains.includes('solana')
@@ -438,10 +503,30 @@ function addChannel(chat, addedBy = 'auto') {
   const n = normalizeChainsSetting(cache.channels[id].settings.chains);
   if (n.changed) cache.channels[id].settings.chains = n.chains;
   if (!existed) {
-    cache.channels[id].settings.chains = null;
+    cache.channels[id].settings.chains = shouldAutoSelectSolanaOnAdd(addedBy, false)
+      ? ['solana']
+      : null;
   }
   save(cache);
+  if (!existed) {
+    console.log(`[channels] + ${cache.channels[id].title} (${id}) · ${addedBy}`);
+    logEnvBackupHint();
+  }
   return { added: !existed, channel: cache.channels[id] };
+}
+
+/** Bot + env + userbot ile tüm bilinen kanalları yeniden kaydeder. */
+async function rediscoverAllChannels(bot, channelsMod) {
+  const before = Object.keys(cache.channels).length;
+  await syncFromBotApi(bot);
+  try {
+    const userbot = require('./userbot');
+    await userbot.syncAdminChannels(channelsMod, bot);
+  } catch (e) {
+    console.warn('[channels] userbot sync:', e.message);
+  }
+  const after = Object.keys(cache.channels).length;
+  return { before, after, added: Math.max(0, after - before) };
 }
 
 module.exports = {
@@ -557,6 +642,8 @@ module.exports = {
 
   consumeChainsSanitizeNotice,
   syncFromBotApi,
+  rediscoverAllChannels,
+  getChannelIdsForEnv,
 
   tokenPassesChannelFilters,
 };
