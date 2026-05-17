@@ -165,7 +165,18 @@ const BSC_EMOJI_MAP = {
   '⚖️': '5314613581705132533',
 };
 
-// ── Solana bot premium emoji (kart + yorum; SOLANA_CUSTOM_EMOJI_JSON ile güncelle) ──
+// ── Solana premium emoji — kullanım haritası (SOLANA_CUSTOM_EMOJI_JSON ile güncelle) ──
+// 🪙 5843946791740905640 → kart: Solana başlık, kontrat, likidite, risk; yorum: kontrat güvenliği başlığı
+// 🪙 5280476129369543392 → yalnızca Solscan linki (solscanEmojiHtml — karttaki 🪙 ile karıştırma)
+// 🆕 5190801313922847501 → yeşil kart “Yeni Token” başlığı
+// ❤️ 5424733863114980704 → sarı/kritik kart, uyarılar, rating, kontrat riski, dikkat satırları
+// 💬 5420465103709423748 → kart “yorumu oku”, yorum “Bot analizi” başlığı, değerlendirme satırı
+// 🤔 4940452364638225625 → olumlu kontroller (✅ yerine; kontrat güvenliği + analiz)
+// 💊 5440882540715986311 → Pump.fun + DEX pump/pumpswap (kart + yorum al/sat)
+// 💰 5328025123893029024 → Raydium DEX (kart + yorum al/sat)
+// ☄️ 5382292151642114303 → Meteora DEX (kart + yorum al/sat)
+// 👻 5289552365928589580 → Phantom al/sat linkleri (yorum)
+// 🤑 5251414920355931519 → rezerv (henüz UI’da atanmadı)
 const SOLANA_EMOJI_BASE = {
   '◎': '5998906604735437913',
   '🪐': '5998906604735437913',
@@ -356,13 +367,19 @@ function knownProjectCoinHtml(chain = 'solana') {
   return `<tg-emoji emoji-id="${id}">${KNOWN_PROJECT_COIN_CHAR}</tg-emoji>`;
 }
 
-/** Kanal yorumu — Solana ◎ (premium emoji). */
+/** Kanal yorumu zincir rozeti (BSC/TON). Solana analiz başlığı için botCommentTitleHtml kullan. */
 function botLogoHtml(chain = 'solana') {
   if (chain === 'solana') return solanaLogoHtml();
   const id = chain === 'bsc'
     ? (BSC_EMOJI_MAP['🐻'] || BSC_EMOJI_MAP['🤖'] || '5767368031659368530')
     : (EMOJI_MAP['🐻'] || EMOJI_MAP['🤖'] || '5767368031659368530');
   return `<tg-emoji emoji-id="${id}">🐻</tg-emoji>`;
+}
+
+/** Yorum — “Bot analizi” başlık ikonu (💬). */
+function botCommentTitleHtml(chain = 'solana') {
+  if (chain !== 'solana') return botLogoHtml(chain);
+  return customEmojiHtml('💬', 'solana');
 }
 
 function customEmojiHtml(emoji, chain = 'solana') {
@@ -527,6 +544,7 @@ module.exports = {
   knownProjectCoinHtml,
   KNOWN_PROJECT_COIN_EMOJI_ID,
   botLogoHtml,
+  botCommentTitleHtml,
   customEmojiHtml,
   solscanEmojiHtml,
   phantomEmojiHtml,

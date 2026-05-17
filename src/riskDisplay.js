@@ -41,7 +41,7 @@ function formatRiskLine(audit, lang, ce, _riskLabelFn) {
   const safe = safetyPercent(audit.riskPercent);
   const em = safetyEmoji(safe, ce);
   const tier = safetyTierLabel(safe, L);
-  return `${ce('🔎')} <b>${t('card.risk', L)}:</b> ${em} <b>${fmtPct(safe, L)} ${t('card.safetyWord', L)}</b> — <b>${tier}</b>`;
+  return `${ce('🪙')} <b>${t('card.risk', L)}:</b> ${em} <b>${fmtPct(safe, L)} ${t('card.safetyWord', L)}</b> — <b>${tier}</b>`;
 }
 
 module.exports = {

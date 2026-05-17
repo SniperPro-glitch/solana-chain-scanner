@@ -916,7 +916,7 @@ function buildAnalysisCommentBody(token, audit, lang = 'en', opts = {}) {
 
   const liqUsd = fmtUsd(token.liquidityUsd || 0);
   const liq = audit.breakdown.liquidity;
-  lines.push(`${ce('💧')} <b>${t('card.liquidity', lang)}:</b> <b>${escapeHtml(liqUsd)}</b> — ${escapeHtml(liqSummaryWord(liq, lang))}`);
+  lines.push(`${ce('🪙')} <b>${t('card.liquidity', lang)}:</b> <b>${escapeHtml(liqUsd)}</b> — ${escapeHtml(liqSummaryWord(liq, lang))}`);
 
   const ageTxt = ageSummary(audit.breakdown.age, lang);
   if (ageTxt) lines.push(`${ce('⏱️')} <b>${t('card.age', lang)}:</b> ${escapeHtml(ageTxt)}`);

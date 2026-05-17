@@ -13,9 +13,9 @@ function fmtNum(n, lang) {
   try { return n.toLocaleString(locale); } catch { return String(n); }
 }
 
-function statusIcon(p, thresholds, ce) {
-  if (p > thresholds.red) return '🔴';
-  if (p > thresholds.orange) return '🟠';
+function statusIcon(p, thresholds, ce, chain = 'ton') {
+  if (p > thresholds.red) return chain === 'solana' ? ce('❤️') : '🔴';
+  if (p > thresholds.orange) return chain === 'solana' ? ce('❤️') : '🟠';
   if (p > thresholds.yellow) return ce('🟡');
   return ce('🟢');
 }
@@ -47,12 +47,12 @@ function formatContractSecurityBlock(token, lang = 'en', chain = 'ton', opts = {
 
   if (c.topHolderPct !== null && c.topHolderPct !== undefined) {
     const p = c.topHolderPct;
-    lines.push(`${statusIcon(p, { red: 50, orange: 20, yellow: 10 }, ce)} ${t('card.topHolder', L)}: <b>${p.toFixed(1)}%</b>`);
+    lines.push(`${statusIcon(p, { red: 50, orange: 20, yellow: 10 }, ce, chain)} ${t('card.topHolder', L)}: <b>${p.toFixed(1)}%</b>`);
   }
 
   if (c.top10Pct !== null && c.top10Pct !== undefined) {
     const p = c.top10Pct;
-    lines.push(`${statusIcon(p, { red: 80, orange: 60, yellow: 40 }, ce)} ${t('card.top10', L)}: <b>${p.toFixed(1)}%</b>`);
+    lines.push(`${statusIcon(p, { red: 80, orange: 60, yellow: 40 }, ce, chain)} ${t('card.top10', L)}: <b>${p.toFixed(1)}%</b>`);
   }
 
   // Holder sayısı yalnızca bot yorumunda (showHolders: true); üst kartta gösterilmez.

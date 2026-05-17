@@ -2,7 +2,7 @@
 
 const { t, normalizeLang } = require('./i18n');
 const { buildAnalysisCommentBody } = require('./analysis');
-const { botLogoHtml, customEmojiHtml } = require('./emojiPack');
+const { botCommentTitleHtml, customEmojiHtml } = require('./emojiPack');
 const { formatContractSecurityBlock } = require('./contractSecurityBlock');
 const { formatLinksTradeBlock, DIVIDER } = require('./commentLinksTrade');
 
@@ -50,7 +50,7 @@ function formatChannelComment(token, audit, lang = 'en', level = 'green') {
     chain,
   });
   blocks.push(sectionBlock(
-    `${botLogoHtml(chain)} <b>${t('comment.botTitle', L)}</b>`,
+    `${botCommentTitleHtml(chain)} <b>${t('comment.botTitle', L)}</b>`,
     analysisBody || '—',
   ));
 
