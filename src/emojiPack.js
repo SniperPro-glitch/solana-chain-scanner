@@ -168,7 +168,7 @@ const BSC_EMOJI_MAP = {
 // ── Solana premium emoji — SENİN TARİFİN (alt açıklama = yorum bloğu) ──
 //
 // KART (üst foto caption):
-//   🪙 5843946791740905640 → Sol kontrat satırı, risk yazısı, likidite satırı (+ başlık Solana rozeti)
+//   🪙 5280476129369543392 → Sol kontrat, risk, likidite (yorum); sarı/kırmızı kart başlık rozeti
 //   🆕 5190801313922847501 → “Yeni Token” / New olan yerler
 //   ❤️ 5424733863114980704 → dikkat emojileri (sarı kart, uyarı listesi)
 //   💬 5420465103709423748 → yalnızca “bot yorumu işareti” (↓ yorumu oku ipucu)
@@ -179,7 +179,8 @@ const BSC_EMOJI_MAP = {
 //   🪙 → “Bot analizi” altı: risk, likidite, yaş (kartla aynı mantık)
 //   🤔 4940452364638225625 → tik / onay işaretleri (kontrat güvenliği + analiz maddeleri)
 //   ❤️ → dikkat / holder / mint uyarıları
-//   🪙 5280476129369543392 → yalnızca Solscan linki (solscanEmojiHtml)
+//   🤖 5767368031659368530 → bot imzası + “Bot analizi” başlığı (botLogoHtml)
+//   🪙 5280476129369543392 → Solscan linki (solscanEmojiHtml; kart 🪙 ile aynı ID)
 //   💊 → Pump.fun logosu + pump DEX; 💰 Raydium; ☄️ Meteora; 👻 Phantom al/sat
 //   🔥 5424972470023104089 → /wl bilinen token: POPÜLER satırı (kart + yorum)
 //   🏅 5814173103487456712 → /wl bilinen token: BİLİNEN PROJE satırı (kart + yorum)
@@ -188,7 +189,7 @@ const SOLANA_EMOJI_BASE = {
   '◎': '5998906604735437913',
   '🪐': '5998906604735437913',
   '💎': '5998906604735437913',
-  '🪙': '5843946791740905640',   // Solana: logo, kontrat, risk, likidite
+  '🪙': '5280476129369543392',   // Solana: kontrat, risk, likidite; Solscan (sakin coin)
   '🤑': '5251414920355931519',   // Solana flaması — Yeni Token satırı başı
   '🟣': '5998906604735437913',
   '🔍': '5999337011998104831',
@@ -380,9 +381,9 @@ function knownProjectCoinHtml(chain = 'solana') {
   return `<tg-emoji emoji-id="${id}">${KNOWN_PROJECT_COIN_CHAR}</tg-emoji>`;
 }
 
-/** Kanal yorumu zincir rozeti (BSC/TON). Solana analiz başlığı için botCommentTitleHtml kullan. */
+/** Kanal yorumu — bot maskotu (ayı); Solana’da 🪙 değil 🤖. */
 function botLogoHtml(chain = 'solana') {
-  if (chain === 'solana') return solanaLogoHtml();
+  if (chain === 'solana') return customEmojiHtml('🤖', 'solana');
   const id = chain === 'bsc'
     ? (BSC_EMOJI_MAP['🐻'] || BSC_EMOJI_MAP['🤖'] || '5767368031659368530')
     : (EMOJI_MAP['🐻'] || EMOJI_MAP['🤖'] || '5767368031659368530');

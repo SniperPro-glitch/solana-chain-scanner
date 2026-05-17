@@ -2,7 +2,7 @@
 
 const { t, normalizeLang } = require('./i18n');
 const { buildAnalysisCommentBody } = require('./analysis');
-const { solanaLogoHtml, customEmojiHtml, formatWhitelistKnownProjectBlock } = require('./emojiPack');
+const { botLogoHtml, customEmojiHtml, formatWhitelistKnownProjectBlock } = require('./emojiPack');
 const { formatContractSecurityBlock } = require('./contractSecurityBlock');
 const { formatLinksTradeBlock, DIVIDER } = require('./commentLinksTrade');
 
@@ -35,11 +35,12 @@ function formatRatingBlock(token, lang = 'en', level = 'green') {
     : ratingKey === 'yellow' || ratingKey === 'critical' ? ce('❤️')
       : ce('🔴');
   const ratingHeader = `${ratingDot} ${t(`${prefix}.rating.${ratingKey}.header`, L)}`;
+  const ratingSignature = `${botLogoHtml(chain)} ${t(`${prefix}.rating.signature`, L)}`;
 
   if (wlBlock) {
-    return [wlBlock, ratingHeader].join('\n');
+    return [wlBlock, ratingHeader, ratingSignature].join('\n');
   }
-  return ratingHeader;
+  return [ratingHeader, ratingSignature].join('\n');
 }
 
 /** Tam kanal yorum gövdesi (üst başlık: $SYMBOL ayrı eklenir). */
@@ -57,7 +58,7 @@ function formatChannelComment(token, audit, lang = 'en', level = 'green') {
     chain,
   });
   blocks.push(sectionBlock(
-    `${solanaLogoHtml()} <b>${t('comment.botTitle', L)}</b>`,
+    `${botLogoHtml(chain)} <b>${t('comment.botTitle', L)}</b>`,
     analysisBody || '—',
   ));
 
