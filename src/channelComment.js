@@ -2,7 +2,7 @@
 
 const { t, normalizeLang } = require('./i18n');
 const { buildAnalysisCommentBody } = require('./analysis');
-const { solanaLogoHtml, customEmojiHtml } = require('./emojiPack');
+const { solanaLogoHtml, customEmojiHtml, formatWhitelistKnownProjectBlock } = require('./emojiPack');
 const { formatContractSecurityBlock } = require('./contractSecurityBlock');
 const { formatLinksTradeBlock, DIVIDER } = require('./commentLinksTrade');
 
@@ -24,10 +24,31 @@ function formatRatingBlock(token, lang = 'en', level = 'green') {
   const chain = token?.chain || 'solana';
   const ce = (emoji) => customEmojiHtml(emoji, chain);
   const ratingKey = (level === 'yellow' || level === 'critical' || level === 'red') ? level : 'green';
+  const prefix = chain === 'solana' ? 'sol' : (chain === 'bsc' ? 'bsc' : 'ton');
+
+  const wlBlock = formatWhitelistKnownProjectBlock(token, L, chain, t, (s) => {
+    if (s === null || s === undefined) return '';
+    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  });
+
+  if (wlBlock) {
+    const parts = [wlBlock];
+    if (level === 'green') {
+      parts.push(t(`${prefix}.rating.green.body`, L), t(`${prefix}.rating.signature`, L));
+    } else {
+      const ratingDot = ratingKey === 'yellow' || ratingKey === 'critical' ? ce('❤️') : ce('🔴');
+      parts.push(
+        `${ratingDot} ${t(`${prefix}.rating.${ratingKey}.header`, L)}`,
+        t(`${prefix}.rating.${ratingKey}.body`, L),
+        t(`${prefix}.rating.signature`, L),
+      );
+    }
+    return parts.join('\n');
+  }
+
   const ratingDot = ratingKey === 'green' ? ce('🟢')
     : ratingKey === 'yellow' || ratingKey === 'critical' ? ce('❤️')
       : ce('🔴');
-  const prefix = chain === 'solana' ? 'sol' : (chain === 'bsc' ? 'bsc' : 'ton');
   return [
     `${ratingDot} ${t(`${prefix}.rating.${ratingKey}.header`, L)}`,
     t(`${prefix}.rating.${ratingKey}.body`, L),

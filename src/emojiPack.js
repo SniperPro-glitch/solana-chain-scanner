@@ -181,6 +181,8 @@ const BSC_EMOJI_MAP = {
 //   ❤️ → dikkat / holder / mint uyarıları
 //   🪙 5280476129369543392 → yalnızca Solscan linki (solscanEmojiHtml)
 //   💊 → Pump.fun logosu + pump DEX; 💰 Raydium; ☄️ Meteora; 👻 Phantom al/sat
+//   🔥 5424972470023104089 → /wl bilinen token: POPÜLER satırı (kart + yorum)
+//   🏅 5814173103487456712 → /wl bilinen token: BİLİNEN PROJE satırı (kart + yorum)
 //   🤑 5251414920355931519 → (mesajında yer belirtilmedi — ID kayıtlı)
 const SOLANA_EMOJI_BASE = {
   '◎': '5998906604735437913',
@@ -440,19 +442,34 @@ function whitelistTitleSuffix(wl, lang, chain, translate, htmlEscape) {
 }
 
 /**
- * Yeşil kart + whitelist (Yeni Token yok):
- *   Satır 1: 🔥 POPÜLER · $SYM
- *   Satır 2: 🏅 BİLİNEN PROJE 🏅  (/wl etiketi kartta tekrarlanmaz)
+ * /wl bilinen token — kart + yorum (manuel paylaşım dahil):
+ *   🔥 POPÜLER · $SYM
+ *   🔥 Popüler · {özel etiket}  (varsa, yeşil dışı veya özel isim)
+ *   🏅 BİLİNEN PROJE 🏅
  */
-function formatTrustedGreenTitle(token, lang, chain, translate, htmlEscape) {
+function formatWhitelistKnownProjectBlock(token, lang, chain, translate, htmlEscape) {
   const wl = token?.trustedWhitelist;
-  if (!wl) return null;
-  const sym = htmlEscape(token?.tokenSymbol || '?');
+  if (!wl) return '';
+  const L = normalizeLang(lang);
+  const he = htmlEscape || escapeHtml;
+  const sym = he(token?.tokenSymbol || '?');
+  const lines = [
+    `${whitelistBadgeHtml(chain)} <b>${translate('card.popularLine', L)}</b> $${sym}`,
+  ];
+  const label = truncateWhitelistLabel(wl.label || wl.symbol || '');
+  const skipDup = /^(whitelist|bilinen proje|known project)$/i.test(label);
+  if (label && !skipDup) {
+    lines.push(`${whitelistBadgeHtml(chain)} <b>${translate('card.trustedWhitelist', L, { label: he(label) })}</b>`);
+  }
   const coin = knownProjectCoinHtml(chain);
-  const knownLbl = translate('card.knownProjectBadge', lang);
-  const line1 = `${whitelistBadgeHtml(chain)} <b>${translate('card.popularLine', lang)}</b> $${sym}`;
-  const line2 = `${coin} <b>${knownLbl}</b> ${coin}`;
-  return `${line1}\n${line2}`;
+  lines.push(`${coin} <b>${translate('card.knownProjectBadge', L)}</b> ${coin}`);
+  return lines.join('\n');
+}
+
+/** Yeşil kart başlığı — whitelist varsa Yeni Token yerine. */
+function formatTrustedGreenTitle(token, lang, chain, translate, htmlEscape) {
+  const block = formatWhitelistKnownProjectBlock(token, lang, chain, translate, htmlEscape);
+  return block || null;
 }
 
 // Bot API entity inşası (eski yapı — kanal mesajlarında stripleniyor, sadece DM/grup için fallback).
@@ -561,6 +578,7 @@ module.exports = {
   METEORA_DEX_EMOJI_ID,
   whitelistTitleSuffix,
   formatTrustedGreenTitle,
+  formatWhitelistKnownProjectBlock,
   truncateWhitelistLabel,
   WHITELIST_BADGE_EMOJI_ID,
   TON_LOGO_IDS,

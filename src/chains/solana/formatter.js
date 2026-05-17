@@ -119,9 +119,7 @@ function formatTokenCard(token, audit, lang = 'en', level = 'green', opts = {}) 
   const solFlag = ce('🪙');
   const trustedGreenTitle = level === 'green' ? formatTrustedGreenTitle(token, L, 'solana', t, h) : null;
   if (trustedGreenTitle) {
-    const titleRows = trustedGreenTitle.split('\n');
-    lines.push(`${solFlag} ${titleRows[0]}`);
-    for (let i = 1; i < titleRows.length; i++) lines.push(titleRows[i]);
+    for (const row of trustedGreenTitle.split('\n')) lines.push(row);
   } else {
     lines.push(
       `${solFlag} ${titleEmoji} <b>${t(titleKey, L)}:</b> $${h(token.tokenSymbol)}${whitelistTitleSuffix(token.trustedWhitelist, L, 'solana', t, h)}`,
