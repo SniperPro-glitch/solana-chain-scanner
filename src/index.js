@@ -84,6 +84,7 @@ async function prepareTelegramConnection() {
 
 async function startBotPolling() {
   await prepareTelegramConnection();
+  await ingestPendingMyChatMemberUpdates();
   await bot.startPolling({ params: POLLING_PARAMS });
   console.log('[bot] long polling başladı');
 }
@@ -432,6 +433,89 @@ function isBotAdmin(userId) {
   return ADMIN_IDS.includes(String(userId));
 }
 
+function formatRailwayChannelEnv(chatId) {
+  return `TELEGRAM_CHANNEL_IDS=${chatId}`;
+}
+
+async function notifyAdminsChannelBackup(chatId, title, { isNew = false } = {}) {
+  if (!ADMIN_IDS.length) return;
+  const line = formatRailwayChannelEnv(chatId);
+  const name = title || String(chatId);
+  const text = isNew
+    ? `✅ Kanal kaydedildi: <b>${escapeHtmlLite(name)}</b>\n\nRailway → Variables:\n<code>${line}</code>\n\nKalıcı: Volume mount <code>/data</code>`
+    : `📋 Railway yedek:\n<code>${line}</code>`;
+  for (const adminId of ADMIN_IDS) {
+    await bot.sendMessage(adminId, text, { parse_mode: 'HTML' }).catch(() => {});
+  }
+}
+
+function formatEmptyChannelsHelp() {
+  const me = process.env.BOT_USERNAME || '@solanachainscanbot';
+  return (
+    '⚠️ <b>Kanal listesi boş</b> (deploy sonrası normal)\n\n'
+    + '<b>1)</b> Kanalda bot <b>yönetici</b> olsun\n'
+    + `<b>2)</b> Kanaldan bir postu bota <b>ÖZELDE İLET</b> (forward)\n`
+    + '    veya kanalda: <code>/channelid</code>\n'
+    + '<b>3)</b> Gelen satırı Railway → <b>Variables</b>:\n'
+    + '    <code>TELEGRAM_CHANNEL_IDS=-100...</code>\n'
+    + '<b>4)</b> Volume mount <code>/data</code> (filtreler kalıcı)\n\n'
+    + `<i>Userbot: TG_SESSION + ${me} kanalda admin</i>`
+  );
+}
+
+async function ingestPendingMyChatMemberUpdates() {
+  const base = `https://api.telegram.org/bot${BOT_TOKEN}/getUpdates`;
+  let offset = 0;
+  let processed = 0;
+  const allowed = encodeURIComponent(JSON.stringify(['my_chat_member']));
+  try {
+    for (let batch = 0; batch < 10; batch++) {
+      const res = await fetch(`${base}?offset=${offset}&timeout=0&allowed_updates=${allowed}`);
+      const data = await res.json();
+      if (!data.ok || !data.result?.length) break;
+      for (const u of data.result) {
+        offset = u.update_id + 1;
+        const mcm = u.my_chat_member;
+        if (!mcm?.chat) continue;
+        const chat = mcm.chat;
+        if (!['channel', 'supergroup', 'group'].includes(chat.type)) continue;
+        const ns = mcm.new_chat_member?.status;
+        if (!['administrator', 'member', 'restricted', 'creator'].includes(ns)) continue;
+        const { added } = channels.add(chat, 'queue-sync');
+        if (added) processed += 1;
+      }
+    }
+    if (offset > 0) {
+      await fetch(`${base}?offset=${offset}&timeout=0`);
+    }
+    if (processed) console.log(`[channels] Telegram kuyruğu: +${processed} kanal kaydı`);
+  } catch (e) {
+    console.warn('[channels] getUpdates kuyruk okunamadı:', e.message);
+  }
+  return processed;
+}
+
+async function registerChannelFromForward(msg) {
+  const src = msg.forward_from_chat;
+  if (!src?.id) return false;
+  if (!['channel', 'supergroup', 'group'].includes(src.type)) return false;
+  const chat = {
+    id: src.id,
+    title: src.title,
+    username: src.username,
+    type: src.type,
+  };
+  const { added } = channels.add(chat, 'forward');
+  const line = formatRailwayChannelEnv(src.id);
+  const lang = langForMsg(msg);
+  const text = lang === 'tr'
+    ? `✅ Kanal: <b>${escapeHtmlLite(src.title || src.id)}</b>\n\nRailway Variables:\n<code>${line}</code>`
+    : `✅ Channel saved.\n<code>${line}</code>`;
+  await bot.sendMessage(msg.chat.id, text, { parse_mode: 'HTML' });
+  await notifyAdminsChannelBackup(src.id, src.title, { isNew: added });
+  return true;
+}
+
 async function isChatAdmin(chatId, userId) {
   if (userId == null || userId === '') return false;
   try {
@@ -742,10 +826,11 @@ bindTextCommand(/^\/channelid(@\w+)?$/i, async (msg) => {
   }
   const id = msg.chat.id;
   channels.add(msg.chat, 'cmd');
-  const line = `TELEGRAM_CHANNEL_IDS=${id}`;
+  const line = formatRailwayChannelEnv(id);
   const text = lang === 'tr'
     ? `📌 Bu kanalın ID'si:\n<code>${id}</code>\n\nDeploy sonrası unutmasın diye Railway Variables'a ekleyin:\n<code>${line}</code>`
     : `📌 Channel ID:\n<code>${id}</code>\n\nAdd to Railway:\n<code>${line}</code>`;
+  await notifyAdminsChannelBackup(id, msg.chat.title, { isNew: false });
   return bot.sendMessage(msg.chat.id, text, { parse_mode: 'HTML' });
 });
 
@@ -844,6 +929,14 @@ bindTextCommand(/^\/wl(?:@\w+)?(?:\s+(.+))?$/i, async (msg, match) => {
 });
 
 bot.on('message', async (msg) => {
+  if (msg.chat.type === 'private' && msg.forward_from_chat?.id) {
+    try {
+      await registerChannelFromForward(msg);
+    } catch (e) {
+      console.warn('[forward]', e.message);
+    }
+    return;
+  }
   if (msg.chat.type !== 'private' || !msg.from?.id || !msg.text) return;
   if (msg.text.startsWith('/')) return;
   const state = consumePendingManualInput(msg.from.id);
@@ -875,6 +968,7 @@ bot.on('my_chat_member', async (upd) => {
   if (joinedChannel) {
     const { added, channel: chRec } = channels.add(chat, upd.from?.username || 'auto');
     console.log(`➕ ${chat.title || chat.id} (${chat.type}) — Toplam: ${channels.count().total}${added ? '' : ' (zaten kayıtlı)'}`);
+    if (added) await notifyAdminsChannelBackup(chat.id, chat.title, { isNew: true });
 
     if (newStatus === 'administrator' && chat.type !== 'private') {
       const prevWelcomeId = chRec?.settings?.welcomeMessageId;
@@ -910,10 +1004,11 @@ bot.on('my_chat_member', async (upd) => {
   // Restart sonrası Telegram güncellemesi: kanalı kaydet ama hoş geldin / chains sıfırlama yok
   if (['administrator', 'member'].includes(newStatus) && (oldStatus == null || oldStatus === '')) {
     const existed = Boolean(channels.get(chat.id));
-    channels.add(chat, 'boot-sync');
-    if (!existed) {
+    const { added } = channels.add(chat, 'boot-sync');
+    if (!existed || added) {
       console.log(`[channels] deploy sync: ${chat.title || chat.id} (◎ Solana otomatik)`);
     }
+    if (added) await notifyAdminsChannelBackup(chat.id, chat.title, { isNew: true });
     return;
   }
 
@@ -1177,16 +1272,20 @@ process.on('SIGINT', () => {
 
 async function main() {
   await startBotPolling();
-  const me = await bot.getMe();
+  const me = await bot.getMe().catch(() => ({ username: 'bot', id: '?' }));
   console.log(`✅ Solana bot: @${me.username} (id=${me.id})`);
   console.log('   Bu token yalnızca TEK yerde çalışmalı (Railway XOR yerel PC).');
   console.log(`   Tarama: ${SOLANA_SCAN_ENABLED ? `AÇIK (${SOLANA_SCAN_INTERVAL_MIN} dk)` : 'KAPALI'}`);
   console.log(`   İzleme: ${WATCH_INTERVAL_SEC} sn`);
 
+  const me = await bot.getMe();
+  process.env.BOT_USERNAME = me.username ? `@${me.username}` : '';
+
   await bot.setMyCommands([
     { command: 'start', description: 'Başlangıç / dil' },
     { command: 'settings', description: 'Kanal ayarları' },
     { command: 'post', description: 'Manuel token paylaş (DM)' },
+    { command: 'channelid', description: 'Kanal ID (Railway yedek)' },
     { command: 'ping', description: 'Bot canlı mı?' },
     { command: 'stats', description: 'İstatistikler' },
   ]).catch((e) => console.warn('setMyCommands:', e?.message));
@@ -1211,9 +1310,9 @@ async function main() {
   channels.logBootSummary();
   const chTotal = channels.count().total;
   if (chTotal === 0 && ADMIN_IDS.length) {
-    const hint = 'Kanal listesi boş. Railway: Volume /data + TELEGRAM_CHANNEL_IDS veya TG_SESSION ile userbot sync.';
+    const help = formatEmptyChannelsHelp();
     for (const adminId of ADMIN_IDS) {
-      bot.sendMessage(adminId, `⚠️ ${hint}`).catch(() => {});
+      bot.sendMessage(adminId, help, { parse_mode: 'HTML' }).catch(() => {});
     }
   } else if (chTotal > 0 && !require('./data-path').isPersistentDataDir()) {
     const ids = channels.getChannelIdsForEnv();
