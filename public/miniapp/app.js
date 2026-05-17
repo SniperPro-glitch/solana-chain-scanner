@@ -399,6 +399,47 @@
     return `${addr.slice(0, 4)}…${addr.slice(-4)}`;
   }
 
+  function updateConnectButton() {
+    const btn = $('btnConnect');
+    const w = globalThis.SniperWallet;
+    if (!btn || !w) return;
+    btn.classList.toggle('connected', !!w.pubkey);
+    btn.classList.toggle('loading', !!w.connecting);
+    if (w.connecting) {
+      btn.innerHTML = '<span class="wallet-ico">◎</span> …';
+      return;
+    }
+    if (w.pubkey) {
+      btn.innerHTML = `<span class="wallet-ico">◎</span> ${escHtml(w.shortAddr(w.pubkey))}`;
+      btn.title = `${w.label} · ${w.pubkey} (çıkmak için dokun)`;
+      return;
+    }
+    btn.innerHTML = '<span class="wallet-ico">👛</span> Connect';
+    btn.title = 'Phantom / Solflare bağla';
+  }
+
+  function initWallet() {
+    const w = globalThis.SniperWallet;
+    if (!w) return;
+    w.restore();
+    w.onChange(() => updateConnectButton());
+    updateConnectButton();
+    $('btnConnect')?.addEventListener('click', async () => {
+      try {
+        const pk = await w.toggle();
+        if (pk) showToast(`${w.label} bağlandı · ${w.shortAddr(pk)}`);
+        else if (!w.pubkey) showToast('Bağlantı kesildi');
+      } catch (e) {
+        if (e?.code === 'deeplink') {
+          showToast('Phantom açılıyor — orada onayla');
+          return;
+        }
+        showToast(e?.message || 'Cüzdan bağlanamadı');
+      }
+      updateConnectButton();
+    });
+  }
+
   function showToast(msg) {
     const el = document.createElement('div');
     el.className = 'toast';
@@ -875,6 +916,10 @@
     const via = a.tradeProvider || 'Swap';
 
     if (panel) {
+      const w = globalThis.SniperWallet;
+      const walletLine = w?.pubkey
+        ? `<p class="wallet-banner">◎ ${escHtml(w.label)} · <code>${escHtml(w.shortAddr(w.pubkey))}</code></p>`
+        : '';
       const links = [
         a.dsUrl && { label: 'DexScreener', url: a.dsUrl },
         a.gtUrl && { label: 'GeckoTerminal', url: a.gtUrl },
@@ -883,6 +928,7 @@
       ].filter(Boolean);
 
       panel.innerHTML = [
+        walletLine,
         buy
           ? `<div class="trade-grid">
               <a class="trade-link buy" href="${buy}" target="_blank" rel="noopener">Satın al</a>
@@ -1056,9 +1102,6 @@
       reportId = null;
       showScannerHome();
     });
-    $('btnConnect')?.addEventListener('click', () => {
-      showToast('Cüzdan — detay ekranından Al');
-    });
     window.addEventListener('hashchange', () => {
       const id = reportIdFromUrl();
       if (id && id !== reportId) {
@@ -1075,6 +1118,7 @@
 
   async function main() {
     setupShell();
+    initWallet();
     reportId = reportIdFromUrl();
     $('loading')?.classList.remove('hidden');
 
