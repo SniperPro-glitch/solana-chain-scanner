@@ -6,6 +6,7 @@ const reportStore = require('./reportStore');
 const { safetyPercent } = require('./riskDisplay');
 const { buildMarketFromToken } = require('./marketData');
 const { tokenLogoUrl } = require('./tokenLogo');
+const { buildSeedFeedItems, mergeFeedItems } = require('./miniAppSeed');
 
 function fmtUsd(n) {
   if (n == null || Number.isNaN(n)) return '—';
@@ -81,26 +82,31 @@ async function fetchRawPairs(tab = 'trending', limit = 24) {
 }
 
 async function buildFeed(tab = 'trending', limit = 24) {
-  const raw = await fetchRawPairs(tab, limit);
-  const items = [];
-  let rank = 1;
+  const [raw, seedItems] = await Promise.all([
+    fetchRawPairs(tab, limit),
+    buildSeedFeedItems(tokenToFeedItem, quickAudit),
+  ]);
+
+  const liveItems = [];
   for (const token of raw) {
     const audit = quickAudit(token);
-    items.push(tokenToFeedItem(token, audit, rank));
-    rank += 1;
+    liveItems.push(tokenToFeedItem(token, audit, 0));
   }
 
+  const items = mergeFeedItems(seedItems, liveItems, limit);
   const totalVol = raw.reduce((s, t) => s + (t.volume24h || 0), 0);
   const totalLiq = raw.reduce((s, t) => s + (t.liquidityUsd || 0), 0);
   const newPairs = raw.filter((t) => (t.ageMinutes ?? 99999) < 120).length;
+
   return {
     tab,
     updatedAt: Date.now(),
+    seeded: seedItems.length,
     stats: {
       count: items.length,
       volume24hFmt: fmtUsd(totalVol),
       liquidityFmt: fmtUsd(totalLiq),
-      newPairs,
+      newPairs: Math.max(newPairs, seedItems.length),
       activeNow: items.length,
     },
     items,

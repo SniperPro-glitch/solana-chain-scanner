@@ -25,11 +25,11 @@
   let openingMint = false;
 
   const PLACEHOLDER_TOKENS = [
-    { rank: 1, symbol: 'WOFFY', pairLabel: 'WOFFY/SOL', priceUsdFmt: '$0.0042', change1h: 12.4, change24h: 86.2, volume24hFmt: '$248K', liquidityUsdFmt: '$89K', marketCapUsdFmt: '$1.2M', risk: { band: 'high', label: 'HIGH RISK' }, mint: 'demo1' },
-    { rank: 2, symbol: 'BONK', pairLabel: 'BONK/SOL', priceUsdFmt: '$0.000019', change1h: 3.2, change24h: 12.4, volume24hFmt: '$1.2M', liquidityUsdFmt: '$420K', marketCapUsdFmt: '$890K', risk: { band: 'low', label: 'LOW RISK' }, mint: 'demo2' },
-    { rank: 3, symbol: 'POPCAT', pairLabel: 'POPCAT/SOL', priceUsdFmt: '$1.24', change1h: -2.1, change24h: -5.1, volume24hFmt: '$890K', liquidityUsdFmt: '$310K', marketCapUsdFmt: '$2.1M', risk: { band: 'mid', label: 'MEDIUM RISK' }, mint: 'demo3' },
-    { rank: 4, symbol: 'WIF', pairLabel: 'WIF/SOL', priceUsdFmt: '$2.86', change1h: 8.7, change24h: 24.3, volume24hFmt: '$3.1M', liquidityUsdFmt: '$1.1M', marketCapUsdFmt: '$2.8M', risk: { band: 'low', label: 'LOW RISK' }, mint: 'demo4' },
-    { rank: 5, symbol: 'MEW', pairLabel: 'MEW/SOL', priceUsdFmt: '$0.0089', change1h: -4.2, change24h: 18.6, volume24hFmt: '$520K', liquidityUsdFmt: '$180K', marketCapUsdFmt: '$780K', risk: { band: 'mid', label: 'MEDIUM RISK' }, mint: 'demo5' },
+    { rank: 1, symbol: 'BONK', pairLabel: 'BONK/SOL', priceUsdFmt: '…', change1h: null, change24h: null, volume24hFmt: '—', liquidityUsdFmt: '—', marketCapUsdFmt: '—', risk: { band: 'low', label: 'LOW RISK' }, mint: 'DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263', imageUrl: 'https://dd.dexscreener.com/ds-data/tokens/solana/DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263.png?size=sm' },
+    { rank: 2, symbol: 'WIF', pairLabel: 'WIF/SOL', priceUsdFmt: '…', change1h: null, change24h: null, volume24hFmt: '—', liquidityUsdFmt: '—', marketCapUsdFmt: '—', risk: { band: 'low', label: 'LOW RISK' }, mint: 'EKpQGSJtjMFqKZ9KQanSqYXRcF8fBopzLHYxdM65zcjm', imageUrl: 'https://dd.dexscreener.com/ds-data/tokens/solana/EKpQGSJtjMFqKZ9KQanSqYXRcF8fBopzLHYxdM65zcjm.png?size=sm' },
+    { rank: 3, symbol: 'POPCAT', pairLabel: 'POPCAT/SOL', priceUsdFmt: '…', change1h: null, change24h: null, volume24hFmt: '—', liquidityUsdFmt: '—', marketCapUsdFmt: '—', risk: { band: 'mid', label: 'MEDIUM RISK' }, mint: '7GCihgDB8fe6KNjn2MYtkzZcRjQy3t1GHn2a4gyyg9WH', imageUrl: 'https://dd.dexscreener.com/ds-data/tokens/solana/7GCihgDB8fe6KNjn2MYtkzZcRjQy3t1GHn2a4gyyg9WH.png?size=sm' },
+    { rank: 4, symbol: 'JUP', pairLabel: 'JUP/SOL', priceUsdFmt: '…', change1h: null, change24h: null, volume24hFmt: '—', liquidityUsdFmt: '—', marketCapUsdFmt: '—', risk: { band: 'low', label: 'LOW RISK' }, mint: 'JUPyiwrYJFskUPiHa7HPQc8J4iHmuxcKoCx8xNv4Sol', imageUrl: 'https://dd.dexscreener.com/ds-data/tokens/solana/JUPyiwrYJFskUPiHa7HPQc8J4iHmuxcKoCx8xNv4Sol.png?size=sm' },
+    { rank: 5, symbol: 'RAY', pairLabel: 'RAY/SOL', priceUsdFmt: '…', change1h: null, change24h: null, volume24hFmt: '—', liquidityUsdFmt: '—', marketCapUsdFmt: '—', risk: { band: 'low', label: 'LOW RISK' }, mint: '4k3Dyjzvzp8eMZWUXbBCjEvwSkkk59S5iCNLY3QrkX6R', imageUrl: 'https://dd.dexscreener.com/ds-data/tokens/solana/4k3Dyjzvzp8eMZWUXbBCjEvwSkkk59S5iCNLY3QrkX6R.png?size=sm' },
   ];
 
   const PLACEHOLDER_STATS = {
@@ -244,12 +244,6 @@
     list?.classList.add('dimmed');
     showToast('Token analiz ediliyor…');
     try {
-      if (String(mint).startsWith('demo')) {
-        showToast('Demo token — connect live feed for full report');
-        openingMint = false;
-        list?.classList.remove('dimmed');
-        return;
-      }
       const res = await fetch(`/api/open/${encodeURIComponent(mint)}`);
       const body = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(body.message || 'Analiz başarısız');
