@@ -3,6 +3,10 @@
 const axios = require('axios');
 const config = require('./chains/solana/config');
 const { resolveTokenLogo, chartStatsFromCandles, buildLogoCandidates } = require('./tokenLogo');
+const {
+  resolveDexScreenerPair,
+  dexScreenerChartEmbedUrl,
+} = require('./dexscreenerApi');
 
 const http = axios.create({
   timeout: 12_000,
@@ -60,25 +64,10 @@ function buildMarketFromToken(token) {
 }
 
 async function fetchDexScreenerPair(token) {
-  const mint = token?.tokenAddress;
-  const pool = token?.dexScreener?.pairAddress;
-  if (!mint && !pool) return null;
-  try {
-    if (pool) {
-      const { data } = await http.get(
-        `${config.api.dexScreenerBase}/latest/dex/pairs/solana/${pool}`,
-      );
-      return data?.pairs?.[0] || null;
-    }
-    const { data } = await http.get(
-      `${config.api.dexScreenerBase}/tokens/v1/solana/${mint}`,
-    );
-    const pairs = Array.isArray(data) ? data : (data?.pairs || []);
-    pairs.sort((a, b) => (b.liquidity?.usd || 0) - (a.liquidity?.usd || 0));
-    return pairs[0] || null;
-  } catch {
-    return null;
-  }
+  return resolveDexScreenerPair({
+    mint: token?.tokenAddress,
+    poolAddress: token?.dexScreener?.pairAddress || token?.poolAddress,
+  });
 }
 
 function applyPairToMarket(market, pair) {
@@ -163,9 +152,10 @@ function chartTimeFromUnix(unixSec, path) {
 function parseOhlcvRows(list, path) {
   return (list || [])
     .map((row) => {
-      const unix = Number(row[0]);
+      let unix = Number(row[0]);
       const close = Number(row[4]);
       if (!unix || !close) return null;
+      if (unix > 1e12) unix = Math.floor(unix / 1000);
       return {
         unix,
         time: chartTimeFromUnix(unix, path),
@@ -285,13 +275,14 @@ async function enrichMarketForMiniApp(token, options = {}) {
     merged.imageFallbacks = buildLogoCandidates(token, pair);
   }
 
-  let poolAddress = merged.poolAddress;
+  let poolAddress = merged.poolAddress || pair?.pairAddress || null;
   if (!poolAddress && merged.address) {
     poolAddress = await fetchGeckoPoolAddress(merged.address);
   }
 
   const candles = await fetchOhlcv(poolAddress, timeframe);
   const chartStats = chartStatsFromCandles(candles);
+  const chartEmbedUrl = dexScreenerChartEmbedUrl(poolAddress || merged.address);
   const buys = merged.buys24h || 0;
   const sells = merged.sells24h || 0;
   const txnTotal = buys + sells;
@@ -304,8 +295,11 @@ async function enrichMarketForMiniApp(token, options = {}) {
       timeframe,
       candles,
       stats: chartStats,
+      priceSource: 'dexscreener',
       source: candles.length ? 'geckoterminal' : null,
       empty: !candles.length,
+      dexScreenerEmbedUrl: chartEmbedUrl,
+      dexScreenerPageUrl: merged.dexScreenerUrl,
     },
   };
 }

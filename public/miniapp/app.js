@@ -577,10 +577,11 @@
     renderChartPeriodChg(stats, tf);
 
     if (note) {
-      const src = m?.chart?.source === 'geckoterminal' ? 'GeckoTerminal' : 'Canlı';
-      note.textContent = candles.length
-        ? `${tf.toUpperCase()} · ${src} · ${candles.length} bar`
-        : 'Havuz bulunamadı — DexScreener üzerinden kontrol edin';
+      if (candles.length) {
+        note.textContent = `${tf.toUpperCase()} · Fiyat DexScreener · Mum GeckoTerminal · ${candles.length} bar`;
+      } else {
+        note.textContent = 'Canlı mum: GeckoTerminal · Fiyat/hacim: DexScreener API';
+      }
     }
 
     destroyChart();
@@ -593,7 +594,18 @@
 
     const seriesData = buildChartData(candles);
     if (!seriesData.length) {
-      container.innerHTML = '<div class="empty-chart">Bu zaman dilimi için veri yok — 15m veya 5m deneyin</div>';
+      const embed = m?.chart?.dexScreenerEmbedUrl;
+      const page = m?.chart?.dexScreenerPageUrl || m?.dexScreenerUrl;
+      if (embed) {
+        container.innerHTML = `<iframe class="dex-embed-chart" src="${escHtml(embed)}" title="DexScreener chart" loading="lazy" referrerpolicy="no-referrer"></iframe>`;
+        if (note) note.textContent = `${tf.toUpperCase()} · Grafik DexScreener (gömülü)`;
+        return;
+      }
+      const link = page
+        ? `<a class="dex-chart-link" href="${escHtml(page)}" target="_blank" rel="noopener">DexScreener’da grafiği aç</a>`
+        : '';
+      container.innerHTML = `<div class="empty-chart">Mum verisi yok. ${link}</motion>`;
+      container.innerHTML = container.innerHTML.replace('</motion>', '');
       return;
     }
 

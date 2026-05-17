@@ -1003,3 +1003,19 @@ html, body {
   color: var(--muted);
   font-size: 13px;
 }
+
+.dex-embed-chart {
+  width: 100%;
+  height: 280px;
+  border: 0;
+  border-radius: 8px;
+  background: #0a0e1a;
+}
+
+.dex-chart-link {
+  display: inline-block;
+  margin-top: 8px;
+  color: var(--accent-cyan, #00e5ff);
+  text-decoration: none;
+  font-weight: 600;
+}
