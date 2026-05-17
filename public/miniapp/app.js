@@ -68,7 +68,7 @@
     const up24 = chg24 == null ? true : Number(chg24) >= 0;
     const pairShort = escHtml((item.pairLabel || 'SOL').replace(/^.*\//, '') || 'SOL');
     const avatar = item.imageUrl
-      ? `<span class="tr-avatar-wrap"><img class="tr-img" src="${escHtml(item.imageUrl)}" alt="" loading="lazy" /><span class="tr-chain-dot">◎</span></span>`
+      ? `<span class="tr-avatar-wrap"><img class="tr-img" src="${escHtml(item.imageUrl)}" alt="" loading="lazy" data-fb="${escHtml((item.imageFallbacks || []).join('|'))}" /><span class="tr-chain-dot">◎</span></span>`
       : `<span class="tr-avatar-wrap"><span class="tr-avatar">${escHtml((item.symbol || '?').slice(0, 2))}</span><span class="tr-chain-dot">◎</span></span>`;
     return `<article class="token-row ${extraClass}" data-mint="${escHtml(item.mint)}">
       <span class="tr-rank">${item.rank ?? '·'}</span>
@@ -163,11 +163,31 @@
   }
 
 
+  function bindFeedRowLogos(root) {
+    root?.querySelectorAll('img.tr-img[data-fb]').forEach((img) => {
+      const extra = (img.getAttribute('data-fb') || '').split('|').filter(Boolean);
+      const urls = [img.getAttribute('src'), ...extra].filter(Boolean);
+      let idx = 0;
+      img.onerror = () => {
+        idx += 1;
+        if (idx < urls.length) img.src = urls[idx];
+        else {
+          const sym = img.closest('.token-row')?.querySelector('.tr-name')?.textContent?.trim().slice(0, 2) || '?';
+          const wrap = img.closest('.tr-avatar-wrap');
+          if (wrap) {
+            wrap.innerHTML = `<span class="tr-avatar">${escHtml(sym)}</span><span class="tr-chain-dot">◎</span>`;
+          }
+        }
+      };
+    });
+  }
+
   function renderTokenList(items) {
     const list = $('homeTokenList');
     if (!list) return;
     const rows = renderLastReportRow() + (items || []).map((it) => renderFeedRow(it)).join('');
     list.innerHTML = rows || '<p class="home-cta">No tokens found.</p>';
+    bindFeedRowLogos(list);
   }
 
   function applyMarketStats(stats) {

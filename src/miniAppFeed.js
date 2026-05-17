@@ -5,7 +5,7 @@ const solana = require('./chains/solana');
 const reportStore = require('./reportStore');
 const { safetyPercent } = require('./riskDisplay');
 const { buildMarketFromToken } = require('./marketData');
-const { tokenLogoUrl } = require('./tokenLogo');
+const { buildLogoCandidates } = require('./tokenLogo');
 const { buildSeedFeedItems, mergeFeedItems } = require('./miniAppSeed');
 
 function fmtUsd(n) {
@@ -38,16 +38,22 @@ function quickAudit(token) {
   }
 }
 
-function tokenToFeedItem(token, audit, rank) {
+function tokenToFeedItem(token, audit, rank, logo = null) {
   const risk = riskBandFromAudit(audit);
   const safe = audit ? safetyPercent(audit.riskPercent) : null;
+  const candidates = buildLogoCandidates(token, null);
+  const imageUrl = logo?.url || token.tokenImage || candidates[0] || null;
+  const imageFallbacks = logo?.fallbacks?.length
+    ? logo.fallbacks
+    : candidates.filter((u) => u !== imageUrl).slice(0, 4);
   return {
     rank,
     mint: token.tokenAddress,
     poolId: token.poolId,
     symbol: token.tokenSymbol,
     name: token.tokenName,
-    imageUrl: token.tokenImage || tokenLogoUrl(token),
+    imageUrl,
+    imageFallbacks,
     pairLabel: token.poolName || `${token.tokenSymbol}/SOL`,
     dex: token.dex,
     priceUsd: token.priceUsd,

@@ -105,8 +105,15 @@ function chartStatsFromCandles(candles) {
   };
 }
 
+/** Senkron varsayılan logo (DexScreener mint path). */
+function tokenLogoUrl(token, pair = null) {
+  const candidates = buildLogoCandidates(token, pair);
+  return candidates[0] || null;
+}
+
 module.exports = {
   buildLogoCandidates,
   resolveTokenLogo,
+  tokenLogoUrl,
   chartStatsFromCandles,
 };

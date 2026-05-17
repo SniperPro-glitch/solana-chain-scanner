@@ -1,6 +1,7 @@
 // Mini App — sabit test tokenları (gerçek mint; tıklanınca /api/open çalışır).
 
 const solana = require('./chains/solana');
+const { resolveTokenLogo } = require('./tokenLogo');
 
 /** Popüler Solana mint'leri — feed'in üstünde ve boş listede yedek. */
 const SEED_MINTS = [
@@ -33,7 +34,8 @@ async function buildSeedFeedItems(tokenToFeedItem, quickAudit) {
         const token = await solana.resolveTokenFromInput(mint);
         if (!token?.tokenAddress) return null;
         const audit = quickAudit(token);
-        return tokenToFeedItem(token, audit, 0);
+        const logo = await resolveTokenLogo(token);
+        return tokenToFeedItem(token, audit, 0, logo);
       } catch (e) {
         console.warn('[miniApp] seed', mint.slice(0, 8), e.message);
         return null;
