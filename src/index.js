@@ -438,28 +438,27 @@ function formatRailwayChannelEnv(chatId) {
 }
 
 async function notifyAdminsChannelBackup(chatId, title, { isNew = false } = {}) {
-  if (!ADMIN_IDS.length) return;
-  const line = formatRailwayChannelEnv(chatId);
+  if (!ADMIN_IDS.length || !isNew) return;
+  const { isPersistentDataDir } = require('./data-path');
+  if (isPersistentDataDir()) return;
   const name = title || String(chatId);
-  const text = isNew
-    ? `✅ Kanal kaydedildi: <b>${escapeHtmlLite(name)}</b>\n\nRailway → Variables:\n<code>${line}</code>\n\nKalıcı: Volume mount <code>/data</code>`
-    : `📋 Railway yedek:\n<code>${line}</code>`;
+  const text = `✅ Yeni kanal: <b>${escapeHtmlLite(name)}</b> (<code>${chatId}</code>)\n\n`
+    + 'Çok kanallı kullanım: Railway’de bir kez <b>Volume /data</b> ekleyin; '
+    + 'kanal sahipleri Railway’e dokunmaz.\n'
+    + `<i>Ops yedek:</i> <code>${formatRailwayChannelEnv(chatId)}</code>`;
   for (const adminId of ADMIN_IDS) {
     await bot.sendMessage(adminId, text, { parse_mode: 'HTML' }).catch(() => {});
   }
 }
 
 function formatEmptyChannelsHelp() {
-  const me = process.env.BOT_USERNAME || '@solanachainscanbot';
   return (
-    '⚠️ <b>Kanal listesi boş</b> (deploy sonrası normal)\n\n'
-    + '<b>1)</b> Kanalda bot <b>yönetici</b> olsun\n'
-    + `<b>2)</b> Kanaldan bir postu bota <b>ÖZELDE İLET</b> (forward)\n`
-    + '    veya kanalda: <code>/channelid</code>\n'
-    + '<b>3)</b> Gelen satırı Railway → <b>Variables</b>:\n'
-    + '    <code>TELEGRAM_CHANNEL_IDS=-100...</code>\n'
-    + '<b>4)</b> Volume mount <code>/data</code> (filtreler kalıcı)\n\n'
-    + `<i>Userbot: TG_SESSION + ${me} kanalda admin</i>`
+    '⚠️ <b>Sunucu notu</b> (sadece bot sahibine — kanal kullanıcıları Railway görmez)\n\n'
+    + 'Henüz hiç kanal kaydı yok. Herkese açık botta kanallar <b>otomatik</b> eklenir:\n'
+    + 'biri kanala botu yönetici yapınca → kayıt + hoş geldin.\n\n'
+    + '<b>Sizin tek seferlik işiniz (Railway):</b>\n'
+    + 'Volume mount <code>/data</code> — tüm kanalların ayarı deploy sonrası kalır.\n\n'
+    + '<i>TELEGRAM_CHANNEL_IDS = acil yedek (tek kanal test); her kullanıcı için değil.</i>'
   );
 }
 
