@@ -139,11 +139,15 @@ function hasUserbotCredentials() {
   );
 }
 
-/** true = userbot yoksa kanala post gitmez. Session yokken false döner (Bot API fallback). */
-function isChannelUserbotRequired() {
+/** Userbot tercih edilir; yalnızca STRICT + geçerli session yoksa kanala post engellenir. */
+function isChannelUserbotStrict() {
   const v = (process.env.CHANNEL_USERBOT_REQUIRED || '').trim().toLowerCase();
-  if (v === '0' || v === 'false' || v === 'off') return false;
-  if (v === '1' || v === 'true' || v === 'on') return hasUserbotCredentials();
+  return v === '1' || v === 'true' || v === 'on';
+}
+
+function preferUserbotForChannel() {
+  if (!hasUserbotCredentials()) return false;
+  if (isChannelUserbotStrict()) return true;
   return hasUserbotCredentials();
 }
 
@@ -185,8 +189,9 @@ function telegramLocalPhotoFileOpts(photoArg) {
 }
 
 async function sendCardToChannel(ch, opts) {
-  const channelUbReq = isChannelUserbotRequired();
-  const useUserbot = ch?.settings?.userbotEnabled !== false;
+  const ubStrict = isChannelUserbotStrict();
+  const wantUserbot = preferUserbotForChannel() && ch?.settings?.userbotEnabled !== false;
+  const useUserbot = wantUserbot && userbot.isEnabled();
   const silent = opts.silent === true;
   const text = opts.text || '';
   const photoFileId = opts.photoFileId || null;
@@ -195,11 +200,19 @@ async function sendCardToChannel(ch, opts) {
   const chain = opts.chain || 'solana';
   const sendAsChannel = process.env.USERBOT_SEND_AS_CHANNEL === '1';
 
-  if (channelUbReq && (!useUserbot || !userbot.isEnabled())) {
-    return { ok: false, error: 'Userbot gerekli (TG_SESSION).', via: 'none' };
+  if (ubStrict && !hasUserbotCredentials()) {
+    return {
+      ok: false,
+      error: 'Userbot gerekli: Railway\'de TG_API_ID, TG_API_HASH ve TG_SESSION tanımlayın (veya CHANNEL_USERBOT_REQUIRED=0).',
+      via: 'none',
+    };
   }
 
-  if (useUserbot && userbot.isEnabled()) {
+  if (wantUserbot && !userbot.isEnabled()) {
+    console.warn('[post] Userbot bağlı değil → Bot API (premium emoji düz metin olabilir). TG_SESSION kontrol edin.');
+  }
+
+  if (useUserbot) {
     const captionText = wrapEmojis(text, chain);
     try {
       if (hasPhoto) {
@@ -212,12 +225,10 @@ async function sendCardToChannel(ch, opts) {
       const r = await userbot.sendMessage(ch.id, captionText, { silent, sendAsChannel });
       if (r.ok) return { ok: true, messageId: r.messageId, via: 'userbot' };
     } catch (e) {
-      if (channelUbReq) return { ok: false, error: e.message, via: 'none' };
+      if (ubStrict) {
+        console.warn('[post] Userbot gönderim hatası, Bot API deneniyor:', e.message);
+      }
     }
-  }
-
-  if (channelUbReq) {
-    return { ok: false, error: 'Userbot zorunlu.', via: 'none' };
   }
 
   try {
@@ -1149,13 +1160,13 @@ async function main() {
   await userbot.getClient();
 
   const ubOn = userbot.isEnabled();
-  const ubReqEnv = ['1', 'true', 'on'].includes(
-    String(process.env.CHANNEL_USERBOT_REQUIRED || '').trim().toLowerCase(),
-  );
+  const ubStrict = isChannelUserbotStrict();
   if (ubOn) {
     console.log('   Userbot: AÇIK (premium emoji kanal postları)');
-  } else if (ubReqEnv && !hasUserbotCredentials()) {
-    console.warn('   ⚠️ CHANNEL_USERBOT_REQUIRED=1 ama TG_SESSION/API yok → postlar Bot API ile (emoji düz metin)');
+  } else if (ubStrict && !hasUserbotCredentials()) {
+    console.warn('   ⚠️ CHANNEL_USERBOT_REQUIRED=1 ama TG_API_ID/HASH/SESSION yok → kanala post GİTMEZ');
+  } else if (ubStrict && hasUserbotCredentials()) {
+    console.warn('   ⚠️ TG_SESSION var ama userbot bağlanamadı → postlar Bot API (session yenileyin)');
   } else {
     console.log('   Userbot: kapalı → Bot API');
   }
