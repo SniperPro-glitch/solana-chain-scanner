@@ -327,12 +327,50 @@ function isBotAdmin(userId) {
 }
 
 async function isChatAdmin(chatId, userId) {
+  if (userId == null || userId === '') return false;
   try {
     const m = await bot.getChatMember(chatId, userId);
     return ['creator', 'administrator'].includes(m.status);
   } catch {
     return false;
   }
+}
+
+/** Kanal gönderisinde from yok; grup/DM'de from.id */
+function actorUserId(msg) {
+  return msg?.from?.id ?? null;
+}
+
+/** Kanal / grup ayarlarını kim değiştirebilir */
+async function canManageChat(msg) {
+  const chat = msg?.chat;
+  if (!chat) return false;
+  if (chat.type === 'private') return true;
+  const uid = actorUserId(msg);
+  if (chat.type === 'channel') {
+    if (uid) return isChatAdmin(chat.id, uid);
+    return true;
+  }
+  if (uid) return isChatAdmin(chat.id, uid);
+  return false;
+}
+
+/** Hem DM/grup message hem kanal channel_post için komut bağla */
+function bindTextCommand(regex, handler) {
+  const run = async (msg, match) => {
+    try {
+      await handler(msg, match);
+    } catch (e) {
+      console.error('[cmd]', regex, msg?.text, e?.message);
+      bot.sendMessage(msg.chat.id, '⚠️ Komut işlenemedi. Lütfen bota özelden /settings yazın.').catch(() => {});
+    }
+  };
+  bot.onText(regex, run);
+  bot.on('channel_post', async (msg) => {
+    if (!msg?.text) return;
+    const m = msg.text.trim().match(regex);
+    if (m) await run(msg, m);
+  });
 }
 
 function langForMsg(msg) {
@@ -510,7 +548,52 @@ async function sendSettingsWithBanner(chatId, text, keyboard) {
   }
 }
 
-bot.onText(/^\/start(@\w+)?(\s+(.+))?$/, async (msg, match) => {
+bindTextCommand(/^\/ping(@\w+)?$/i, async (msg) => {
+  await bot.sendMessage(msg.chat.id, '🏓 pong — bot çalışıyor');
+});
+
+async function handleSettings(msg) {
+  const lang = langForMsg(msg);
+  const uid = actorUserId(msg);
+
+  if (msg.chat.type !== 'private') {
+    if (!(await canManageChat(msg))) {
+      return bot.sendMessage(msg.chat.id, t('cmd.adminOnly', lang));
+    }
+    if (!channels.get(msg.chat.id)) channels.add(msg.chat, msg.from?.username || 'channel');
+    channels.updateSetting(msg.chat.id, 'chains', ['solana']);
+    if (uid) setDmTarget(uid, msg.chat.id);
+    const { text, keyboard } = settingsUI.renderMenu('main', msg.chat.id);
+    return sendSettingsWithBanner(msg.chat.id, text, keyboard);
+  }
+
+  if (!uid) {
+    return bot.sendMessage(msg.chat.id, t('cmd.adminOnly', lang));
+  }
+
+  const adminChannels = [];
+  for (const ch of channels.list()) {
+    if (await isChatAdmin(ch.id, uid)) adminChannels.push(ch);
+  }
+  if (!adminChannels.length) {
+    return bot.sendMessage(msg.chat.id, t('settings.noChannels', lang));
+  }
+  if (adminChannels.length === 1) {
+    setDmTarget(uid, adminChannels[0].id);
+    const { text, keyboard } = settingsUI.renderMenu('main', adminChannels[0].id);
+    return sendSettingsWithBanner(
+      msg.chat.id,
+      `${t('cmd.settingsFor', lang, { name: adminChannels[0].title })}\n\n${text}`,
+      keyboard,
+    );
+  }
+  const kb = adminChannels.map((ch) => [{ text: ch.title || String(ch.id), callback_data: `pickchat:${ch.id}` }]);
+  return bot.sendMessage(msg.chat.id, t('cmd.pickChannel', lang), { reply_markup: { inline_keyboard: kb } });
+}
+
+bindTextCommand(/^\/settings(@\w+)?$/i, handleSettings);
+
+bindTextCommand(/^\/start(@\w+)?(\s+(.+))?$/, async (msg, match) => {
   if (msg.chat.type !== 'private') {
     channels.add(msg.chat, msg.from?.username || 'cmd');
   }
@@ -555,12 +638,12 @@ bot.onText(/^\/start(@\w+)?(\s+(.+))?$/, async (msg, match) => {
   await bot.sendMessage(msg.chat.id, t('welcome.start', lang), { parse_mode: 'HTML' });
 });
 
-bot.onText(/^\/post(@\w+)?(?:\s+([\s\S]+))?$/, async (msg, match) => {
+bindTextCommand(/^\/post(@\w+)?(?:\s+([\s\S]+))?$/, async (msg, match) => {
   if (msg.chat.type !== 'private') return;
   return processManualPost(msg.chat.id, msg.from.id, (match[2] || '').trim(), langForMsg(msg));
 });
 
-bot.onText(/^\/scan(@\w+)?$/, async (msg) => {
+bindTextCommand(/^\/scan(@\w+)?$/i, async (msg) => {
   if (!isBotAdmin(msg.from.id)) {
     return bot.sendMessage(msg.chat.id, '⛔ Admin only.');
   }
@@ -574,7 +657,7 @@ bot.onText(/^\/scan(@\w+)?$/, async (msg) => {
   );
 });
 
-bot.onText(/^\/wl(?:@\w+)?(?:\s+(.+))?$/i, async (msg, match) => {
+bindTextCommand(/^\/wl(?:@\w+)?(?:\s+(.+))?$/i, async (msg, match) => {
   if (!isBotAdmin(msg.from.id)) {
     return bot.sendMessage(msg.chat.id, '⛔ Sadece bot admin.');
   }
@@ -608,41 +691,13 @@ bot.onText(/^\/wl(?:@\w+)?(?:\s+(.+))?$/i, async (msg, match) => {
   return bot.sendMessage(msg.chat.id, '<code>/wl add solana MINT... Etiket</code>', { parse_mode: 'HTML' });
 });
 
-bot.onText(/^\/stats(@\w+)?$/, (msg) => {
+bindTextCommand(/^\/stats(@\w+)?$/i, (msg) => {
   const lang = langForMsg(msg);
   const ch = channels.count();
   const bundle = storage.getStatsBundle();
   const body = statsReport.formatSubscriberStats(bundle, lang);
   const tail = `\n\n📢 Kanal: ${ch.total} (${ch.enabled} aktif) · ⏱ ${formatUptime(process.uptime())}`;
   bot.sendMessage(msg.chat.id, body + tail, { parse_mode: 'HTML', disable_web_page_preview: true });
-});
-
-bot.onText(/^\/settings(@\w+)?$/, async (msg) => {
-  const lang = langForMsg(msg);
-  if (msg.chat.type !== 'private') {
-    if (!(await isChatAdmin(msg.chat.id, msg.from.id))) {
-      return bot.sendMessage(msg.chat.id, t('cmd.adminOnly', lang));
-    }
-    if (!channels.get(msg.chat.id)) channels.add(msg.chat, msg.from?.username || 'cmd');
-    channels.updateSetting(msg.chat.id, 'chains', ['solana']);
-    setDmTarget(msg.from.id, msg.chat.id);
-    const { text, keyboard } = settingsUI.renderMenu('main', msg.chat.id);
-    return sendSettingsWithBanner(msg.chat.id, text, keyboard);
-  }
-  const adminChannels = [];
-  for (const ch of channels.list()) {
-    if (await isChatAdmin(ch.id, msg.from.id)) adminChannels.push(ch);
-  }
-  if (!adminChannels.length) {
-    return bot.sendMessage(msg.chat.id, t('settings.noChannels', lang));
-  }
-  if (adminChannels.length === 1) {
-    setDmTarget(msg.from.id, adminChannels[0].id);
-    const { text, keyboard } = settingsUI.renderMenu('main', adminChannels[0].id);
-    return sendSettingsWithBanner(msg.chat.id, `${t('cmd.settingsFor', lang, { name: adminChannels[0].title })}\n\n${text}`, keyboard);
-  }
-  const kb = adminChannels.map((ch) => [{ text: ch.title || String(ch.id), callback_data: `pickchat:${ch.id}` }]);
-  return bot.sendMessage(msg.chat.id, t('cmd.pickChannel', lang), { reply_markup: { inline_keyboard: kb } });
 });
 
 bot.on('my_chat_member', async (upd) => {
@@ -831,11 +886,22 @@ bot.on('callback_query', async (cb) => {
   return bot.answerCallbackQuery(cb.id);
 });
 
+bot.on('polling_error', (err) => console.error('Polling error:', err?.message || err));
+
 async function main() {
   const me = await bot.getMe();
   console.log(`✅ Solana bot: @${me.username}`);
   console.log(`   Tarama: ${SOLANA_SCAN_ENABLED ? `AÇIK (${SOLANA_SCAN_INTERVAL_MIN} dk)` : 'KAPALI'}`);
   console.log(`   İzleme: ${WATCH_INTERVAL_SEC} sn`);
+
+  await bot.setMyCommands([
+    { command: 'start', description: 'Başlangıç / dil' },
+    { command: 'settings', description: 'Kanal ayarları' },
+    { command: 'post', description: 'Manuel token paylaş (DM)' },
+    { command: 'ping', description: 'Bot canlı mı?' },
+    { command: 'stats', description: 'İstatistikler' },
+  ]).catch((e) => console.warn('setMyCommands:', e?.message));
+
   await userbot.getClient();
 
   if (SOLANA_SCAN_ENABLED) {
