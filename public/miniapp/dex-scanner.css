@@ -207,6 +207,43 @@ html.tg-mini-app body {
 .trend-chg.up { color: var(--green); }
 .trend-chg.down { color: var(--red); }
 
+.trend-price {
+  font-size: 9px;
+  font-weight: 600;
+  color: var(--cyan);
+  font-variant-numeric: tabular-nums;
+}
+
+.feed-meta-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 12px 8px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: rgba(0, 229, 255, 0.06);
+  border: 1px solid rgba(0, 229, 255, 0.2);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.feed-meta-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 8px var(--green);
+  animation: pulse-dot 1.8s ease-in-out infinite;
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+
+.mf-item em.hidden { display: none; }
+
 /* Header — Telegram kapat (X) sol üst; logo sağa kayar */
 .scan-header {
   display: flex;
@@ -705,8 +742,9 @@ html.tg-expanded .scan-header {
 .token-row .tr-price {
   font-size: 11px;
   font-weight: 700;
-  color: var(--text);
+  color: var(--cyan);
   text-align: right;
+  font-variant-numeric: tabular-nums;
 }
 
 .tr-pct {

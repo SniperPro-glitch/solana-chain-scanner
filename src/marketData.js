@@ -21,17 +21,7 @@ function tokenLogoUrl(token) {
   return candidates[0] || null;
 }
 
-function fmtUsd(n) {
-  if (n === null || n === undefined || Number.isNaN(n)) return '—';
-  const x = Number(n);
-  if (x === 0) return '$0';
-  if (x < 0.0001) return `$${x.toExponential(2)}`;
-  if (x < 1) return `$${x.toFixed(6)}`;
-  if (x < 1_000) return `$${x.toFixed(4)}`;
-  if (x < 1_000_000) return `$${(x / 1_000).toFixed(2)}K`;
-  if (x < 1_000_000_000) return `$${(x / 1_000_000).toFixed(2)}M`;
-  return `$${(x / 1_000_000_000).toFixed(2)}B`;
-}
+const { fmtUsd, fmtPriceUsd } = require('./formatUsd');
 
 function buildMarketFromToken(token) {
   if (!token) return null;
@@ -45,7 +35,7 @@ function buildMarketFromToken(token) {
       || (token.tokenAddress ? config.data.dexScreener(token.tokenAddress) : null),
     poolAddress: token.dexScreener?.pairAddress || null,
     priceUsd: token.priceUsd,
-    priceUsdFmt: fmtUsd(token.priceUsd),
+    priceUsdFmt: fmtPriceUsd(token.priceUsd),
     priceChange5m: token.priceChange5m,
     priceChange1h: token.priceChange1h,
     priceChange6h: token.priceChange6h,
@@ -76,7 +66,7 @@ function applyPairToMarket(market, pair) {
     ...market,
     imageUrl: pair.info?.imageUrl || market.imageUrl,
     priceUsd: parseFloat(pair.priceUsd) || market.priceUsd,
-    priceUsdFmt: fmtUsd(parseFloat(pair.priceUsd) || market.priceUsd),
+    priceUsdFmt: fmtPriceUsd(parseFloat(pair.priceUsd) || market.priceUsd),
     pairLabel: pair.baseToken?.symbol && pair.quoteToken?.symbol
       ? `${pair.baseToken.symbol} / ${pair.quoteToken.symbol}`
       : market.pairLabel,
@@ -311,4 +301,5 @@ module.exports = {
   normalizeTimeframe,
   tokenLogoUrl,
   fmtUsd,
+  fmtPriceUsd,
 };

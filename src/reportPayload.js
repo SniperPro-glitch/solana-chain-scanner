@@ -14,13 +14,7 @@ const {
 const { formatContractSecurityBlock } = require('./contractSecurityBlock');
 const { formatLinksTradeBlock, getChainLinks } = require('./commentLinksTrade');
 const { buildMarketFromToken } = require('./marketData');
-
-function fmtUsd(n) {
-  if (n === null || n === undefined || Number.isNaN(n)) return '?';
-  if (n < 1_000) return `$${Number(n).toFixed(2)}`;
-  if (n < 1_000_000) return `$${(n / 1_000).toFixed(2)}K`;
-  return `$${(n / 1_000_000).toFixed(2)}M`;
-}
+const { fmtUsd, fmtPriceUsd } = require('./formatUsd');
 
 function stripHtml(s) {
   return String(s || '').replace(/<[^>]+>/g, '').trim();
@@ -90,7 +84,7 @@ function buildReportPayload(token, audit, lang = 'tr', level = 'green') {
       liquidityUsd: fmtUsd(token.liquidityUsd),
       liquidityWord: liqSummaryWord(audit.breakdown.liquidity, L),
       age: ageSummary(audit.breakdown.age, L),
-      price: fmtUsd(token.priceUsd),
+      price: fmtPriceUsd(token.priceUsd),
       change24h: typeof token.priceChange24h === 'number' ? `${token.priceChange24h.toFixed(1)}%` : null,
     },
     highlights: highlights.map((h) => ({ level: h.sev, text: h.text })),

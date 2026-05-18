@@ -16,13 +16,7 @@ const { safetyPercent } = require('./riskDisplay');
 const { buildMarketFromToken } = require('./marketData');
 const { buildLogoCandidates } = require('./tokenLogo');
 
-function fmtUsd(n) {
-  if (n == null || Number.isNaN(n)) return '—';
-  const x = Number(n);
-  if (x < 1_000) return `$${x.toFixed(2)}`;
-  if (x < 1_000_000) return `$${(x / 1_000).toFixed(2)}K`;
-  return `$${(x / 1_000_000).toFixed(2)}M`;
-}
+const { fmtUsd, fmtPriceUsd } = require('./formatUsd');
 
 function cardLevelFromAudit(audit) {
   if (audit?.isCritical) return 'critical';
@@ -78,7 +72,7 @@ function tokenToFeedItem(token, audit, rank, reportId = null) {
     dexShort: plat.short,
     dexAppUrl: reportId ? require('./miniAppServer').buildWebAppUrl(reportId) : null,
     priceUsd: token.priceUsd,
-    priceUsdFmt: fmtUsd(token.priceUsd),
+    priceUsdFmt: fmtPriceUsd(token.priceUsd),
     change24h: token.priceChange24h,
     change1h: token.priceChange1h,
     marketCapUsdFmt: fmtUsd(token.marketCapUsd || token.fdvUsd),

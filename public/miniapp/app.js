@@ -82,6 +82,22 @@
     return `${x >= 0 ? '+' : ''}${x.toFixed(1)}%`;
   }
 
+  function fmtPriceDisplay(item) {
+    const raw = item?.priceUsd;
+    if (raw != null && !Number.isNaN(Number(raw))) {
+      const x = Number(raw);
+      if (x === 0) return '$0';
+      if (x < 0.0000001) return `$${x.toExponential(2)}`;
+      if (x < 0.0001) return `$${x.toFixed(8).replace(/\.?0+$/, '')}`;
+      if (x < 0.01) return `$${x.toFixed(6).replace(/\.?0+$/, '')}`;
+      if (x < 1) return `$${x.toFixed(4)}`;
+      if (x < 1000) return `$${x.toFixed(2)}`;
+    }
+    const fmt = item?.priceUsdFmt;
+    if (fmt && fmt !== '$0.00' && fmt !== '$0') return fmt;
+    return fmt || '—';
+  }
+
   function renderFeedRow(item, extraClass = '') {
     const risk = item.risk || {};
     const rc = risk.band || 'mid';
@@ -101,7 +117,7 @@
     return `<article class="token-row ${extraClass}" data-mint="${escHtml(item.mint)}" data-dex="${escHtml(dexKey)}"${reportAttr}>
       <span class="tr-rank">${item.rank ?? '·'}</span>
       <div class="tr-token">${avatar}<div class="tr-meta"><div class="tr-name">${escHtml(item.symbol)}<span class="tr-pair"> / ${pairShort}</span>${dexBadge}</div><div class="tr-sub">MCap ${escHtml(item.marketCapUsdFmt)}</div></div>
-      <span class="tr-price">${escHtml(item.priceUsdFmt)}</span>
+      <span class="tr-price" title="${item.priceUsd != null ? escHtml(String(item.priceUsd)) : ''}">${escHtml(fmtPriceDisplay(item))}</span>
       <span class="tr-pct ${chgClass(chg1)}">${formatPct(chg1)}</span>
       <span class="tr-pct ${chgClass(chg24)}">${formatPct(chg24)}</span>
       <span class="tr-vol">${escHtml(item.volume24hFmt || '—')}</span>
@@ -278,8 +294,10 @@
         ? '—'
         : `${Number(t.change24h) >= 0 ? '+' : ''}${Number(t.change24h).toFixed(1)}%`;
       const reportAttr = t.reportId ? ` data-report="${escHtml(t.reportId)}"` : '';
+      const price = t.priceUsdFmt && t.priceUsdFmt !== '$0.00' ? t.priceUsdFmt : (t.priceUsd != null ? fmtPriceDisplay(t) : '—');
       return `<button type="button" class="trend-chip" data-mint="${escHtml(t.mint)}"${reportAttr}>
         <span class="trend-sym">${escHtml(t.symbol)}</span>
+        <span class="trend-price">${escHtml(price)}</span>
         <span class="trend-vol">${escHtml(t.volume24hFmt)}</span>
         <span class="trend-chg ${up ? 'up' : 'down'}">${escHtml(pct)}</span>
       </button>`;
@@ -302,16 +320,43 @@
     bindFeedRowLogos(list);
   }
 
-  function applyMarketStats(stats) {
+  function applyMarketStats(stats, items) {
     const st = stats || PLACEHOLDER_STATS;
     if ($('statVol')) $('statVol').textContent = st.volume24hFmt || '—';
     if ($('statNew')) $('statNew').textContent = String(st.newPairs ?? '—');
     if ($('statLiq')) $('statLiq').textContent = st.liquidityFmt || '—';
     if ($('statActive')) $('statActive').textContent = String(st.activeNow ?? '—');
-    [['statVolChg', '+16.8%'], ['statNewChg', '+23.5%'], ['statLiqChg', '+19.2%'], ['statActiveChg', '+12.3%']].forEach(([id, t]) => {
+    const list = items || [];
+    const avgChg = list.length
+      ? list.reduce((s, it) => s + (Number(it.change24h) || 0), 0) / list.length
+      : null;
+    const chgTxt = avgChg != null && !Number.isNaN(avgChg) ? formatPct(avgChg) : '';
+    [['statVolChg', chgTxt], ['statNewChg', st.newPairs ? `+${st.newPairs} new` : ''], ['statLiqChg', ''], ['statActiveChg', list.length ? `${list.length} live` : '']].forEach(([id, t]) => {
       const el = $(id);
-      if (el) el.textContent = t;
+      if (el) {
+        el.textContent = t || '';
+        el.classList.toggle('hidden', !t);
+        if (id === 'statVolChg' && avgChg != null) {
+          el.classList.toggle('up', avgChg >= 0);
+          el.classList.toggle('down', avgChg < 0);
+        }
+      }
     });
+  }
+
+  function updateFeedMetaBar(body) {
+    const bar = $('feedMetaBar');
+    const txt = $('feedMetaText');
+    if (!bar || !txt) return;
+    if (!body || body.empty) {
+      bar.classList.add('hidden');
+      return;
+    }
+    const n = body.botCount ?? body.items?.length ?? 0;
+    const vol = body.stats?.volume24hFmt || '—';
+    const src = body.source === 'bot_channel' ? 'Bot kanal paylaşımları' : 'Feed';
+    txt.textContent = `◎ ${src} · ${n} token · ${vol} 24h vol`;
+    bar.classList.remove('hidden');
   }
 
   function updateQuickCards(stats, items) {
@@ -382,9 +427,10 @@
       const body = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(body.message || 'feed_failed');
       if (body.empty && body.emptyMessage) {
-        applyMarketStats({ count: 0, volume24hFmt: '—', liquidityFmt: '—', newPairs: 0, activeNow: 0 });
+        applyMarketStats({ count: 0, volume24hFmt: '—', liquidityFmt: '—', newPairs: 0, activeNow: 0 }, []);
         updateQuickCards({ count: 0, newPairs: 0, liquidityFmt: '—' }, []);
         applyHomeExtras(body);
+        updateFeedMetaBar(body);
         renderTokenList([]);
         showToast(body.emptyMessage.slice(0, 80));
         return body;
@@ -392,9 +438,10 @@
       const items = body.items?.length ? body.items : [];
       updateDexChipCounts(body.dexCounts);
       if (body.dexFilter) setDexFilter(body.dexFilter);
-      applyMarketStats(body.stats || PLACEHOLDER_STATS);
+      applyMarketStats(body.stats || PLACEHOLDER_STATS, items);
       updateQuickCards(body.stats || PLACEHOLDER_STATS, items);
       applyHomeExtras(body);
+      updateFeedMetaBar(body);
       renderTokenList(items);
       if (dexFilter !== 'all' && !items.length && (body.dexCounts?.all || 0) > 0) {
         showToast('Bu DEX filtresinde yok — Tümü\'ne geçiliyor');
@@ -406,9 +453,10 @@
       }
       return body;
     } catch (e) {
-      applyMarketStats(PLACEHOLDER_STATS);
+      applyMarketStats(PLACEHOLDER_STATS, []);
       updateQuickCards(PLACEHOLDER_STATS, []);
       applyHomeExtras(null);
+      updateFeedMetaBar(null);
       renderTokenList([]);
       showToast('Liste yüklenemedi — bot paylaşımlarını bekleyin');
       return null;
@@ -1217,7 +1265,8 @@
     }
 
     loadLogo(m.imageUrl, m.imageFallbacks, sym);
-    $('priceUsd').textContent = m.priceUsdFmt || data.summary?.price || '—';
+    $('priceUsd').textContent = fmtPriceDisplay({ priceUsd: m.priceUsd, priceUsdFmt: m.priceUsdFmt })
+      || data.summary?.price || '—';
 
     renderQuoteChanges(m);
     renderMetrics(m, m.chart?.stats);
