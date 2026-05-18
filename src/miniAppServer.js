@@ -184,11 +184,36 @@ function createMiniAppServer() {
       if (req.method === 'OPTIONS') {
         res.writeHead(204, {
           'Access-Control-Allow-Origin': '*',
-          'Access-Control-Allow-Methods': 'GET, OPTIONS',
-          'Access-Control-Allow-Headers': 'Content-Type',
+          'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type, X-Crop-Key',
         });
         res.end();
         return;
+      }
+
+      if (url.pathname === '/api/crop-profiles') {
+        const cropProfiles = require('./cropProfiles');
+        if (req.method === 'GET') {
+          const baked = cropProfiles.loadBakedProfiles();
+          if (!baked) {
+            sendJson(res, 404, { error: 'no_baked_profiles' });
+            return;
+          }
+          sendJson(res, 200, baked);
+          return;
+        }
+        if (req.method === 'POST') {
+          if (!cropProfiles.isPublishAuthorized(req)) {
+            sendJson(res, 403, { error: 'forbidden' });
+            return;
+          }
+          const raw = await readBody(req);
+          const payload = JSON.parse(raw.toString('utf8') || '{}');
+          const saved = cropProfiles.saveBakedProfiles(payload);
+          console.log('[miniApp] crop-profiles kaydedildi:', cropProfiles.DATA_FILE);
+          sendJson(res, 200, { ok: true, saved });
+          return;
+        }
       }
 
       if (req.method === 'GET' && shouldProxyToBot(url.pathname)) {

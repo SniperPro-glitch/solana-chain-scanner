@@ -1694,6 +1694,13 @@ html.web-browser .token-table-scroll {
   color: var(--cyan);
 }
 
+.crop-btn-publish {
+  flex: 1 1 100%;
+  background: rgba(125, 255, 184, 0.18);
+  border-color: #7dffb8;
+  color: #7dffb8;
+}
+
 .crop-btn-muted {
   color: var(--muted);
 }

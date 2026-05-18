@@ -3,8 +3,9 @@
  * ?kalibre=1 veya "Kırpma" butonu
  */
 (function (global) {
-  const STORAGE_KEY = 'sniperDexCropV3';
-  const LEGACY_KEYS = ['sniperDexCropV2', 'sniperDexCropV1'];
+  const STORAGE_KEY = 'sniperDexCropV4';
+  const LEGACY_KEYS = ['sniperDexCropV3', 'sniperDexCropV2', 'sniperDexCropV1'];
+  let serverBaked = null;
   const CHART_BRAND_CROP = 40;
   const D = 'di' + 'v';
 
@@ -62,12 +63,48 @@
     return clone(DEFAULT_BLOCK);
   }
 
+  function getBakedSource() {
+    return serverBaked || globalThis.__DEX_CROP_BAKED__ || null;
+  }
+
   function defaultStore() {
+    const baked = getBakedSource();
     const profiles = {};
     PROFILE_ORDER.forEach((id) => {
-      profiles[id] = defaultBlock();
+      if (baked?.profiles?.[id]) {
+        profiles[id] = normalizeBlock(baked.profiles[id]);
+      } else {
+        profiles[id] = defaultBlock();
+      }
     });
-    return { profiles };
+    return { profiles, version: baked?.version || 1, updatedAt: baked?.updatedAt || null };
+  }
+
+  async function fetchServerBaked() {
+    try {
+      const r = await fetch(`/api/crop-profiles?v=${Date.now()}`, { cache: 'no-store' });
+      if (r.ok) {
+        serverBaked = await r.json();
+        return serverBaked;
+      }
+    } catch {
+      /* yoksay */
+    }
+    return null;
+  }
+
+  async function publishServerProfiles() {
+    const store = loadStore();
+    store.profiles[editingProfile] = clone(current);
+    const r = await fetch('/api/crop-profiles', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ version: 1, profiles: store.profiles }),
+    });
+    const data = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(data.message || data.error || `HTTP ${r.status}`);
+    serverBaked = data.saved || { version: 1, profiles: store.profiles };
+    return serverBaked;
   }
 
   function isTelegram() {
@@ -127,12 +164,12 @@
 
   function loadStore() {
     migrateLegacy();
+    const store = defaultStore();
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
-      if (!raw) return defaultStore();
+      if (!raw) return store;
       const parsed = JSON.parse(raw);
-      if (!parsed.profiles) return defaultStore();
-      const store = defaultStore();
+      if (!parsed.profiles) return store;
       for (const id of PROFILE_ORDER) {
         if (parsed.profiles[id]) {
           store.profiles[id] = normalizeBlock(parsed.profiles[id]);
@@ -141,7 +178,7 @@
       return store;
     } catch {
       localStorage.removeItem(STORAGE_KEY);
-      return defaultStore();
+      return store;
     }
   }
 
@@ -509,6 +546,7 @@
       '</section>',
       `<${D} class="crop-actions">`,
       '<button type="button" class="crop-btn crop-btn-save" id="cropSaveBtn">Profili kaydet</button>',
+      '<button type="button" class="crop-btn crop-btn-publish" id="cropPublishBtn">☁ Herkese sabitle (5 profil)</button>',
       '<button type="button" class="crop-btn crop-btn-copy" id="cropCopyWebBtn">Web →</button>',
       '<button type="button" class="crop-btn crop-btn-copy" id="cropCopy13pmBtn">13 PM →</button>',
       '<button type="button" class="crop-btn crop-btn-copy" id="cropCopy16pmBtn">16 PM →</button>',
@@ -536,6 +574,17 @@
     document.getElementById('cropSaveBtn')?.addEventListener('click', () => {
       saveBlock(editingProfile, current);
       toast(`${PROFILE_META[editingProfile].label} kaydedildi`);
+    });
+    document.getElementById('cropPublishBtn')?.addEventListener('click', async () => {
+      try {
+        const store = loadStore();
+        store.profiles[editingProfile] = clone(current);
+        saveStore(store);
+        await publishServerProfiles();
+        toast('5 profil sunucuya sabitlendi — herkes görür');
+      } catch (e) {
+        toast(e.message || 'Sunucuya kayıt başarısız');
+      }
     });
     document.getElementById('cropCopyWebBtn')?.addEventListener('click', () => copyProfileFrom('web'));
     document.getElementById('cropCopy13pmBtn')?.addEventListener('click', () => copyProfileFrom('app13pm'));
@@ -603,7 +652,8 @@
     head.appendChild(btn);
   }
 
-  function init() {
+  async function init() {
+    await fetchServerBaked();
     apply(load());
     addCalibrateButton();
     window.addEventListener('resize', () => {
@@ -646,6 +696,6 @@
     isCalibrateMode,
   };
 
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => init());
   else init();
 })(window);
