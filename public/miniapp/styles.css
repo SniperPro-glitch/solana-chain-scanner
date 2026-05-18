@@ -802,9 +802,9 @@ html.detail-mode body {
 /* DexScreener canlı işlemler — iframe kırpma (Transactions paneli) */
 .dex-trades-embed-wrap {
   position: relative;
-  --dex-trades-view-h: 268px;
-  --dex-iframe-h: 960px;
-  --dex-iframe-top: -788px;
+  --dex-trades-view-h: clamp(220px, 30vh, 280px);
+  --dex-iframe-h: 980px;
+  --dex-iframe-top: -820px;
   --dex-mask-top-h: 48px;
   height: var(--dex-trades-view-h);
   min-height: var(--dex-trades-view-h);
@@ -888,11 +888,22 @@ html.detail-mode body {
   display: none !important;
 }
 
-/* Dex embed — sol toolbar açık, hafif sola kaydır, minimal kırpma */
+/* Eski marka maskesi — tamamen kapalı */
+.dex-chart-brand-mask {
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+.chart-terminal--dex-embed .chart-source {
+  display: none !important;
+}
+
+/* Dex embed — üst şerit (dexscreener.com) kırpılır, ayrı kutu yok */
 .chart-terminal--dex-embed .chart-stage {
-  height: var(--chart-embed-h, 340px);
-  min-height: var(--chart-embed-h, 340px);
-  max-height: var(--chart-embed-h, 340px);
+  height: var(--chart-embed-h, clamp(260px, 36vh, 400px));
+  min-height: var(--chart-embed-h, clamp(260px, 36vh, 400px));
+  max-height: var(--chart-embed-h, clamp(260px, 36vh, 400px));
   overflow: hidden;
   position: relative;
   background: #0a0e1a;
@@ -908,11 +919,11 @@ html.detail-mode body {
 
 .chart-terminal--dex-embed .dex-embed-chart {
   position: absolute;
-  top: var(--chart-embed-top, -8px);
+  top: calc(var(--chart-embed-top, -8px) - var(--chart-brand-crop, 40px));
   left: var(--chart-embed-left, -4%);
   width: var(--chart-embed-width, 108%) !important;
   max-width: none !important;
-  height: calc(var(--chart-embed-h, 340px) + var(--chart-embed-extra, 20px)) !important;
+  height: calc(var(--chart-embed-h, 340px) + var(--chart-embed-extra, 20px) + var(--chart-brand-crop, 40px)) !important;
   min-height: 0 !important;
   margin: 0 !important;
   border: 0;

@@ -791,16 +791,12 @@
   }
 
   function stopTradesPoll() {
-    if (tradesResizeHandler) {
-      window.removeEventListener('resize', tradesResizeHandler);
-      tradesResizeHandler = null;
-    }
+    /* resize dinleyicisi dex-crop.js içinde global */
   }
 
   function applyDexCrop() {
     if (globalThis.SniperDexCrop) {
       SniperDexCrop.apply();
-      return;
     }
   }
 
@@ -847,10 +843,6 @@
     }
 
     scheduleDexTradesCrop();
-    if (!tradesResizeHandler) {
-      tradesResizeHandler = () => scheduleDexTradesCrop();
-      window.addEventListener('resize', tradesResizeHandler);
-    }
 
     if (fallback) {
       fallback.textContent = 'İşlem akışı yükleniyor…';
@@ -907,8 +899,8 @@
       const chartIfr = container.querySelector('iframe.dex-embed-chart');
       if (chartIfr) chartIfr.addEventListener('load', () => applyDexCrop());
       if (note) {
-        note.textContent = `${(tf || '15m').toUpperCase()} · DexScreener`;
-        note.classList.remove('hidden');
+        note.textContent = `${(tf || '15m').toUpperCase()} · canlı grafik`;
+        note.classList.add('hidden');
       }
       applyDexCrop();
       return true;
@@ -1139,6 +1131,7 @@
 
     resizeHandler = () => {
       if (chartApi) chartApi.applyOptions({ width: container.clientWidth || w });
+      applyDexCrop();
     };
     window.addEventListener('resize', resizeHandler);
     } catch (e) {
