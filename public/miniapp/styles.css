@@ -802,7 +802,7 @@ html.detail-mode body {
 /* DexScreener canlı işlemler — iframe kırpma (Transactions paneli) */
 .dex-trades-embed-wrap {
   position: relative;
-  --dex-trades-view-h: clamp(220px, 30vh, 280px);
+  --dex-trades-view-h: 268px;
   --dex-iframe-h: 980px;
   --dex-iframe-top: -820px;
   --dex-mask-top-h: 48px;
@@ -901,9 +901,9 @@ html.detail-mode body {
 
 /* Dex embed — üst şerit (dexscreener.com) kırpılır, ayrı kutu yok */
 .chart-terminal--dex-embed .chart-stage {
-  height: var(--chart-embed-h, clamp(260px, 36vh, 400px));
-  min-height: var(--chart-embed-h, clamp(260px, 36vh, 400px));
-  max-height: var(--chart-embed-h, clamp(260px, 36vh, 400px));
+  height: var(--chart-embed-h, 340px);
+  min-height: var(--chart-embed-h, 340px);
+  max-height: var(--chart-embed-h, 340px);
   overflow: hidden;
   position: relative;
   background: #0a0e1a;
