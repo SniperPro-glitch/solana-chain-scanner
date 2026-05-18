@@ -46,10 +46,7 @@
   let homeShellBound = false;
   let detailShellBound = false;
   let feedPollTimer = null;
-  let tradesPollTimer = null;
-  let tradesAgoTimer = null;
-  let lastTradesSig = '';
-  let lastTradesRows = [];
+  let tradesResizeHandler = null;
   let openingMint = false;
 
   const PLACEHOLDER_TOKENS = [
@@ -794,158 +791,85 @@
   }
 
   function stopTradesPoll() {
-    if (tradesPollTimer) {
-      clearInterval(tradesPollTimer);
-      tradesPollTimer = null;
+    if (tradesResizeHandler) {
+      window.removeEventListener('resize', tradesResizeHandler);
+      tradesResizeHandler = null;
     }
-    if (tradesAgoTimer) {
-      clearInterval(tradesAgoTimer);
-      tradesAgoTimer = null;
-    }
-    document.removeEventListener('visibilitychange', onTradesVisibility);
-    lastTradesSig = '';
-    lastTradesRows = [];
   }
 
-  function tradeMintFor(m) {
-    return appData?.address || m?.address || appData?.market?.address || '';
+  function calibrateDexTradesCrop() {
+    const wrap = $('dexTradesWrap');
+    if (!wrap) return;
+    const vh = window.innerHeight || 640;
+    const rowH = 44;
+    const viewH = rowH * 6 + 24;
+    const iframeH = Math.round(Math.min(980, Math.max(820, vh * 0.92)));
+    const offset = Math.round(iframeH * 0.535 - 8);
+    wrap.style.setProperty('--dex-trades-view-h', `${viewH}px`);
+    wrap.style.setProperty('--dex-iframe-h', `${iframeH}px`);
+    wrap.style.setProperty('--dex-iframe-top', `-${offset}px`);
   }
 
-  function tradePoolFor(m) {
-    return m?.poolAddress || appData?.market?.poolAddress || '';
-  }
-
-  function fmtTokenAmt(n) {
-    const x = Math.abs(Number(n) || 0);
-    if (!x) return '—';
-    if (x >= 1_000_000) return `${(x / 1_000_000).toFixed(2)}M`;
-    if (x >= 10_000) return `${(x / 1_000).toFixed(1)}K`;
-    if (x >= 1) return x.toLocaleString('en-US', { maximumFractionDigits: 0 });
-    return x.toFixed(2);
-  }
-
-  function tradeRowHtml(t) {
-    const side = t.side === 'buy' ? 'buy' : 'sell';
-    const label = side === 'buy' ? 'Buy' : 'Sell';
-    const usd = t.usdFmt || (t.usd >= 1 ? `$${t.usd.toFixed(2)}` : `$${t.usd}`);
-    const wallet = escHtml(t.wallet || '—');
-    const ago = escHtml(t.ago || '—');
-    const amt = fmtTokenAmt(t.amount);
-    const tx = t.txHash
-      ? ` data-tx="${escHtml(t.txHash)}" title="Solscan'da aç"`
-      : '';
-    return `<li class="trade-row trade-row--${side}"${tx}><span class="trade-ago">${ago}</span><span class="trade-side ${side}">${label}</span><span class="trade-usd">${escHtml(usd)}</span><span class="trade-amt">${escHtml(amt)}</span><span class="trade-wallet">${wallet}</span></li>`;
-  }
-
-  function bindTradeRowClicks(root) {
-    (root || $('tradesList'))?.querySelectorAll('.trade-row[data-tx]').forEach((el) => {
-      if (el.dataset.bound) return;
-      el.dataset.bound = '1';
-      el.style.cursor = 'pointer';
-      el.addEventListener('click', () => {
-        const h = el.getAttribute('data-tx');
-        if (h) window.open(`https://solscan.io/tx/${h}`, '_blank', 'noopener');
-      });
+  function dexTradesEmbedUrl(poolOrMint) {
+    const ref = String(poolOrMint || '').trim();
+    if (!ref) return null;
+    const q = new URLSearchParams({
+      embed: '1',
+      theme: 'dark',
+      trades: '1',
+      info: '0',
+      tabs: '0',
+      chartLeftToolbar: '0',
+      chartTheme: 'dark',
+      interval: '15',
     });
+    return `https://dexscreener.com/solana/${encodeURIComponent(ref)}?${q.toString()}`;
   }
 
-  function renderTradeTape(trades, opts = {}) {
+  function showDexTradesEmbed(m) {
     const wrap = $('tradesTape');
-    const list = $('tradesList');
+    const iframe = $('dexTradesEmbed');
+    const fallback = $('dexTradesFallback');
     const meta = $('tradesMeta');
-    if (!wrap || !list) return;
-    const rows = Array.isArray(trades) ? trades : [];
-    if (!rows.length) {
-      wrap.classList.remove('hidden');
-      if (meta) meta.textContent = 'yükleniyor…';
-      list.innerHTML = '<li class="trade-row trade-placeholder"><span>İşlemler yükleniyor…</span></li>';
-      return;
-    }
-    const sig = rows.map((t) => t.id || `${t.txHash}-${t.at}`).join('|');
-    const prevSig = lastTradesSig;
-    const headId = rows[0]?.id || rows[0]?.txHash || '';
-    const prevHeadId = lastTradesRows[0]?.id || lastTradesRows[0]?.txHash || '';
-    const hasNewHead = headId && headId !== prevHeadId && prevSig;
+    if (!wrap) return;
 
-    if (sig === lastTradesSig && !opts.force && !hasNewHead) {
-      wrap.classList.remove('hidden');
-      return;
-    }
-
-    lastTradesSig = sig;
-    lastTradesRows = rows.slice(0, 28);
     wrap.classList.remove('hidden');
-    const pollHint = opts.pollSec || 3;
-    if (meta) meta.textContent = `${rows.length} işlem · ${pollHint}s`;
+    const poolRef = m?.poolAddress || m?.address || appData?.address;
+    const url = dexTradesEmbedUrl(poolRef);
 
-    const sym = appData?.market?.symbol || appData?.symbol || 'TOKEN';
-    const col = $('tradesColToken');
-    if (col) col.textContent = sym;
-
-    const slice = lastTradesRows;
-    if (hasNewHead && list.children.length > 0) {
-      const fresh = slice.filter((t) => {
-        const id = t.id || t.txHash;
-        return id && !prevSig.includes(String(id));
-      });
-      if (fresh.length) {
-        const frag = document.createElement('div');
-        frag.innerHTML = fresh.map((t) => tradeRowHtml(t)).join('');
-        Array.from(frag.children).reverse().forEach((node) => {
-          node.classList.add('trade-row--new');
-          list.insertBefore(node, list.firstChild);
-        });
-        while (list.children.length > 28) list.removeChild(list.lastChild);
-        bindTradeRowClicks(list);
-        return;
+    if (!iframe) return;
+    if (!url) {
+      iframe.classList.add('hidden');
+      if (fallback) {
+        fallback.textContent = 'İşlem akışı için pool bulunamadı.';
+        fallback.classList.remove('hidden');
       }
+      return;
     }
 
-    list.innerHTML = slice.map((t) => tradeRowHtml(t)).join('');
-    bindTradeRowClicks(list);
-  }
+    calibrateDexTradesCrop();
+    if (!tradesResizeHandler) {
+      tradesResizeHandler = () => calibrateDexTradesCrop();
+      window.addEventListener('resize', tradesResizeHandler);
+    }
 
-  async function refreshTrades(m) {
-    const mint = tradeMintFor(m);
-    if (!mint) return;
-    const pool = tradePoolFor(m);
-    const q = new URLSearchParams();
-    if (pool) q.set('pool', pool);
-    q.set('_', String(Date.now()));
-    const qs = q.toString();
-    const res = await fetch(apiPath(`/api/trades/${encodeURIComponent(mint)}?${qs}`), {
-      cache: 'no-store',
-    });
-    if (!res.ok) return;
-    const body = await res.json();
-    const pollSec = Math.max(2, Math.round((body.pollMs || 3000) / 1000));
-    renderTradeTape(body.trades || [], { pollSec });
+    if (fallback) {
+      fallback.textContent = 'İşlem akışı yükleniyor…';
+      fallback.classList.remove('hidden');
+    }
+    iframe.classList.remove('hidden');
+    iframe.onload = () => {
+      calibrateDexTradesCrop();
+      if (fallback) fallback.classList.add('hidden');
+      if (meta) meta.textContent = 'canlı';
+    };
+    if (iframe.src !== url) iframe.src = url;
+    else if (meta) meta.textContent = 'canlı';
   }
 
   function startTradesPoll(m) {
     stopTradesPoll();
-    renderTradeTape(m?.recentTrades || [], { pollSec: 3 });
-    const mint = tradeMintFor(m);
-    if (!mint) return;
-    const pollMs = Math.min(m?.tradesPollMs || 3000, 3000);
-    const marketRef = () => appData?.market || m;
-    const tick = () => refreshTrades(marketRef()).catch(() => {});
-    tick();
-    tradesPollTimer = setInterval(tick, pollMs);
-    document.addEventListener('visibilitychange', onTradesVisibility);
-    tradesAgoTimer = setInterval(() => {
-      if (document.hidden || !lastTradesRows.length) return;
-      const meta = $('tradesMeta');
-      if (meta && lastTradesSig) {
-        meta.textContent = `${lastTradesRows.length} işlem · canlı`;
-      }
-    }, 1000);
-  }
-
-  function onTradesVisibility() {
-    if (!document.hidden && appData?.market) {
-      refreshTrades(appData.market).catch(() => {});
-    }
+    showDexTradesEmbed(m);
   }
 
   function dexEmbedUrlFor(poolOrMint, tf) {
