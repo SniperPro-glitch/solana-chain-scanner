@@ -1476,7 +1476,7 @@ html.web-browser .token-table-scroll {
   right: 0;
   z-index: 9999;
   pointer-events: auto;
-  width: min(100vw, 320px);
+  width: min(100vw, 340px);
   height: var(--app-height, 100dvh);
   overflow-y: auto;
   background: rgba(8, 12, 18, 0.98);
@@ -1573,6 +1573,10 @@ html.web-browser .token-table-scroll {
 
 .crop-section--tape h3 {
   color: #7dffb8;
+}
+
+.crop-section--tape .crop-section-note {
+  color: #9ed4ff;
 }
 
 .crop-section-note {

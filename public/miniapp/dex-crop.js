@@ -10,8 +10,8 @@
 
   const PROFILE_META = {
     web: { label: 'Web', hint: 'Tarayıcı / masaüstü' },
-    app16: { label: '16 Pro Max', hint: 'Telegram — büyük ekran' },
-    app11: { label: 'iPhone 11', hint: 'Telegram — küçük ekran' },
+    app16: { label: '13 / 16 Pro Max', hint: 'Telegram — 13 Pro Max & 16 Pro Max' },
+    app11: { label: 'iPhone 11', hint: 'Telegram — iPhone 11 / XR / 12 mini' },
   };
 
   const DEFAULT_BLOCK = {
@@ -34,6 +34,7 @@
       viewH: 268,
       iframeH: 980,
       iframeTop: -820,
+      shiftDown: 0,
       left: -3,
       width: 106,
       maskTop: 8,
@@ -72,12 +73,7 @@
   }
 
   function normalizeBlock(patch) {
-    const b = mergeBlock(DEFAULT_BLOCK, patch);
-    if ((b.trades.shiftDown || 0) > 0 && !(b.tape.shiftDown > 0)) {
-      b.tape.shiftDown = b.trades.shiftDown;
-    }
-    delete b.trades.shiftDown;
-    return b;
+    return mergeBlock(DEFAULT_BLOCK, patch);
   }
 
   function mergeBlock(base, patch) {
@@ -190,6 +186,7 @@
     const brandCrop = Number(c.brandCrop) || CHART_BRAND_CROP;
     const chartDown = Number(c.shiftDown) || 0;
     const tapeDown = Number(s.tape?.shiftDown) || 0;
+    const tradesDown = Number(t.shiftDown) || 0;
 
     root.style.setProperty('--chart-embed-h', `${c.stageH}px`);
     root.style.setProperty('--chart-embed-top', `${c.top}px`);
@@ -204,6 +201,7 @@
     root.style.setProperty('--dex-trades-view-h', `${t.viewH}px`);
     root.style.setProperty('--dex-iframe-h', `${t.iframeH}px`);
     root.style.setProperty('--dex-iframe-top', `${t.iframeTop}px`);
+    root.style.setProperty('--dex-trades-shift-down', `${tradesDown}px`);
     root.style.setProperty('--tape-shift-down', `${tapeDown}px`);
     root.style.setProperty('--dex-iframe-left', `${t.left}%`);
     root.style.setProperty('--dex-iframe-width', `${t.width}%`);
@@ -247,7 +245,7 @@
     }
     if (tradesIframe) {
       tradesIframe.style.position = 'absolute';
-      tradesIframe.style.top = `${t.iframeTop}px`;
+      tradesIframe.style.top = `${t.iframeTop + tradesDown}px`;
       tradesIframe.style.left = `${t.left}%`;
       tradesIframe.style.width = `${t.width}%`;
       tradesIframe.style.height = `${t.iframeH}px`;
@@ -307,8 +305,9 @@
     ['cropChartBrand', 'chart', 'brandCrop'],
     ['cropTradesViewH', 'trades', 'viewH'],
     ['cropTradesIframeH', 'trades', 'iframeH'],
-    ['cropTapeDown', 'tape', 'shiftDown'],
     ['cropTradesTop', 'trades', 'iframeTop'],
+    ['cropTradesDown', 'trades', 'shiftDown'],
+    ['cropTapeDown', 'tape', 'shiftDown'],
     ['cropTradesLeft', 'trades', 'left'],
     ['cropTradesWidth', 'trades', 'width'],
     ['cropTradesClipL', 'trades', 'clipLeft'],
@@ -354,6 +353,15 @@
     refreshPreview();
   }
 
+  function copyProfileFrom(sourceId) {
+    if (!PROFILE_META[sourceId]) return;
+    current = loadForProfile(sourceId);
+    syncSlidersFromCurrent();
+    apply(current);
+    refreshPreview();
+    toast(`${PROFILE_META[sourceId].label} → ${PROFILE_META[editingProfile].label} kopyalandı (Kaydet)`);
+  }
+
   function openPanel() {
     if (!panelBuilt) buildPanel();
     editingProfile = detectProfile();
@@ -394,7 +402,7 @@
     panelEl.innerHTML = [
       '<header class="dex-crop-head"><strong>Kırpma — 3 ekran</strong>',
       '<button type="button" class="crop-close" id="cropCloseBtn" aria-label="Kapat">✕</button></header>',
-      '<p class="crop-intro">Üstten profil seç → ayarla → <b>Kaydet</b>. Her cihaz için ayrı kayıt. JSON kopyala → koda sabitleyebiliriz.</p>',
+      '<p class="crop-intro">Her telefonda aynı kaydırıcılar — içeriği oturt, <b>Profili kaydet</b>. 11 ile 13/16 ayrı kayıt.</p>',
       '<p class="crop-detect" id="cropDetectLabel"></p>',
       '<div class="crop-profile-tabs" role="tablist">',
       ...Object.entries(PROFILE_META).map(
@@ -406,7 +414,7 @@
       '<section class="crop-section"><h3>Grafik (Dex embed)</h3>',
       sliderRow('Kutu yüksekliği', 'cropChartStageH', 240, 480, 2, c.stageH, 'px'),
       sliderRow('Üst kaydır', 'cropChartTop', -180, 40, 1, c.top, 'px — negatif = yukarı'),
-      sliderRow('Aşağı kaydır', 'cropChartDown', 0, 140, 1, c.shiftDown, 'px — telefon: grafiği aşağı it'),
+      sliderRow('Aşağı kaydır', 'cropChartDown', 0, 200, 1, c.shiftDown, 'px — grafik içeriği aşağı'),
       sliderRow('Sol kaydır (%)', 'cropChartLeft', -16, 12, 1, c.left, 'grafik konumu'),
       sliderRow('Genişlik (%)', 'cropChartWidth', 88, 120, 1, c.width, 'daralt / genişlet'),
       sliderRow('Sol kenar kırp', 'cropChartClipL', 0, 80, 1, c.clipLeft, 'px — soldan gizle'),
@@ -414,14 +422,12 @@
       sliderRow('Üst marka kırp', 'cropChartBrand', 0, 64, 1, c.brandCrop, 'dexscreener şeridi'),
       sliderRow('Ekstra yükseklik', 'cropChartExtra', 0, 48, 1, c.heightExtra, 'px'),
       '</section>',
-      '<section class="crop-section crop-section--tape"><h3>Alım / satım kutusu</h3>',
-      '<p class="crop-section-note">Grafik altındaki yeşil LIVE kutusu — Dex içi değil, tüm blok kayar.</p>',
-      sliderRow('Aşağı kaydır', 'cropTapeDown', 0, 200, 1, tp.shiftDown, 'px — telefonda kutuyu aşağı it'),
-      '</section>',
-      '<section class="crop-section crop-section--dex"><h3>Dex liste (ince ayar)</h3>',
-      sliderRow('Görünür yükseklik', 'cropTradesViewH', 180, 360, 2, t.viewH, 'px'),
+      '<section class="crop-section crop-section--tape"><h3>Alım / satım panosu</h3>',
+      '<p class="crop-section-note">LIVE kutusunun içindeki Dex tablosunu oturt (11 ve 13/16 aynı seçenekler).</p>',
+      sliderRow('Görünür yükseklik', 'cropTradesViewH', 160, 380, 2, t.viewH, 'px — kutu yüksekliği'),
       sliderRow('Iframe yükseklik', 'cropTradesIframeH', 700, 1200, 5, t.iframeH, 'px'),
-      sliderRow('Iframe üst', 'cropTradesTop', -1100, -400, 5, t.iframeTop, 'negatif = tablo yukarı'),
+      sliderRow('Iframe üst', 'cropTradesTop', -1200, -300, 5, t.iframeTop, 'negatif = yukarı çek'),
+      sliderRow('Aşağı kaydır', 'cropTradesDown', 0, 250, 1, t.shiftDown, 'px — tablo içeriği aşağı'),
       sliderRow('Sol kaydır (%)', 'cropTradesLeft', -16, 12, 1, t.left, ''),
       sliderRow('Genişlik (%)', 'cropTradesWidth', 88, 120, 1, t.width, ''),
       sliderRow('Sol kenar kırp', 'cropTradesClipL', 0, 80, 1, t.clipLeft, 'px'),
@@ -429,8 +435,13 @@
       sliderRow('Üst maske', 'cropTradesMaskTop', 0, 80, 1, t.maskTop, 'px'),
       sliderRow('Alt maske', 'cropTradesMaskFoot', 0, 60, 1, t.maskFoot, 'px'),
       '</section>',
+      '<section class="crop-section crop-section--dex"><h3>Kutu sayfada (isteğe bağlı)</h3>',
+      '<p class="crop-section-note">Tüm LIVE kutusunu grafik altında yukarı/aşağı kaydırır.</p>',
+      sliderRow('Kutu aşağı kaydır', 'cropTapeDown', 0, 200, 1, tp.shiftDown, 'px'),
+      '</section>',
       `<${D} class="crop-actions">`,
       '<button type="button" class="crop-btn crop-btn-save" id="cropSaveBtn">Profili kaydet</button>',
+      '<button type="button" class="crop-btn" id="cropCopy16Btn">13/16 → bu profil</button>',
       '<button type="button" class="crop-btn" id="cropCopyBtn">Tüm JSON</button>',
       '<button type="button" class="crop-btn crop-btn-muted" id="cropResetProfBtn">Profil sıfır</button>',
       '<button type="button" class="crop-btn crop-btn-muted" id="cropResetAllBtn">Hepsi sıfır</button>',
@@ -454,6 +465,9 @@
     document.getElementById('cropSaveBtn')?.addEventListener('click', () => {
       saveBlock(editingProfile, current);
       toast(`${PROFILE_META[editingProfile].label} kaydedildi`);
+    });
+    document.getElementById('cropCopy16Btn')?.addEventListener('click', () => {
+      copyProfileFrom('app16');
     });
     document.getElementById('cropResetProfBtn')?.addEventListener('click', () => {
       current = resetProfile(editingProfile);
@@ -556,6 +570,7 @@
     apply,
     openPanel,
     closePanel,
+    copyProfileFrom,
     isCalibrateMode,
   };
 
