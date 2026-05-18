@@ -45,6 +45,8 @@
   let homeShellBound = false;
   let detailShellBound = false;
   let feedPollTimer = null;
+  let tradesPollTimer = null;
+  let lastTradesSig = '';
   let openingMint = false;
 
   const PLACEHOLDER_TOKENS = [
@@ -775,6 +777,79 @@
     if (counts) counts.textContent = `${ratio.buys} alım · ${ratio.sells} satım (${ratio.buyPct}% alım)`;
   }
 
+  function stopTradesPoll() {
+    if (tradesPollTimer) {
+      clearInterval(tradesPollTimer);
+      tradesPollTimer = null;
+    }
+    lastTradesSig = '';
+  }
+
+  function tradeRowHtml(t) {
+    const side = t.side === 'buy' ? 'buy' : 'sell';
+    const label = side === 'buy' ? 'Alım' : 'Satım';
+    const usd = t.usdFmt || (t.usd >= 1 ? `$${t.usd.toFixed(2)}` : `$${t.usd}`);
+    const wallet = escHtml(t.wallet || '—');
+    const ago = escHtml(t.ago || '—');
+    const tx = t.txHash
+      ? ` data-tx="${escHtml(t.txHash)}" title="Solscan'da aç"`
+      : '';
+    return `<li class="trade-row"${tx}><span class="trade-side ${side}">${label}</span><span class="trade-wallet">${wallet}</span><span class="trade-usd">${escHtml(usd)}</span><span class="trade-ago">${ago}</span></li>`;
+  }
+
+  function renderTradeTape(trades) {
+    const wrap = $('tradesTape');
+    const list = $('tradesList');
+    const meta = $('tradesMeta');
+    if (!wrap || !list) return;
+    const rows = Array.isArray(trades) ? trades : [];
+    if (!rows.length) {
+      wrap.classList.add('hidden');
+      return;
+    }
+    const sig = rows.map((t) => t.id || `${t.txHash}-${t.at}`).join('|');
+    if (sig === lastTradesSig) {
+      wrap.classList.remove('hidden');
+      if (meta) meta.textContent = `${rows.length} işlem`;
+      return;
+    }
+    lastTradesSig = sig;
+    wrap.classList.remove('hidden');
+    if (meta) meta.textContent = `${rows.length} işlem · ~8s`;
+    list.innerHTML = rows.slice(0, 28).map(tradeRowHtml).join('');
+    list.querySelectorAll('.trade-row[data-tx]').forEach((el) => {
+      el.style.cursor = 'pointer';
+      el.addEventListener('click', () => {
+        const h = el.getAttribute('data-tx');
+        if (h) window.open(`https://solscan.io/tx/${h}`, '_blank', 'noopener');
+      });
+    });
+  }
+
+  async function refreshTrades(m) {
+    const mint = m?.address || appData?.address;
+    if (!mint) return;
+    const pool = m?.poolAddress || '';
+    const q = pool ? `?pool=${encodeURIComponent(pool)}` : '';
+    const res = await fetch(apiPath(`/api/trades/${encodeURIComponent(mint)}${q}`));
+    if (!res.ok) return;
+    const body = await res.json();
+    renderTradeTape(body.trades || []);
+  }
+
+  function startTradesPoll(m) {
+    stopTradesPoll();
+    renderTradeTape(m?.recentTrades || []);
+    const mint = m?.address || appData?.address;
+    if (!mint) return;
+    const pollMs = m?.tradesPollMs || 8000;
+    const marketRef = () => appData?.market || m;
+    refreshTrades(marketRef()).catch(() => {});
+    tradesPollTimer = setInterval(() => {
+      refreshTrades(marketRef()).catch(() => {});
+    }, pollMs);
+  }
+
   function dexEmbedUrlFor(poolOrMint, tf) {
     const ref = String(poolOrMint || '').trim();
     if (!ref) return null;
@@ -783,7 +858,7 @@
     const q = new URLSearchParams({
       embed: '1',
       theme: 'dark',
-      trades: '0',
+      trades: '1',
       info: '0',
       chartLeftToolbar: '0',
       chartTheme: 'dark',
@@ -843,6 +918,7 @@
   }
 
   function destroyChart() {
+    stopTradesPoll();
     if (resizeHandler) {
       window.removeEventListener('resize', resizeHandler);
       resizeHandler = null;
@@ -1326,6 +1402,7 @@
     renderQuoteChanges(m);
     renderMetrics(m, m.chart?.stats);
     renderTxnBar(m);
+    startTradesPoll(m);
     renderChart(m).catch((e) => console.warn('renderChart', e));
     renderInfoPanel(data);
     renderSecurityPanel(data);

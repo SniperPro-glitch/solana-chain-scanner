@@ -43,6 +43,7 @@ function sendJson(res, code, obj) {
 /** DEX Railway: rapor/feed bot sunucusunda; status/config yerel kalsın. */
 function shouldProxyToBot(pathname) {
   if (pathname === '/api/feed/status' || pathname === '/api/config') return false;
+  if (pathname.startsWith('/api/trades/')) return false;
   return (
     pathname.startsWith('/api/report/')
     || pathname === '/api/feed'
@@ -288,6 +289,24 @@ function createMiniAppServer() {
         } catch (e) {
           console.warn('[miniApp] feed:', e.message);
           sendJson(res, 502, { error: 'feed_failed', message: e.message });
+        }
+        return;
+      }
+
+      const tradesMatch = url.pathname.match(/^\/api\/trades\/([1-9A-HJ-NP-Za-km-z]{32,44})$/);
+      if (req.method === 'GET' && tradesMatch) {
+        try {
+          const { fetchPairTrades } = require('./pairTrades');
+          const limit = Math.min(40, parseInt(url.searchParams.get('limit') || '28', 10));
+          const trades = await fetchPairTrades({
+            mint: tradesMatch[1],
+            poolAddress: url.searchParams.get('pool') || '',
+            limit,
+          });
+          sendJson(res, 200, { trades, pollMs: 8000, mint: tradesMatch[1] });
+        } catch (e) {
+          console.warn('[miniApp] trades:', e.message);
+          sendJson(res, 502, { error: 'trades_failed', message: e.message });
         }
         return;
       }

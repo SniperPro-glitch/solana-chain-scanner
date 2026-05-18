@@ -74,7 +74,7 @@ function dexScreenerChartEmbedUrl(poolOrMint, timeframe = '15m') {
   const q = new URLSearchParams({
     embed: '1',
     theme: 'dark',
-    trades: '0',
+    trades: '1',
     info: '0',
     chartLeftToolbar: '0',
     chartTheme: 'dark',

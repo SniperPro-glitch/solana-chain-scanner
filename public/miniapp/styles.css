@@ -768,6 +768,96 @@ html, body {
 .txn-track { height: 6px; border-radius: 999px; background: rgba(255, 77, 109, 0.2); overflow: hidden; }
 .txn-buy { display: block; height: 100%; background: var(--green); border-radius: 999px; min-width: 2px; }
 
+.trades-tape {
+  padding: 10px 12px 8px;
+  margin-bottom: 12px;
+  max-height: 220px;
+  display: flex;
+  flex-direction: column;
+}
+
+.trades-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--muted);
+  margin-bottom: 8px;
+  flex-shrink: 0;
+}
+
+.trades-title { font-weight: 700; color: var(--text); }
+
+.trades-live {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  color: var(--green);
+}
+
+.trades-live-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 8px var(--green);
+  animation: trades-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes trades-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.45; transform: scale(0.85); }
+}
+
+.trades-meta { margin-left: auto; font-variant-numeric: tabular-nums; }
+
+.trades-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  flex: 1;
+  -webkit-overflow-scrolling: touch;
+}
+
+.trades-list li {
+  display: grid;
+  grid-template-columns: 52px 1fr auto auto;
+  gap: 6px;
+  align-items: center;
+  padding: 7px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  animation: trade-in 0.35s ease;
+}
+
+.trades-list li:first-child { border-top: 1px solid rgba(255, 255, 255, 0.04); }
+
+@keyframes trade-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.trade-side {
+  font-weight: 800;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.trade-side.buy { color: var(--green); }
+.trade-side.sell { color: var(--red); }
+
+.trade-wallet { color: var(--muted); font-size: 11px; }
+
+.trade-usd { font-weight: 700; text-align: right; }
+
+.trade-ago { color: var(--muted); font-size: 10px; text-align: right; min-width: 28px; }
+
 .main-nav {
   display: flex;
   gap: 4px;

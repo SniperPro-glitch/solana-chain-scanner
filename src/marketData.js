@@ -284,10 +284,24 @@ async function enrichMarketForMiniApp(token, options = {}) {
   const sells = merged.sells24h || 0;
   const txnTotal = buys + sells;
 
+  let recentTrades = [];
+  try {
+    const { fetchPairTrades } = require('./pairTrades');
+    recentTrades = await fetchPairTrades({
+      poolAddress,
+      mint: merged.address,
+      limit: 28,
+    });
+  } catch (e) {
+    console.warn('[market] trades:', e.message);
+  }
+
   return {
     ...merged,
     poolAddress,
     txnRatio: txnTotal > 0 ? { buys, sells, buyPct: Math.round((buys / txnTotal) * 100) } : null,
+    recentTrades,
+    tradesPollMs: 8000,
     chart: {
       timeframe,
       mode: 'dexscreener_embed',

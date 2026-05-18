@@ -15,7 +15,7 @@
       document.write('<script src="https://cdn.jsdelivr.net/npm/lightweight-charts@4.2.0/dist/lightweight-charts.standalone.production.js"><\/script>');
     }
   </script>
-  <link rel="stylesheet" href="styles.css?v=16" />
+  <link rel="stylesheet" href="styles.css?v=17" />
   <link rel="stylesheet" href="dex-scanner.css?v=6" />
 </head>
 <body>
@@ -184,6 +184,15 @@
         <div class="txn-track"><span id="txnBuyBar" class="txn-buy"></span></div>
       </section>
 
+      <section class="trades-tape glass hidden" id="tradesTape" aria-live="polite">
+        <div class="trades-head">
+          <span class="trades-title">Canlı alım / satım</span>
+          <span class="trades-live" aria-hidden="true"><span class="trades-live-dot"></span> LIVE</span>
+          <span class="trades-meta" id="tradesMeta">—</span>
+        </div>
+        <ul class="trades-list" id="tradesList"></ul>
+      </section>
+
       <nav class="main-nav" id="mainNav">
         <button type="button" class="nav-tab active" data-tab="info">Özet</button>
         <button type="button" class="nav-tab" data-tab="security">Denetim</button>
@@ -201,6 +210,6 @@
   </div>
 
   <script src="wallet.js?v=1"></script>
-  <script src="app.js?v=15"></script>
+  <script src="app.js?v=16"></script>
 </body>
 </html>
