@@ -33,7 +33,10 @@
   background-size: 24px 24px, 24px 24px, 100% 100%, 100% 100%;
 }
 
-.scanner-home > * { position: relative; z-index: 1; }
+.scanner-home > *:not(.bottom-nav):not(.market-footer) {
+  position: relative;
+  z-index: 1;
+}
 
 /* Header */
 .scan-header {

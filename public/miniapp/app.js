@@ -736,7 +736,12 @@
           showScannerHome();
           setFeedTab('scan');
           fetchFeed(feedTab);
-          setTimeout(() => $('searchInput')?.focus(), 80);
+          const searchRow = document.querySelector('.search-row');
+          searchRow?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          setTimeout(() => {
+            $('searchInput')?.focus({ preventScroll: true });
+          }, 120);
+          showToast('Mint yapıştır veya token ara');
           return;
         }
         showToast('Yakında');
