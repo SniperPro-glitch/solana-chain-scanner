@@ -747,40 +747,83 @@ html, body {
 .txn-buy { display: block; height: 100%; background: var(--green); border-radius: 999px; min-width: 2px; }
 
 .trades-tape {
-  --trade-row-h: 44px;
-  padding: 12px 10px 10px;
   margin-bottom: 14px;
-  min-height: calc(var(--trade-row-h) * 6 + 56px);
   display: flex;
   flex-direction: column;
-  overflow: visible;
+  overflow: hidden;
   position: relative;
   z-index: 5;
   border: 1px solid rgba(0, 229, 255, 0.2);
   box-shadow: 0 0 20px rgba(0, 229, 255, 0.06);
+  padding: 0;
 }
 
-.trades-thead,
-.trades-list .trade-row {
-  display: grid;
-  grid-template-columns: 44px 44px minmax(52px, 0.9fr) minmax(64px, 1fr) minmax(56px, 0.8fr);
-  gap: 4px;
+.trades-head {
+  display: flex;
   align-items: center;
-}
-
-.trades-thead {
-  padding: 0 2px 6px;
-  font-size: 9px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--muted);
-  border-bottom: 1px solid var(--border);
+  gap: 8px;
+  padding: 10px 12px 8px;
   flex-shrink: 0;
+  background: rgba(5, 8, 10, 0.95);
+  border-bottom: 1px solid var(--border);
+  font-size: 11px;
+  color: var(--muted);
+  margin-bottom: 0;
 }
 
-.trades-thead span:nth-child(n+3) {
-  text-align: right;
+/* DexScreener işlem paneli — grafik kırpılır, logo maskelenir */
+.dex-trades-embed-wrap {
+  position: relative;
+  --dex-trades-view-h: calc(44px * 6 + 32px);
+  height: var(--dex-trades-view-h);
+  min-height: var(--dex-trades-view-h);
+  max-height: var(--dex-trades-view-h);
+  overflow: hidden;
+  background: #0a0e1a;
+}
+
+.dex-trades-embed {
+  position: absolute;
+  top: -58%;
+  left: 0;
+  width: 100% !important;
+  height: 165%;
+  max-width: 100%;
+  border: 0;
+  display: block;
+  margin: 0;
+}
+
+.dex-trades-embed-wrap::before {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 36px;
+  background: #0a0e1a;
+  z-index: 4;
+  pointer-events: none;
+}
+
+.dex-trades-embed-wrap::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: #0a0e1a;
+  z-index: 4;
+  pointer-events: none;
+}
+
+.dex-trades-fallback {
+  margin: 0;
+  padding: 24px 12px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--muted);
 }
 
 .chart-terminal--dex-embed .chart-toolbar,
@@ -830,16 +873,6 @@ html, body {
   font-size: 12px;
   padding: 12px 0;
   grid-column: 1 / -1;
-}
-
-.trades-head {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 11px;
-  color: var(--muted);
-  margin-bottom: 8px;
-  flex-shrink: 0;
 }
 
 .trades-title { font-weight: 700; color: var(--text); }
@@ -1279,33 +1312,21 @@ html.web-browser .chart-terminal--dex-embed .dex-embed-chart {
   transform: none;
 }
 
-html.tg-mini-app .trades-tape,
-html.web-browser .trades-tape {
-  --trade-row-h: 44px;
-  min-height: calc(var(--trade-row-h) * 6 + 56px);
+html.tg-mini-app .dex-trades-embed-wrap,
+html.web-browser .dex-trades-embed-wrap {
+  --dex-trades-view-h: calc(44px * 6 + 36px);
+}
+
+html.tg-mini-app .dex-trades-embed,
+html.web-browser .dex-trades-embed {
+  top: -56%;
+  height: 170%;
 }
 
 html.tg-mini-app .chart-canvas,
 html.web-browser .chart-terminal:not(.chart-terminal--dex-embed) .chart-canvas {
   height: clamp(300px, 42vh, 420px);
   min-height: 300px;
-}
-
-html.tg-mini-app .trades-list,
-html.web-browser .trades-list {
-  height: calc(var(--trade-row-h) * 6);
-  min-height: calc(var(--trade-row-h) * 6);
-  max-height: calc(var(--trade-row-h) * 6);
-}
-
-html.web-browser .view-detail,
-html.web-browser .scanner-home {
-  max-width: 100%;
-  width: 100%;
-}
-
-html.web-browser .trade-bar {
-  max-width: 100%;
 }
 
 html.tg-mini-app .metrics-dashboard,

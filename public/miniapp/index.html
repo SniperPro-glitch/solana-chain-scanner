@@ -15,7 +15,7 @@
       document.write('<script src="https://cdn.jsdelivr.net/npm/lightweight-charts@4.2.0/dist/lightweight-charts.standalone.production.js"><\/script>');
     }
   </script>
-  <link rel="stylesheet" href="styles.css?v=23" />
+  <link rel="stylesheet" href="styles.css?v=24" />
   <link rel="stylesheet" href="dex-scanner.css?v=7" />
 </head>
 <body>
@@ -181,12 +181,12 @@
         <div class="trades-head">
           <span class="trades-title">Canlı alım / satım</span>
           <span class="trades-live" aria-hidden="true"><span class="trades-live-dot"></span> LIVE</span>
-          <span class="trades-meta" id="tradesMeta">—</span>
+          <span class="trades-meta" id="tradesMeta">canlı</span>
         </div>
-        <div class="trades-thead" aria-hidden="true">
-          <span>Zaman</span><span>Tip</span><span>USD</span><span id="tradesColToken">Token</span><span>Cüzdan</span>
+        <div class="dex-trades-embed-wrap" id="dexTradesWrap">
+          <iframe id="dexTradesEmbed" class="dex-trades-embed hidden" title="DexScreener canlı işlemler" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+          <p class="dex-trades-fallback hidden" id="dexTradesFallback">İşlem akışı yükleniyor…</p>
         </div>
-        <ul class="trades-list" id="tradesList"></ul>
       </section>
 
       <section class="metrics-dashboard" id="metricsDash"></section>
@@ -213,6 +213,6 @@
   </div>
 
   <script src="wallet.js?v=1"></script>
-  <script src="app.js?v=22"></script>
+  <script src="app.js?v=23"></script>
 </body>
 </html>

@@ -85,6 +85,24 @@ function dexScreenerChartEmbedUrl(poolOrMint, timeframe = '15m') {
   return `https://dexscreener.com/solana/${encodeURIComponent(ref)}?${q.toString()}`;
 }
 
+/** Canlı işlem listesi — DexScreener embed (trades paneli). */
+function dexScreenerTradesEmbedUrl(poolOrMint) {
+  const ref = String(poolOrMint || '').trim();
+  if (!ref) return null;
+  const q = new URLSearchParams({
+    embed: '1',
+    theme: 'dark',
+    trades: '1',
+    info: '0',
+    tabs: '0',
+    chartLeftToolbar: '0',
+    chartTheme: 'dark',
+    chartType: 'candle',
+    interval: '15',
+  });
+  return `https://dexscreener.com/solana/${encodeURIComponent(ref)}?${q.toString()}`;
+}
+
 function dexScreenerPageUrl(poolOrMint) {
   const ref = String(poolOrMint || '').trim();
   if (!ref) return null;
@@ -95,5 +113,6 @@ module.exports = {
   resolveDexScreenerPair,
   pickBestSolanaPair,
   dexScreenerChartEmbedUrl,
+  dexScreenerTradesEmbedUrl,
   dexScreenerPageUrl,
 };
