@@ -855,6 +855,21 @@ async function shareTokenToChannel(ch, token, audit, opts = {}) {
   const r = await sendCardToChannel(ch, { text: message, ...banner, silent, chain: 'solana' });
   if (!r.ok) return { ok: false, error: r.error };
 
+  /* Mini App listesi — kart kanala gittiği anda (yorum başarısız olsa da) */
+  try {
+    require('./botFeedStore').recordShare({
+      token,
+      audit,
+      lang: chLang,
+      level: cardLevel,
+      reportId: null,
+      channelId: ch.id,
+      channelTitle: ch.title,
+    });
+  } catch (e) {
+    console.warn('[botFeed] kanal paylaşımı kaydı:', e.message);
+  }
+
   const hasPhoto = !!(banner.photoFileId || banner.photoLocalPath);
   const cmEntry = r.messageId ? {
     chatId: ch.id,
@@ -1580,6 +1595,11 @@ async function main() {
   console.log('   Bu token yalnızca TEK yerde çalışmalı (Railway XOR yerel PC).');
   console.log(`   Tarama: ${SOLANA_SCAN_ENABLED ? `AÇIK (${SOLANA_SCAN_INTERVAL_MIN} dk)` : 'KAPALI'}`);
   console.log(`   İzleme: ${WATCH_INTERVAL_SEC} sn`);
+  try {
+    const botFeedStore = require('./botFeedStore');
+    const { DATA_DIR } = require('./data-path');
+    console.log(`   Mini App feed: ${botFeedStore.feedCount()} kayıt → ${botFeedStore.FEED_FILE} (DATA_DIR=${DATA_DIR})`);
+  } catch (_) { /* */ }
 
   const webBase = getWebAppBaseUrl();
   if (/^https:\/\//i.test(webBase)) {

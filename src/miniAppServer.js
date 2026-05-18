@@ -112,6 +112,17 @@ function createMiniAppServer() {
         return;
       }
 
+      if (req.method === 'GET' && url.pathname === '/api/feed/status') {
+        const botFeedStore = require('./botFeedStore');
+        const { DATA_DIR } = require('./data-path');
+        sendJson(res, 200, {
+          botCount: botFeedStore.feedCount(),
+          feedFile: botFeedStore.FEED_FILE,
+          dataDir: DATA_DIR,
+        });
+        return;
+      }
+
       if (req.method === 'GET' && url.pathname === '/api/feed') {
         const tab = url.searchParams.get('tab') || 'trending';
         const dex = url.searchParams.get('dex') || 'all';

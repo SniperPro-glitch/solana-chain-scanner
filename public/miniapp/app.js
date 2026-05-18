@@ -373,8 +373,13 @@
       updateQuickCards(body.stats || PLACEHOLDER_STATS, items);
       applyHomeExtras(body);
       renderTokenList(items);
-      if (dexFilter !== 'all' && !items.length) {
-        showToast('Bu DEX için paylaşım yok');
+      if (dexFilter !== 'all' && !items.length && (body.dexCounts?.all || 0) > 0) {
+        showToast('Bu DEX filtresinde yok — Tümü\'ne geçiliyor');
+        setDexFilter('all');
+        return fetchFeed(t);
+      }
+      if (body.empty && body.emptyMessage) {
+        showToast('Liste boş — /post ile kanala paylaşın');
       }
       return body;
     } catch (e) {
