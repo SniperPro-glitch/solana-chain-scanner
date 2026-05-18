@@ -771,10 +771,10 @@ html, body {
   margin-bottom: 0;
 }
 
-/* DexScreener işlem paneli — grafik kırpılır, logo maskelenir */
+/* DexScreener işlem tablosu — üst grafik kırpılır, Transactions görünür */
 .dex-trades-embed-wrap {
   position: relative;
-  --dex-trades-view-h: calc(44px * 6 + 32px);
+  --dex-trades-view-h: calc(44px * 6 + 28px);
   height: var(--dex-trades-view-h);
   min-height: var(--dex-trades-view-h);
   max-height: var(--dex-trades-view-h);
@@ -784,26 +784,38 @@ html, body {
 
 .dex-trades-embed {
   position: absolute;
-  top: -58%;
-  left: 0;
-  width: 100% !important;
-  height: 165%;
-  max-width: 100%;
+  top: -498px;
+  left: -2%;
+  width: 104% !important;
+  height: 920px !important;
+  max-width: none;
   border: 0;
   display: block;
   margin: 0;
+  pointer-events: auto;
 }
 
-.dex-trades-embed-wrap::before {
-  content: '';
+.dex-mask {
   position: absolute;
+  pointer-events: none;
+  z-index: 6;
+  background: #0a0e1a;
+}
+
+.dex-mask-tv {
+  left: 0;
   bottom: 0;
+  width: 52px;
+  height: 44px;
+}
+
+.dex-mask-foot {
   left: 0;
   right: 0;
-  height: 36px;
-  background: #0a0e1a;
-  z-index: 4;
-  pointer-events: none;
+  bottom: 0;
+  height: 48px;
+  background: linear-gradient(transparent, #0a0e1a 35%);
+  background-color: #0a0e1a;
 }
 
 .dex-trades-embed-wrap::after {
@@ -812,10 +824,9 @@ html, body {
   top: 0;
   left: 0;
   right: 0;
-  height: 4px;
+  height: 2px;
   background: #0a0e1a;
   z-index: 4;
-  pointer-events: none;
 }
 
 .dex-trades-fallback {
@@ -854,11 +865,11 @@ html, body {
 
 .chart-terminal--dex-embed .dex-embed-chart {
   position: absolute;
-  top: -8px;
-  left: 0;
-  width: 100% !important;
-  max-width: 100% !important;
-  height: calc(var(--chart-embed-h) + 20px) !important;
+  top: -6px;
+  left: -3%;
+  width: 106% !important;
+  max-width: none !important;
+  height: calc(var(--chart-embed-h) + 18px) !important;
   min-height: 0 !important;
   margin: 0 !important;
   border: 0;
@@ -1306,21 +1317,37 @@ html.web-browser .chart-terminal--dex-embed .chart-stage {
 html.tg-mini-app .chart-terminal--dex-embed .dex-embed-chart,
 html.web-browser .chart-terminal--dex-embed .dex-embed-chart {
   top: -6px;
-  left: 0;
-  width: 100% !important;
+  left: -3%;
+  width: 106% !important;
   height: calc(var(--chart-embed-h) + 18px) !important;
   transform: none;
 }
 
 html.tg-mini-app .dex-trades-embed-wrap,
 html.web-browser .dex-trades-embed-wrap {
-  --dex-trades-view-h: calc(44px * 6 + 36px);
+  --dex-trades-view-h: calc(44px * 6 + 28px);
 }
 
 html.tg-mini-app .dex-trades-embed,
 html.web-browser .dex-trades-embed {
-  top: -56%;
-  height: 170%;
+  top: -472px;
+  height: 880px !important;
+  left: -3%;
+  width: 106% !important;
+}
+
+@media (max-height: 700px) {
+  .dex-trades-embed {
+    top: -450px;
+    height: 840px !important;
+  }
+}
+
+@media (min-height: 800px) {
+  .dex-trades-embed {
+    top: -520px;
+    height: 960px !important;
+  }
 }
 
 html.tg-mini-app .chart-canvas,
