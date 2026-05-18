@@ -6,6 +6,12 @@ const reportStore = require('./reportStore');
 const botFeedStore = require('./botFeedStore');
 const { getPromoBanner } = require('./miniAppPromo');
 const { rankFeedByVolume, buildTrendingTicker } = require('./trendingEngine');
+const {
+  resolveDexPlatform,
+  matchesDexFilter,
+  countByPlatform,
+  listPlatformsForUi,
+} = require('./dexPlatform');
 const { safetyPercent } = require('./riskDisplay');
 const { buildMarketFromToken } = require('./marketData');
 const { buildLogoCandidates } = require('./tokenLogo');
@@ -55,6 +61,7 @@ function tokenToFeedItem(token, audit, rank, reportId = null) {
   const candidates = buildLogoCandidates(token, null);
   const imageUrl = token.tokenImage || candidates[0] || null;
   const imageFallbacks = candidates.filter((u) => u !== imageUrl).slice(0, 4);
+  const plat = resolveDexPlatform(token.dex, token.tokenAddress);
   return {
     rank,
     mint: token.tokenAddress,
@@ -66,6 +73,9 @@ function tokenToFeedItem(token, audit, rank, reportId = null) {
     imageFallbacks,
     pairLabel: token.poolName || `${token.tokenSymbol}/SOL`,
     dex: token.dex,
+    dexPlatform: plat.key,
+    dexLabel: plat.label,
+    dexShort: plat.short,
     priceUsd: token.priceUsd,
     priceUsdFmt: fmtUsd(token.priceUsd),
     change24h: token.priceChange24h,
@@ -91,7 +101,7 @@ async function refreshTokenFromDex(storedToken) {
   return storedToken;
 }
 
-async function buildFeedFromBotShares(tab = 'trending', limit = 24) {
+async function buildFeedFromBotShares(tab = 'trending', limit = 24, dexFilter = 'all') {
   const entries = botFeedStore.listRecent(limit, tab);
   const items = [];
   let rank = 1;
@@ -124,6 +134,12 @@ async function buildFeedFromBotShares(tab = 'trending', limit = 24) {
       .map((it, i) => ({ ...it, rank: i + 1 }));
   }
 
+  const dexCounts = countByPlatform(ranked, (it) => it.dexPlatform);
+  if (dexFilter && dexFilter !== 'all') {
+    ranked = ranked.filter((it) => matchesDexFilter(it.dexPlatform, dexFilter));
+    ranked = ranked.map((it, i) => ({ ...it, rank: i + 1 }));
+  }
+
   const now = Date.now();
   const newPairs = entries.filter((e) => now - (e.postedAt || 0) < 2 * 60 * 60 * 1000).length;
   const volFromTokens = ranked.reduce((s, it) => s + (it.volume24h || 0), 0);
@@ -136,6 +152,9 @@ async function buildFeedFromBotShares(tab = 'trending', limit = 24) {
     botCount: botFeedStore.feedCount(),
     promo: getPromoBanner(),
     trendingTicker: buildTrendingTicker(ranked, 14),
+    dexFilter: dexFilter || 'all',
+    dexPlatforms: listPlatformsForUi(),
+    dexCounts,
     stats: {
       count: items.length,
       volume24hFmt: fmtUsd(volFromTokens),
@@ -151,8 +170,8 @@ async function buildFeedFromBotShares(tab = 'trending', limit = 24) {
   };
 }
 
-async function buildFeed(tab = 'trending', limit = 24) {
-  return buildFeedFromBotShares(tab, limit);
+async function buildFeed(tab = 'trending', limit = 24, dexFilter = 'all') {
+  return buildFeedFromBotShares(tab, limit, dexFilter);
 }
 
 async function analyzeMintAndSave(mint, lang = 'tr') {

@@ -410,6 +410,90 @@ html.tg-expanded .scan-header {
 
 .chain-chip.disabled { opacity: 0.45; cursor: default; }
 
+/* DEX platform — DexScreener tarzı (Pump / Raydium / Meteora …) */
+.dex-scroll {
+  display: flex;
+  gap: 8px;
+  padding: 0 16px 12px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.dex-scroll::-webkit-scrollbar { display: none; }
+
+.dex-chip {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 8px 12px;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--muted);
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.dex-chip .dex-ico {
+  font-size: 11px;
+  line-height: 1;
+}
+
+.dex-chip .dex-count {
+  font-size: 9px;
+  font-weight: 600;
+  opacity: 0.75;
+  margin-left: 2px;
+}
+
+.dex-chip.active {
+  color: var(--text);
+  border-color: rgba(0, 229, 255, 0.45);
+  background: rgba(0, 229, 255, 0.08);
+  box-shadow: 0 0 12px rgba(0, 229, 255, 0.12);
+}
+
+.dex-chip[data-dex="pumpfun"].active {
+  border-color: rgba(0, 255, 136, 0.45);
+  color: var(--green);
+}
+
+.dex-chip[data-dex="raydium"].active {
+  border-color: rgba(153, 69, 255, 0.45);
+  color: #c9a0ff;
+}
+
+.dex-chip[data-dex="meteora"].active {
+  border-color: rgba(245, 166, 35, 0.45);
+  color: var(--yellow);
+}
+
+.dex-chip[data-dex="orca"].active {
+  border-color: rgba(0, 229, 255, 0.45);
+  color: var(--cyan);
+}
+
+.tr-dex-badge {
+  display: inline-block;
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  padding: 1px 5px;
+  border-radius: 4px;
+  margin-left: 4px;
+  vertical-align: middle;
+  border: 1px solid var(--border);
+  color: var(--muted);
+}
+
+.tr-dex-badge.dex-pumpfun { color: var(--green); border-color: rgba(0, 255, 136, 0.35); }
+.tr-dex-badge.dex-raydium { color: #c9a0ff; border-color: rgba(153, 69, 255, 0.35); }
+.tr-dex-badge.dex-meteora { color: var(--yellow); border-color: rgba(245, 166, 35, 0.35); }
+.tr-dex-badge.dex-orca { color: var(--cyan); border-color: rgba(0, 229, 255, 0.35); }
+
 /* Feature cards — 2 column grid */
 .feature-grid {
   display: grid;

@@ -114,9 +114,10 @@ function createMiniAppServer() {
 
       if (req.method === 'GET' && url.pathname === '/api/feed') {
         const tab = url.searchParams.get('tab') || 'trending';
+        const dex = url.searchParams.get('dex') || 'all';
         const limit = Math.min(40, parseInt(url.searchParams.get('limit') || '24', 10));
         try {
-          const feed = await miniAppFeed.buildFeed(tab, limit);
+          const feed = await miniAppFeed.buildFeed(tab, limit, dex);
           sendJson(res, 200, feed);
         } catch (e) {
           console.warn('[miniApp] feed:', e.message);

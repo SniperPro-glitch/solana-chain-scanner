@@ -19,6 +19,7 @@
   let resizeHandler = null;
 
   let feedTab = 'trending';
+  let dexFilter = 'all';
   let homeShellBound = false;
   let detailShellBound = false;
   let feedPollTimer = null;
@@ -71,9 +72,13 @@
       ? `<span class="tr-avatar-wrap"><img class="tr-img" src="${escHtml(item.imageUrl)}" alt="" loading="lazy" data-fb="${escHtml((item.imageFallbacks || []).join('|'))}" /><span class="tr-chain-dot">◎</span></span>`
       : `<span class="tr-avatar-wrap"><span class="tr-avatar">${escHtml((item.symbol || '?').slice(0, 2))}</span><span class="tr-chain-dot">◎</span></span>`;
     const reportAttr = item.reportId ? ` data-report="${escHtml(item.reportId)}"` : '';
-    return `<article class="token-row ${extraClass}" data-mint="${escHtml(item.mint)}"${reportAttr}>
+    const dexKey = item.dexPlatform || 'other';
+    const dexBadge = item.dexLabel
+      ? `<span class="tr-dex-badge dex-${escHtml(dexKey)}">${escHtml(item.dexLabel)}</span>`
+      : '';
+    return `<article class="token-row ${extraClass}" data-mint="${escHtml(item.mint)}" data-dex="${escHtml(dexKey)}"${reportAttr}>
       <span class="tr-rank">${item.rank ?? '·'}</span>
-      <div class="tr-token">${avatar}<div class="tr-meta"><div class="tr-name">${escHtml(item.symbol)}<span class="tr-pair"> / ${pairShort}</span></div><div class="tr-sub">MCap ${escHtml(item.marketCapUsdFmt)}</div></div>
+      <div class="tr-token">${avatar}<div class="tr-meta"><div class="tr-name">${escHtml(item.symbol)}<span class="tr-pair"> / ${pairShort}</span>${dexBadge}</div><div class="tr-sub">MCap ${escHtml(item.marketCapUsdFmt)}</div></div>
       <span class="tr-price">${escHtml(item.priceUsdFmt)}</span>
       <span class="tr-pct ${chgClass(chg1)}">${formatPct(chg1)}</span>
       <span class="tr-pct ${chgClass(chg24)}">${formatPct(chg24)}</span>
@@ -314,6 +319,32 @@
     });
   }
 
+  function setDexFilter(dex) {
+    dexFilter = dex || 'all';
+    document.querySelectorAll('.dex-chip[data-dex]').forEach((btn) => {
+      btn.classList.toggle('active', btn.dataset.dex === dexFilter);
+    });
+  }
+
+  function updateDexChipCounts(counts) {
+    if (!counts) return;
+    document.querySelectorAll('.dex-chip[data-dex]').forEach((btn) => {
+      const key = btn.dataset.dex;
+      const n = counts[key];
+      let badge = btn.querySelector('.dex-count');
+      if (n == null || key === 'all') {
+        badge?.remove();
+        return;
+      }
+      if (!badge) {
+        badge = document.createElement('span');
+        badge.className = 'dex-count';
+        btn.appendChild(badge);
+      }
+      badge.textContent = String(n);
+    });
+  }
+
   async function fetchFeed(tab) {
     const t = tab || feedTab;
     setFeedTab(t);
@@ -322,7 +353,9 @@
     loadingEl?.classList.remove('hidden');
     list?.classList.add('dimmed');
     try {
-      const res = await fetch(`/api/feed?tab=${encodeURIComponent(t)}&limit=24`);
+      const res = await fetch(
+        `/api/feed?tab=${encodeURIComponent(t)}&limit=24&dex=${encodeURIComponent(dexFilter)}`,
+      );
       const body = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(body.message || 'feed_failed');
       if (body.empty && body.emptyMessage) {
@@ -334,10 +367,15 @@
         return body;
       }
       const items = body.items?.length ? body.items : [];
+      updateDexChipCounts(body.dexCounts);
+      if (body.dexFilter) setDexFilter(body.dexFilter);
       applyMarketStats(body.stats || PLACEHOLDER_STATS);
       updateQuickCards(body.stats || PLACEHOLDER_STATS, items);
       applyHomeExtras(body);
       renderTokenList(items);
+      if (dexFilter !== 'all' && !items.length) {
+        showToast('Bu DEX için paylaşım yok');
+      }
       return body;
     } catch (e) {
       applyMarketStats(PLACEHOLDER_STATS);
@@ -387,6 +425,15 @@
           return;
         }
         if (f === 'trending' || f === 'new') fetchFeed(f);
+      });
+    });
+
+    document.querySelectorAll('.dex-chip[data-dex]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const d = btn.dataset.dex || 'all';
+        if (d === dexFilter) return;
+        setDexFilter(d);
+        fetchFeed(feedTab);
       });
     });
 
@@ -1110,8 +1157,16 @@
 
     const dexBadge = $('dexBadge');
     if (dexBadge) {
-      dexBadge.textContent = (m.dex || data.dex || 'DEX').toString().toUpperCase();
-      dexBadge.className = 'pill';
+      const dexRaw = String(m.dex || data.dex || '').toLowerCase();
+      let plat = 'other';
+      let label = 'DEX';
+      if (/pump/.test(dexRaw)) { plat = 'pumpfun'; label = dexRaw === 'pumpswap' ? 'PumpSwap' : 'Pump.fun'; }
+      else if (dexRaw.startsWith('raydium')) { plat = 'raydium'; label = 'Raydium'; }
+      else if (dexRaw.startsWith('meteora')) { plat = 'meteora'; label = 'Meteora'; }
+      else if (dexRaw.startsWith('orca')) { plat = 'orca'; label = 'Orca'; }
+      else if (dexRaw) label = dexRaw.replace(/_/g, ' ');
+      dexBadge.textContent = label;
+      dexBadge.className = `pill dex-pill dex-${plat}`;
     }
 
     const chip = $('levelChip');

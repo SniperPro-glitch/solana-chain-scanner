@@ -3,6 +3,7 @@
 const axios = require('axios');
 const config = require('./config');
 const pumpfun = require('./pumpfun');
+const { resolveDexPlatform } = require('../../dexPlatform');
 
 const SOLANA_ADDR = config.addressPattern;
 
@@ -31,13 +32,17 @@ function normalizePair(pair) {
 
   const dexRaw = (pair.dexId || 'raydium').toLowerCase();
   const isPump = pumpfun.isPumpDexId(dexRaw) || pumpfun.isPumpMintAddress(tokenAddress);
+  const dex = isPump ? (dexRaw === 'pumpswap' ? 'pumpswap' : 'pumpfun') : dexRaw;
+  const plat = resolveDexPlatform(dex, tokenAddress);
 
   return {
     chain: 'solana',
     poolId: `solana_${poolAddress || tokenAddress}`,
     poolAddress,
     poolName: `${pair.baseToken.symbol} / ${pair.quoteToken?.symbol || 'SOL'}`,
-    dex: isPump ? (dexRaw === 'pumpswap' ? 'pumpswap' : 'pumpfun') : dexRaw,
+    dex,
+    dexPlatform: plat.key,
+    dexLabel: plat.label,
     isPumpFun: isPump,
     discoverySource: pair._pumpSource || null,
     createdAt: pair.pairCreatedAt ? new Date(pair.pairCreatedAt).toISOString() : null,

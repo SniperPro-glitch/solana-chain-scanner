@@ -16,7 +16,7 @@
     }
   </script>
   <link rel="stylesheet" href="styles.css" />
-  <link rel="stylesheet" href="dex-scanner.css?v=3" />
+  <link rel="stylesheet" href="dex-scanner.css?v=4" />
 </head>
 <body>
   <div id="loading" class="boot-screen">
@@ -73,13 +73,12 @@
       </div>
     </div>
 
-    <div class="chain-scroll">
-      <button type="button" class="chain-chip active" data-chain="all">All</button>
-      <button type="button" class="chain-chip" data-chain="solana"><span class="chain-ico" style="background:linear-gradient(135deg,#9945FF,#14F195)">◎</span> Solana</button>
-      <button type="button" class="chain-chip disabled" disabled><span class="chain-ico" style="background:#627EEA">Ξ</span> Ethereum</button>
-      <button type="button" class="chain-chip disabled" disabled><span class="chain-ico" style="background:#F0B90B;color:#000">B</span> BSC</button>
-      <button type="button" class="chain-chip disabled" disabled><span class="chain-ico" style="background:#0088cc">T</span> TON</button>
-      <button type="button" class="chain-chip disabled" disabled><span class="chain-ico" style="background:#0052FF">◆</span> Base</button>
+    <div class="dex-scroll" id="dexScroll" role="tablist" aria-label="DEX platform">
+      <button type="button" class="dex-chip active" data-dex="all">Tümü</button>
+      <button type="button" class="dex-chip" data-dex="pumpfun"><span class="dex-ico pump">💊</span> Pump.fun</button>
+      <button type="button" class="dex-chip" data-dex="raydium"><span class="dex-ico ray">◎</span> Raydium</button>
+      <button type="button" class="dex-chip" data-dex="meteora"><span class="dex-ico met">☄</span> Meteora</button>
+      <button type="button" class="dex-chip" data-dex="orca"><span class="dex-ico orca">🐋</span> Orca</button>
     </div>
 
     <div class="feature-grid" id="quickCards"></div>
@@ -197,6 +196,6 @@
   </div>
 
   <script src="wallet.js?v=1"></script>
-  <script src="app.js?v=9"></script>
+  <script src="app.js?v=10"></script>
 </body>
 </html>
