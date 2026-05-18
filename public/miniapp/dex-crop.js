@@ -26,6 +26,10 @@
       clipRight: 0,
       shiftDown: 0,
     },
+    /** Canlı alım/satım kutusu (#tradesTape) — Dex iframe değil */
+    tape: {
+      shiftDown: 0,
+    },
     trades: {
       viewH: 268,
       iframeH: 980,
@@ -36,7 +40,6 @@
       maskFoot: 24,
       clipLeft: 0,
       clipRight: 0,
-      shiftDown: 0,
     },
   };
 
@@ -68,10 +71,20 @@
     return w >= 420 ? 'app16' : 'app11';
   }
 
+  function normalizeBlock(patch) {
+    const b = mergeBlock(DEFAULT_BLOCK, patch);
+    if ((b.trades.shiftDown || 0) > 0 && !(b.tape.shiftDown > 0)) {
+      b.tape.shiftDown = b.trades.shiftDown;
+    }
+    delete b.trades.shiftDown;
+    return b;
+  }
+
   function mergeBlock(base, patch) {
     if (!patch) return clone(base);
     return {
       chart: { ...base.chart, ...patch.chart },
+      tape: { ...base.tape, ...patch.tape },
       trades: { ...base.trades, ...patch.trades },
     };
   }
@@ -113,7 +126,7 @@
       if (!parsed.profiles) return defaultStore();
       const store = defaultStore();
       for (const id of Object.keys(PROFILE_META)) {
-        store.profiles[id] = mergeBlock(DEFAULT_BLOCK, parsed.profiles[id]);
+        store.profiles[id] = normalizeBlock(parsed.profiles[id]);
       }
       return store;
     } catch {
@@ -128,7 +141,7 @@
 
   function loadForProfile(profileId) {
     const store = loadStore();
-    return clone(store.profiles[profileId] || store.profiles.web);
+    return clone(normalizeBlock(store.profiles[profileId] || store.profiles.web));
   }
 
   function load() {
@@ -175,7 +188,7 @@
     const t = s.trades;
     const brandCrop = Number(c.brandCrop) || CHART_BRAND_CROP;
     const chartDown = Number(c.shiftDown) || 0;
-    const tradesDown = Number(t.shiftDown) || 0;
+    const tapeDown = Number(s.tape?.shiftDown) || 0;
 
     root.style.setProperty('--chart-embed-h', `${c.stageH}px`);
     root.style.setProperty('--chart-embed-top', `${c.top}px`);
@@ -190,13 +203,18 @@
     root.style.setProperty('--dex-trades-view-h', `${t.viewH}px`);
     root.style.setProperty('--dex-iframe-h', `${t.iframeH}px`);
     root.style.setProperty('--dex-iframe-top', `${t.iframeTop}px`);
-    root.style.setProperty('--dex-trades-shift-down', `${tradesDown}px`);
+    root.style.setProperty('--tape-shift-down', `${tapeDown}px`);
     root.style.setProperty('--dex-iframe-left', `${t.left}%`);
     root.style.setProperty('--dex-iframe-width', `${t.width}%`);
     root.style.setProperty('--dex-mask-top-h', `${t.maskTop}px`);
     root.style.setProperty('--dex-mask-foot-h', `${t.maskFoot}px`);
     root.style.setProperty('--dex-trades-clip-left', `${t.clipLeft || 0}px`);
     root.style.setProperty('--dex-trades-clip-right', `${t.clipRight || 0}px`);
+
+    const tapeEl = document.getElementById('tradesTape');
+    if (tapeEl) {
+      tapeEl.style.marginTop = `${tapeDown}px`;
+    }
 
     const stage = document.querySelector('.chart-terminal--dex-embed .chart-stage');
     const chartIframe = document.querySelector('iframe.dex-embed-chart');
@@ -228,7 +246,7 @@
     }
     if (tradesIframe) {
       tradesIframe.style.position = 'absolute';
-      tradesIframe.style.top = `${t.iframeTop + tradesDown}px`;
+      tradesIframe.style.top = `${t.iframeTop}px`;
       tradesIframe.style.left = `${t.left}%`;
       tradesIframe.style.width = `${t.width}%`;
       tradesIframe.style.height = `${t.iframeH}px`;
@@ -288,8 +306,8 @@
     ['cropChartBrand', 'chart', 'brandCrop'],
     ['cropTradesViewH', 'trades', 'viewH'],
     ['cropTradesIframeH', 'trades', 'iframeH'],
+    ['cropTapeDown', 'tape', 'shiftDown'],
     ['cropTradesTop', 'trades', 'iframeTop'],
-    ['cropTradesDown', 'trades', 'shiftDown'],
     ['cropTradesLeft', 'trades', 'left'],
     ['cropTradesWidth', 'trades', 'width'],
     ['cropTradesClipL', 'trades', 'clipLeft'],
@@ -367,6 +385,7 @@
 
   function buildPanel() {
     const c = DEFAULT_BLOCK.chart;
+    const tp = DEFAULT_BLOCK.tape;
     const t = DEFAULT_BLOCK.trades;
     panelEl = document.createElement('aside');
     panelEl.id = 'dexCropPanel';
@@ -394,11 +413,14 @@
       sliderRow('Üst marka kırp', 'cropChartBrand', 0, 64, 1, c.brandCrop, 'dexscreener şeridi'),
       sliderRow('Ekstra yükseklik', 'cropChartExtra', 0, 48, 1, c.heightExtra, 'px'),
       '</section>',
-      '<section class="crop-section"><h3>Canlı alım / satım</h3>',
+      '<section class="crop-section crop-section--tape"><h3>Alım / satım kutusu</h3>',
+      '<p class="crop-section-note">Grafik altındaki yeşil LIVE kutusu — Dex içi değil, tüm blok kayar.</p>',
+      sliderRow('Aşağı kaydır', 'cropTapeDown', 0, 200, 1, tp.shiftDown, 'px — telefonda kutuyu aşağı it'),
+      '</section>',
+      '<section class="crop-section crop-section--dex"><h3>Dex liste (ince ayar)</h3>',
       sliderRow('Görünür yükseklik', 'cropTradesViewH', 180, 360, 2, t.viewH, 'px'),
       sliderRow('Iframe yükseklik', 'cropTradesIframeH', 700, 1200, 5, t.iframeH, 'px'),
       sliderRow('Iframe üst', 'cropTradesTop', -1100, -400, 5, t.iframeTop, 'negatif = tablo yukarı'),
-      sliderRow('Aşağı kaydır', 'cropTradesDown', 0, 200, 1, t.shiftDown, 'px — işlem listesini aşağı'),
       sliderRow('Sol kaydır (%)', 'cropTradesLeft', -16, 12, 1, t.left, ''),
       sliderRow('Genişlik (%)', 'cropTradesWidth', 88, 120, 1, t.width, ''),
       sliderRow('Sol kenar kırp', 'cropTradesClipL', 0, 80, 1, t.clipLeft, 'px'),

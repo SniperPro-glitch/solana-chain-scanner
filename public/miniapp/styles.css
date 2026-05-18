@@ -1563,6 +1563,30 @@ html.web-browser .token-table-scroll {
   letter-spacing: 0.06em;
 }
 
+.crop-section--tape {
+  border: 1px solid rgba(0, 229, 255, 0.25);
+  border-radius: 10px;
+  padding: 10px 10px 4px;
+  margin-bottom: 14px;
+  background: rgba(0, 229, 255, 0.04);
+}
+
+.crop-section--tape h3 {
+  color: #7dffb8;
+}
+
+.crop-section-note {
+  margin: -4px 0 10px;
+  font-size: 10px;
+  color: var(--muted);
+  line-height: 1.4;
+}
+
+.crop-section--dex h3 {
+  font-size: 11px;
+  color: var(--muted);
+}
+
 .crop-row {
   display: grid;
   grid-template-columns: 1fr auto;
