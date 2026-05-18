@@ -801,13 +801,28 @@
     const wrap = $('dexTradesWrap');
     if (!wrap) return;
     const vh = window.innerHeight || 640;
-    const rowH = 44;
-    const viewH = rowH * 6 + 24;
-    const iframeH = Math.round(Math.min(980, Math.max(820, vh * 0.92)));
-    const offset = Math.round(iframeH * 0.58);
+    const vw = window.innerWidth || 390;
+    const rowH = 38;
+    const theadH = 34;
+    const rows = 6;
+    const viewH = theadH + rowH * rows + 6;
+    const iframeH = Math.round(Math.min(1040, Math.max(900, vh * 1.12 + 140)));
+    let skipRatio = 0.655;
+    if (vh < 680) skipRatio = 0.63;
+    else if (vh > 820) skipRatio = 0.668;
+    if (vw < 400) skipRatio += 0.012;
+    const offset = Math.round(iframeH * skipRatio);
+    const maskTop = Math.max(40, Math.min(56, Math.round(vh * 0.05)));
     wrap.style.setProperty('--dex-trades-view-h', `${viewH}px`);
     wrap.style.setProperty('--dex-iframe-h', `${iframeH}px`);
     wrap.style.setProperty('--dex-iframe-top', `-${offset}px`);
+    wrap.style.setProperty('--dex-mask-top-h', `${maskTop}px`);
+    wrap.dataset.cropOffset = String(offset);
+  }
+
+  function scheduleDexTradesCrop() {
+    calibrateDexTradesCrop();
+    [350, 900, 1800].forEach((ms) => setTimeout(calibrateDexTradesCrop, ms));
   }
 
   function dexTradesEmbedUrl(poolOrMint) {
@@ -847,9 +862,9 @@
       return;
     }
 
-    calibrateDexTradesCrop();
+    scheduleDexTradesCrop();
     if (!tradesResizeHandler) {
-      tradesResizeHandler = () => calibrateDexTradesCrop();
+      tradesResizeHandler = () => scheduleDexTradesCrop();
       window.addEventListener('resize', tradesResizeHandler);
     }
 
@@ -859,7 +874,7 @@
     }
     iframe.classList.remove('hidden');
     iframe.onload = () => {
-      calibrateDexTradesCrop();
+      scheduleDexTradesCrop();
       if (fallback) fallback.classList.add('hidden');
       if (meta) meta.textContent = 'canlı';
     };

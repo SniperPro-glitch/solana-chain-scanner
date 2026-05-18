@@ -813,27 +813,30 @@ html.detail-mode body {
 /* DexScreener canlı işlemler — iframe kırpma (Transactions paneli) */
 .dex-trades-embed-wrap {
   position: relative;
-  --dex-trades-view-h: calc(44px * 6 + 24px);
-  --dex-iframe-h: 920px;
-  --dex-iframe-top: -492px;
+  --dex-trades-view-h: 268px;
+  --dex-iframe-h: 960px;
+  --dex-iframe-top: -628px;
+  --dex-mask-top-h: 48px;
   height: var(--dex-trades-view-h);
   min-height: var(--dex-trades-view-h);
   max-height: var(--dex-trades-view-h);
   overflow: hidden;
   background: #0a0e1a;
+  isolation: isolate;
 }
 
 .dex-trades-embed {
   position: absolute;
-  top: var(--dex-iframe-top, -492px);
-  left: -2%;
-  width: 104% !important;
-  height: var(--dex-iframe-h, 920px) !important;
+  top: var(--dex-iframe-top, -628px);
+  left: -3%;
+  width: 106% !important;
+  height: var(--dex-iframe-h, 960px) !important;
   max-width: none;
   border: 0;
   display: block;
   margin: 0;
   pointer-events: auto;
+  transform: translateZ(0);
 }
 
 .dex-mask {
@@ -843,20 +846,20 @@ html.detail-mode body {
   background: #0a0e1a;
 }
 
-.dex-mask-brand {
+.dex-mask-top {
   top: 0;
   left: 0;
   right: 0;
-  width: 100%;
-  height: 48px;
+  height: var(--dex-mask-top-h, 48px);
+  box-shadow: 0 8px 12px #0a0e1a;
 }
 
 .dex-mask-foot {
   left: 0;
   right: 0;
   bottom: 0;
-  height: 40px;
-  background: linear-gradient(transparent, #0a0e1a 40%);
+  height: 28px;
+  background: #0a0e1a;
 }
 
 .dex-trades-embed-wrap::after {
@@ -1410,31 +1413,6 @@ html.web-browser .chart-terminal--dex-embed .dex-embed-chart {
   width: 106% !important;
   height: calc(var(--chart-embed-h) + 18px) !important;
   transform: none;
-}
-
-html.tg-mini-app .dex-trades-embed-wrap,
-html.web-browser .dex-trades-embed-wrap {
-  --dex-trades-view-h: calc(44px * 6 + 24px);
-}
-
-html.tg-mini-app .dex-trades-embed,
-html.web-browser .dex-trades-embed {
-  left: -3%;
-  width: 106% !important;
-}
-
-@media (max-height: 700px) {
-  .dex-trades-embed-wrap {
-    --dex-iframe-top: -468px;
-    --dex-iframe-h: 860px;
-  }
-}
-
-@media (min-height: 800px) {
-  .dex-trades-embed-wrap {
-    --dex-iframe-top: -508px;
-    --dex-iframe-h: 940px;
-  }
 }
 
 html.tg-mini-app .chart-canvas,
