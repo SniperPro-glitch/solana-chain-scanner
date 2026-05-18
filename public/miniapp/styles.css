@@ -771,70 +771,39 @@ html, body {
   margin-bottom: 0;
 }
 
-/* DexScreener işlem tablosu — üst grafik kırpılır, Transactions görünür */
-.dex-trades-embed-wrap {
-  position: relative;
-  --dex-trades-view-h: calc(44px * 6 + 28px);
-  height: var(--dex-trades-view-h);
-  min-height: var(--dex-trades-view-h);
-  max-height: var(--dex-trades-view-h);
-  overflow: hidden;
-  background: #0a0e1a;
-}
-
-.dex-trades-embed {
-  position: absolute;
-  top: -498px;
-  left: -2%;
-  width: 104% !important;
-  height: 920px !important;
-  max-width: none;
-  border: 0;
-  display: block;
-  margin: 0;
-  pointer-events: auto;
-}
-
-.dex-mask {
-  position: absolute;
-  pointer-events: none;
-  z-index: 6;
-  background: #0a0e1a;
-}
-
-.dex-mask-tv {
-  left: 0;
-  bottom: 0;
-  width: 52px;
-  height: 44px;
-}
-
-.dex-mask-foot {
-  left: 0;
-  right: 0;
-  bottom: 0;
-  height: 48px;
-  background: linear-gradient(transparent, #0a0e1a 35%);
-  background-color: #0a0e1a;
-}
-
-.dex-trades-embed-wrap::after {
-  content: '';
+.chart-terminal--dex-embed .dex-chart-brand-mask {
   position: absolute;
   top: 0;
   left: 0;
-  right: 0;
-  height: 2px;
-  background: #0a0e1a;
+  width: 118px;
+  height: 28px;
   z-index: 4;
+  pointer-events: none;
+  background: #0a0e1a;
 }
 
-.dex-trades-fallback {
-  margin: 0;
-  padding: 24px 12px;
-  text-align: center;
-  font-size: 12px;
+.trades-thead,
+.trades-list .trade-row {
+  display: grid;
+  grid-template-columns: 44px 44px minmax(52px, 0.9fr) minmax(64px, 1fr) minmax(56px, 0.8fr);
+  gap: 4px;
+  align-items: center;
+  padding: 0 10px;
+}
+
+.trades-thead {
+  padding: 0 10px 6px;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
   color: var(--muted);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.trades-thead span:nth-child(n+3) {
+  text-align: right;
 }
 
 .chart-terminal--dex-embed .chart-toolbar,
@@ -1321,33 +1290,6 @@ html.web-browser .chart-terminal--dex-embed .dex-embed-chart {
   width: 106% !important;
   height: calc(var(--chart-embed-h) + 18px) !important;
   transform: none;
-}
-
-html.tg-mini-app .dex-trades-embed-wrap,
-html.web-browser .dex-trades-embed-wrap {
-  --dex-trades-view-h: calc(44px * 6 + 28px);
-}
-
-html.tg-mini-app .dex-trades-embed,
-html.web-browser .dex-trades-embed {
-  top: -472px;
-  height: 880px !important;
-  left: -3%;
-  width: 106% !important;
-}
-
-@media (max-height: 700px) {
-  .dex-trades-embed {
-    top: -450px;
-    height: 840px !important;
-  }
-}
-
-@media (min-height: 800px) {
-  .dex-trades-embed {
-    top: -520px;
-    height: 960px !important;
-  }
 }
 
 html.tg-mini-app .chart-canvas,

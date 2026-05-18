@@ -796,50 +796,84 @@
     lastTradesSig = '';
   }
 
-  function dexTradesEmbedUrl(poolOrMint) {
-    const ref = String(poolOrMint || '').trim();
-    if (!ref) return null;
-    const q = new URLSearchParams({
-      embed: '1',
-      theme: 'dark',
-      trades: '1',
-      info: '0',
-      tabs: '0',
-      chartLeftToolbar: '0',
-    });
-    return `https://dexscreener.com/solana/${encodeURIComponent(ref)}?${q.toString()}`;
+  function fmtTokenAmt(n) {
+    const x = Math.abs(Number(n) || 0);
+    if (!x) return '—';
+    if (x >= 1_000_000) return `${(x / 1_000_000).toFixed(2)}M`;
+    if (x >= 10_000) return `${(x / 1_000).toFixed(1)}K`;
+    if (x >= 1) return x.toLocaleString('en-US', { maximumFractionDigits: 0 });
+    return x.toFixed(2);
   }
 
-  function showDexTradesEmbed(m) {
+  function tradeRowHtml(t) {
+    const side = t.side === 'buy' ? 'buy' : 'sell';
+    const label = side === 'buy' ? 'Buy' : 'Sell';
+    const usd = t.usdFmt || (t.usd >= 1 ? `$${t.usd.toFixed(2)}` : `$${t.usd}`);
+    const wallet = escHtml(t.wallet || '—');
+    const ago = escHtml(t.ago || '—');
+    const amt = fmtTokenAmt(t.amount);
+    const tx = t.txHash
+      ? ` data-tx="${escHtml(t.txHash)}" title="Solscan'da aç"`
+      : '';
+    return `<li class="trade-row trade-row--${side}"${tx}><span class="trade-ago">${ago}</span><span class="trade-side ${side}">${label}</span><span class="trade-usd">${escHtml(usd)}</span><span class="trade-amt">${escHtml(amt)}</span><span class="trade-wallet">${wallet}</span></li>`;
+  }
+
+  function renderTradeTape(trades) {
     const wrap = $('tradesTape');
-    const iframe = $('dexTradesEmbed');
-    const fallback = $('dexTradesFallback');
+    const list = $('tradesList');
     const meta = $('tradesMeta');
-    if (!wrap) return;
-
-    wrap.classList.remove('hidden');
-    const poolRef = m?.poolAddress || m?.address || appData?.address;
-    const url = dexTradesEmbedUrl(poolRef);
-
-    if (!iframe) return;
-    if (!url) {
-      iframe.classList.add('hidden');
-      if (fallback) {
-        fallback.textContent = 'İşlem akışı için pool bulunamadı.';
-        fallback.classList.remove('hidden');
-      }
+    if (!wrap || !list) return;
+    const rows = Array.isArray(trades) ? trades : [];
+    if (!rows.length) {
+      wrap.classList.remove('hidden');
+      if (meta) meta.textContent = 'yükleniyor…';
+      list.innerHTML = '<li class="trade-row trade-placeholder"><span>İşlemler yükleniyor…</span></li>';
       return;
     }
+    const sig = rows.map((t) => t.id || `${t.txHash}-${t.at}`).join('|');
+    if (sig === lastTradesSig) {
+      wrap.classList.remove('hidden');
+      if (meta) meta.textContent = `${rows.length} işlem`;
+      return;
+    }
+    lastTradesSig = sig;
+    wrap.classList.remove('hidden');
+    if (meta) meta.textContent = `${rows.length} işlem · ~8s`;
+    const sym = appData?.market?.symbol || appData?.symbol || 'TOKEN';
+    const col = $('tradesColToken');
+    if (col) col.textContent = sym;
+    list.innerHTML = rows.slice(0, 28).map((t) => tradeRowHtml(t)).join('');
+    list.querySelectorAll('.trade-row[data-tx]').forEach((el) => {
+      el.style.cursor = 'pointer';
+      el.addEventListener('click', () => {
+        const h = el.getAttribute('data-tx');
+        if (h) window.open(`https://solscan.io/tx/${h}`, '_blank', 'noopener');
+      });
+    });
+  }
 
-    if (fallback) fallback.classList.add('hidden');
-    iframe.classList.remove('hidden');
-    if (iframe.src !== url) iframe.src = url;
-    if (meta) meta.textContent = 'canlı';
+  async function refreshTrades(m) {
+    const mint = m?.address || appData?.address;
+    if (!mint) return;
+    const pool = m?.poolAddress || '';
+    const q = pool ? `?pool=${encodeURIComponent(pool)}` : '';
+    const res = await fetch(apiPath(`/api/trades/${encodeURIComponent(mint)}${q}`));
+    if (!res.ok) return;
+    const body = await res.json();
+    renderTradeTape(body.trades || []);
   }
 
   function startTradesPoll(m) {
     stopTradesPoll();
-    showDexTradesEmbed(m);
+    renderTradeTape(m?.recentTrades || []);
+    const mint = m?.address || appData?.address;
+    if (!mint) return;
+    const pollMs = m?.tradesPollMs || 8000;
+    const marketRef = () => appData?.market || m;
+    refreshTrades(marketRef()).catch(() => {});
+    tradesPollTimer = setInterval(() => {
+      refreshTrades(marketRef()).catch(() => {});
+    }, pollMs);
   }
 
   function dexEmbedUrlFor(poolOrMint, tf) {
