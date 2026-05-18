@@ -768,13 +768,23 @@ html.tg-expanded .scan-header {
 .tr-risk-col {
   display: flex;
   flex-direction: column;
-  align-items: flex-end;
-  gap: 4px;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .token-row .tr-spark {
-  width: 64px;
-  height: 22px;
+  display: block;
+  width: 52px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+.tr-risk-col .risk-badge {
+  position: relative;
+  z-index: 1;
 }
 
 .risk-badge {
@@ -983,4 +993,55 @@ html.tg-expanded .scan-header {
   color: var(--muted);
   border: 1px dashed var(--border);
   border-radius: var(--radius);
+}
+
+/* Ana sayfa tablo — mobil */
+@media (max-width: 480px) {
+  .token-table-inner {
+    min-width: 0;
+    padding: 0 6px;
+  }
+
+  .token-thead,
+  .token-row {
+    grid-template-columns: 16px minmax(0, 1.4fr) 54px 36px 36px 62px;
+    gap: 3px 4px;
+  }
+
+  .token-thead span:nth-child(6),
+  .token-thead span:nth-child(7),
+  .token-row .tr-vol,
+  .token-row .tr-liq {
+    display: none;
+  }
+
+  .token-thead span:last-child,
+  .token-row .tr-risk-col {
+    grid-column: -1;
+    justify-self: end;
+  }
+
+  .tr-meta {
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  .tr-name {
+    max-width: 100%;
+  }
+
+  .token-row .tr-price,
+  .tr-pct {
+    font-size: 9px;
+  }
+
+  .token-row .tr-spark {
+    width: 44px;
+    height: 16px;
+  }
+
+  .risk-badge {
+    font-size: 6px;
+    padding: 2px 5px;
+  }
 }

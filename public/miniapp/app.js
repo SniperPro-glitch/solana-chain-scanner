@@ -118,7 +118,7 @@
       : '';
     return `<article class="token-row ${extraClass}" data-mint="${escHtml(item.mint)}" data-dex="${escHtml(dexKey)}"${reportAttr}>
       <span class="tr-rank">${item.rank ?? '·'}</span>
-      <div class="tr-token">${avatar}<div class="tr-meta"><div class="tr-name">${escHtml(item.symbol)}<span class="tr-pair"> / ${pairShort}</span>${dexBadge}</div><div class="tr-sub">MCap ${escHtml(item.marketCapUsdFmt)}</div></div>
+      <div class="tr-token">${avatar}<div class="tr-meta"><div class="tr-name">${escHtml(item.symbol)}<span class="tr-pair"> / ${pairShort}</span>${dexBadge}</div><div class="tr-sub">MCap ${escHtml(item.marketCapUsdFmt)}</div></div></div>
       <span class="tr-price" title="${item.priceUsd != null ? escHtml(String(item.priceUsd)) : ''}">${escHtml(fmtPriceDisplay(item))}</span>
       <span class="tr-pct ${chgClass(chg1)}">${formatPct(chg1)}</span>
       <span class="tr-pct ${chgClass(chg24)}">${formatPct(chg24)}</span>
@@ -201,12 +201,16 @@
   }
 
   function setFeedTab(tab) {
-    feedTab = tab === 'new' ? 'new' : 'trending';
+    if (tab === 'new') feedTab = 'new';
+    else if (tab === 'trend' || tab === 'trending') feedTab = 'trending';
+    else feedTab = 'home';
     document.querySelectorAll('.bnav[data-nav]').forEach((btn) => {
       const n = btn.dataset.nav;
-      const onTab =
-        (feedTab === 'trending' && n === 'trend') || (feedTab === 'new' && n === 'new');
-      btn.classList.toggle('active', n === 'home' || onTab);
+      const active =
+        (n === 'home' && feedTab === 'home') ||
+        (n === 'trend' && feedTab === 'trending') ||
+        (n === 'new' && feedTab === 'new');
+      btn.classList.toggle('active', active);
     });
   }
 
