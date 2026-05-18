@@ -1519,22 +1519,31 @@ html.web-browser .token-table-scroll {
 }
 
 .crop-profile-tabs {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 6px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
   margin-bottom: 6px;
 }
 
 .crop-profile-tab {
-  padding: 8px 4px;
+  flex: 1 1 calc(33.333% - 5px);
+  min-width: 52px;
+  padding: 7px 3px;
   border-radius: 8px;
   border: 1px solid var(--border);
   background: var(--glass);
   color: var(--muted);
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 700;
   cursor: pointer;
-  line-height: 1.2;
+  line-height: 1.15;
+  text-align: center;
+}
+
+.crop-btn-copy {
+  flex: 1 1 calc(33% - 6px);
+  min-width: 72px;
+  font-size: 10px;
 }
 
 .crop-profile-tab.active {

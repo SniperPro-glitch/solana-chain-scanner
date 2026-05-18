@@ -1,5 +1,5 @@
 /**
- * DexScreener kırpma — 3 profil: Web, App 16 Pro Max, App iPhone 11
+ * DexScreener kırpma — 5 profil: Web, iPhone 11, 13, 13 Pro Max, 16 Pro Max
  * ?kalibre=1 veya "Kırpma" butonu
  */
 (function (global) {
@@ -10,9 +10,13 @@
 
   const PROFILE_META = {
     web: { label: 'Web', hint: 'Tarayıcı / masaüstü' },
-    app16: { label: '13 / 16 Pro Max', hint: 'Telegram — 13 Pro Max & 16 Pro Max' },
-    app11: { label: 'iPhone 11', hint: 'Telegram — iPhone 11 / XR / 12 mini' },
+    app11: { label: '11', hint: 'iPhone 11 / XR (~414px)' },
+    app13: { label: '13', hint: 'iPhone 13 / 14 / 15 (~390px)' },
+    app13pm: { label: '13 PM', hint: 'iPhone 13 Pro Max (~428px)' },
+    app16: { label: '16 PM', hint: 'iPhone 16 Pro Max (~430px)' },
   };
+
+  const PROFILE_ORDER = ['web', 'app11', 'app13', 'app13pm', 'app16'];
 
   const DEFAULT_BLOCK = {
     chart: {
@@ -53,13 +57,11 @@
   }
 
   function defaultStore() {
-    return {
-      profiles: {
-        web: defaultBlock(),
-        app16: defaultBlock(),
-        app11: defaultBlock(),
-      },
-    };
+    const profiles = {};
+    PROFILE_ORDER.forEach((id) => {
+      profiles[id] = defaultBlock();
+    });
+    return { profiles };
   }
 
   function isTelegram() {
@@ -69,7 +71,10 @@
   function detectProfile() {
     if (!isTelegram()) return 'web';
     const w = window.innerWidth || 390;
-    return w >= 420 ? 'app16' : 'app11';
+    if (w >= 429) return 'app16';
+    if (w >= 426) return 'app13pm';
+    if (w >= 400) return 'app11';
+    return 'app13';
   }
 
   function normalizeBlock(patch) {
@@ -103,9 +108,9 @@
           localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
           return;
         }
-        store.profiles.web = clone(block);
-        store.profiles.app16 = clone(block);
-        store.profiles.app11 = clone(block);
+        PROFILE_ORDER.forEach((id) => {
+          store.profiles[id] = clone(block);
+        });
         localStorage.setItem(STORAGE_KEY, JSON.stringify(store));
         return;
       } catch {
@@ -122,8 +127,10 @@
       const parsed = JSON.parse(raw);
       if (!parsed.profiles) return defaultStore();
       const store = defaultStore();
-      for (const id of Object.keys(PROFILE_META)) {
-        store.profiles[id] = normalizeBlock(parsed.profiles[id]);
+      for (const id of PROFILE_ORDER) {
+        if (parsed.profiles[id]) {
+          store.profiles[id] = normalizeBlock(parsed.profiles[id]);
+        }
       }
       return store;
     } catch {
@@ -400,14 +407,14 @@
     panelEl.id = 'dexCropPanel';
     panelEl.className = 'dex-crop-panel hidden';
     panelEl.innerHTML = [
-      '<header class="dex-crop-head"><strong>Kırpma — 3 ekran</strong>',
+      '<header class="dex-crop-head"><strong>Kırpma — 5 ekran</strong>',
       '<button type="button" class="crop-close" id="cropCloseBtn" aria-label="Kapat">✕</button></header>',
-      '<p class="crop-intro">Her telefonda aynı kaydırıcılar — içeriği oturt, <b>Profili kaydet</b>. 11 ile 13/16 ayrı kayıt.</p>',
+      '<p class="crop-intro">Her sekme ayrı kayıt: Web, 11, 13, 13 PM, 16 PM. Oturt → <b>Profili kaydet</b>.</p>',
       '<p class="crop-detect" id="cropDetectLabel"></p>',
       '<div class="crop-profile-tabs" role="tablist">',
-      ...Object.entries(PROFILE_META).map(
-        ([id, meta]) =>
-          `<button type="button" class="crop-profile-tab" data-crop-profile="${id}" role="tab">${meta.label}</button>`,
+      ...PROFILE_ORDER.map(
+        (id) =>
+          `<button type="button" class="crop-profile-tab" data-crop-profile="${id}" role="tab">${PROFILE_META[id].label}</button>`,
       ),
       `</${D}>`,
       '<p class="crop-profile-hint" id="cropProfileHint"></p>',
@@ -423,7 +430,7 @@
       sliderRow('Ekstra yükseklik', 'cropChartExtra', 0, 48, 1, c.heightExtra, 'px'),
       '</section>',
       '<section class="crop-section crop-section--tape"><h3>Alım / satım panosu</h3>',
-      '<p class="crop-section-note">LIVE kutusunun içindeki Dex tablosunu oturt (11 ve 13/16 aynı seçenekler).</p>',
+      '<p class="crop-section-note">LIVE kutusu içi — tüm telefonlarda aynı kaydırıcılar.</p>',
       sliderRow('Görünür yükseklik', 'cropTradesViewH', 160, 380, 2, t.viewH, 'px — kutu yüksekliği'),
       sliderRow('Iframe yükseklik', 'cropTradesIframeH', 700, 1200, 5, t.iframeH, 'px'),
       sliderRow('Iframe üst', 'cropTradesTop', -1200, -300, 5, t.iframeTop, 'negatif = yukarı çek'),
@@ -441,7 +448,9 @@
       '</section>',
       `<${D} class="crop-actions">`,
       '<button type="button" class="crop-btn crop-btn-save" id="cropSaveBtn">Profili kaydet</button>',
-      '<button type="button" class="crop-btn" id="cropCopy16Btn">13/16 → bu profil</button>',
+      '<button type="button" class="crop-btn crop-btn-copy" id="cropCopyWebBtn">Web →</button>',
+      '<button type="button" class="crop-btn crop-btn-copy" id="cropCopy13pmBtn">13 PM →</button>',
+      '<button type="button" class="crop-btn crop-btn-copy" id="cropCopy16pmBtn">16 PM →</button>',
       '<button type="button" class="crop-btn" id="cropCopyBtn">Tüm JSON</button>',
       '<button type="button" class="crop-btn crop-btn-muted" id="cropResetProfBtn">Profil sıfır</button>',
       '<button type="button" class="crop-btn crop-btn-muted" id="cropResetAllBtn">Hepsi sıfır</button>',
@@ -466,9 +475,9 @@
       saveBlock(editingProfile, current);
       toast(`${PROFILE_META[editingProfile].label} kaydedildi`);
     });
-    document.getElementById('cropCopy16Btn')?.addEventListener('click', () => {
-      copyProfileFrom('app16');
-    });
+    document.getElementById('cropCopyWebBtn')?.addEventListener('click', () => copyProfileFrom('web'));
+    document.getElementById('cropCopy13pmBtn')?.addEventListener('click', () => copyProfileFrom('app13pm'));
+    document.getElementById('cropCopy16pmBtn')?.addEventListener('click', () => copyProfileFrom('app16'));
     document.getElementById('cropResetProfBtn')?.addEventListener('click', () => {
       current = resetProfile(editingProfile);
       syncSlidersFromCurrent();
@@ -483,7 +492,7 @@
       syncSlidersFromCurrent();
       updateProfileTabs();
       refreshPreview();
-      toast('Tüm profiller sıfır');
+      toast('5 profil sıfırlandı');
     });
     document.getElementById('cropCopyBtn')?.addEventListener('click', async () => {
       const store = loadStore();
@@ -491,7 +500,7 @@
       const text = JSON.stringify(store, null, 2);
       try {
         await navigator.clipboard.writeText(text);
-        toast('3 profil JSON kopyalandı');
+        toast('5 profil JSON kopyalandı');
       } catch {
         toast('Alttaki JSON\'u kopyala');
       }
@@ -559,6 +568,7 @@
   global.SniperDexCrop = {
     STORAGE_KEY,
     PROFILE_META,
+    PROFILE_ORDER,
     DEFAULT_BLOCK,
     detectProfile,
     loadStore,
