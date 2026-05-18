@@ -63,8 +63,40 @@
     return clone(DEFAULT_BLOCK);
   }
 
+  function profileLooksCustom(block) {
+    if (!block?.chart) return false;
+    const c = block.chart;
+    const t = block.trades || {};
+    return (
+      c.top !== -8
+      || c.stageH !== 340
+      || t.iframeTop !== -820
+      || t.viewH !== 268
+      || (block.tape?.shiftDown || 0) !== 0
+    );
+  }
+
+  /** Koddaki ölçüler + sunucudaki güncel profiller birleşir (boş sunucu varsayılanı ezmez). */
   function getBakedSource() {
-    return serverBaked || globalThis.__DEX_CROP_BAKED__ || null;
+    const file = globalThis.__DEX_CROP_BAKED__;
+    const server = serverBaked;
+    if (!file?.profiles) return server || null;
+    if (!server?.profiles) return file;
+    const profiles = {};
+    PROFILE_ORDER.forEach((id) => {
+      const s = server.profiles[id];
+      const f = file.profiles[id];
+      const sOk = profileLooksCustom(s);
+      const fOk = profileLooksCustom(f);
+      if (sOk && !fOk) profiles[id] = s;
+      else if (fOk) profiles[id] = f;
+      else profiles[id] = f || s;
+    });
+    return {
+      version: 1,
+      updatedAt: server.updatedAt || file.updatedAt,
+      profiles,
+    };
   }
 
   function defaultStore() {
@@ -185,15 +217,39 @@
 
   let syncServerTimer = null;
 
-  function syncProfilesToServer(store) {
+  /** Sadece bu cihazda kaydedilmiş profiller — sunucuda diğer cihazların ölçüsünü silmez. */
+  function profilesFromLocalStorage() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+      if (!parsed?.profiles) return null;
+      const partial = {};
+      for (const id of PROFILE_ORDER) {
+        if (parsed.profiles[id]) partial[id] = normalizeBlock(parsed.profiles[id]);
+      }
+      return Object.keys(partial).length ? partial : null;
+    } catch {
+      return null;
+    }
+  }
+
+  function syncProfilesToServer() {
+    const partial = profilesFromLocalStorage();
+    if (!partial) return Promise.resolve(null);
     clearTimeout(syncServerTimer);
-    syncServerTimer = setTimeout(() => {
-      fetch('/api/crop-profiles', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ version: 1, profiles: store.profiles }),
-      }).catch(() => {});
-    }, 400);
+    return new Promise((resolve) => {
+      syncServerTimer = setTimeout(() => {
+        fetch('/api/crop-profiles', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ version: 1, profiles: partial }),
+        })
+          .then((r) => r.json().then((d) => ({ ok: r.ok, data: d })))
+          .then(resolve)
+          .catch(() => resolve(null));
+      }, 300);
+    });
   }
 
   /** Açılışta kayıtlı profilleri belleğe al ve sunucuya gönder. */
@@ -388,6 +444,18 @@
     return String(location.hash || '').includes('kalibre');
   }
 
+  /** ?profil=web|app11|app13|app13pm|app16 — link sadece doğru sekmeyi açar; ölçüler kayıtta. */
+  function profileFromUrl() {
+    try {
+      const q = new URLSearchParams(location.search);
+      const id = String(q.get('profil') || q.get('profile') || '').trim();
+      if (PROFILE_META[id]) return id;
+    } catch {
+      /* yoksay */
+    }
+    return null;
+  }
+
   function sliderRow(label, id, min, max, step, value, hint) {
     return `<label class="crop-row" for="${id}">
       <span class="crop-lbl">${label} <output id="${id}Out" class="crop-val">${value}</output></span>
@@ -518,7 +586,7 @@
 
   function openPanel() {
     if (!panelBuilt) buildPanel();
-    editingProfile = detectProfile();
+    editingProfile = profileFromUrl() || detectProfile();
     current = loadForProfile(editingProfile);
     syncSlidersFromCurrent();
     apply(current);
@@ -556,7 +624,7 @@
     panelEl.innerHTML = [
       '<header class="dex-crop-head"><strong>Kırpma — 5 ekran</strong>',
       '<button type="button" class="crop-close" id="cropCloseBtn" aria-label="Kapat">✕</button></header>',
-      '<p class="crop-intro">Telefon otomatik algılanır. <b>Profili kaydet</b> = bu cihazda kalır + sunucuya gider.</p>',
+      '<p class="crop-intro">Link sadece paneli açar. <b>Profili kaydet</b> = ölçüler kalır + herkese sunucuya gider.</p>',
       '<p class="crop-detect" id="cropDetectLabel"></p>',
       '<div class="crop-profile-tabs" role="tablist">',
       ...PROFILE_ORDER.map(
