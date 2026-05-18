@@ -12,7 +12,7 @@ const http = axios.create({
   },
 });
 
-const CACHE_MS = 8_000;
+const CACHE_MS = 2_500;
 const cache = new Map();
 
 function shortAddr(a) {

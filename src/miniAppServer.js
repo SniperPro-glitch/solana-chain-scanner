@@ -303,7 +303,7 @@ function createMiniAppServer() {
             poolAddress: url.searchParams.get('pool') || '',
             limit,
           });
-          sendJson(res, 200, { trades, pollMs: 8000, mint: tradesMatch[1] });
+          sendJson(res, 200, { trades, pollMs: 3000, mint: tradesMatch[1] });
         } catch (e) {
           console.warn('[miniApp] trades:', e.message);
           sendJson(res, 502, { error: 'trades_failed', message: e.message });

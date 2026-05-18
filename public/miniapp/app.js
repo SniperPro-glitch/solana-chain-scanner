@@ -47,7 +47,9 @@
   let detailShellBound = false;
   let feedPollTimer = null;
   let tradesPollTimer = null;
+  let tradesAgoTimer = null;
   let lastTradesSig = '';
+  let lastTradesRows = [];
   let openingMint = false;
 
   const PLACEHOLDER_TOKENS = [
@@ -176,6 +178,8 @@
   }
 
   function showScannerHome() {
+    stopTradesPoll();
+    document.documentElement.classList.remove('detail-mode');
     hideAllViews();
     $('scanner-home')?.classList.remove('hidden');
     refreshTgViewport();
@@ -193,6 +197,7 @@
 
   function showDetailView() {
     hideAllViews();
+    document.documentElement.classList.add('detail-mode');
     $('view-detail')?.classList.remove('hidden');
     ensureDetailSpacer();
     refreshTgViewport();
@@ -793,7 +798,21 @@
       clearInterval(tradesPollTimer);
       tradesPollTimer = null;
     }
+    if (tradesAgoTimer) {
+      clearInterval(tradesAgoTimer);
+      tradesAgoTimer = null;
+    }
+    document.removeEventListener('visibilitychange', onTradesVisibility);
     lastTradesSig = '';
+    lastTradesRows = [];
+  }
+
+  function tradeMintFor(m) {
+    return appData?.address || m?.address || appData?.market?.address || '';
+  }
+
+  function tradePoolFor(m) {
+    return m?.poolAddress || appData?.market?.poolAddress || '';
   }
 
   function fmtTokenAmt(n) {
@@ -818,7 +837,19 @@
     return `<li class="trade-row trade-row--${side}"${tx}><span class="trade-ago">${ago}</span><span class="trade-side ${side}">${label}</span><span class="trade-usd">${escHtml(usd)}</span><span class="trade-amt">${escHtml(amt)}</span><span class="trade-wallet">${wallet}</span></li>`;
   }
 
-  function renderTradeTape(trades) {
+  function bindTradeRowClicks(root) {
+    (root || $('tradesList'))?.querySelectorAll('.trade-row[data-tx]').forEach((el) => {
+      if (el.dataset.bound) return;
+      el.dataset.bound = '1';
+      el.style.cursor = 'pointer';
+      el.addEventListener('click', () => {
+        const h = el.getAttribute('data-tx');
+        if (h) window.open(`https://solscan.io/tx/${h}`, '_blank', 'noopener');
+      });
+    });
+  }
+
+  function renderTradeTape(trades, opts = {}) {
     const wrap = $('tradesTape');
     const list = $('tradesList');
     const meta = $('tradesMeta');
@@ -831,49 +862,90 @@
       return;
     }
     const sig = rows.map((t) => t.id || `${t.txHash}-${t.at}`).join('|');
-    if (sig === lastTradesSig) {
+    const prevSig = lastTradesSig;
+    const headId = rows[0]?.id || rows[0]?.txHash || '';
+    const prevHeadId = lastTradesRows[0]?.id || lastTradesRows[0]?.txHash || '';
+    const hasNewHead = headId && headId !== prevHeadId && prevSig;
+
+    if (sig === lastTradesSig && !opts.force && !hasNewHead) {
       wrap.classList.remove('hidden');
-      if (meta) meta.textContent = `${rows.length} işlem`;
       return;
     }
+
     lastTradesSig = sig;
+    lastTradesRows = rows.slice(0, 28);
     wrap.classList.remove('hidden');
-    if (meta) meta.textContent = `${rows.length} işlem · ~8s`;
+    const pollHint = opts.pollSec || 3;
+    if (meta) meta.textContent = `${rows.length} işlem · ${pollHint}s`;
+
     const sym = appData?.market?.symbol || appData?.symbol || 'TOKEN';
     const col = $('tradesColToken');
     if (col) col.textContent = sym;
-    list.innerHTML = rows.slice(0, 28).map((t) => tradeRowHtml(t)).join('');
-    list.querySelectorAll('.trade-row[data-tx]').forEach((el) => {
-      el.style.cursor = 'pointer';
-      el.addEventListener('click', () => {
-        const h = el.getAttribute('data-tx');
-        if (h) window.open(`https://solscan.io/tx/${h}`, '_blank', 'noopener');
+
+    const slice = lastTradesRows;
+    if (hasNewHead && list.children.length > 0) {
+      const fresh = slice.filter((t) => {
+        const id = t.id || t.txHash;
+        return id && !prevSig.includes(String(id));
       });
-    });
+      if (fresh.length) {
+        const frag = document.createElement('div');
+        frag.innerHTML = fresh.map((t) => tradeRowHtml(t)).join('');
+        Array.from(frag.children).reverse().forEach((node) => {
+          node.classList.add('trade-row--new');
+          list.insertBefore(node, list.firstChild);
+        });
+        while (list.children.length > 28) list.removeChild(list.lastChild);
+        bindTradeRowClicks(list);
+        return;
+      }
+    }
+
+    list.innerHTML = slice.map((t) => tradeRowHtml(t)).join('');
+    bindTradeRowClicks(list);
   }
 
   async function refreshTrades(m) {
-    const mint = m?.address || appData?.address;
+    const mint = tradeMintFor(m);
     if (!mint) return;
-    const pool = m?.poolAddress || '';
-    const q = pool ? `?pool=${encodeURIComponent(pool)}` : '';
-    const res = await fetch(apiPath(`/api/trades/${encodeURIComponent(mint)}${q}`));
+    const pool = tradePoolFor(m);
+    const q = new URLSearchParams();
+    if (pool) q.set('pool', pool);
+    q.set('_', String(Date.now()));
+    const qs = q.toString();
+    const res = await fetch(apiPath(`/api/trades/${encodeURIComponent(mint)}?${qs}`), {
+      cache: 'no-store',
+    });
     if (!res.ok) return;
     const body = await res.json();
-    renderTradeTape(body.trades || []);
+    const pollSec = Math.max(2, Math.round((body.pollMs || 3000) / 1000));
+    renderTradeTape(body.trades || [], { pollSec });
   }
 
   function startTradesPoll(m) {
     stopTradesPoll();
-    renderTradeTape(m?.recentTrades || []);
-    const mint = m?.address || appData?.address;
+    renderTradeTape(m?.recentTrades || [], { pollSec: 3 });
+    const mint = tradeMintFor(m);
     if (!mint) return;
-    const pollMs = m?.tradesPollMs || 8000;
+    const pollMs = Math.min(m?.tradesPollMs || 3000, 3000);
     const marketRef = () => appData?.market || m;
-    refreshTrades(marketRef()).catch(() => {});
-    tradesPollTimer = setInterval(() => {
-      refreshTrades(marketRef()).catch(() => {});
-    }, pollMs);
+    const tick = () => refreshTrades(marketRef()).catch(() => {});
+    tick();
+    tradesPollTimer = setInterval(tick, pollMs);
+    document.addEventListener('visibilitychange', onTradesVisibility);
+    tradesAgoTimer = setInterval(() => {
+      if (document.hidden || !lastTradesRows.length) return;
+      const meta = $('tradesMeta');
+      if (meta && lastTradesSig) {
+        meta.textContent = `${lastTradesRows.length} işlem · canlı`;
+      }
+    }, 1000);
+  }
+
+  function onTradesVisibility() {
+    if (!document.hidden && appData?.market) {
+      refreshTrades(appData.market).catch(() => {});
+    }
   }
 
   function dexEmbedUrlFor(poolOrMint, tf) {
@@ -952,7 +1024,6 @@
   }
 
   function destroyChart() {
-    stopTradesPoll();
     if (resizeHandler) {
       window.removeEventListener('resize', resizeHandler);
       resizeHandler = null;
@@ -1302,10 +1373,11 @@
     }
 
     if (bar) {
+      const chartUrl = a.dsUrl || m.dexScreenerUrl || '#';
       bar.innerHTML = buy
-        ? `<a class="btn-buy" href="${buy}" target="_blank" rel="noopener">Al</a>
-           <a class="btn-sell" href="${sell}" target="_blank" rel="noopener">Sat</a>
-           <a class="btn-chart" href="${a.dsUrl || m.dexScreenerUrl || '#'}" target="_blank" rel="noopener">Chart</a>`
+        ? `<a class="trade-bar-btn trade-bar-btn--buy" href="${buy}" target="_blank" rel="noopener"><span class="tbb-ico" aria-hidden="true">↑</span><span class="tbb-lbl">Al</span></a>
+           <a class="trade-bar-btn trade-bar-btn--sell" href="${sell}" target="_blank" rel="noopener"><span class="tbb-ico" aria-hidden="true">↓</span><span class="tbb-lbl">Sat</span></a>
+           <a class="trade-bar-btn trade-bar-btn--chart" href="${chartUrl}" target="_blank" rel="noopener"><span class="tbb-ico" aria-hidden="true">◎</span><span class="tbb-lbl">Grafik</span></a>`
         : '';
     }
   }
@@ -1437,8 +1509,8 @@
     renderQuoteChanges(m);
     renderMetrics(m, m.chart?.stats);
     renderTxnBar(m);
-    startTradesPoll(m);
     renderChart(m).catch((e) => console.warn('renderChart', e));
+    startTradesPoll(m);
     renderInfoPanel(data);
     renderSecurityPanel(data);
     renderTradePanel(data);
