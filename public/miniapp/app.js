@@ -797,32 +797,16 @@
     }
   }
 
-  function calibrateDexTradesCrop() {
-    const wrap = $('dexTradesWrap');
-    if (!wrap) return;
-    const vh = window.innerHeight || 640;
-    const vw = window.innerWidth || 390;
-    const rowH = 38;
-    const theadH = 34;
-    const rows = 6;
-    const viewH = theadH + rowH * rows + 6;
-    const iframeH = Math.round(Math.min(1060, Math.max(920, vh * 1.14 + 150)));
-    let skipRatio = 0.738;
-    if (vh < 680) skipRatio = 0.712;
-    else if (vh > 820) skipRatio = 0.788;
-    if (vw < 400) skipRatio += 0.008;
-    const offset = Math.round(iframeH * skipRatio);
-    const maskTop = 6;
-    wrap.style.setProperty('--dex-trades-view-h', `${viewH}px`);
-    wrap.style.setProperty('--dex-iframe-h', `${iframeH}px`);
-    wrap.style.setProperty('--dex-iframe-top', `-${offset}px`);
-    wrap.style.setProperty('--dex-mask-top-h', `${maskTop}px`);
-    wrap.dataset.cropOffset = String(offset);
+  function applyDexCrop() {
+    if (globalThis.SniperDexCrop) {
+      SniperDexCrop.apply();
+      return;
+    }
   }
 
   function scheduleDexTradesCrop() {
-    calibrateDexTradesCrop();
-    [350, 900, 1800].forEach((ms) => setTimeout(calibrateDexTradesCrop, ms));
+    applyDexCrop();
+    [400, 1200].forEach((ms) => setTimeout(applyDexCrop, ms));
   }
 
   function dexTradesEmbedUrl(poolOrMint) {
@@ -921,6 +905,7 @@
         note.textContent = `${(tf || '15m').toUpperCase()} · DexScreener`;
         note.classList.remove('hidden');
       }
+      applyDexCrop();
       return true;
     }
     setChartEmbedMode(false);
@@ -1534,6 +1519,8 @@
 
     await loadReportFlow();
   }
+
+  globalThis.showToast = showToast;
 
   main();
 })();
