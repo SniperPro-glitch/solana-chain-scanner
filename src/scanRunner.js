@@ -85,31 +85,37 @@ function createScanRunner(deps) {
         let audit = chain.auditToken(token);
         let sentToAny = false;
         const channelMessages = [];
-        let dexListing = null;
 
+        const eligible = [];
         for (const ch of activeChannels) {
           const filterCheck = channels.tokenPassesChannelFilters(token, audit, ch);
-          if (!filterCheck.pass) {
+          if (filterCheck.pass) eligible.push(ch);
+          else {
             const cat = channels.categorizeFilterReason(filterCheck.reason);
             rejectionsByCategory[cat] = (rejectionsByCategory[cat] || 0) + 1;
-            continue;
           }
+        }
 
+        if (!eligible.length) continue;
+
+        const isCritical = audit.isCritical === true;
+        const isRisky = !isCritical && (audit.risk.code === 'HIGH' || audit.risk.code === 'MEDIUM');
+        const cardLevel = isCritical ? 'critical' : (isRisky ? 'yellow' : 'green');
+        const bannerLevel = isCritical ? 'critical' : (isRisky ? 'yellow' : 'green');
+        const baseLang = channels.resolveCardLang(eligible[0]);
+        const dexListing = publishToDexFirst(token, audit, baseLang, cardLevel);
+        console.log(
+          `[scan] filtre OK ${token.tokenSymbol || '?'} → DEX + ${eligible.length} kanal`,
+        );
+
+        for (const ch of eligible) {
           const chLang = channels.resolveCardLang(ch);
-          const isCritical = audit.isCritical === true;
-          const isRisky = !isCritical && (audit.risk.code === 'HIGH' || audit.risk.code === 'MEDIUM');
-          const cardLevel = isCritical ? 'critical' : (isRisky ? 'yellow' : 'green');
           const message = formatTokenCard(token, audit, chLang, cardLevel, { slim: true });
           const silent = ch.settings?.silentNotification === true;
-          const bannerLevel = isCritical ? 'critical' : (isRisky ? 'yellow' : 'green');
+
+          recordMiniAppShare(ch, token, audit, chLang, cardLevel, dexListing.reportId);
 
           try {
-            if (!dexListing) {
-              dexListing = publishToDexFirst(token, audit, chLang, cardLevel);
-            }
-
-            recordMiniAppShare(ch, token, audit, chLang, cardLevel, dexListing.reportId);
-
             const r = await sendCardToChannel(ch, {
               text: message,
               ...solanaBannerSource(bannerLevel),
@@ -136,7 +142,7 @@ function createScanRunner(deps) {
             channels.recordSuccess(ch.id);
             sentToAny = true;
             result.sharedToChannels++;
-            await new Promise((r) => setTimeout(r, 350));
+            await new Promise((res) => setTimeout(res, 350));
           } catch (err) {
             result.errors++;
             channels.recordError(ch.id, err.message);

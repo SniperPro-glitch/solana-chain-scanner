@@ -107,6 +107,14 @@ function createMiniAppServer() {
         return;
       }
 
+      if (req.method === 'GET' && url.pathname === '/api/config') {
+        sendJson(res, 200, {
+          webAppBase: getWebAppBaseUrl(),
+          botApiBase: getBotApiBaseUrl(),
+        });
+        return;
+      }
+
       if (req.method === 'GET' && url.pathname === '/health') {
         sendJson(res, 200, { ok: true });
         return;
@@ -173,6 +181,14 @@ function getWebAppBaseUrl() {
   return `http://localhost:${port}`;
 }
 
+/** İki Railway: DEX UI burada, feed BOT sunucusunda — BOT_API_URL = bot Railway https */
+function getBotApiBaseUrl() {
+  const raw = String(
+    process.env.BOT_API_URL || process.env.SCAN_BOT_API_URL || '',
+  ).trim();
+  return raw ? raw.replace(/\/$/, '') : '';
+}
+
 function buildWebAppUrl(reportId) {
   const base = getWebAppBaseUrl();
   return `${base}/#r=${encodeURIComponent(reportId)}`;
@@ -204,5 +220,6 @@ module.exports = {
   startMiniAppServer,
   buildWebAppUrl,
   getWebAppBaseUrl,
+  getBotApiBaseUrl,
   PUBLIC_DIR,
 };

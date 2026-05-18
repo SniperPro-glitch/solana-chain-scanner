@@ -846,32 +846,30 @@ async function shareTokenToChannel(ch, token, audit, opts = {}) {
   const banner = opts.customBannerFileId
     ? { photoFileId: opts.customBannerFileId }
     : solanaBannerSource(bannerLevel);
-  const { publishToDexFirst } = require('./publishPipeline');
-  const { recordMiniAppShare } = require('./recordMiniAppShare');
-  const listing = publishToDexFirst(token, audit, chLang, cardLevel);
-  recordMiniAppShare(ch, token, audit, chLang, cardLevel, listing.reportId);
+  const { publishToDexAndChannel } = require('./publishPipeline');
+  const pub = await publishToDexAndChannel({
+    ch,
+    token,
+    audit,
+    chLang,
+    cardLevel,
+    message,
+    banner,
+    silent,
+    chain: 'solana',
+    sendCardToChannel,
+    sendBotAnalysisFollowup,
+  });
+  if (!pub.ok) return { ok: false, error: pub.error, dexOk: pub.dexOk };
 
-  const r = await sendCardToChannel(ch, { text: message, ...banner, silent, chain: 'solana' });
-  if (!r.ok) return { ok: false, error: r.error };
-
-  const hasPhoto = !!(banner.photoFileId || banner.photoLocalPath);
-  const cmEntry = r.messageId ? {
-    chatId: ch.id,
-    messageId: r.messageId,
-    hasPhoto,
-    originalText: message,
-    lang: chLang,
-    via: r.via,
-  } : null;
-  if (cmEntry) {
-    await sendBotAnalysisFollowup(ch, cmEntry, token, audit, chLang, cardLevel, {
-      reportId: listing.reportId,
-      dexAppUrl: listing.dexAppUrl,
-    });
-    registerWatch(token, audit, [cmEntry]);
-  }
+  if (pub.cmEntry) registerWatch(token, audit, [pub.cmEntry]);
   channels.recordSuccess(ch.id);
-  return { ok: true, cmEntry, dexAppUrl: listing.dexAppUrl, reportId: listing.reportId };
+  return {
+    ok: true,
+    cmEntry: pub.cmEntry,
+    dexAppUrl: pub.listing?.dexAppUrl,
+    reportId: pub.listing?.reportId,
+  };
 }
 
 async function processManualPost(chatId, userId, arg, lang, customBannerFileId = null) {
@@ -1585,7 +1583,10 @@ async function main() {
   try {
     const botFeedStore = require('./botFeedStore');
     const { DATA_DIR } = require('./data-path');
-    console.log(`   Mini App feed: ${botFeedStore.feedCount()} kayıt → ${botFeedStore.FEED_FILE} (DATA_DIR=${DATA_DIR})`);
+    const { getWebAppBaseUrl, getBotApiBaseUrl } = require('./miniAppServer');
+    console.log(`   Bot↔DEX: WEB_APP_URL=${getWebAppBaseUrl()}`);
+    if (getBotApiBaseUrl()) console.log(`   DEX→Bot API: BOT_API_URL=${getBotApiBaseUrl()}`);
+    console.log(`   Mini App feed: ${botFeedStore.feedCount()} kayıt (DATA_DIR=${DATA_DIR})`);
   } catch (_) { /* */ }
 
   const webBase = getWebAppBaseUrl();

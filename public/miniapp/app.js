@@ -1,5 +1,27 @@
 ﻿(function () {
   const tg = window.Telegram?.WebApp;
+  let apiConfig = { botApiBase: '', webAppBase: '' };
+
+  async function loadApiConfig() {
+    try {
+      const res = await fetch('/api/config');
+      if (res.ok) apiConfig = await res.json();
+    } catch {
+      /* aynı sunucu */
+    }
+    return apiConfig;
+  }
+
+  function apiRoot() {
+    const base = String(apiConfig.botApiBase || '').replace(/\/$/, '');
+    return base;
+  }
+
+  function apiPath(path) {
+    const root = apiRoot();
+    return root ? `${root}${path}` : path;
+  }
+
   if (tg?.themeParams?.bg_color) {
     document.documentElement.style.setProperty('--bg', tg.themeParams.bg_color);
   }
@@ -346,6 +368,7 @@
   }
 
   async function fetchFeed(tab) {
+    await loadApiConfig();
     const t = tab || feedTab;
     setFeedTab(t);
     const loadingEl = $('feedLoading');
@@ -354,7 +377,7 @@
     list?.classList.add('dimmed');
     try {
       const res = await fetch(
-        `/api/feed?tab=${encodeURIComponent(t)}&limit=24&dex=${encodeURIComponent(dexFilter)}`,
+        apiPath(`/api/feed?tab=${encodeURIComponent(t)}&limit=24&dex=${encodeURIComponent(dexFilter)}`),
       );
       const body = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(body.message || 'feed_failed');
@@ -489,7 +512,7 @@
   function initScannerHome() {
     bindHomeShell();
     setFeedTab(feedTab);
-    fetchFeed(feedTab);
+    loadApiConfig().then(() => fetchFeed(feedTab));
   }
 
   function bindDetailShell() {

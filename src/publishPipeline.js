@@ -1,11 +1,11 @@
-// Ortak akış: önce Sniper DEX (Mini App) → URL → sonra kanal paylaşımı.
+// Bot ↔ DEX: filtre geçen token → önce Mini App, sonra kanal.
 
 const reportStore = require('./reportStore');
-const { buildWebAppUrl } = require('./miniAppServer');
+const { buildWebAppUrl, getWebAppBaseUrl } = require('./miniAppServer');
+const { recordMiniAppShare } = require('./recordMiniAppShare');
 
 /**
  * Tokeni DEX / Mini App'e kaydet, paylaşım URL'si üret.
- * @returns {{ reportId: string, dexAppUrl: string|null }}
  */
 function publishToDexFirst(token, audit, lang = 'tr', level = 'green') {
   const reportId = reportStore.saveReport({
@@ -19,9 +19,67 @@ function publishToDexFirst(token, audit, lang = 'tr', level = 'green') {
   if (dexAppUrl && /^https:\/\//i.test(dexAppUrl)) {
     console.log(`[dex] ${sym} listed → ${dexAppUrl}`);
   } else {
-    console.warn(`[dex] ${sym} kayıt ok (${reportId}) ama WEB_APP_URL HTTPS değil — kanal linki zayıf`);
+    console.warn(
+      `[dex] ${sym} kayıt (${reportId}) — WEB_APP_URL HTTPS değil: ${getWebAppBaseUrl()}`,
+    );
   }
   return { reportId, dexAppUrl: dexAppUrl || null };
 }
 
-module.exports = { publishToDexFirst };
+/**
+ * Filtre geçti → DEX listesi + (isteğe bağlı) tek kanala kart.
+ * Kanal hata verse bile DEX kaydı kalır.
+ */
+async function publishToDexAndChannel({
+  ch,
+  token,
+  audit,
+  chLang,
+  cardLevel,
+  message,
+  banner,
+  silent,
+  chain,
+  sendCardToChannel,
+  sendBotAnalysisFollowup,
+}) {
+  const listing = publishToDexFirst(token, audit, chLang, cardLevel);
+  recordMiniAppShare(ch, token, audit, chLang, cardLevel, listing.reportId);
+
+  const r = await sendCardToChannel(ch, {
+    text: message,
+    ...banner,
+    silent,
+    chain,
+  });
+
+  if (!r.ok) {
+    console.warn(
+      `[publish] ${token?.tokenSymbol || '?'} DEX'e yazıldı ama kanal kartı başarısız: ${r.error}`,
+    );
+    return { ok: false, dexOk: true, listing, error: r.error };
+  }
+
+  const cmEntry = r.messageId ? {
+    chatId: ch.id,
+    messageId: r.messageId,
+    hasPhoto: !!(banner.photoFileId || banner.photoLocalPath),
+    originalText: message,
+    lang: chLang,
+    via: r.via,
+  } : null;
+
+  if (cmEntry && sendBotAnalysisFollowup) {
+    await sendBotAnalysisFollowup(ch, cmEntry, token, audit, chLang, cardLevel, {
+      reportId: listing.reportId,
+      dexAppUrl: listing.dexAppUrl,
+    });
+  }
+
+  return { ok: true, dexOk: true, listing, cmEntry };
+}
+
+module.exports = {
+  publishToDexFirst,
+  publishToDexAndChannel,
+};
