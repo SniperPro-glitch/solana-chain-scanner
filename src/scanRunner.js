@@ -1,6 +1,7 @@
 // Otomatik tarama — Solana (BSC/TON scanRunner deseni).
 
 const { recordMiniAppShare } = require('./recordMiniAppShare');
+const { publishToDexFirst } = require('./publishPipeline');
 const CHAIN_ID = 'solana';
 
 function createScanRunner(deps) {
@@ -84,6 +85,7 @@ function createScanRunner(deps) {
         let audit = chain.auditToken(token);
         let sentToAny = false;
         const channelMessages = [];
+        let dexListing = null;
 
         for (const ch of activeChannels) {
           const filterCheck = channels.tokenPassesChannelFilters(token, audit, ch);
@@ -102,6 +104,12 @@ function createScanRunner(deps) {
           const bannerLevel = isCritical ? 'critical' : (isRisky ? 'yellow' : 'green');
 
           try {
+            if (!dexListing) {
+              dexListing = publishToDexFirst(token, audit, chLang, cardLevel);
+            }
+
+            recordMiniAppShare(ch, token, audit, chLang, cardLevel, dexListing.reportId);
+
             const r = await sendCardToChannel(ch, {
               text: message,
               ...solanaBannerSource(bannerLevel),
@@ -109,8 +117,6 @@ function createScanRunner(deps) {
               chain: CHAIN_ID,
             });
             if (!r.ok) throw new Error(r.error || 'send fail');
-
-            recordMiniAppShare(ch, token, audit, chLang, cardLevel);
 
             const cmEntry = r.messageId ? {
               chatId: ch.id,
@@ -122,7 +128,10 @@ function createScanRunner(deps) {
             } : null;
             if (cmEntry) {
               channelMessages.push(cmEntry);
-              await sendBotAnalysisFollowup(ch, cmEntry, token, audit, chLang, cardLevel);
+              await sendBotAnalysisFollowup(ch, cmEntry, token, audit, chLang, cardLevel, {
+                reportId: dexListing.reportId,
+                dexAppUrl: dexListing.dexAppUrl,
+              });
             }
             channels.recordSuccess(ch.id);
             sentToAny = true;

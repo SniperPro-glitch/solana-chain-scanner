@@ -76,6 +76,7 @@ function tokenToFeedItem(token, audit, rank, reportId = null) {
     dexPlatform: plat.key,
     dexLabel: plat.label,
     dexShort: plat.short,
+    dexAppUrl: reportId ? require('./miniAppServer').buildWebAppUrl(reportId) : null,
     priceUsd: token.priceUsd,
     priceUsdFmt: fmtUsd(token.priceUsd),
     change24h: token.priceChange24h,

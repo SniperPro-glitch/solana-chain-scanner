@@ -482,7 +482,7 @@ async function sendAnalysisAsChannelComment(ch, channelPostMessageId, text, opts
   return { ...r, asComment: !!r.ok };
 }
 
-async function sendBotAnalysisFollowup(ch, cmEntry, token, audit, lang, cardLevel = 'green') {
+async function sendBotAnalysisFollowup(ch, cmEntry, token, audit, lang, cardLevel = 'green', opts = {}) {
   if (!ch || !cmEntry || !token || !audit) return;
   const sym = token.tokenSymbol || '?';
   let body;
@@ -501,14 +501,19 @@ async function sendBotAnalysisFollowup(ch, cmEntry, token, audit, lang, cardLeve
     return;
   }
 
-  let reportId = null;
+  let reportId = opts.reportId || null;
   let replyMarkup;
   try {
-    reportId = reportStore.saveReport({ token, audit, lang, level: cardLevel });
-    console.log(`[report] kaydedildi id=${reportId} sembol=${sym}`);
+    if (!reportId) {
+      const { publishToDexFirst } = require('./publishPipeline');
+      const listing = publishToDexFirst(token, audit, lang, cardLevel);
+      reportId = listing.reportId;
+    } else {
+      console.log(`[report] mevcut id=${reportId} sembol=${sym}`);
+    }
     const { recordMiniAppShare } = require('./recordMiniAppShare');
     recordMiniAppShare(ch, token, audit, lang, cardLevel, reportId);
-    const webAppUrl = buildWebAppUrl(reportId);
+    const webAppUrl = opts.dexAppUrl || buildWebAppUrl(reportId);
     if (webAppUrl && /^https:\/\//i.test(webAppUrl)) {
       replyMarkup = {
         inline_keyboard: [[{
@@ -841,11 +846,13 @@ async function shareTokenToChannel(ch, token, audit, opts = {}) {
   const banner = opts.customBannerFileId
     ? { photoFileId: opts.customBannerFileId }
     : solanaBannerSource(bannerLevel);
+  const { publishToDexFirst } = require('./publishPipeline');
+  const { recordMiniAppShare } = require('./recordMiniAppShare');
+  const listing = publishToDexFirst(token, audit, chLang, cardLevel);
+  recordMiniAppShare(ch, token, audit, chLang, cardLevel, listing.reportId);
+
   const r = await sendCardToChannel(ch, { text: message, ...banner, silent, chain: 'solana' });
   if (!r.ok) return { ok: false, error: r.error };
-
-  const { recordMiniAppShare } = require('./recordMiniAppShare');
-  recordMiniAppShare(ch, token, audit, chLang, cardLevel);
 
   const hasPhoto = !!(banner.photoFileId || banner.photoLocalPath);
   const cmEntry = r.messageId ? {
@@ -857,11 +864,14 @@ async function shareTokenToChannel(ch, token, audit, opts = {}) {
     via: r.via,
   } : null;
   if (cmEntry) {
-    await sendBotAnalysisFollowup(ch, cmEntry, token, audit, chLang, cardLevel);
+    await sendBotAnalysisFollowup(ch, cmEntry, token, audit, chLang, cardLevel, {
+      reportId: listing.reportId,
+      dexAppUrl: listing.dexAppUrl,
+    });
     registerWatch(token, audit, [cmEntry]);
   }
   channels.recordSuccess(ch.id);
-  return { ok: true, cmEntry };
+  return { ok: true, cmEntry, dexAppUrl: listing.dexAppUrl, reportId: listing.reportId };
 }
 
 async function processManualPost(chatId, userId, arg, lang, customBannerFileId = null) {
