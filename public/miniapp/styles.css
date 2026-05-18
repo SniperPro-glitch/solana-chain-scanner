@@ -799,17 +799,6 @@ html.detail-mode body {
   margin-bottom: 0;
 }
 
-.chart-terminal--dex-embed .dex-chart-brand-mask {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: var(--chart-mask-w, 130px);
-  height: var(--chart-mask-h, 30px);
-  z-index: 4;
-  pointer-events: none;
-  background: #0a0e1a;
-}
-
 /* DexScreener canlı işlemler — iframe kırpma (Transactions paneli) */
 .dex-trades-embed-wrap {
   position: relative;

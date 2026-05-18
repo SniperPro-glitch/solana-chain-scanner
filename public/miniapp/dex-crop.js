@@ -13,8 +13,6 @@
       left: -4,
       width: 108,
       heightExtra: 20,
-      maskW: 130,
-      maskH: 30,
     },
     trades: {
       viewH: 268,
@@ -69,8 +67,6 @@
     root.style.setProperty('--chart-embed-left', `${c.left}%`);
     root.style.setProperty('--chart-embed-width', `${c.width}%`);
     root.style.setProperty('--chart-embed-extra', `${c.heightExtra}px`);
-    root.style.setProperty('--chart-mask-w', `${c.maskW}px`);
-    root.style.setProperty('--chart-mask-h', `${c.maskH}px`);
 
     root.style.setProperty('--dex-trades-view-h', `${t.viewH}px`);
     root.style.setProperty('--dex-iframe-h', `${t.iframeH}px`);
@@ -82,8 +78,6 @@
 
     const stage = document.querySelector('.chart-terminal--dex-embed .chart-stage');
     const chartIframe = document.querySelector('iframe.dex-embed-chart');
-    const maskLogo = document.querySelector('.dex-chart-brand-mask');
-
     if (stage) {
       stage.style.height = `${c.stageH}px`;
       stage.style.minHeight = `${c.stageH}px`;
@@ -97,11 +91,6 @@
       chartIframe.style.height = `${c.stageH + c.heightExtra}px`;
       chartIframe.style.maxWidth = 'none';
     }
-    if (maskLogo) {
-      maskLogo.style.width = `${c.maskW}px`;
-      maskLogo.style.height = `${c.maskH}px`;
-    }
-
     const wrap = document.getElementById('dexTradesWrap');
     const tradesIframe = document.getElementById('dexTradesEmbed');
     const maskTop = wrap?.querySelector('.dex-mask-top');
@@ -169,8 +158,6 @@
       ['cropChartLeft', current.chart.left],
       ['cropChartWidth', current.chart.width],
       ['cropChartExtra', current.chart.heightExtra],
-      ['cropChartMaskW', current.chart.maskW],
-      ['cropChartMaskH', current.chart.maskH],
       ['cropTradesViewH', current.trades.viewH],
       ['cropTradesIframeH', current.trades.iframeH],
       ['cropTradesTop', current.trades.iframeTop],
@@ -223,8 +210,6 @@
       sliderRow('Sol (%)', 'cropChartLeft', -12, 8, 1, c.left, ''),
       sliderRow('Genişlik (%)', 'cropChartWidth', 98, 115, 1, c.width, ''),
       sliderRow('Ekstra yükseklik', 'cropChartExtra', 0, 48, 1, c.heightExtra, 'px'),
-      sliderRow('Logo mask W', 'cropChartMaskW', 80, 200, 2, c.maskW, ''),
-      sliderRow('Logo mask H', 'cropChartMaskH', 16, 48, 1, c.maskH, ''),
       '</section>',
       '<section class="crop-section"><h3>Canlı alım / satım</h3>',
       sliderRow('Görünür yükseklik', 'cropTradesViewH', 200, 360, 2, t.viewH, 'px'),
@@ -255,8 +240,6 @@
       ['cropChartLeft', 'chart', 'left'],
       ['cropChartWidth', 'chart', 'width'],
       ['cropChartExtra', 'chart', 'heightExtra'],
-      ['cropChartMaskW', 'chart', 'maskW'],
-      ['cropChartMaskH', 'chart', 'maskH'],
       ['cropTradesViewH', 'trades', 'viewH'],
       ['cropTradesIframeH', 'trades', 'iframeH'],
       ['cropTradesTop', 'trades', 'iframeTop'],
