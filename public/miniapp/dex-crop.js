@@ -377,7 +377,7 @@
       '<p class="crop-profile-hint" id="cropProfileHint"></p>',
       '<section class="crop-section"><h3>Grafik (Dex embed)</h3>',
       sliderRow('Kutu yüksekliği', 'cropChartStageH', 240, 480, 2, c.stageH, 'px'),
-      sliderRow('Üst kaydır', 'cropChartTop', -40, 24, 1, c.top, 'px'),
+      sliderRow('Üst kaydır', 'cropChartTop', -120, 32, 1, c.top, 'px — daha negatif = üstten daha çok kes'),
       sliderRow('Sol kaydır (%)', 'cropChartLeft', -16, 12, 1, c.left, 'grafik konumu'),
       sliderRow('Genişlik (%)', 'cropChartWidth', 88, 120, 1, c.width, 'daralt / genişlet'),
       sliderRow('Sol kenar kırp', 'cropChartClipL', 0, 80, 1, c.clipLeft, 'px — soldan gizle'),
