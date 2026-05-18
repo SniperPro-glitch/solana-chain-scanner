@@ -850,8 +850,8 @@ html.detail-mode body {
   top: 0;
   left: 0;
   right: 0;
-  height: var(--dex-mask-top-h, 48px);
-  box-shadow: 0 8px 12px #0a0e1a;
+  height: var(--dex-mask-top-h, 6px);
+  background: #0a0e1a;
 }
 
 .dex-mask-foot {

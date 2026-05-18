@@ -809,7 +809,7 @@
     const iframeH = Math.round(Math.min(1060, Math.max(920, vh * 1.14 + 150)));
     let skipRatio = 0.738;
     if (vh < 680) skipRatio = 0.712;
-    else if (vh > 820) skipRatio = 0.762;
+    else if (vh > 820) skipRatio = 0.788;
     if (vw < 400) skipRatio += 0.008;
     const offset = Math.round(iframeH * skipRatio);
     const maskTop = 6;
