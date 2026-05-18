@@ -270,9 +270,16 @@ async function enrichMarketForMiniApp(token, options = {}) {
     poolAddress = await fetchGeckoPoolAddress(merged.address);
   }
 
-  const candles = await fetchOhlcv(poolAddress, timeframe);
+  const chartRef = poolAddress || merged.address;
+  const chartEmbedUrl = dexScreenerChartEmbedUrl(chartRef, timeframe);
+  const useCandleApi = ['1', 'true', 'gecko'].includes(
+    String(process.env.MINIAPP_CHART_CANDLES || '').trim().toLowerCase(),
+  );
+  let candles = [];
+  if (useCandleApi && poolAddress) {
+    candles = await fetchOhlcv(poolAddress, timeframe);
+  }
   const chartStats = chartStatsFromCandles(candles);
-  const chartEmbedUrl = dexScreenerChartEmbedUrl(poolAddress || merged.address);
   const buys = merged.buys24h || 0;
   const sells = merged.sells24h || 0;
   const txnTotal = buys + sells;
@@ -283,11 +290,12 @@ async function enrichMarketForMiniApp(token, options = {}) {
     txnRatio: txnTotal > 0 ? { buys, sells, buyPct: Math.round((buys / txnTotal) * 100) } : null,
     chart: {
       timeframe,
+      mode: 'dexscreener_embed',
       candles,
       stats: chartStats,
       priceSource: 'dexscreener',
-      source: candles.length ? 'geckoterminal' : null,
-      empty: !candles.length,
+      source: candles.length ? 'geckoterminal' : 'dexscreener_embed',
+      empty: !chartEmbedUrl,
       dexScreenerEmbedUrl: chartEmbedUrl,
       dexScreenerPageUrl: merged.dexScreenerUrl,
     },

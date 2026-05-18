@@ -775,12 +775,33 @@
     if (counts) counts.textContent = `${ratio.buys} alım · ${ratio.sells} satım (${ratio.buyPct}% alım)`;
   }
 
+  function dexEmbedUrlFor(poolOrMint, tf) {
+    const ref = String(poolOrMint || '').trim();
+    if (!ref) return null;
+    const intervals = { '1m': '1', '5m': '5', '15m': '15', '1h': '60', '4h': '240', '1d': '1D' };
+    const interval = intervals[String(tf || '15m').toLowerCase()] || '15';
+    const q = new URLSearchParams({
+      embed: '1',
+      theme: 'dark',
+      trades: '0',
+      info: '0',
+      chartLeftToolbar: '0',
+      chartTheme: 'dark',
+      chartType: 'candle',
+      interval,
+    });
+    return `https://dexscreener.com/solana/${encodeURIComponent(ref)}?${q.toString()}`;
+  }
+
   function showDexEmbedChart(container, m, note, tf) {
-    const embed = m?.chart?.dexScreenerEmbedUrl;
+    const poolRef = m?.poolAddress || m?.address;
+    const embed = m?.chart?.dexScreenerEmbedUrl || dexEmbedUrlFor(poolRef, tf);
     const page = m?.chart?.dexScreenerPageUrl || m?.dexScreenerUrl;
     if (embed) {
-      container.innerHTML = `<iframe class="dex-embed-chart" src="${escHtml(embed)}" title="DexScreener" loading="lazy" allowfullscreen referrerpolicy="no-referrer-when-downgrade"></iframe>`;
-      if (note) note.textContent = `${(tf || '15m').toUpperCase()} · Grafik DexScreener`;
+      container.innerHTML = `<iframe class="dex-embed-chart" src="${escHtml(embed)}" title="DexScreener canlı grafik" loading="eager" allow="fullscreen" referrerpolicy="no-referrer-when-downgrade"></iframe>`;
+      if (note) {
+        note.textContent = `${(tf || '15m').toUpperCase()} · Canlı grafik · DexScreener`;
+      }
       return true;
     }
     const link = page
@@ -869,6 +890,12 @@
     return out;
   }
 
+  function preferDexEmbedChart(m) {
+    if (m?.chart?.mode === 'dexscreener_embed') return true;
+    const poolRef = m?.poolAddress || m?.address;
+    return !!(m?.chart?.dexScreenerEmbedUrl || dexEmbedUrlFor(poolRef, currentTf));
+  }
+
   async function renderChart(m) {
     const container = $('priceChart');
     const note = $('chartNote');
@@ -880,16 +907,22 @@
 
     renderChartPeriodChg(stats, tf);
 
-    if (note) {
-      if (candles.length) {
-        note.textContent = `${tf.toUpperCase()} · Fiyat DexScreener · Mum GeckoTerminal · ${candles.length} bar`;
-      } else {
-        note.textContent = 'Canlı mum: GeckoTerminal · Fiyat/hacim: DexScreener API';
+    destroyChart();
+    container.innerHTML = '';
+
+    if (preferDexEmbedChart(m)) {
+      if (showDexEmbedChart(container, m, note, tf)) {
+        const last = candles[candles.length - 1];
+        if (last) updateOhlc(last);
+        return;
       }
     }
 
-    destroyChart();
-    container.innerHTML = '';
+    if (note) {
+      note.textContent = candles.length
+        ? `${tf.toUpperCase()} · Yedek mum (GeckoTerminal)`
+        : 'DexScreener embed yüklenemedi';
+    }
 
     const hasLib = await loadChartLibrary();
     if (!hasLib) {
@@ -1183,6 +1216,28 @@
       btn.addEventListener('click', async () => {
         const tf = btn.dataset.tf;
         if (!tf || tf === currentTf || !reportId) return;
+
+        const m = appData?.market;
+        const poolRef = m?.poolAddress || m?.address;
+        if (preferDexEmbedChart(m) && poolRef) {
+          currentTf = tf;
+          const container = $('priceChart');
+          const iframe = container?.querySelector('iframe.dex-embed-chart');
+          const url = dexEmbedUrlFor(poolRef, tf);
+          if (iframe && url) {
+            iframe.src = url;
+            const note = $('chartNote');
+            if (note) note.textContent = `${tf.toUpperCase()} · Canlı grafik · DexScreener`;
+            document.querySelectorAll('.tf').forEach((b) => {
+              b.classList.toggle('active', b.dataset.tf === tf);
+            });
+            setChartLoading(true);
+            iframe.onload = () => setChartLoading(false);
+            setTimeout(() => setChartLoading(false), 4000);
+            return;
+          }
+        }
+
         setChartLoading(true);
         document.querySelectorAll('.tf').forEach((b) => b.classList.add('loading'));
         try {

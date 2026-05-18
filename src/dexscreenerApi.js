@@ -1,4 +1,4 @@
-// DexScreener REST — resmi API (fiyat, pair, hacim). OHLCV/mum yok → grafik GeckoTerminal.
+// DexScreener REST — fiyat/pair/hacim + canlı grafik embed URL.
 
 const axios = require('axios');
 const config = require('./chains/solana/config');
@@ -56,10 +56,32 @@ async function resolveDexScreenerPair({ mint, poolAddress } = {}) {
   return null;
 }
 
-function dexScreenerChartEmbedUrl(poolOrMint) {
+const CHART_INTERVAL = {
+  '1m': '1',
+  '5m': '5',
+  '15m': '15',
+  '1h': '60',
+  '4h': '240',
+  '1d': '1D',
+};
+
+/** Canlı grafik — DexScreener embed (TradingView motoru DexScreener sunucusunda). */
+function dexScreenerChartEmbedUrl(poolOrMint, timeframe = '15m') {
   const ref = String(poolOrMint || '').trim();
   if (!ref) return null;
-  return `https://dexscreener.com/solana/${ref}?embed=1&theme=dark&trades=0&info=0`;
+  const tf = String(timeframe || '15m').toLowerCase();
+  const interval = CHART_INTERVAL[tf] || '15';
+  const q = new URLSearchParams({
+    embed: '1',
+    theme: 'dark',
+    trades: '0',
+    info: '0',
+    chartLeftToolbar: '0',
+    chartTheme: 'dark',
+    chartType: 'candle',
+    interval,
+  });
+  return `https://dexscreener.com/solana/${encodeURIComponent(ref)}?${q.toString()}`;
 }
 
 function dexScreenerPageUrl(poolOrMint) {
