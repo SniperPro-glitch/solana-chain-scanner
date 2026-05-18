@@ -431,6 +431,15 @@ html.tg-expanded .scan-header {
   flex-shrink: 0;
 }
 
+html.scanner-mode .tr-spark {
+  display: none !important;
+}
+
+html.scanner-mode .tr-risk-col {
+  justify-content: center;
+  gap: 0;
+}
+
 html.scanner-mode .search-row {
   animation: scanner-search-pulse 0.55s ease;
 }

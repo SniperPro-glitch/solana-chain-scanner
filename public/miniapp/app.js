@@ -54,8 +54,22 @@
   let scannerAnalyzing = false;
   let scannerPreviewId = null;
   let scannerNavActive = false;
+  let detailHideChart = false;
 
   const SOL_MINT_RE = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
+
+  function feedShowsSparklines() {
+    return !scannerNavActive;
+  }
+
+  function markReportOpen(fromScanner) {
+    detailHideChart = !!fromScanner;
+  }
+
+  function riskColHtml(band, label, up24) {
+    const spark = feedShowsSparklines() ? miniSparkline(up24) : '';
+    return `<div class="tr-risk-col">${spark}<span class="risk-badge ${band}">${escHtml(label)}</span></div>`;
+  }
 
   const PLACEHOLDER_TOKENS = [
     { rank: 1, symbol: 'BONK', pairLabel: 'BONK/SOL', priceUsdFmt: '…', change1h: null, change24h: null, volume24hFmt: '—', liquidityUsdFmt: '—', marketCapUsdFmt: '—', risk: { band: 'low', label: 'LOW RISK' }, mint: 'DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263', imageUrl: 'https://dd.dexscreener.com/ds-data/tokens/solana/DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263.png?size=sm' },
@@ -132,7 +146,7 @@
       <span class="tr-pct ${chgClass(chg24)}">${formatPct(chg24)}</span>
       <span class="tr-vol">${escHtml(item.volume24hFmt || '—')}</span>
       <span class="tr-liq">${escHtml(item.liquidityUsdFmt || '—')}</span>
-      <div class="tr-risk-col">${miniSparkline(up24)}<span class="risk-badge ${rc}">${escHtml(label)}</span></div>
+      ${riskColHtml(rc, label, up24)}
     </article>`;
   }
 
@@ -213,9 +227,14 @@
   }
 
   function setScannerNav(on) {
+    const was = scannerNavActive;
     scannerNavActive = !!on;
     document.documentElement.classList.toggle('scanner-mode', scannerNavActive);
     $('scanner-home')?.classList.toggle('scanner-nav-active', scannerNavActive);
+    if (was !== scannerNavActive && feedItemsFull.length) {
+      if ((searchQuery || '').trim()) applySearchFilter();
+      else renderTokenList(feedItemsFull);
+    }
   }
 
   function setFeedTab(tab) {
@@ -270,6 +289,7 @@
   function bindScannerCardActions(root) {
     root?.querySelector('[data-action="report"]')?.addEventListener('click', () => {
       if (!scannerPreviewId) return;
+      markReportOpen(true);
       reportId = scannerPreviewId;
       location.hash = `r=${scannerPreviewId}`;
       loadReportFlow();
@@ -390,7 +410,7 @@
         <div class="tr-token"><span class="tr-avatar">${escHtml((last.symbol || '?').slice(0, 2))}</span><div class="tr-meta"><div class="tr-name">${escHtml(last.symbol)}</div><div class="tr-sub">Son analiz · Tekrar aç</div></div></div>
         <span class="tr-price">${escHtml(last.price || '—')}</span>
         <span class="tr-pct"></span><span class="tr-pct"></span><span class="tr-vol"></span><span class="tr-liq"></span>
-        <div class="tr-risk-col">${miniSparkline(up)}<span class="risk-badge ${r.cls}">${r.text}</span></div>
+        ${riskColHtml(r.cls, r.text, up)}
       </article>`;
     } catch {
       return '';
@@ -451,6 +471,7 @@
       const rid = chip.dataset.report;
       const mint = chip.dataset.mint;
       if (rid) {
+        markReportOpen(scannerNavActive);
         reportId = rid;
         location.hash = `r=${rid}`;
         loadReportFlow();
@@ -668,6 +689,7 @@
       if (!res.ok) throw new Error(body.message || 'Analiz başarısız');
       const id = body.reportId;
       if (!id) throw new Error('report_missing');
+      markReportOpen(scannerNavActive);
       reportId = id;
       location.hash = `r=${id}`;
       await loadReportFlow();
@@ -756,6 +778,7 @@
       if (!row) return;
       const rid = row.dataset.report;
       if (rid) {
+        markReportOpen(scannerNavActive);
         reportId = rid;
         location.hash = `r=${rid}`;
         loadReportFlow();
@@ -1636,7 +1659,15 @@
     renderQuoteChanges(m);
     renderMetrics(m, m.chart?.stats);
     renderTxnBar(m);
-    renderChart(m).catch((e) => console.warn('renderChart', e));
+    const chartSection = document.querySelector('.chart-terminal');
+    if (detailHideChart) {
+      chartSection?.classList.add('hidden');
+      destroyChart();
+      setChartEmbedMode(false);
+    } else {
+      chartSection?.classList.remove('hidden');
+      renderChart(m).catch((e) => console.warn('renderChart', e));
+    }
     startTradesPoll(m);
     renderInfoPanel(data);
     renderSecurityPanel(data);
@@ -1698,6 +1729,7 @@
       const id = reportIdFromUrl();
       if (id && id !== reportId) {
         reportId = id;
+        markReportOpen(false);
         loadReportFlow();
       } else if (!id && !$('scanner-home')?.classList.contains('hidden')) {
         return;
@@ -1720,6 +1752,7 @@
       return;
     }
 
+    markReportOpen(false);
     await loadReportFlow();
   }
 
