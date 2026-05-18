@@ -4,6 +4,8 @@ const adapter = require('./chains/solana/adapter');
 const solana = require('./chains/solana');
 const reportStore = require('./reportStore');
 const botFeedStore = require('./botFeedStore');
+const { getPromoBanner } = require('./miniAppPromo');
+const { rankFeedByVolume, buildTrendingTicker } = require('./trendingEngine');
 const { safetyPercent } = require('./riskDisplay');
 const { buildMarketFromToken } = require('./marketData');
 const { buildLogoCandidates } = require('./tokenLogo');
@@ -70,6 +72,7 @@ function tokenToFeedItem(token, audit, rank, reportId = null) {
     change1h: token.priceChange1h,
     marketCapUsdFmt: fmtUsd(token.marketCapUsd || token.fdvUsd),
     liquidityUsdFmt: fmtUsd(token.liquidityUsd),
+    volume24h: Number(token.volume24h) || 0,
     volume24hFmt: fmtUsd(token.volume24h),
     risk,
     trustScore: safe,
@@ -112,25 +115,37 @@ async function buildFeedFromBotShares(tab = 'trending', limit = 24) {
     rank += 1;
   }
 
+  let ranked = items;
+  if (tab === 'trending') {
+    ranked = rankFeedByVolume(items);
+  } else {
+    ranked = items
+      .sort((a, b) => (b.postedAt || 0) - (a.postedAt || 0))
+      .map((it, i) => ({ ...it, rank: i + 1 }));
+  }
+
   const now = Date.now();
   const newPairs = entries.filter((e) => now - (e.postedAt || 0) < 2 * 60 * 60 * 1000).length;
-  const volFromTokens = entries.reduce((s, e) => s + (e.token?.volume24h || 0), 0);
+  const volFromTokens = ranked.reduce((s, it) => s + (it.volume24h || 0), 0);
 
   return {
     tab,
     source: 'bot_channel',
+    sortMode: tab === 'new' ? 'postedAt_desc' : 'volume24h_desc',
     updatedAt: Date.now(),
     botCount: botFeedStore.feedCount(),
+    promo: getPromoBanner(),
+    trendingTicker: buildTrendingTicker(ranked, 14),
     stats: {
       count: items.length,
       volume24hFmt: fmtUsd(volFromTokens),
       liquidityFmt: fmtUsd(entries.reduce((s, e) => s + (e.token?.liquidityUsd || 0), 0)),
       newPairs,
-      activeNow: items.length,
+      activeNow: ranked.length,
     },
-    items,
-    empty: items.length === 0,
-    emptyMessage: items.length === 0
+    items: ranked,
+    empty: ranked.length === 0,
+    emptyMessage: ranked.length === 0
       ? 'Henüz kanal paylaşımı yok. Bot kanala admin ekleyin, /settings ile Solana seçin, SOLANA_SCAN_ENABLED=1 yapın.'
       : null,
   };

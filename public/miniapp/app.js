@@ -190,6 +190,83 @@
     });
   }
 
+  function openExternalUrl(url) {
+    if (!url) return;
+    if (tg?.openLink) tg.openLink(url);
+    else window.open(url, '_blank', 'noopener,noreferrer');
+  }
+
+  function renderPromoBanner(promo) {
+    const el = $('promoBanner');
+    const img = $('promoBannerImg');
+    if (!el || !img) return;
+    if (!promo?.enabled || !promo.imageUrl) {
+      el.classList.add('hidden');
+      return;
+    }
+    img.src = promo.imageUrl;
+    img.alt = promo.alt || 'Reklam';
+    el.classList.remove('hidden');
+    if (promo.link) {
+      el.href = promo.link;
+      el.onclick = (e) => {
+        e.preventDefault();
+        openExternalUrl(promo.link);
+      };
+    } else {
+      el.href = '#';
+      el.onclick = (e) => e.preventDefault();
+    }
+  }
+
+  function bindTrendChip(chip) {
+    chip.addEventListener('click', () => {
+      const rid = chip.dataset.report;
+      const mint = chip.dataset.mint;
+      if (rid) {
+        reportId = rid;
+        location.hash = `r=${rid}`;
+        loadReportFlow();
+        return;
+      }
+      if (mint) openTokenByMint(mint);
+    });
+  }
+
+  function renderTrendingBand(ticker, sortMode) {
+    const band = $('trendingBand');
+    const track = $('trendingTrack');
+    const label = $('trendingSortLabel');
+    if (!band || !track) return;
+    if (!ticker?.length) {
+      band.classList.add('hidden');
+      return;
+    }
+    if (label) {
+      label.textContent = sortMode === 'postedAt_desc' ? 'NEW ↓' : '24H VOL ↓';
+    }
+    const chipHtml = ticker.map((t) => {
+      const up = t.change24h == null || Number(t.change24h) >= 0;
+      const pct = t.change24h == null
+        ? '—'
+        : `${Number(t.change24h) >= 0 ? '+' : ''}${Number(t.change24h).toFixed(1)}%`;
+      const reportAttr = t.reportId ? ` data-report="${escHtml(t.reportId)}"` : '';
+      return `<button type="button" class="trend-chip" data-mint="${escHtml(t.mint)}"${reportAttr}>
+        <span class="trend-sym">${escHtml(t.symbol)}</span>
+        <span class="trend-vol">${escHtml(t.volume24hFmt)}</span>
+        <span class="trend-chg ${up ? 'up' : 'down'}">${escHtml(pct)}</span>
+      </button>`;
+    }).join('');
+    track.innerHTML = chipHtml + chipHtml;
+    track.querySelectorAll('.trend-chip').forEach(bindTrendChip);
+    band.classList.remove('hidden');
+  }
+
+  function applyHomeExtras(body) {
+    renderPromoBanner(body?.promo);
+    renderTrendingBand(body?.trendingTicker, body?.sortMode);
+  }
+
   function renderTokenList(items) {
     const list = $('homeTokenList');
     if (!list) return;
@@ -251,6 +328,7 @@
       if (body.empty && body.emptyMessage) {
         applyMarketStats({ count: 0, volume24hFmt: '—', liquidityFmt: '—', newPairs: 0, activeNow: 0 });
         updateQuickCards({ count: 0, newPairs: 0, liquidityFmt: '—' }, []);
+        applyHomeExtras(body);
         renderTokenList([]);
         showToast(body.emptyMessage.slice(0, 80));
         return body;
@@ -258,11 +336,13 @@
       const items = body.items?.length ? body.items : [];
       applyMarketStats(body.stats || PLACEHOLDER_STATS);
       updateQuickCards(body.stats || PLACEHOLDER_STATS, items);
+      applyHomeExtras(body);
       renderTokenList(items);
       return body;
     } catch (e) {
       applyMarketStats(PLACEHOLDER_STATS);
       updateQuickCards(PLACEHOLDER_STATS, []);
+      applyHomeExtras(null);
       renderTokenList([]);
       showToast('Liste yüklenemedi — bot paylaşımlarını bekleyin');
       return null;
