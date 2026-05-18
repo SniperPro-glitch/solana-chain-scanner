@@ -3,7 +3,9 @@
  * Aç: ?kalibre=1 veya "Kırpma" butonu.
  */
 (function (global) {
-  const STORAGE_KEY = 'sniperDexCropV1';
+  const STORAGE_KEY = 'sniperDexCropV2';
+  const LEGACY_KEY = 'sniperDexCropV1';
+  const CHART_BRAND_CROP = 40;
   const D = 'di' + 'v';
 
   const DEFAULTS = {
@@ -13,6 +15,7 @@
       left: -4,
       width: 108,
       heightExtra: 20,
+      brandCrop: CHART_BRAND_CROP,
     },
     trades: {
       viewH: 268,
@@ -29,16 +32,43 @@
     return JSON.parse(JSON.stringify(o));
   }
 
+  function purgeLegacyStorage() {
+    try {
+      const leg = localStorage.getItem(LEGACY_KEY);
+      if (!leg) return;
+      const parsed = JSON.parse(leg);
+      if (parsed.refViewport) {
+        localStorage.removeItem(LEGACY_KEY);
+        return;
+      }
+      if (!localStorage.getItem(STORAGE_KEY) && parsed.chart && parsed.trades) {
+        localStorage.setItem(
+          STORAGE_KEY,
+          JSON.stringify({ chart: parsed.chart, trades: parsed.trades }),
+        );
+      }
+      localStorage.removeItem(LEGACY_KEY);
+    } catch {
+      localStorage.removeItem(LEGACY_KEY);
+    }
+  }
+
   function load() {
+    purgeLegacyStorage();
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (!raw) return clone(DEFAULTS);
       const parsed = JSON.parse(raw);
+      if (parsed.refViewport) {
+        localStorage.removeItem(STORAGE_KEY);
+        return clone(DEFAULTS);
+      }
       return {
         chart: { ...DEFAULTS.chart, ...parsed.chart },
         trades: { ...DEFAULTS.trades, ...parsed.trades },
       };
     } catch {
+      localStorage.removeItem(STORAGE_KEY);
       return clone(DEFAULTS);
     }
   }
@@ -50,6 +80,7 @@
 
   function reset() {
     localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem(LEGACY_KEY);
     const d = clone(DEFAULTS);
     apply(d);
     return d;
@@ -61,12 +92,14 @@
     const root = document.documentElement;
     const c = s.chart;
     const t = s.trades;
+    const brandCrop = Number(c.brandCrop) || CHART_BRAND_CROP;
 
     root.style.setProperty('--chart-embed-h', `${c.stageH}px`);
     root.style.setProperty('--chart-embed-top', `${c.top}px`);
     root.style.setProperty('--chart-embed-left', `${c.left}%`);
     root.style.setProperty('--chart-embed-width', `${c.width}%`);
     root.style.setProperty('--chart-embed-extra', `${c.heightExtra}px`);
+    root.style.setProperty('--chart-brand-crop', `${brandCrop}px`);
 
     root.style.setProperty('--dex-trades-view-h', `${t.viewH}px`);
     root.style.setProperty('--dex-iframe-h', `${t.iframeH}px`);
@@ -85,10 +118,10 @@
     }
     if (chartIframe) {
       chartIframe.style.position = 'absolute';
-      chartIframe.style.top = `${c.top}px`;
+      chartIframe.style.top = `${c.top - brandCrop}px`;
       chartIframe.style.left = `${c.left}%`;
       chartIframe.style.width = `${c.width}%`;
-      chartIframe.style.height = `${c.stageH + c.heightExtra}px`;
+      chartIframe.style.height = `${c.stageH + c.heightExtra + brandCrop}px`;
       chartIframe.style.maxWidth = 'none';
     }
     const wrap = document.getElementById('dexTradesWrap');

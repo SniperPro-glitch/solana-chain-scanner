@@ -908,11 +908,11 @@ html.detail-mode body {
 
 .chart-terminal--dex-embed .dex-embed-chart {
   position: absolute;
-  top: var(--chart-embed-top, -8px);
+  top: calc(var(--chart-embed-top, -8px) - var(--chart-brand-crop, 40px));
   left: var(--chart-embed-left, -4%);
   width: var(--chart-embed-width, 108%) !important;
   max-width: none !important;
-  height: calc(var(--chart-embed-h, 340px) + var(--chart-embed-extra, 20px)) !important;
+  height: calc(var(--chart-embed-h, 340px) + var(--chart-embed-extra, 20px) + var(--chart-brand-crop, 40px)) !important;
   min-height: 0 !important;
   margin: 0 !important;
   border: 0;
