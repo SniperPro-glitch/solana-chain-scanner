@@ -1,7 +1,7 @@
 /** 5 profil */
 globalThis.__DEX_CROP_BAKED__={
   "version": 1,
-  "updatedAt": "2026-05-18T17:50:47.950Z",
+  "updatedAt": "2026-05-18T17:53:40.308Z",
   "profiles": {
     "web": {
       "chart": {
@@ -107,12 +107,12 @@ globalThis.__DEX_CROP_BAKED__={
     },
     "app13pm": {
       "chart": {
-        "stageH": 340,
-        "top": -8,
-        "left": -4,
+        "stageH": 344,
+        "top": 40,
+        "left": -1,
         "width": 108,
-        "heightExtra": 20,
-        "brandCrop": 40,
+        "heightExtra": 36,
+        "brandCrop": 39,
         "clipLeft": 0,
         "clipRight": 0,
         "clipTop": 0,
@@ -125,14 +125,14 @@ globalThis.__DEX_CROP_BAKED__={
       "trades": {
         "viewH": 268,
         "iframeH": 980,
-        "iframeTop": -820,
-        "shiftDown": 0,
-        "left": -3,
-        "width": 106,
-        "maskTop": 8,
-        "maskFoot": 24,
-        "maskTopOn": true,
-        "maskFootOn": true,
+        "iframeTop": -755,
+        "shiftDown": 166,
+        "left": 0,
+        "width": 100,
+        "maskTop": 0,
+        "maskFoot": 0,
+        "maskTopOn": false,
+        "maskFootOn": false,
         "clipLeft": 0,
         "clipRight": 0,
         "clipTop": 0,
