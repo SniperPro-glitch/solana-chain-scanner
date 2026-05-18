@@ -48,7 +48,8 @@ const WATCH_BATCH_DELAY_MS = Math.min(1200, Math.max(200, parseInt(process.env.W
 
 if (!BOT_TOKEN) {
   console.error('❌ BOT_TOKEN tanımlı değil.');
-  console.error('   Railway → solana-chain-scanner → Variables → BOT_TOKEN = BotFather token');
+  console.error('   Scan bot servisi: BOT_TOKEN = BotFather token');
+  console.error('   DEX servisi: BOT_TOKEN KOYMA — Variables → MINIAPP_ONLY=1');
   console.error('   (TELEGRAM_BOT_TOKEN da kabul edilir)');
   process.exit(1);
 }
