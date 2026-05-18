@@ -162,23 +162,44 @@
     }
   }
 
+  /** Koddaki / sunucudaki profiller — localStorage üzerine yazmaz (herkes aynı görür). */
   function loadStore() {
     migrateLegacy();
-    const store = defaultStore();
+    return defaultStore();
+  }
+
+  /** Kalibre cihazında kayıtlı 5 profil varsa bir kez sunucuya + belleğe al (senin ölçülerin). */
+  function absorbLocalStorageToBaked() {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
-      if (!raw) return store;
+      if (!raw) return false;
       const parsed = JSON.parse(raw);
-      if (!parsed.profiles) return store;
+      if (!parsed?.profiles) return false;
       for (const id of PROFILE_ORDER) {
-        if (parsed.profiles[id]) {
-          store.profiles[id] = normalizeBlock(parsed.profiles[id]);
-        }
+        if (!parsed.profiles[id]) return false;
       }
-      return store;
+      const profiles = {};
+      PROFILE_ORDER.forEach((id) => {
+        profiles[id] = normalizeBlock(parsed.profiles[id]);
+      });
+      serverBaked = {
+        version: 1,
+        updatedAt: new Date().toISOString(),
+        profiles,
+      };
+      globalThis.__DEX_CROP_BAKED__ = serverBaked;
+      if (!localStorage.getItem('sniperDexCropSynced')) {
+        fetch('/api/crop-profiles', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(serverBaked),
+        })
+          .then(() => localStorage.setItem('sniperDexCropSynced', '1'))
+          .catch(() => {});
+      }
+      return true;
     } catch {
-      localStorage.removeItem(STORAGE_KEY);
-      return store;
+      return false;
     }
   }
 
@@ -196,9 +217,25 @@
   }
 
   function saveBlock(profileId, block) {
-    const store = loadStore();
-    store.profiles[profileId] = clone(block);
-    saveStore(store);
+    let lsStore = { profiles: {} };
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed?.profiles) lsStore = parsed;
+      }
+    } catch {
+      /* yoksay */
+    }
+    lsStore.profiles[profileId] = clone(block);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(lsStore));
+
+    if (!serverBaked) serverBaked = defaultStore();
+    serverBaked.profiles = serverBaked.profiles || {};
+    serverBaked.profiles[profileId] = normalizeBlock(block);
+    globalThis.__DEX_CROP_BAKED__ = serverBaked;
+    localStorage.removeItem('sniperDexCropSynced');
+
     if (profileId === detectProfile()) apply(block);
   }
 
@@ -501,7 +538,7 @@
     panelEl.innerHTML = [
       '<header class="dex-crop-head"><strong>Kırpma — 5 ekran</strong>',
       '<button type="button" class="crop-close" id="cropCloseBtn" aria-label="Kapat">✕</button></header>',
-      '<p class="crop-intro">Her sekme ayrı kayıt: Web, 11, 13, 13 PM, 16 PM. Oturt → <b>Profili kaydet</b>.</p>',
+      '<p class="crop-intro">Telefon otomatik algılanır. Ayarlar <b>koddan</b> gelir. Kalibre: kaydet → bir kez uygulamayı aç (sunucuya yazılır).</p>',
       '<p class="crop-detect" id="cropDetectLabel"></p>',
       '<div class="crop-profile-tabs" role="tablist">',
       ...PROFILE_ORDER.map(
@@ -654,6 +691,7 @@
 
   async function init() {
     await fetchServerBaked();
+    absorbLocalStorageToBaked();
     apply(load());
     addCalibrateButton();
     window.addEventListener('resize', () => {
