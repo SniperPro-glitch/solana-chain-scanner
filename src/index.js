@@ -506,19 +506,8 @@ async function sendBotAnalysisFollowup(ch, cmEntry, token, audit, lang, cardLeve
   try {
     reportId = reportStore.saveReport({ token, audit, lang, level: cardLevel });
     console.log(`[report] kaydedildi id=${reportId} sembol=${sym}`);
-    try {
-      require('./botFeedStore').recordShare({
-        token,
-        audit,
-        lang,
-        level: cardLevel,
-        reportId,
-        channelId: ch?.id,
-        channelTitle: ch?.title,
-      });
-    } catch (e) {
-      console.warn('[botFeed] record:', e.message);
-    }
+    const { recordMiniAppShare } = require('./recordMiniAppShare');
+    recordMiniAppShare(ch, token, audit, lang, cardLevel, reportId);
     const webAppUrl = buildWebAppUrl(reportId);
     if (webAppUrl && /^https:\/\//i.test(webAppUrl)) {
       replyMarkup = {
@@ -855,20 +844,8 @@ async function shareTokenToChannel(ch, token, audit, opts = {}) {
   const r = await sendCardToChannel(ch, { text: message, ...banner, silent, chain: 'solana' });
   if (!r.ok) return { ok: false, error: r.error };
 
-  /* Mini App listesi — kart kanala gittiği anda (yorum başarısız olsa da) */
-  try {
-    require('./botFeedStore').recordShare({
-      token,
-      audit,
-      lang: chLang,
-      level: cardLevel,
-      reportId: null,
-      channelId: ch.id,
-      channelTitle: ch.title,
-    });
-  } catch (e) {
-    console.warn('[botFeed] kanal paylaşımı kaydı:', e.message);
-  }
+  const { recordMiniAppShare } = require('./recordMiniAppShare');
+  recordMiniAppShare(ch, token, audit, chLang, cardLevel);
 
   const hasPhoto = !!(banner.photoFileId || banner.photoLocalPath);
   const cmEntry = r.messageId ? {

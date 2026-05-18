@@ -1,5 +1,6 @@
 // Otomatik tarama — Solana (BSC/TON scanRunner deseni).
 
+const { recordMiniAppShare } = require('./recordMiniAppShare');
 const CHAIN_ID = 'solana';
 
 function createScanRunner(deps) {
@@ -108,6 +109,8 @@ function createScanRunner(deps) {
               chain: CHAIN_ID,
             });
             if (!r.ok) throw new Error(r.error || 'send fail');
+
+            recordMiniAppShare(ch, token, audit, chLang, cardLevel);
 
             const cmEntry = r.messageId ? {
               chatId: ch.id,
