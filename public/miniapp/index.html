@@ -16,7 +16,8 @@
     }
   </script>
   <link rel="stylesheet" href="styles.css?v=41" />
-  <link rel="stylesheet" href="dex-scanner.css?v=11" />
+  <link rel="stylesheet" href="dex-scanner.css?v=12" />
+  <link rel="stylesheet" href="dex-scanner-radar.css?v=1" />
 </head>
 <body>
   <div id="loading" class="boot-screen">
@@ -44,14 +45,15 @@
         </div>
       </div>
       <div class="header-actions">
-        <button type="button" class="btn-connect" id="btnConnect"><span class="wallet-ico">👛</span> Connect</button>
+        <button type="button" class="btn-connect" id="btnConnect"><span class="wallet-ico">👛</span> Connect Wallet</button>
         <button type="button" class="btn-settings" aria-label="Ayarlar">⚙</button>
       </div>
     </header>
 
+    <div id="homeFeedPanel" class="home-feed-panel">
     <div class="feed-meta-bar hidden" id="feedMetaBar">
       <span class="feed-meta-dot"></span>
-      <span id="feedMetaText">◎ Bot kanal paylaşımları · canlı fiyat</span>
+      <span id="feedMetaText">◎ Bot channel posts · live prices</span>
     </div>
 
     <a href="#" class="promo-banner hidden" id="promoBanner" rel="noopener noreferrer">
@@ -73,7 +75,7 @@
     <div class="search-row">
       <div class="search-box">
         <span class="search-ico">⌕</span>
-        <input type="text" id="searchInput" placeholder="Mint / CA yapıştır veya token ara…" autocomplete="off" spellcheck="false" />
+        <input type="text" id="searchInput" placeholder="Search token, pair or contract" autocomplete="off" spellcheck="false" />
         <button type="button" class="search-clear hidden" id="searchClearBtn" aria-label="Temizle">✕</button>
         <button type="button" class="search-filter" aria-label="Filter">☰</button>
       </div>
@@ -83,7 +85,7 @@
     <p id="scannerSearchHint" class="scanner-search-hint hidden"></p>
 
     <div class="dex-scroll" id="dexScroll" role="tablist" aria-label="DEX platform">
-      <button type="button" class="dex-chip active" data-dex="all">Tümü</button>
+      <button type="button" class="dex-chip active" data-dex="all">All</button>
       <button type="button" class="dex-chip" data-dex="pumpfun"><span class="dex-ico pump">💊</span> Pump.fun</button>
       <button type="button" class="dex-chip" data-dex="raydium"><span class="dex-ico ray">◎</span> Raydium</button>
       <button type="button" class="dex-chip" data-dex="meteora"><span class="dex-ico met">☄</span> Meteora</button>
@@ -109,6 +111,55 @@
       <div class="mf-item"><span>LIQUIDITY</span><strong id="statLiq">—</strong><em class="up" id="statLiqChg"></em></div>
       <div class="mf-item"><span>ACTIVE NOW</span><strong id="statActive">—</strong><em class="up" id="statActiveChg"></em></div>
     </div>
+    </div>
+
+    <section id="radarScanPanel" class="radar-scan-panel hidden" aria-label="Radar scanner">
+      <div class="radar-hero">
+        <h2 class="radar-hero-title">Analyze any Solana token</h2>
+        <p class="radar-hero-sub">Paste contract address or search token</p>
+      </div>
+      <div class="radar-input-wrap">
+        <input type="text" id="radarMintInput" class="radar-mint-input" placeholder="Paste contract address" spellcheck="false" autocomplete="off" />
+        <button type="button" class="radar-paste-btn" id="radarPasteBtn" aria-label="Paste">📋</button>
+      </div>
+      <button type="button" class="radar-analyze-btn" id="radarAnalyzeBtn">
+        <span class="radar-analyze-ico" aria-hidden="true">◎</span>
+        Analyze token
+      </button>
+      <section class="radar-how">
+        <h3 class="radar-how-title">How it works?</h3>
+        <div class="radar-steps">
+          <article class="radar-step">
+            <span class="radar-step-num">1</span>
+            <span class="radar-step-ico" aria-hidden="true">📋</span>
+            <p>Paste contract address</p>
+          </article>
+          <article class="radar-step">
+            <span class="radar-step-num">2</span>
+            <span class="radar-step-ico" aria-hidden="true">🤖</span>
+            <p>Analyze our AI engine</p>
+          </article>
+          <article class="radar-step">
+            <span class="radar-step-num">3</span>
+            <span class="radar-step-ico" aria-hidden="true">📊</span>
+            <p>Get report risk + insights</p>
+          </article>
+        </div>
+      </section>
+      <section id="radarActive" class="radar-active hidden" aria-live="polite">
+        <p class="radar-scan-title" id="radarScanTitle">Scanning token...</p>
+        <div class="radar-ring" aria-hidden="true">
+          <div class="radar-ring-grid"></div>
+          <div class="radar-sweep"></div>
+          <span class="radar-ring-center">◎</span>
+        </div>
+        <p class="radar-scan-sub" id="radarScanSub">Parsing contract</p>
+        <div class="radar-progress-track">
+          <div class="radar-progress-fill" id="radarProgressFill"></div>
+        </div>
+        <span class="radar-progress-pct" id="radarProgressPct">0%</span>
+      </section>
+    </section>
 
     <nav class="bottom-nav">
       <button type="button" class="bnav active" data-nav="home"><span class="bnav-ico">⌂</span><span class="bnav-lbl">Home</span></button>
@@ -150,6 +201,13 @@
         <div class="hero-price" id="priceUsd">—</div>
         <div class="quote-changes" id="quoteChanges"></div>
       </section>
+
+      <div id="detailBadgeRow" class="detail-badge-row"></div>
+      <div class="detail-action-row">
+        <button type="button" class="detail-act-btn" id="btnWatchlist" disabled>Add to Watchlist</button>
+        <button type="button" class="detail-act-btn" id="btnShareReport">Share Report</button>
+        <button type="button" class="detail-act-btn detail-act-ai" id="btnAiSummary">AI Summary</button>
+      </div>
 
       <section class="chart-terminal glass">
         <div class="chart-toolbar">
@@ -221,6 +279,6 @@
   <script src="wallet.js?v=1"></script>
   <script src="dex-crop-baked.js?v=4"></script>
   <script src="dex-crop.js?v=21"></script>
-  <script src="app.js?v=46"></script>
+  <script src="app.js?v=47"></script>
 </body>
 </html>

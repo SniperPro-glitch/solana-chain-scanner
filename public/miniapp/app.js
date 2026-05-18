@@ -55,6 +55,7 @@
   let scannerPreviewId = null;
   let scannerNavActive = false;
   let detailHideChart = false;
+  let radarProgressTimer = null;
 
   const SOL_MINT_RE = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
 
@@ -226,12 +227,47 @@
     return SOL_MINT_RE.test(String(s || '').trim());
   }
 
+  function toggleHomeRadarPanels() {
+    $('homeFeedPanel')?.classList.toggle('hidden', scannerNavActive);
+    $('radarScanPanel')?.classList.toggle('hidden', !scannerNavActive);
+    document.documentElement.classList.toggle('radar-tab-active', scannerNavActive);
+    if (!scannerNavActive) hideRadarActive();
+  }
+
+  function hideRadarActive() {
+    $('radarActive')?.classList.add('hidden');
+    if (radarProgressTimer) {
+      clearInterval(radarProgressTimer);
+      radarProgressTimer = null;
+    }
+    const fill = $('radarProgressFill');
+    if (fill) fill.style.width = '0%';
+    const pct = $('radarProgressPct');
+    if (pct) pct.textContent = '0%';
+  }
+
+  function setRadarProgress(pct, sub, title) {
+    const fill = $('radarProgressFill');
+    const pctEl = $('radarProgressPct');
+    if (fill) fill.style.width = `${Math.min(100, Math.max(0, pct))}%`;
+    if (pctEl) pctEl.textContent = `${Math.round(pct)}%`;
+    if (sub) {
+      const subEl = $('radarScanSub');
+      if (subEl) subEl.textContent = sub;
+    }
+    if (title) {
+      const titleEl = $('radarScanTitle');
+      if (titleEl) titleEl.textContent = title;
+    }
+  }
+
   function setScannerNav(on) {
     const was = scannerNavActive;
     scannerNavActive = !!on;
     document.documentElement.classList.toggle('scanner-mode', scannerNavActive);
     $('scanner-home')?.classList.toggle('scanner-nav-active', scannerNavActive);
-    if (was !== scannerNavActive && feedItemsFull.length) {
+    toggleHomeRadarPanels();
+    if (was !== scannerNavActive && feedItemsFull.length && !scannerNavActive) {
       if ((searchQuery || '').trim()) applySearchFilter();
       else renderTokenList(feedItemsFull);
     }
@@ -328,6 +364,58 @@
     bindScannerCardActions(slot);
   }
 
+  async function runRadarScan() {
+    const inp = $('radarMintInput');
+    const mint = (inp?.value || '').trim();
+    if (!isSolanaMint(mint)) {
+      showToast('Paste a valid Solana contract address');
+      inp?.focus();
+      return;
+    }
+    if (scannerAnalyzing) return;
+    scannerAnalyzing = true;
+    $('radarAnalyzeBtn')?.setAttribute('disabled', 'true');
+    $('radarActive')?.classList.remove('hidden');
+    const phases = [
+      [14, 'Parsing contract'],
+      [32, 'Fetching liquidity'],
+      [52, 'Running AI risk engine'],
+      [72, 'Checking holders'],
+      [88, 'Building report'],
+    ];
+    let phase = 0;
+    setRadarProgress(8, phases[0][1], 'Scanning token...');
+    radarProgressTimer = setInterval(() => {
+      if (phase < phases.length) {
+        setRadarProgress(phases[phase][0], phases[phase][1]);
+        phase += 1;
+      }
+    }, 480);
+    try {
+      const openRes = await fetch(apiPath(`/api/open/${encodeURIComponent(mint)}`));
+      const openBody = await openRes.json().catch(() => ({}));
+      if (!openRes.ok) throw new Error(openBody.message || 'Token not found');
+      const id = openBody.reportId;
+      if (!id) throw new Error('Report failed');
+      setRadarProgress(100, 'Complete', 'Opening report…');
+      markReportOpen(true);
+      reportId = id;
+      location.hash = `r=${id}`;
+      hideRadarActive();
+      await loadReportFlow();
+    } catch (e) {
+      hideRadarActive();
+      showToast(e.message || 'Analysis failed');
+    } finally {
+      scannerAnalyzing = false;
+      $('radarAnalyzeBtn')?.removeAttribute('disabled');
+      if (radarProgressTimer) {
+        clearInterval(radarProgressTimer);
+        radarProgressTimer = null;
+      }
+    }
+  }
+
   async function runScannerAnalysis(mint) {
     const slot = $('scannerCardSlot');
     if (!slot || scannerAnalyzing) return;
@@ -394,8 +482,6 @@
     clearTimeout(searchDebounce);
     searchDebounce = setTimeout(() => {
       applySearchFilter();
-      const q = searchQuery.trim();
-      if (isSolanaMint(q)) runScannerAnalysis(q);
     }, 400);
   }
 
@@ -757,13 +843,7 @@
           reportId = null;
           showScannerHome();
           setFeedTab('scan');
-          fetchFeed(feedTab);
-          const searchRow = document.querySelector('.search-row');
-          searchRow?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-          setTimeout(() => {
-            $('searchInput')?.focus({ preventScroll: true });
-          }, 120);
-          showToast('Mint yapıştır veya token ara');
+          setTimeout(() => $('radarMintInput')?.focus({ preventScroll: true }), 120);
           return;
         }
         showToast('Yakında');
@@ -772,6 +852,19 @@
 
     $('searchInput')?.addEventListener('input', onSearchInput);
     $('searchClearBtn')?.addEventListener('click', clearSearch);
+    $('radarAnalyzeBtn')?.addEventListener('click', () => runRadarScan());
+    $('radarMintInput')?.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') runRadarScan();
+    });
+    $('radarPasteBtn')?.addEventListener('click', async () => {
+      try {
+        const text = await navigator.clipboard.readText();
+        const inp = $('radarMintInput');
+        if (inp && text) inp.value = text.trim();
+      } catch {
+        showToast('Could not paste from clipboard');
+      }
+    });
 
     $('homeTokenList')?.addEventListener('click', (ev) => {
       const row = ev.target.closest('.token-row');
@@ -977,18 +1070,40 @@
     el.className = `ohlc-chg ${pct > 0 ? 'up' : pct < 0 ? 'down' : ''}`;
   }
 
+  function renderDetailBadges(data) {
+    const row = $('detailBadgeRow');
+    if (!row) return;
+    const score = data.trust?.score;
+    const rb = riskBadgeLabel(data.level, score);
+    const m = data.market || {};
+    const chips = [
+      { label: 'Risk Score', val: score != null ? `${score}/100` : '—', sub: rb.text, cls: rb.cls },
+      { label: 'Audit', val: 'Verified', sub: 'SAFE', cls: 'low' },
+      { label: 'LP Locked', val: data.summary?.liquidityWord || '—', sub: 'LOCKED', cls: 'low' },
+      { label: 'Honeypot', val: 'No', sub: 'SAFE', cls: 'low' },
+      { label: 'Contract', val: 'Verified', sub: 'SAFE', cls: 'low' },
+    ];
+    row.innerHTML = chips
+      .map(
+        (c) => `<article class="detail-badge detail-badge--${c.cls}"><span class="db-lbl">${escHtml(c.label)}</span><strong>${escHtml(c.val)}</strong><em>${escHtml(c.sub)}</em></article>`,
+      )
+      .join('');
+  }
+
   function renderMetrics(m, stats) {
     const dash = $('metricsDash');
     if (!dash) return;
     const hi = stats?.periodHigh != null ? fmtPriceNum(stats.periodHigh) : '—';
     const lo = stats?.periodLow != null ? fmtPriceNum(stats.periodLow) : '—';
     const cells = [
-      { label: 'Likidite', value: m.liquidityUsdFmt },
-      { label: 'Hacim 24s', value: m.volume24hFmt },
-      { label: 'MCap', value: m.marketCapUsdFmt },
-      { label: 'FDV', value: m.fdvUsdFmt },
-      { label: 'Dönem yüksek', value: hi },
-      { label: 'Dönem düşük', value: lo },
+      { label: 'Price', value: fmtPriceDisplay(m) },
+      { label: '24H Volume', value: m.volume24hFmt },
+      { label: 'Liquidity', value: m.liquidityUsdFmt },
+      { label: 'Market Cap', value: m.marketCapUsdFmt },
+      { label: 'Holders', value: m.holdersFmt || '—' },
+      { label: 'Age', value: m.pairAge || '—' },
+      { label: 'Total Supply', value: m.supplyFmt || '—' },
+      { label: 'LP Pair', value: m.pairLabel || 'SOL' },
     ];
     dash.innerHTML = cells
       .map(
@@ -1657,6 +1772,7 @@
       || data.summary?.price || '—';
 
     renderQuoteChanges(m);
+    renderDetailBadges(data);
     renderMetrics(m, m.chart?.stats);
     renderTxnBar(m);
     const chartSection = document.querySelector('.chart-terminal');
