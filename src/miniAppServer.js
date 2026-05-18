@@ -40,6 +40,39 @@ function sendJson(res, code, obj) {
   res.end(body);
 }
 
+/** DEX Railway: rapor/feed bot sunucusunda; bu sunucu sadece UI ise istekleri BOT_API_URL'e ilet. */
+function shouldProxyToBot(pathname) {
+  return (
+    pathname.startsWith('/api/report/')
+    || pathname.startsWith('/api/feed')
+    || pathname.startsWith('/api/open/')
+  );
+}
+
+async function proxyBotApi(res, url) {
+  const botBase = getBotApiBaseUrl();
+  if (!botBase) return false;
+  const target = `${botBase}${url.pathname}${url.search}`;
+  try {
+    const r = await fetch(target, {
+      method: 'GET',
+      headers: { Accept: 'application/json' },
+    });
+    const text = await r.text();
+    res.writeHead(r.status, {
+      'Content-Type': r.headers.get('content-type') || 'application/json; charset=utf-8',
+      'Cache-Control': 'no-store',
+      'Access-Control-Allow-Origin': '*',
+    });
+    res.end(text);
+    return true;
+  } catch (e) {
+    console.warn('[miniApp] BOT_API_URL proxy:', e.message);
+    sendJson(res, 502, { error: 'bot_proxy_failed', message: e.message });
+    return true;
+  }
+}
+
 function serveStatic(res, filePath) {
   if (!fs.existsSync(filePath) || !fs.statSync(filePath).isFile()) {
     res.writeHead(404);
@@ -72,9 +105,13 @@ function createMiniAppServer() {
         return;
       }
 
+      if (req.method === 'GET' && getBotApiBaseUrl() && shouldProxyToBot(url.pathname)) {
+        if (await proxyBotApi(res, url)) return;
+      }
+
       const apiMatch = url.pathname.match(/^\/api\/report\/([A-Za-z0-9_-]+)$/);
       if (req.method === 'GET' && apiMatch) {
-        const meta = reportStore.getReportMeta(apiMatch[1]);
+        const meta = await reportStore.getReportMetaAsync(apiMatch[1]);
         if (meta.status === 'not_found') {
           sendJson(res, 404, { error: 'not_found', message: 'Rapor bulunamadi. Yeni token paylasimindaki butonu kullanin.' });
           return;
@@ -122,11 +159,16 @@ function createMiniAppServer() {
 
       if (req.method === 'GET' && url.pathname === '/api/feed/status') {
         const botFeedStore = require('./botFeedStore');
-        const { DATA_DIR } = require('./data-path');
+        const { DATA_DIR, isPersistentDataDir } = require('./data-path');
+        const pg = require('./pgClient');
         sendJson(res, 200, {
-          botCount: botFeedStore.feedCount(),
+          botCount: await botFeedStore.feedCountAsync(),
+          reportCount: await reportStore.reportCountAsync(),
+          storage: pg.enabled() ? 'postgresql' : 'file',
+          persistent: isPersistentDataDir(),
           feedFile: botFeedStore.FEED_FILE,
           dataDir: DATA_DIR,
+          botApiProxy: getBotApiBaseUrl() || null,
         });
         return;
       }
@@ -174,9 +216,16 @@ function createMiniAppServer() {
   });
 }
 
+function normalizePublicUrl(raw) {
+  let u = String(raw || '').trim().replace(/\/$/, '');
+  if (!u) return '';
+  if (!/^https?:\/\//i.test(u)) u = `https://${u}`;
+  return u;
+}
+
 function getWebAppBaseUrl() {
   const raw = String(process.env.WEB_APP_URL || '').trim();
-  if (raw) return raw.replace(/\/$/, '');
+  if (raw) return normalizePublicUrl(raw);
   const port = process.env.MINI_APP_PORT || process.env.PORT || '3080';
   return `http://localhost:${port}`;
 }
@@ -186,7 +235,7 @@ function getBotApiBaseUrl() {
   const raw = String(
     process.env.BOT_API_URL || process.env.SCAN_BOT_API_URL || '',
   ).trim();
-  return raw ? raw.replace(/\/$/, '') : '';
+  return raw ? normalizePublicUrl(raw) : '';
 }
 
 function buildWebAppUrl(reportId) {
@@ -211,6 +260,10 @@ function startMiniAppServer() {
   });
   server.listen(port, '0.0.0.0', () => {
     console.log(`   Mini App: http://0.0.0.0:${port}  (WEB_APP_URL=${getWebAppBaseUrl()})`);
+    const botApi = getBotApiBaseUrl();
+    if (botApi) {
+      console.log(`   DEX→Bot proxy: ${botApi} (/api/report, /api/feed, /api/open)`);
+    }
   });
   return server;
 }

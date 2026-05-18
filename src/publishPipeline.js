@@ -7,8 +7,8 @@ const { recordMiniAppShare } = require('./recordMiniAppShare');
 /**
  * Tokeni DEX / Mini App'e kaydet, paylaşım URL'si üret.
  */
-function publishToDexFirst(token, audit, lang = 'tr', level = 'green') {
-  const reportId = reportStore.saveReport({
+async function publishToDexFirst(token, audit, lang = 'tr', level = 'green') {
+  const reportId = await reportStore.saveReportAsync({
     token,
     audit,
     lang,
@@ -43,7 +43,7 @@ async function publishToDexAndChannel({
   sendCardToChannel,
   sendBotAnalysisFollowup,
 }) {
-  const listing = publishToDexFirst(token, audit, chLang, cardLevel);
+  const listing = await publishToDexFirst(token, audit, chLang, cardLevel);
   recordMiniAppShare(ch, token, audit, chLang, cardLevel, listing.reportId);
 
   const r = await sendCardToChannel(ch, {

@@ -507,7 +507,7 @@ async function sendBotAnalysisFollowup(ch, cmEntry, token, audit, lang, cardLeve
   try {
     if (!reportId) {
       const { publishToDexFirst } = require('./publishPipeline');
-      const listing = publishToDexFirst(token, audit, lang, cardLevel);
+      const listing = await publishToDexFirst(token, audit, lang, cardLevel);
       reportId = listing.reportId;
     } else {
       console.log(`[report] mevcut id=${reportId} sembol=${sym}`);
@@ -1573,6 +1573,8 @@ process.on('SIGINT', () => { gracefulShutdown('SIGINT'); });
 process.on('SIGTERM', () => { gracefulShutdown('SIGTERM'); });
 
 async function main() {
+  const { initPersistence } = require('./persistence');
+  await initPersistence();
   startMiniAppServer();
   await startBotPolling();
   const me = await bot.getMe().catch(() => ({ username: 'bot', id: '?' }));
@@ -1611,10 +1613,14 @@ async function main() {
   ]).catch((e) => console.warn('setMyCommands:', e?.message));
 
   const dataPath = require('./data-path');
-  console.log(`[data] DATA_DIR=${dataPath.DATA_DIR} · kalıcı=${dataPath.isPersistentDataDir() ? 'EVET' : 'HAYIR (Volume /data ekleyin)'}`);
+  const pg = require('./pgClient');
+  console.log(
+    `[data] DATA_DIR=${dataPath.DATA_DIR} · kalıcı=${dataPath.isPersistentDataDir() ? 'EVET' : 'HAYIR'} · depo=${pg.enabled() ? 'PostgreSQL' : 'dosya'}`,
+  );
   try {
     const reportStore = require('./reportStore');
-    console.log(`[report] store: ${reportStore.reportCount()} rapor · TTL 14 gun · dosya reports.json`);
+    const n = await reportStore.reportCountAsync();
+    console.log(`[report] store: ${n} rapor · TTL 14 gun`);
   } catch (_) { /* yoksay */ }
 
   await userbot.getClient();

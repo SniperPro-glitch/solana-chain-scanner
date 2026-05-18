@@ -1,4 +1,4 @@
-// Kalıcı veri dizini — Railway Volume veya DATA_DIR ile deploy sonrası channels.json korunur.
+// Kalıcı veri dizini — Railway Volume (/app/data) veya DATABASE_URL (Postgres).
 
 const fs = require('fs');
 const path = require('path');
@@ -12,14 +12,8 @@ function resolveDataDir() {
   const railwayMount = String(process.env.RAILWAY_VOLUME_MOUNT_PATH || '').trim();
   if (railwayMount) return path.resolve(railwayMount);
 
-  // Railway: uygulama /app altında — volume genelde /app/data (docs.railway.com/guides/volumes)
   const onRailway = !!(process.env.RAILWAY_ENVIRONMENT || process.env.RAILWAY_PROJECT_ID);
-  if (onRailway && fs.existsSync('/app/data')) {
-    return '/app/data';
-  }
-  if (onRailway && fs.existsSync('/data')) {
-    return '/data';
-  }
+  if (onRailway) return '/app/data';
 
   return LEGACY_DATA_DIR;
 }
@@ -31,10 +25,16 @@ function ensureDataDir() {
 }
 
 function isPersistentDataDir() {
-  if (process.env.RAILWAY_VOLUME_MOUNT_PATH || process.env.RAILWAY_VOLUME_NAME) {
-    return true;
+  try {
+    const { resolveDatabaseUrl } = require('../scripts/railway-env');
+    if (resolveDatabaseUrl()) return true;
+  } catch {
+    /* yoksay */
   }
-  return path.resolve(DATA_DIR) !== path.resolve(LEGACY_DATA_DIR);
+  if (process.env.DATABASE_URL || process.env.DATABASE_PRIVATE_URL) return true;
+  if (process.env.RAILWAY_VOLUME_MOUNT_PATH || process.env.RAILWAY_VOLUME_NAME) return true;
+  if (String(process.env.DATA_DIR || '').trim()) return true;
+  return false;
 }
 
 function migrateLegacyDataDir() {

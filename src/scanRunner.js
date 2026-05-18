@@ -103,7 +103,7 @@ function createScanRunner(deps) {
         const cardLevel = isCritical ? 'critical' : (isRisky ? 'yellow' : 'green');
         const bannerLevel = isCritical ? 'critical' : (isRisky ? 'yellow' : 'green');
         const baseLang = channels.resolveCardLang(eligible[0]);
-        const dexListing = publishToDexFirst(token, audit, baseLang, cardLevel);
+        const dexListing = await publishToDexFirst(token, audit, baseLang, cardLevel);
         console.log(
           `[scan] filtre OK ${token.tokenSymbol || '?'} → DEX + ${eligible.length} kanal`,
         );

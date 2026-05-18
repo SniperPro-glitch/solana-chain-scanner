@@ -1,8 +1,9 @@
-// Bot kanalına paylaşılan tokenler → Mini App listesi (tek akış).
+// Bot kanalına paylaşılan tokenler → Mini App listesi (dosya veya PostgreSQL).
 
 const fs = require('fs');
 const path = require('path');
 const { DATA_DIR, ensureDataDir } = require('./data-path');
+const pg = require('./pgClient');
 
 const FEED_FILE = path.join(DATA_DIR, 'bot_feed.json');
 const MAX_ITEMS = 400;
@@ -31,18 +32,9 @@ function prune(data) {
     .slice(0, MAX_ITEMS);
 }
 
-/**
- * Kanala paylaşılan token (sendBotAnalysisFollowup sonrası).
- */
-function recordShare({ token, audit, lang, level, reportId, channelId, channelTitle }) {
-  if (!token?.tokenAddress) return null;
-  const data = load();
-  prune(data);
-
+function buildEntry({ token, audit, lang, level, reportId, channelId, channelTitle }) {
   const mint = token.tokenAddress;
-  data.items = (data.items || []).filter((it) => it.mint !== mint);
-
-  const entry = {
+  return {
     id: `${mint}-${Date.now()}`,
     mint,
     poolId: token.poolId,
@@ -57,12 +49,65 @@ function recordShare({ token, audit, lang, level, reportId, channelId, channelTi
     riskPercent: audit?.riskPercent ?? null,
     isCritical: !!audit?.isCritical,
   };
+}
 
+async function recordSharePg(entry) {
+  await pg.query('DELETE FROM sc_feed WHERE mint = $1', [entry.mint]);
+  await pg.query(
+    `INSERT INTO sc_feed (id, mint, posted_at, body) VALUES ($1, $2, $3, $4::jsonb)`,
+    [entry.id, entry.mint, entry.postedAt, JSON.stringify(entry)],
+  );
+  const cutoff = Date.now() - TTL_MS;
+  await pg.query('DELETE FROM sc_feed WHERE posted_at < $1', [Date.now() - TTL_MS]).catch(() => {});
+  await pg.query(
+    `DELETE FROM sc_feed WHERE id NOT IN (
+       SELECT id FROM sc_feed ORDER BY posted_at DESC LIMIT $1
+     )`,
+    [MAX_ITEMS],
+  ).catch(() => {});
+}
+
+function recordShare(opts) {
+  if (!opts.token?.tokenAddress) return null;
+  const entry = buildEntry(opts);
+
+  if (pg.enabled()) {
+    recordSharePg(entry).catch((e) => console.warn('[botFeed] pg record:', e.message));
+    console.log(`[botFeed] +1 ${opts.token.tokenSymbol || entry.mint.slice(0, 8)} → PostgreSQL`);
+    return entry.id;
+  }
+
+  const data = load();
+  prune(data);
+  data.items = (data.items || []).filter((it) => it.mint !== entry.mint);
   data.items.unshift(entry);
   prune(data);
   save(data);
-  console.log(`[botFeed] +1 ${token.tokenSymbol || token.tokenAddress?.slice(0, 8)} → Mini App listesi`);
+  console.log(`[botFeed] +1 ${opts.token.tokenSymbol || entry.mint.slice(0, 8)} → Mini App listesi`);
   return entry.id;
+}
+
+async function listRecentPg(limit, tab) {
+  const r = await pg.query(
+    `SELECT body FROM sc_feed WHERE posted_at > $1 ORDER BY posted_at DESC LIMIT $2`,
+    [Date.now() - TTL_MS, Math.min(limit * 2, MAX_ITEMS)],
+  );
+  let items = r.rows.map((row) => {
+    const b = typeof row.body === 'string' ? JSON.parse(row.body) : row.body;
+    return b;
+  });
+
+  if (tab === 'new') {
+    items.sort((a, b) => (b.postedAt || 0) - (a.postedAt || 0));
+  } else {
+    items.sort((a, b) => {
+      const va = a.token?.volume24h || 0;
+      const vb = b.token?.volume24h || 0;
+      if (vb !== va) return vb - va;
+      return (b.postedAt || 0) - (a.postedAt || 0);
+    });
+  }
+  return items.slice(0, limit);
 }
 
 function listRecent(limit = 48, tab = 'trending') {
@@ -84,14 +129,56 @@ function listRecent(limit = 48, tab = 'trending') {
   return items.slice(0, limit);
 }
 
+async function listRecentAsync(limit = 48, tab = 'trending') {
+  if (pg.enabled()) {
+    try {
+      return await listRecentPg(limit, tab);
+    } catch (e) {
+      console.warn('[botFeed] pg list:', e.message);
+    }
+  }
+  return listRecent(limit, tab);
+}
+
+async function feedCountAsync() {
+  if (!pg.enabled()) return feedCount();
+  try {
+    const r = await pg.query(
+      'SELECT COUNT(*)::int AS c FROM sc_feed WHERE posted_at > $1',
+      [Date.now() - TTL_MS],
+    );
+    return r.rows[0]?.c || 0;
+  } catch {
+    return 0;
+  }
+}
+
 function feedCount() {
   const data = load();
   return (data.items || []).length;
 }
 
+async function migrateFileToPg() {
+  if (!pg.enabled() || !fs.existsSync(FEED_FILE)) return 0;
+  const data = load();
+  let n = 0;
+  for (const entry of data.items || []) {
+    try {
+      await recordSharePg(entry);
+      n += 1;
+    } catch {
+      /* skip */
+    }
+  }
+  return n;
+}
+
 module.exports = {
   recordShare,
   listRecent,
+  listRecentAsync,
   feedCount,
+  feedCountAsync,
+  migrateFileToPg,
   FEED_FILE,
 };

@@ -1,9 +1,17 @@
-# Railway — kalıcı kanal ayarları için Volume ekleyin (Dashboard → service → Volumes)
-# Mount path: /app/data  (Railway — /data değil)
-# Kod otomatik olarak /data kullanır (RAILWAY_VOLUME_MOUNT_PATH veya /data dizini varsa)
+# solana-chain-scanner — Bot servisi (Postgres + Volume bu serviste)
+# DEX ayrı servis: MINIAPP_ONLY=1, BOT_API_URL=https://...production.up.railway.app
 
 [deploy]
 numReplicas = 1
 startCommand = "node scripts/railway-start.js"
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 10
+
+# Public URL — https zorunlu (Telegram Mini App)
+[variables]
+WEB_APP_URL = "https://solana-chain-scanner-production.up.railway.app"
+DATA_DIR = "/app/data"
+MINI_APP_ENABLED = "1"
+MINI_APP_SEED = "0"
+# Postgres: Dashboard → Postgres → Connect → solana-chain-scanner
+# veya Variables: DATABASE_URL = ${{ Postgres.DATABASE_URL }}

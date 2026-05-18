@@ -425,7 +425,7 @@
     list?.classList.add('dimmed');
     showToast('Token analiz ediliyor…');
     try {
-      const res = await fetch(`/api/open/${encodeURIComponent(mint)}`);
+      const res = await fetch(apiPath(`/api/open/${encodeURIComponent(mint)}`));
       const body = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(body.message || 'Analiz başarısız');
       const id = body.reportId;
@@ -1244,7 +1244,7 @@
 
   async function loadReport(tf) {
     const q = tf ? `?tf=${encodeURIComponent(tf)}` : '';
-    const res = await fetch(`/api/report/${encodeURIComponent(reportId)}${q}`);
+    const res = await fetch(apiPath(`/api/report/${encodeURIComponent(reportId)}${q}`));
     let body = null;
     try {
       body = await res.json();

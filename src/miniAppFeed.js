@@ -103,7 +103,7 @@ async function refreshTokenFromDex(storedToken) {
 }
 
 async function buildFeedFromBotShares(tab = 'trending', limit = 24, dexFilter = 'all') {
-  const entries = botFeedStore.listRecent(limit, tab);
+  const entries = await botFeedStore.listRecentAsync(limit, tab);
   const items = [];
   let rank = 1;
 
@@ -150,7 +150,7 @@ async function buildFeedFromBotShares(tab = 'trending', limit = 24, dexFilter = 
     source: 'bot_channel',
     sortMode: tab === 'new' ? 'postedAt_desc' : 'volume24h_desc',
     updatedAt: Date.now(),
-    botCount: botFeedStore.feedCount(),
+    botCount: await botFeedStore.feedCountAsync(),
     promo: getPromoBanner(),
     trendingTicker: buildTrendingTicker(ranked, 14),
     dexFilter: dexFilter || 'all',
@@ -191,7 +191,7 @@ async function analyzeMintAndSave(mint, lang = 'tr') {
 
   const audit = solana.auditToken(token);
   const level = cardLevelFromAudit(audit);
-  const reportId = reportStore.saveReport({ token, audit, lang, level });
+  const reportId = await reportStore.saveReportAsync({ token, audit, lang, level });
 
   return {
     reportId,
