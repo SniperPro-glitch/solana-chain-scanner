@@ -388,6 +388,20 @@ html.tg-expanded .scan-header {
 
 .search-ico { color: var(--muted); font-size: 15px; }
 
+.search-clear {
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 8px;
+  background: rgba(255, 59, 59, 0.12);
+  color: var(--red);
+  font-size: 12px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.search-clear.hidden { display: none; }
+
 .search-filter {
   width: 32px;
   height: 32px;
@@ -397,6 +411,142 @@ html.tg-expanded .scan-header {
   color: var(--muted);
   cursor: pointer;
   flex-shrink: 0;
+}
+
+html.scanner-mode .search-box {
+  border-color: rgba(0, 229, 255, 0.45);
+  box-shadow: 0 0 0 1px rgba(0, 229, 255, 0.12);
+}
+
+.scanner-card-slot {
+  padding: 0 10px 10px;
+}
+
+.scanner-card-slot.hidden { display: none; }
+
+.scanner-search-hint {
+  margin: -4px 10px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.scanner-search-hint.hidden { display: none; }
+
+.scanner-card {
+  padding: 14px;
+  border-radius: var(--radius);
+  border: 1px solid rgba(0, 229, 255, 0.25);
+  background: linear-gradient(145deg, rgba(20, 12, 32, 0.95), rgba(12, 8, 20, 0.98));
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+}
+
+.scanner-card--loading,
+.scanner-card--err {
+  text-align: center;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.scanner-card--err p { margin: 0 0 10px; color: var(--red); }
+
+.sc-top {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.sc-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.sc-avatar-fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--card);
+  font-weight: 800;
+  font-size: 14px;
+  color: var(--cyan);
+}
+
+.sc-meta { flex: 1; min-width: 0; }
+
+.sc-title {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--text);
+}
+
+.sc-pair { font-weight: 600; color: var(--muted); font-size: 12px; }
+
+.sc-mint {
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 2px;
+  font-family: ui-monospace, monospace;
+}
+
+.sc-top .risk-badge { flex-shrink: 0; font-size: 9px; }
+
+.sc-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.sc-lbl {
+  display: block;
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.sc-val {
+  display: block;
+  font-size: 12px;
+  font-weight: 700;
+  margin-top: 2px;
+}
+
+.sc-val.sc-score { color: var(--cyan); }
+
+.sc-verdict {
+  margin: 0 0 12px;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--text-secondary, var(--muted));
+}
+
+.sc-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.scanner-card-btn {
+  flex: 1;
+  height: 40px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.scanner-card-btn.primary {
+  border-color: rgba(0, 229, 255, 0.5);
+  background: rgba(0, 229, 255, 0.12);
+  color: var(--cyan);
 }
 
 .search-row > .btn-filter { display: none; }

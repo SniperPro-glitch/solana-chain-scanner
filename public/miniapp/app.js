@@ -48,6 +48,14 @@
   let feedPollTimer = null;
   let tradesResizeHandler = null;
   let openingMint = false;
+  let feedItemsFull = [];
+  let searchQuery = '';
+  let searchDebounce = null;
+  let scannerAnalyzing = false;
+  let scannerPreviewId = null;
+  let scannerNavActive = false;
+
+  const SOL_MINT_RE = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
 
   const PLACEHOLDER_TOKENS = [
     { rank: 1, symbol: 'BONK', pairLabel: 'BONK/SOL', priceUsdFmt: '…', change1h: null, change24h: null, volume24hFmt: '—', liquidityUsdFmt: '—', marketCapUsdFmt: '—', risk: { band: 'low', label: 'LOW RISK' }, mint: 'DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263', imageUrl: 'https://dd.dexscreener.com/ds-data/tokens/solana/DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263.png?size=sm' },
@@ -200,18 +208,175 @@
     refreshTgViewport();
   }
 
+  function isSolanaMint(s) {
+    return SOL_MINT_RE.test(String(s || '').trim());
+  }
+
+  function setScannerNav(on) {
+    scannerNavActive = !!on;
+    document.documentElement.classList.toggle('scanner-mode', scannerNavActive);
+    $('scanner-home')?.classList.toggle('scanner-nav-active', scannerNavActive);
+  }
+
   function setFeedTab(tab) {
-    if (tab === 'new') feedTab = 'new';
-    else if (tab === 'trend' || tab === 'trending') feedTab = 'trending';
-    else feedTab = 'home';
+    if (tab === 'scan') {
+      setScannerNav(true);
+    } else {
+      setScannerNav(false);
+      if (tab === 'new') feedTab = 'new';
+      else if (tab === 'trend' || tab === 'trending') feedTab = 'trending';
+      else feedTab = 'home';
+    }
     document.querySelectorAll('.bnav[data-nav]').forEach((btn) => {
       const n = btn.dataset.nav;
       const active =
-        (n === 'home' && feedTab === 'home') ||
-        (n === 'trend' && feedTab === 'trending') ||
-        (n === 'new' && feedTab === 'new');
+        (n === 'scan' && scannerNavActive) ||
+        (!scannerNavActive && n === 'home' && feedTab === 'home') ||
+        (!scannerNavActive && n === 'trend' && feedTab === 'trending') ||
+        (!scannerNavActive && n === 'new' && feedTab === 'new');
       btn.classList.toggle('active', active);
     });
+  }
+
+  function setSearchHint(msg) {
+    const el = $('scannerSearchHint');
+    if (!el) return;
+    if (!msg) {
+      el.classList.add('hidden');
+      el.textContent = '';
+      return;
+    }
+    el.textContent = msg;
+    el.classList.remove('hidden');
+  }
+
+  function hideScannerCard() {
+    scannerPreviewId = null;
+    const slot = $('scannerCardSlot');
+    slot?.classList.add('hidden');
+    if (slot) slot.innerHTML = '';
+  }
+
+  function clearSearch() {
+    const inp = $('searchInput');
+    if (inp) inp.value = '';
+    searchQuery = '';
+    $('searchClearBtn')?.classList.add('hidden');
+    hideScannerCard();
+    setSearchHint('');
+    renderTokenList(feedItemsFull);
+  }
+
+  function bindScannerCardActions(root) {
+    root?.querySelector('[data-action="report"]')?.addEventListener('click', () => {
+      if (!scannerPreviewId) return;
+      reportId = scannerPreviewId;
+      location.hash = `r=${scannerPreviewId}`;
+      loadReportFlow();
+    });
+    root?.querySelector('[data-action="clear"]')?.addEventListener('click', clearSearch);
+  }
+
+  function renderScannerCard(data, id, mint) {
+    const slot = $('scannerCardSlot');
+    if (!slot) return;
+    const m = data.market || {};
+    const sym = m.symbol || data.symbol || '?';
+    const score = data.trust?.score;
+    const rb = riskBadgeLabel(data.level, score);
+    const chg24 = m.priceChange24h;
+    const avatar = m.imageUrl
+      ? `<img class="sc-avatar" src="${escHtml(m.imageUrl)}" alt="" loading="lazy" />`
+      : `<span class="sc-avatar sc-avatar-fallback">${escHtml(sym.slice(0, 2))}</span>`;
+    const verdict = data.trust?.verdict || data.levelLabel || 'Analiz hazır';
+    slot.innerHTML = `<article class="scanner-card">
+      <div class="sc-top">${avatar}<div class="sc-meta"><div class="sc-title">${escHtml(sym)}<span class="sc-pair"> / SOL</span></div><div class="sc-mint" title="${escHtml(mint)}">${escHtml(shortMint(mint))}</div></div>
+      <span class="risk-badge ${rb.cls}">${rb.text}</span></div>
+      <div class="sc-stats">
+        <div><span class="sc-lbl">Fiyat</span><span class="sc-val">${escHtml(fmtPriceDisplay({ priceUsd: m.priceUsd, priceUsdFmt: m.priceUsdFmt }) || data.summary?.price || '—')}</span></div>
+        <div><span class="sc-lbl">24s</span><span class="sc-val ${chgClass(chg24)}">${formatPct(chg24)}</span></div>
+        <div><span class="sc-lbl">Skor</span><span class="sc-val sc-score">${score != null ? escHtml(String(score)) : '—'}</span></div>
+        <div><span class="sc-lbl">MCap</span><span class="sc-val">${escHtml(m.marketCapUsdFmt || data.summary?.liquidityUsd || '—')}</span></div>
+      </div>
+      <p class="sc-verdict">${escHtml(verdict)}</p>
+      <div class="sc-actions">
+        <button type="button" class="scanner-card-btn primary" data-action="report">Tam analiz</button>
+        <button type="button" class="scanner-card-btn" data-action="clear">Temizle</button>
+      </div>
+    </article>`;
+    slot.classList.remove('hidden');
+    bindScannerCardActions(slot);
+  }
+
+  async function runScannerAnalysis(mint) {
+    const slot = $('scannerCardSlot');
+    if (!slot || scannerAnalyzing) return;
+    const trimmed = String(mint || '').trim();
+    if (!isSolanaMint(trimmed)) return;
+    scannerAnalyzing = true;
+    slot.classList.remove('hidden');
+    slot.innerHTML = '<div class="scanner-card scanner-card--loading"><span class="sc-spin"></span> Token analiz ediliyor…</div>';
+    setSearchHint('Zincirde taranıyor — tam rapor için bekleyin');
+    try {
+      const openRes = await fetch(apiPath(`/api/open/${encodeURIComponent(trimmed)}`));
+      const openBody = await openRes.json().catch(() => ({}));
+      if (!openRes.ok) throw new Error(openBody.message || 'Token bulunamadı');
+      const id = openBody.reportId;
+      if (!id) throw new Error('Rapor oluşturulamadı');
+      scannerPreviewId = id;
+      const repRes = await fetch(apiPath(`/api/report/${encodeURIComponent(id)}?tf=15m`));
+      const data = await repRes.json().catch(() => ({}));
+      if (!repRes.ok) throw new Error(data.message || data.error || 'Rapor yüklenemedi');
+      renderScannerCard(data, id, trimmed);
+      setSearchHint('Analiz kartı — tam ekran için Tam analiz');
+    } catch (e) {
+      scannerPreviewId = null;
+      slot.innerHTML = `<div class="scanner-card scanner-card--err"><p>${escHtml(e.message || 'Analiz başarısız')}</p><button type="button" class="scanner-card-btn" data-action="clear">Kapat</button></div>`;
+      bindScannerCardActions(slot);
+      setSearchHint('');
+    } finally {
+      scannerAnalyzing = false;
+    }
+  }
+
+  function applySearchFilter() {
+    const q = (searchQuery || '').trim();
+    const qLower = q.toLowerCase();
+    $('searchClearBtn')?.classList.toggle('hidden', !q);
+    if (!q) {
+      hideScannerCard();
+      setSearchHint('');
+      renderTokenList(feedItemsFull);
+      return;
+    }
+    if (isSolanaMint(q)) {
+      renderTokenList(feedItemsFull);
+      return;
+    }
+    const filtered = feedItemsFull.filter((it) => {
+      const sym = (it.symbol || '').toLowerCase();
+      const mint = (it.mint || '').toLowerCase();
+      const pair = (it.pairLabel || '').toLowerCase();
+      return sym.includes(qLower) || mint.includes(qLower) || pair.includes(qLower);
+    });
+    hideScannerCard();
+    renderTokenList(filtered);
+    if (filtered.length) {
+      setSearchHint(`${filtered.length} sonuç`);
+    } else {
+      setSearchHint('Listede yok — geçerli mint yapıştırırsan analiz ederiz');
+    }
+  }
+
+  function onSearchInput() {
+    const inp = $('searchInput');
+    searchQuery = inp?.value || '';
+    clearTimeout(searchDebounce);
+    searchDebounce = setTimeout(() => {
+      applySearchFilter();
+      const q = searchQuery.trim();
+      if (isSolanaMint(q)) runScannerAnalysis(q);
+    }, 400);
   }
 
   function renderLastReportRow() {
@@ -450,7 +615,9 @@
         updateQuickCards({ count: 0, newPairs: 0, liquidityFmt: '—' }, []);
         applyHomeExtras(body);
         updateFeedMetaBar(body);
-        renderTokenList([]);
+        feedItemsFull = [];
+        if ((searchQuery || '').trim()) applySearchFilter();
+        else renderTokenList([]);
         showToast(body.emptyMessage.slice(0, 80));
         return body;
       }
@@ -461,7 +628,9 @@
       updateQuickCards(body.stats || PLACEHOLDER_STATS, items);
       applyHomeExtras(body);
       updateFeedMetaBar(body);
-      renderTokenList(items);
+      feedItemsFull = items;
+      if ((searchQuery || '').trim()) applySearchFilter();
+      else renderTokenList(items);
       if (dexFilter !== 'all' && !items.length && (body.dexCounts?.all || 0) > 0) {
         showToast('Bu DEX filtresinde yok — Tümü\'ne geçiliyor');
         setDexFilter('all');
@@ -476,7 +645,9 @@
       updateQuickCards(PLACEHOLDER_STATS, []);
       applyHomeExtras(null);
       updateFeedMetaBar(null);
-      renderTokenList([]);
+      feedItemsFull = [];
+      if ((searchQuery || '').trim()) applySearchFilter();
+      else renderTokenList([]);
       showToast('Liste yüklenemedi — bot paylaşımlarını bekleyin');
       return null;
     } finally {
@@ -539,23 +710,41 @@
           location.hash = '';
           reportId = null;
           showScannerHome();
+          setFeedTab('home');
+          fetchFeed('home');
           return;
         }
         if (nav === 'trend') {
+          location.hash = '';
+          reportId = null;
+          showScannerHome();
+          setFeedTab('trending');
           fetchFeed('trending');
           return;
         }
         if (nav === 'new') {
+          location.hash = '';
+          reportId = null;
+          showScannerHome();
+          setFeedTab('new');
           fetchFeed('new');
           return;
         }
         if (nav === 'scan') {
-          showToast('Listeden bir token seç');
+          location.hash = '';
+          reportId = null;
+          showScannerHome();
+          setFeedTab('scan');
+          fetchFeed(feedTab);
+          setTimeout(() => $('searchInput')?.focus(), 80);
           return;
         }
         showToast('Yakında');
       });
     });
+
+    $('searchInput')?.addEventListener('input', onSearchInput);
+    $('searchClearBtn')?.addEventListener('click', clearSearch);
 
     $('homeTokenList')?.addEventListener('click', (ev) => {
       const row = ev.target.closest('.token-row');
