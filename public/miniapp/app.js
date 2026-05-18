@@ -786,16 +786,26 @@
     lastTradesSig = '';
   }
 
-  function tradeRowHtml(t) {
+  function fmtTokenAmt(n) {
+    const x = Math.abs(Number(n) || 0);
+    if (!x) return '—';
+    if (x >= 1_000_000) return `${(x / 1_000_000).toFixed(2)}M`;
+    if (x >= 10_000) return `${(x / 1_000).toFixed(1)}K`;
+    if (x >= 1) return x.toLocaleString('en-US', { maximumFractionDigits: 0 });
+    return x.toFixed(2);
+  }
+
+  function tradeRowHtml(t, symbol) {
     const side = t.side === 'buy' ? 'buy' : 'sell';
-    const label = side === 'buy' ? 'Alım' : 'Satım';
+    const label = side === 'buy' ? 'Buy' : 'Sell';
     const usd = t.usdFmt || (t.usd >= 1 ? `$${t.usd.toFixed(2)}` : `$${t.usd}`);
     const wallet = escHtml(t.wallet || '—');
     const ago = escHtml(t.ago || '—');
+    const amt = fmtTokenAmt(t.amount);
     const tx = t.txHash
       ? ` data-tx="${escHtml(t.txHash)}" title="Solscan'da aç"`
       : '';
-    return `<li class="trade-row"${tx}><span class="trade-side ${side}">${label}</span><span class="trade-wallet">${wallet}</span><span class="trade-usd">${escHtml(usd)}</span><span class="trade-ago">${ago}</span></li>`;
+    return `<li class="trade-row trade-row--${side}"${tx}><span class="trade-ago">${ago}</span><span class="trade-side ${side}">${label}</span><span class="trade-usd">${escHtml(usd)}</span><span class="trade-amt">${escHtml(amt)}</span><span class="trade-wallet">${wallet}</span></li>`;
   }
 
   function renderTradeTape(trades) {
@@ -819,7 +829,10 @@
     lastTradesSig = sig;
     wrap.classList.remove('hidden');
     if (meta) meta.textContent = `${rows.length} işlem · ~8s`;
-    list.innerHTML = rows.slice(0, 28).map(tradeRowHtml).join('');
+    const sym = appData?.market?.symbol || appData?.symbol || 'TOKEN';
+    const col = $('tradesColToken');
+    if (col) col.textContent = sym;
+    list.innerHTML = rows.slice(0, 28).map((t) => tradeRowHtml(t, sym)).join('');
     list.querySelectorAll('.trade-row[data-tx]').forEach((el) => {
       el.style.cursor = 'pointer';
       el.addEventListener('click', () => {
@@ -884,7 +897,8 @@
       setChartEmbedMode(true);
       container.innerHTML = `<iframe class="dex-embed-chart" src="${escHtml(embed)}" title="DexScreener canlı grafik" loading="eager" allow="fullscreen" referrerpolicy="no-referrer-when-downgrade"></iframe>`;
       if (note) {
-        note.textContent = `${(tf || '15m').toUpperCase()} · Canlı grafik · DexScreener`;
+        note.textContent = `${(tf || '15m').toUpperCase()} · DexScreener`;
+        note.classList.remove('hidden');
       }
       return true;
     }
@@ -977,9 +991,10 @@
   }
 
   function preferDexEmbedChart(m) {
-    if (m?.chart?.mode === 'dexscreener_embed') return true;
+    const candles = m?.chart?.candles || [];
+    if (candles.length >= 3) return false;
     const poolRef = m?.poolAddress || m?.address;
-    return !!(m?.chart?.dexScreenerEmbedUrl || dexEmbedUrlFor(poolRef, currentTf));
+    return !!dexEmbedUrlFor(poolRef, currentTf);
   }
 
   async function renderChart(m) {
@@ -996,6 +1011,7 @@
     destroyChart();
     setChartEmbedMode(false);
     container.innerHTML = '';
+    if (note) note.classList.remove('hidden');
 
     if (preferDexEmbedChart(m)) {
       if (showDexEmbedChart(container, m, note, tf)) {
@@ -1007,7 +1023,7 @@
 
     if (note) {
       note.textContent = candles.length
-        ? `${tf.toUpperCase()} · Yedek mum (GeckoTerminal)`
+        ? `${tf.toUpperCase()} · Canlı mum · GeckoTerminal`
         : 'DexScreener embed yüklenemedi';
     }
 
@@ -1031,7 +1047,7 @@
     try {
     chartApi = LightweightCharts.createChart(container, {
       width: w,
-      height: 280,
+      height: Math.min(380, Math.max(300, Math.floor(window.innerHeight * 0.38))),
       layout: {
         background: { color: 'transparent' },
         textColor: '#6b7788',
