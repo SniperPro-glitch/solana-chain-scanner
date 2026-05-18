@@ -815,7 +815,7 @@ html.detail-mode body {
   position: relative;
   --dex-trades-view-h: 268px;
   --dex-iframe-h: 960px;
-  --dex-iframe-top: -628px;
+  --dex-iframe-top: -788px;
   --dex-mask-top-h: 48px;
   height: var(--dex-trades-view-h);
   min-height: var(--dex-trades-view-h);
