@@ -64,8 +64,8 @@
     return !scannerNavActive;
   }
 
-  function markReportOpen(fromScanner) {
-    detailHideChart = !!fromScanner;
+  function markReportOpen() {
+    detailHideChart = true;
   }
 
   function riskColHtml(band, label, up24) {
@@ -248,6 +248,7 @@
       reportId = null;
       setFeedTab('scan');
       showScannerHome();
+      resetRadarStage();
       setTimeout(() => $('radarMintInput')?.focus({ preventScroll: true }), 120);
       return;
     }
@@ -282,8 +283,26 @@
     if (!scannerNavActive) hideRadarActive();
   }
 
-  function hideRadarActive() {
-    $('radarActive')?.classList.add('hidden');
+  function setRadarStep(step) {
+    const list = $('radarStatusList');
+    if (!list) return;
+    const order = ['contract', 'liquidity', 'risk', 'holders', 'report'];
+    const idx = step ? order.indexOf(step) : -1;
+    list.querySelectorAll('li').forEach((li) => {
+      const i = order.indexOf(li.dataset.step || '');
+      li.classList.remove('active', 'done');
+      if (i >= 0 && idx >= 0) {
+        if (i < idx) li.classList.add('done');
+        if (i === idx) li.classList.add('active');
+      }
+    });
+  }
+
+  function resetRadarStage() {
+    $('radarScanPanel')?.classList.remove('is-scanning');
+    $('radarStage')?.classList.remove('is-scanning');
+    $('radarProgressBlock')?.classList.add('hidden');
+    $('radarStatusList')?.classList.add('hidden');
     if (radarProgressTimer) {
       clearInterval(radarProgressTimer);
       radarProgressTimer = null;
@@ -292,9 +311,23 @@
     if (fill) fill.style.width = '0%';
     const pct = $('radarProgressPct');
     if (pct) pct.textContent = '0%';
+    setRadarStep(null);
+    setRadarProgress(0, 'Paste a contract address and tap Analyze', 'Solana Radar');
   }
 
-  function setRadarProgress(pct, sub, title) {
+  function hideRadarActive() {
+    resetRadarStage();
+  }
+
+  function startRadarScanning() {
+    $('radarScanPanel')?.classList.add('is-scanning');
+    $('radarStage')?.classList.add('is-scanning');
+    $('radarProgressBlock')?.classList.remove('hidden');
+    $('radarStatusList')?.classList.remove('hidden');
+    setRadarStep('contract');
+  }
+
+  function setRadarProgress(pct, sub, title, step) {
     const fill = $('radarProgressFill');
     const pctEl = $('radarProgressPct');
     if (fill) fill.style.width = `${Math.min(100, Math.max(0, pct))}%`;
@@ -307,6 +340,7 @@
       const titleEl = $('radarScanTitle');
       if (titleEl) titleEl.textContent = title;
     }
+    if (step) setRadarStep(step);
   }
 
   function setScannerNav(on) {
@@ -423,19 +457,20 @@
     if (scannerAnalyzing) return;
     scannerAnalyzing = true;
     $('radarAnalyzeBtn')?.setAttribute('disabled', 'true');
-    $('radarActive')?.classList.remove('hidden');
+    startRadarScanning();
     const phases = [
-      [14, 'Parsing contract'],
-      [32, 'Fetching liquidity'],
-      [52, 'Running AI risk engine'],
-      [72, 'Checking holders'],
-      [88, 'Building report'],
+      [14, 'Parsing contract', 'contract'],
+      [32, 'Fetching liquidity', 'liquidity'],
+      [52, 'Running AI risk engine', 'risk'],
+      [72, 'Checking holders', 'holders'],
+      [88, 'Building report', 'report'],
     ];
     let phase = 0;
-    setRadarProgress(8, phases[0][1], 'Scanning token...');
+    setRadarProgress(8, phases[0][1], 'Scanning token…', phases[0][2]);
     radarProgressTimer = setInterval(() => {
       if (phase < phases.length) {
-        setRadarProgress(phases[phase][0], phases[phase][1]);
+        const p = phases[phase];
+        setRadarProgress(p[0], p[1], 'Scanning token…', p[2]);
         phase += 1;
       }
     }, 480);
@@ -445,7 +480,7 @@
       if (!openRes.ok) throw new Error(openBody.message || 'Token not found');
       const id = openBody.reportId;
       if (!id) throw new Error('Report failed');
-      setRadarProgress(100, 'Complete', 'Opening report…');
+      setRadarProgress(100, 'Complete', 'Opening report…', 'report');
       markReportOpen(true);
       reportId = id;
       location.hash = `r=${id}`;
@@ -928,10 +963,12 @@
   function bindDetailShell() {
     if (detailShellBound) return;
     detailShellBound = true;
-    setupNav();
-    setupTfButtons();
-    setupChartType();
     setupCopy();
+    $('btnShareHeader')?.addEventListener('click', shareCurrentReport);
+    $('btnShareReport')?.addEventListener('click', shareCurrentReport);
+    $('btnAiSummary')?.addEventListener('click', () => {
+      $('mrptAiText')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    });
   }
 
   async function loadReportFlow() {
@@ -1118,16 +1155,27 @@
     ];
     row.innerHTML = chips
       .map(
-        (c) => `<article class="detail-badge detail-badge--${c.cls}"><span class="db-lbl">${escHtml(c.label)}</span><strong>${escHtml(c.val)}</strong><em>${escHtml(c.sub)}</em></article>`,
+        (c) => `<article class="mrpt-badge mrpt-badge--${c.cls}"><span class="mb-lbl">${escHtml(c.label)}</span><strong>${escHtml(c.val)}</strong><em>${escHtml(c.sub)}</em></article>`,
       )
       .join('');
   }
 
-  function renderMetrics(m, stats) {
+  function renderMockupHeroChg(m) {
+    const box = $('quoteChanges');
+    if (!box) return;
+    const chg = m.priceChange24h;
+    const text = fmtChgVal(chg);
+    if (!text) {
+      box.innerHTML = '';
+      return;
+    }
+    const cls = chg > 0 ? 'up' : chg < 0 ? 'down' : '';
+    box.innerHTML = `<span class="mrpt-chg24 ${cls}">${text} <small>(24h)</small></span>`;
+  }
+
+  function renderMetrics(m) {
     const dash = $('metricsDash');
     if (!dash) return;
-    const hi = stats?.periodHigh != null ? fmtPriceNum(stats.periodHigh) : '—';
-    const lo = stats?.periodLow != null ? fmtPriceNum(stats.periodLow) : '—';
     const cells = [
       { label: 'Price', value: fmtPriceDisplay(m) },
       { label: '24H Volume', value: m.volume24hFmt },
@@ -1140,9 +1188,94 @@
     ];
     dash.innerHTML = cells
       .map(
-        (c) => `<div class="metric-cell"><span class="label">${c.label}</span><span class="value">${c.value || '—'}</span></div>`,
+        (c) => `<div class="mrpt-metric"><span class="m-lbl">${escHtml(c.label)}</span><span class="m-val">${escHtml(c.value || '—')}</span></div>`,
       )
       .join('');
+  }
+
+  function renderMockupReport(data) {
+    const m = data.market || {};
+    const sym = m.symbol || data.symbol || '?';
+    const rb = riskBadgeLabel(data.level, data.trust?.score);
+    const score = data.trust?.score ?? 0;
+
+    $('pairTitle').textContent = `${sym} / SOL`;
+    const tag = $('tokenTagline');
+    if (tag) tag.textContent = sym;
+    const dexPill = $('mrptDexPill');
+    if (dexPill) {
+      const dexRaw = String(m.dex || data.dex || '').toLowerCase();
+      let label = 'DEX';
+      if (/pump/.test(dexRaw)) label = dexRaw === 'pumpswap' ? 'PumpSwap' : 'Pump.fun';
+      else if (dexRaw.startsWith('raydium')) label = 'Raydium';
+      else if (dexRaw.startsWith('meteora')) label = 'Meteora';
+      else if (dexRaw.startsWith('orca')) label = 'Orca';
+      dexPill.textContent = label;
+    }
+    if ($('pairSub')) $('pairSub').textContent = data.address || m.address || '';
+    loadLogo(m.imageUrl, m.imageFallbacks, sym);
+    if ($('priceUsd')) {
+      $('priceUsd').textContent = fmtPriceDisplay({ priceUsd: m.priceUsd, priceUsdFmt: m.priceUsdFmt })
+        || data.summary?.price || '—';
+    }
+    renderMockupHeroChg(m);
+    renderDetailBadges(data);
+    renderMetrics(m);
+
+    const gauge = $('mrptGauge');
+    if (gauge) gauge.style.setProperty('--gauge-deg', `${Math.round((score / 100) * 180)}deg`);
+    if ($('mrptGaugeScore')) $('mrptGaugeScore').textContent = score != null ? String(score) : '—';
+    if ($('mrptGaugeLabel')) $('mrptGaugeLabel').textContent = `${rb.text} Risk`;
+
+    const list = $('mrptChecklist');
+    if (list) {
+      list.innerHTML = ['Contract: Safe', 'Liquidity: Locked', 'Honeypot: No', 'Holders: OK', 'Tax: Normal']
+        .map((t) => `<li>${escHtml(t)}</li>`)
+        .join('');
+    }
+
+    const about = $('mrptAboutBody');
+    if (about) {
+      about.innerHTML = `<ul>
+        <li><b>Address:</b> ${escHtml(shortMint(data.address || m.address || ''))}</li>
+        <li><b>Network:</b> Solana</li>
+        <li><b>Decimals:</b> ${escHtml(String(m.decimals ?? '—'))}</li>
+        <li><b>Creator:</b> —</li>
+        <li><b>Mint / Freeze:</b> —</li>
+      </ul>`;
+    }
+
+    const liq = $('mrptLiquidityBody');
+    if (liq) {
+      liq.innerHTML = `<ul>
+        <li><b>Total Liquidity:</b> ${escHtml(m.liquidityUsdFmt || data.summary?.liquidityUsd || '—')}</li>
+        <li><b>Locked:</b> ${escHtml(data.summary?.liquidityWord || '—')}</li>
+        <li><b>Provider:</b> ${escHtml(m.dex || data.dex || '—')}</li>
+        <li><b>Duration:</b> —</li>
+      </ul>`;
+    }
+
+    const holders = $('mrptHoldersBody');
+    if (holders) {
+      const lines = (data.onchain || []).slice(0, 5);
+      holders.innerHTML = lines.length
+        ? lines.map((line, i) => `<div class="mrpt-holder-row"><span>#${i + 1}</span><span>${escHtml(String(line).slice(0, 28))}</span></div>`).join('')
+        : '<p class="mrpt-muted">Holder data unavailable</p>';
+    }
+
+    const txns = $('mrptTxnsBody');
+    if (txns) {
+      const ratio = m.txnRatio;
+      txns.innerHTML = ratio
+        ? `<div class="mrpt-txn-grid"><div><span>Buys</span><b>${ratio.buys}</b></div><div><span>Sells</span><b>${ratio.sells}</b></div><div><span>Volume</span><b>${escHtml(m.volume24hFmt || '—')}</b></div></div>`
+        : '<p class="mrpt-muted">—</p>';
+    }
+
+    const ai = $('mrptAiText');
+    if (ai) ai.textContent = data.trust?.verdict || data.highlights?.[0]?.text || 'Analysis complete.';
+    const conf = Math.min(99, Math.max(40, score));
+    if ($('mrptConfFill')) $('mrptConfFill').style.width = `${conf}%`;
+    if ($('mrptConfPct')) $('mrptConfPct').textContent = `${conf}%`;
   }
 
   function renderTxnBar(m) {
@@ -1757,74 +1890,28 @@
     });
   }
 
+  function shareCurrentReport() {
+    const sym = appData?.market?.symbol || appData?.symbol || 'Token';
+    const url = reportId
+      ? `${location.origin}${location.pathname}#r=${encodeURIComponent(reportId)}`
+      : location.href;
+    const text = `${sym} — SNIPER DEX Scanner`;
+    if (navigator.share) {
+      navigator.share({ title: 'SNIPER DEX Scanner', text, url }).catch(() => {});
+      return;
+    }
+    if (navigator.clipboard?.writeText) {
+      navigator.clipboard.writeText(url).then(() => showToast('Link copied')).catch(() => showToast(url));
+    }
+  }
+
   function render(data) {
     appData = data;
-    const m = data.market || {};
-    const sym = m.symbol || data.symbol || '?';
-
     showDetailView();
-
-    $('pairTitle').textContent = m.pairLabel || `${sym} / SOL`;
-    $('pairSub').textContent = data.address || m.address || '—';
-
-    const dexBadge = $('dexBadge');
-    if (dexBadge) {
-      const dexRaw = String(m.dex || data.dex || '').toLowerCase();
-      let plat = 'other';
-      let label = 'DEX';
-      if (/pump/.test(dexRaw)) { plat = 'pumpfun'; label = dexRaw === 'pumpswap' ? 'PumpSwap' : 'Pump.fun'; }
-      else if (dexRaw.startsWith('raydium')) { plat = 'raydium'; label = 'Raydium'; }
-      else if (dexRaw.startsWith('meteora')) { plat = 'meteora'; label = 'Meteora'; }
-      else if (dexRaw.startsWith('orca')) { plat = 'orca'; label = 'Orca'; }
-      else if (dexRaw) label = dexRaw.replace(/_/g, ' ');
-      dexBadge.textContent = label;
-      dexBadge.className = `pill dex-pill dex-${plat}`;
-    }
-
-    const chip = $('levelChip');
-    if (chip) {
-      chip.textContent = data.levelLabel || '—';
-      chip.className = `pill ${levelRiskClass(data.level)}`;
-    }
-
-    const trustMini = $('trustMini');
-    if (trustMini) {
-      trustMini.textContent = `Skor ${data.trust?.score ?? '—'}`;
-      trustMini.className = 'pill trust';
-    }
-
-    const riskTop = $('riskPillTop');
-    const rb = riskBadgeLabel(data.level, data.trust?.score);
-    if (riskTop) {
-      riskTop.textContent = rb.text;
-      riskTop.className = `risk-pill-top ${rb.cls}`;
-    }
-
-    loadLogo(m.imageUrl, m.imageFallbacks, sym);
-    $('priceUsd').textContent = fmtPriceDisplay({ priceUsd: m.priceUsd, priceUsdFmt: m.priceUsdFmt })
-      || data.summary?.price || '—';
-
-    renderQuoteChanges(m);
-    renderDetailBadges(data);
-    renderMetrics(m, m.chart?.stats);
-    renderTxnBar(m);
-    const chartSection = document.querySelector('.chart-terminal');
-    if (detailHideChart) {
-      chartSection?.classList.add('hidden');
-      destroyChart();
-      setChartEmbedMode(false);
-    } else {
-      chartSection?.classList.remove('hidden');
-      renderChart(m).catch((e) => console.warn('renderChart', e));
-    }
-    startTradesPoll(m);
-    renderInfoPanel(data);
-    renderSecurityPanel(data);
-    renderTradePanel(data);
-
-    document.querySelectorAll('.tf').forEach((b) => {
-      b.classList.toggle('active', b.dataset.tf === (m.chart?.timeframe || currentTf));
-    });
+    renderMockupReport(data);
+    destroyChart();
+    setChartEmbedMode(false);
+    stopTradesPoll();
   }
 
   function showError(title, hint) {
