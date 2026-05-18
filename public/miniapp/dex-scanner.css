@@ -76,7 +76,7 @@ html.tg-mini-app body {
 .promo-banner {
   display: block;
   position: relative;
-  margin: 0 12px 10px;
+  margin: 0 8px 10px;
   border-radius: var(--radius);
   overflow: hidden;
   border: 1px solid rgba(0, 229, 255, 0.25);
@@ -218,7 +218,7 @@ html.tg-mini-app body {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin: 0 12px 8px;
+  margin: 0 8px 8px;
   padding: 8px 12px;
   border-radius: 10px;
   background: rgba(0, 229, 255, 0.06);
@@ -360,7 +360,7 @@ html.tg-expanded .scan-header {
 }
 
 /* Search */
-.search-row { padding: 0 16px 12px; }
+.search-row { padding: 0 10px 12px; }
 
 .search-box {
   display: flex;
@@ -451,7 +451,7 @@ html.tg-expanded .scan-header {
 .dex-scroll {
   display: flex;
   gap: 8px;
-  padding: 0 16px 12px;
+  padding: 0 10px 12px;
   overflow-x: auto;
   scrollbar-width: none;
 }
@@ -536,7 +536,7 @@ html.tg-expanded .scan-header {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 8px;
-  padding: 0 16px 14px;
+  padding: 0 10px 14px;
 }
 
 .feature-grid .quick-card:nth-child(5) {
@@ -633,7 +633,7 @@ html.tg-expanded .scan-header {
 
 .token-table-scroll::-webkit-scrollbar { display: none; }
 
-.token-table-inner { min-width: 540px; padding: 0 16px; }
+.token-table-inner { min-width: 540px; padding: 0 8px; }
 
 .token-thead,
 .token-row {
