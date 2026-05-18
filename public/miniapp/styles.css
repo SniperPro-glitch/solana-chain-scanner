@@ -862,6 +862,18 @@ html.detail-mode body {
   z-index: 5;
 }
 
+.dex-trades-embed-wrap.dex-mask-top-off::after {
+  display: none;
+}
+
+.dex-trades-embed-wrap.dex-mask-foot-off .dex-mask-foot {
+  display: none !important;
+}
+
+.dex-trades-embed-wrap.dex-mask-top-off .dex-mask-top {
+  display: none !important;
+}
+
 .dex-trades-fallback {
   position: absolute;
   inset: 0;
@@ -1636,6 +1648,24 @@ html.web-browser .token-table-scroll {
   grid-column: 1 / -1;
   font-size: 10px;
   color: var(--muted);
+}
+
+.crop-toggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.crop-toggle input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--cyan);
+  flex-shrink: 0;
 }
 
 .crop-actions {

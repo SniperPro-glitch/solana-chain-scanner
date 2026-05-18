@@ -28,6 +28,8 @@
       brandCrop: CHART_BRAND_CROP,
       clipLeft: 0,
       clipRight: 0,
+      clipTop: 0,
+      clipBottom: 0,
       shiftDown: 0,
     },
     /** Canlı alım/satım kutusu (#tradesTape) — Dex iframe değil */
@@ -43,8 +45,12 @@
       width: 106,
       maskTop: 8,
       maskFoot: 24,
+      maskTopOn: true,
+      maskFootOn: true,
       clipLeft: 0,
       clipRight: 0,
+      clipTop: 0,
+      clipBottom: 0,
     },
   };
 
@@ -174,15 +180,28 @@
     return d;
   }
 
-  function applyClip(el, left, right) {
+  function applyClip(el, left, right, top, bottom) {
     if (!el) return;
     const l = Math.max(0, Number(left) || 0);
     const r = Math.max(0, Number(right) || 0);
-    if (l === 0 && r === 0) {
+    const tp = Math.max(0, Number(top) || 0);
+    const bt = Math.max(0, Number(bottom) || 0);
+    if (l === 0 && r === 0 && tp === 0 && bt === 0) {
       el.style.clipPath = '';
       return;
     }
-    el.style.clipPath = `inset(0 ${r}px 0 ${l}px)`;
+    el.style.clipPath = `inset(${tp}px ${r}px ${bt}px ${l}px)`;
+  }
+
+  function applyMaskEl(el, enabled, heightPx) {
+    if (!el) return;
+    if (enabled === false) {
+      el.style.display = 'none';
+      el.style.height = '0';
+      return;
+    }
+    el.style.display = 'block';
+    el.style.height = `${Math.max(0, Number(heightPx) || 0)}px`;
   }
 
   function apply(settings) {
@@ -228,7 +247,7 @@
       stage.style.height = `${c.stageH}px`;
       stage.style.minHeight = `${c.stageH}px`;
       stage.style.maxHeight = `${c.stageH}px`;
-      applyClip(stage, c.clipLeft, c.clipRight);
+      applyClip(stage, c.clipLeft, c.clipRight, c.clipTop, c.clipBottom);
     }
     if (chartIframe) {
       chartIframe.style.position = 'absolute';
@@ -248,7 +267,12 @@
       wrap.style.height = `${t.viewH}px`;
       wrap.style.minHeight = `${t.viewH}px`;
       wrap.style.maxHeight = `${t.viewH}px`;
-      applyClip(wrap, t.clipLeft, t.clipRight);
+      applyClip(wrap, t.clipLeft, t.clipRight, t.clipTop, t.clipBottom);
+      const maskTopOn = t.maskTopOn !== false;
+      const maskFootOn = t.maskFootOn !== false;
+      wrap.classList.toggle('dex-masks-off', !maskTopOn && !maskFootOn);
+      wrap.classList.toggle('dex-mask-top-off', !maskTopOn);
+      wrap.classList.toggle('dex-mask-foot-off', !maskFootOn);
     }
     if (tradesIframe) {
       tradesIframe.style.position = 'absolute';
@@ -258,8 +282,8 @@
       tradesIframe.style.height = `${t.iframeH}px`;
       tradesIframe.style.maxWidth = 'none';
     }
-    if (maskTop) maskTop.style.height = `${t.maskTop}px`;
-    if (maskFoot) maskFoot.style.height = `${t.maskFoot}px`;
+    applyMaskEl(maskTop, t.maskTopOn !== false, t.maskTop);
+    applyMaskEl(maskFoot, t.maskFootOn !== false, t.maskFoot);
   }
 
   function isCalibrateMode() {
@@ -277,6 +301,13 @@
       <span class="crop-lbl">${label} <output id="${id}Out" class="crop-val">${value}</output></span>
       <input type="range" id="${id}" min="${min}" max="${max}" step="${step}" value="${value}" />
       ${hint ? `<span class="crop-hint">${hint}</span>` : ''}
+    </label>`;
+  }
+
+  function toggleRow(label, id, checked) {
+    return `<label class="crop-toggle" for="${id}">
+      <input type="checkbox" id="${id}" ${checked ? 'checked' : ''} />
+      <span>${label}</span>
     </label>`;
   }
 
@@ -300,6 +331,17 @@
     input.addEventListener('change', handler);
   }
 
+  function bindToggle(id, section, key, onChange) {
+    const input = document.getElementById(id);
+    if (!input) return;
+    const handler = () => {
+      if (!current?.[section]) return;
+      current[section][key] = input.checked;
+      onChange();
+    };
+    input.addEventListener('change', handler);
+  }
+
   const SLIDER_MAP = [
     ['cropChartStageH', 'chart', 'stageH'],
     ['cropChartTop', 'chart', 'top'],
@@ -308,6 +350,8 @@
     ['cropChartWidth', 'chart', 'width'],
     ['cropChartClipL', 'chart', 'clipLeft'],
     ['cropChartClipR', 'chart', 'clipRight'],
+    ['cropChartClipT', 'chart', 'clipTop'],
+    ['cropChartClipB', 'chart', 'clipBottom'],
     ['cropChartExtra', 'chart', 'heightExtra'],
     ['cropChartBrand', 'chart', 'brandCrop'],
     ['cropTradesViewH', 'trades', 'viewH'],
@@ -319,8 +363,15 @@
     ['cropTradesWidth', 'trades', 'width'],
     ['cropTradesClipL', 'trades', 'clipLeft'],
     ['cropTradesClipR', 'trades', 'clipRight'],
+    ['cropTradesClipT', 'trades', 'clipTop'],
+    ['cropTradesClipB', 'trades', 'clipBottom'],
     ['cropTradesMaskTop', 'trades', 'maskTop'],
     ['cropTradesMaskFoot', 'trades', 'maskFoot'],
+  ];
+
+  const TOGGLE_MAP = [
+    ['cropTradesMaskTopOn', 'trades', 'maskTopOn'],
+    ['cropTradesMaskFootOn', 'trades', 'maskFootOn'],
   ];
 
   function syncSlidersFromCurrent() {
@@ -331,6 +382,10 @@
       const val = current[sec][key];
       if (el) el.value = String(val);
       if (out) out.textContent = String(val);
+    });
+    TOGGLE_MAP.forEach(([id, sec, key]) => {
+      const el = document.getElementById(id);
+      if (el) el.checked = current[sec][key] !== false;
     });
   }
 
@@ -424,8 +479,10 @@
       sliderRow('Aşağı kaydır', 'cropChartDown', 0, 200, 1, c.shiftDown, 'px — grafik içeriği aşağı'),
       sliderRow('Sol kaydır (%)', 'cropChartLeft', -16, 12, 1, c.left, 'grafik konumu'),
       sliderRow('Genişlik (%)', 'cropChartWidth', 88, 120, 1, c.width, 'daralt / genişlet'),
-      sliderRow('Sol kenar kırp', 'cropChartClipL', 0, 80, 1, c.clipLeft, 'px — soldan gizle'),
-      sliderRow('Sağ kenar kırp', 'cropChartClipR', 0, 80, 1, c.clipRight, 'px — sağdan gizle'),
+      sliderRow('Sol kenar kırp', 'cropChartClipL', 0, 80, 1, c.clipLeft, 'px'),
+      sliderRow('Sağ kenar kırp', 'cropChartClipR', 0, 80, 1, c.clipRight, 'px'),
+      sliderRow('Yukarı daralt', 'cropChartClipT', 0, 100, 1, c.clipTop, 'px — panel üstten kes'),
+      sliderRow('Aşağı daralt', 'cropChartClipB', 0, 100, 1, c.clipBottom, 'px — panel alttan kes'),
       sliderRow('Üst marka kırp', 'cropChartBrand', 0, 64, 1, c.brandCrop, 'dexscreener şeridi'),
       sliderRow('Ekstra yükseklik', 'cropChartExtra', 0, 48, 1, c.heightExtra, 'px'),
       '</section>',
@@ -439,8 +496,12 @@
       sliderRow('Genişlik (%)', 'cropTradesWidth', 88, 120, 1, t.width, ''),
       sliderRow('Sol kenar kırp', 'cropTradesClipL', 0, 80, 1, t.clipLeft, 'px'),
       sliderRow('Sağ kenar kırp', 'cropTradesClipR', 0, 80, 1, t.clipRight, 'px'),
-      sliderRow('Üst maske', 'cropTradesMaskTop', 0, 80, 1, t.maskTop, 'px'),
-      sliderRow('Alt maske', 'cropTradesMaskFoot', 0, 60, 1, t.maskFoot, 'px'),
+      sliderRow('Yukarı daralt', 'cropTradesClipT', 0, 100, 1, t.clipTop, 'px — panel üstten kes'),
+      sliderRow('Aşağı daralt', 'cropTradesClipB', 0, 100, 1, t.clipBottom, 'px — panel alttan kes'),
+      toggleRow('Üst maske açık', 'cropTradesMaskTopOn', t.maskTopOn !== false),
+      sliderRow('Üst maske kalınlık', 'cropTradesMaskTop', 0, 80, 1, t.maskTop, 'px (kapalıysa yok sayılır)'),
+      toggleRow('Alt maske açık', 'cropTradesMaskFootOn', t.maskFootOn !== false),
+      sliderRow('Alt maske kalınlık', 'cropTradesMaskFoot', 0, 60, 1, t.maskFoot, 'px (kapalıysa yok sayılır)'),
       '</section>',
       '<section class="crop-section crop-section--dex"><h3>Kutu sayfada (isteğe bağlı)</h3>',
       '<p class="crop-section-note">Tüm LIVE kutusunu grafik altında yukarı/aşağı kaydırır.</p>',
@@ -465,6 +526,7 @@
     };
 
     SLIDER_MAP.forEach(([id, sec, key]) => bindSlider(id, sec, key, onLive));
+    TOGGLE_MAP.forEach(([id, sec, key]) => bindToggle(id, sec, key, onLive));
 
     panelEl.querySelectorAll('[data-crop-profile]').forEach((btn) => {
       btn.addEventListener('click', () => switchProfile(btn.getAttribute('data-crop-profile')));
