@@ -1,8 +1,7 @@
-/** Kalibre — Web, 11, 13, 13 PM, 16 PM (kodda sabit) */
+/** Web, 11, 13, 13 PM, 16 PM — sunucu */
 globalThis.__DEX_CROP_BAKED__={
   "version": 1,
-  "updatedAt": "2026-05-18T00:00:00.000Z",
-  "note": "Kalibre sonrasi Kırpma → Herkese sabitle (5 profil) ile guncellenir",
+  "updatedAt": "2026-05-18T17:36:17.035Z",
   "profiles": {
     "web": {
       "chart": {
@@ -143,29 +142,29 @@ globalThis.__DEX_CROP_BAKED__={
     "app16": {
       "chart": {
         "stageH": 340,
-        "top": -8,
-        "left": -4,
-        "width": 108,
+        "top": 28,
+        "left": -1,
+        "width": 104,
         "heightExtra": 20,
-        "brandCrop": 40,
+        "brandCrop": 43,
         "clipLeft": 0,
         "clipRight": 0,
         "clipTop": 0,
         "clipBottom": 0,
-        "shiftDown": 0
+        "shiftDown": 16
       },
       "tape": {
         "shiftDown": 0
       },
       "trades": {
-        "viewH": 268,
-        "iframeH": 980,
-        "iframeTop": -820,
+        "viewH": 210,
+        "iframeH": 770,
+        "iframeTop": -615,
         "shiftDown": 0,
-        "left": -3,
-        "width": 106,
+        "left": 0,
+        "width": 103,
         "maskTop": 8,
-        "maskFoot": 24,
+        "maskFoot": 0,
         "maskTopOn": true,
         "maskFootOn": true,
         "clipLeft": 0,

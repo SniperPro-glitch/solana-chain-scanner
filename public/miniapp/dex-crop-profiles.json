@@ -1,176 +1,176 @@
-﻿{
-    "version":  1,
-    "updatedAt":  "2026-05-18T17:36:17.035Z",
-    "profiles":  {
-                     "web":  {
-                                 "chart":  {
-                                               "stageH":  340,
-                                               "top":  -8,
-                                               "left":  -4,
-                                               "width":  108,
-                                               "heightExtra":  20,
-                                               "brandCrop":  40,
-                                               "clipLeft":  0,
-                                               "clipRight":  0,
-                                               "clipTop":  0,
-                                               "clipBottom":  0,
-                                               "shiftDown":  0
-                                           },
-                                 "tape":  {
-                                              "shiftDown":  0
-                                          },
-                                 "trades":  {
-                                                "viewH":  268,
-                                                "iframeH":  980,
-                                                "iframeTop":  -820,
-                                                "shiftDown":  0,
-                                                "left":  -3,
-                                                "width":  106,
-                                                "maskTop":  8,
-                                                "maskFoot":  24,
-                                                "maskTopOn":  true,
-                                                "maskFootOn":  true,
-                                                "clipLeft":  0,
-                                                "clipRight":  0,
-                                                "clipTop":  0,
-                                                "clipBottom":  0
-                                            }
-                             },
-                     "app11":  {
-                                   "chart":  {
-                                                 "stageH":  340,
-                                                 "top":  -8,
-                                                 "left":  -4,
-                                                 "width":  108,
-                                                 "heightExtra":  20,
-                                                 "brandCrop":  40,
-                                                 "clipLeft":  0,
-                                                 "clipRight":  0,
-                                                 "clipTop":  0,
-                                                 "clipBottom":  0,
-                                                 "shiftDown":  0
-                                             },
-                                   "tape":  {
-                                                "shiftDown":  0
-                                            },
-                                   "trades":  {
-                                                  "viewH":  268,
-                                                  "iframeH":  980,
-                                                  "iframeTop":  -820,
-                                                  "shiftDown":  0,
-                                                  "left":  -3,
-                                                  "width":  106,
-                                                  "maskTop":  8,
-                                                  "maskFoot":  24,
-                                                  "maskTopOn":  true,
-                                                  "maskFootOn":  true,
-                                                  "clipLeft":  0,
-                                                  "clipRight":  0,
-                                                  "clipTop":  0,
-                                                  "clipBottom":  0
-                                              }
-                               },
-                     "app13":  {
-                                   "chart":  {
-                                                 "stageH":  340,
-                                                 "top":  -8,
-                                                 "left":  -4,
-                                                 "width":  108,
-                                                 "heightExtra":  20,
-                                                 "brandCrop":  40,
-                                                 "clipLeft":  0,
-                                                 "clipRight":  0,
-                                                 "clipTop":  0,
-                                                 "clipBottom":  0,
-                                                 "shiftDown":  0
-                                             },
-                                   "tape":  {
-                                                "shiftDown":  0
-                                            },
-                                   "trades":  {
-                                                  "viewH":  268,
-                                                  "iframeH":  980,
-                                                  "iframeTop":  -820,
-                                                  "shiftDown":  0,
-                                                  "left":  -3,
-                                                  "width":  106,
-                                                  "maskTop":  8,
-                                                  "maskFoot":  24,
-                                                  "maskTopOn":  true,
-                                                  "maskFootOn":  true,
-                                                  "clipLeft":  0,
-                                                  "clipRight":  0,
-                                                  "clipTop":  0,
-                                                  "clipBottom":  0
-                                              }
-                               },
-                     "app13pm":  {
-                                     "chart":  {
-                                                   "stageH":  340,
-                                                   "top":  -8,
-                                                   "left":  -4,
-                                                   "width":  108,
-                                                   "heightExtra":  20,
-                                                   "brandCrop":  40,
-                                                   "clipLeft":  0,
-                                                   "clipRight":  0,
-                                                   "clipTop":  0,
-                                                   "clipBottom":  0,
-                                                   "shiftDown":  0
-                                               },
-                                     "tape":  {
-                                                  "shiftDown":  0
-                                              },
-                                     "trades":  {
-                                                    "viewH":  268,
-                                                    "iframeH":  980,
-                                                    "iframeTop":  -820,
-                                                    "shiftDown":  0,
-                                                    "left":  -3,
-                                                    "width":  106,
-                                                    "maskTop":  8,
-                                                    "maskFoot":  24,
-                                                    "maskTopOn":  true,
-                                                    "maskFootOn":  true,
-                                                    "clipLeft":  0,
-                                                    "clipRight":  0,
-                                                    "clipTop":  0,
-                                                    "clipBottom":  0
-                                                }
-                                 },
-                     "app16":  {
-                                   "chart":  {
-                                                 "stageH":  340,
-                                                 "top":  28,
-                                                 "left":  -1,
-                                                 "width":  104,
-                                                 "heightExtra":  20,
-                                                 "brandCrop":  43,
-                                                 "clipLeft":  0,
-                                                 "clipRight":  0,
-                                                 "clipTop":  0,
-                                                 "clipBottom":  0,
-                                                 "shiftDown":  16
-                                             },
-                                   "tape":  {
-                                                "shiftDown":  0
-                                            },
-                                   "trades":  {
-                                                  "viewH":  210,
-                                                  "iframeH":  770,
-                                                  "iframeTop":  -615,
-                                                  "shiftDown":  0,
-                                                  "left":  0,
-                                                  "width":  103,
-                                                  "maskTop":  8,
-                                                  "maskFoot":  0,
-                                                  "maskTopOn":  true,
-                                                  "maskFootOn":  true,
-                                                  "clipLeft":  0,
-                                                  "clipRight":  0,
-                                                  "clipTop":  0,
-                                                  "clipBottom":  0
-                                              }
-                               }
-                 }
+{
+  "version": 1,
+  "updatedAt": "2026-05-18T17:36:17.035Z",
+  "profiles": {
+    "web": {
+      "chart": {
+        "stageH": 340,
+        "top": -8,
+        "left": -4,
+        "width": 108,
+        "heightExtra": 20,
+        "brandCrop": 40,
+        "clipLeft": 0,
+        "clipRight": 0,
+        "clipTop": 0,
+        "clipBottom": 0,
+        "shiftDown": 0
+      },
+      "tape": {
+        "shiftDown": 0
+      },
+      "trades": {
+        "viewH": 268,
+        "iframeH": 980,
+        "iframeTop": -820,
+        "shiftDown": 0,
+        "left": -3,
+        "width": 106,
+        "maskTop": 8,
+        "maskFoot": 24,
+        "maskTopOn": true,
+        "maskFootOn": true,
+        "clipLeft": 0,
+        "clipRight": 0,
+        "clipTop": 0,
+        "clipBottom": 0
+      }
+    },
+    "app11": {
+      "chart": {
+        "stageH": 340,
+        "top": -8,
+        "left": -4,
+        "width": 108,
+        "heightExtra": 20,
+        "brandCrop": 40,
+        "clipLeft": 0,
+        "clipRight": 0,
+        "clipTop": 0,
+        "clipBottom": 0,
+        "shiftDown": 0
+      },
+      "tape": {
+        "shiftDown": 0
+      },
+      "trades": {
+        "viewH": 268,
+        "iframeH": 980,
+        "iframeTop": -820,
+        "shiftDown": 0,
+        "left": -3,
+        "width": 106,
+        "maskTop": 8,
+        "maskFoot": 24,
+        "maskTopOn": true,
+        "maskFootOn": true,
+        "clipLeft": 0,
+        "clipRight": 0,
+        "clipTop": 0,
+        "clipBottom": 0
+      }
+    },
+    "app13": {
+      "chart": {
+        "stageH": 340,
+        "top": -8,
+        "left": -4,
+        "width": 108,
+        "heightExtra": 20,
+        "brandCrop": 40,
+        "clipLeft": 0,
+        "clipRight": 0,
+        "clipTop": 0,
+        "clipBottom": 0,
+        "shiftDown": 0
+      },
+      "tape": {
+        "shiftDown": 0
+      },
+      "trades": {
+        "viewH": 268,
+        "iframeH": 980,
+        "iframeTop": -820,
+        "shiftDown": 0,
+        "left": -3,
+        "width": 106,
+        "maskTop": 8,
+        "maskFoot": 24,
+        "maskTopOn": true,
+        "maskFootOn": true,
+        "clipLeft": 0,
+        "clipRight": 0,
+        "clipTop": 0,
+        "clipBottom": 0
+      }
+    },
+    "app13pm": {
+      "chart": {
+        "stageH": 340,
+        "top": -8,
+        "left": -4,
+        "width": 108,
+        "heightExtra": 20,
+        "brandCrop": 40,
+        "clipLeft": 0,
+        "clipRight": 0,
+        "clipTop": 0,
+        "clipBottom": 0,
+        "shiftDown": 0
+      },
+      "tape": {
+        "shiftDown": 0
+      },
+      "trades": {
+        "viewH": 268,
+        "iframeH": 980,
+        "iframeTop": -820,
+        "shiftDown": 0,
+        "left": -3,
+        "width": 106,
+        "maskTop": 8,
+        "maskFoot": 24,
+        "maskTopOn": true,
+        "maskFootOn": true,
+        "clipLeft": 0,
+        "clipRight": 0,
+        "clipTop": 0,
+        "clipBottom": 0
+      }
+    },
+    "app16": {
+      "chart": {
+        "stageH": 340,
+        "top": 28,
+        "left": -1,
+        "width": 104,
+        "heightExtra": 20,
+        "brandCrop": 43,
+        "clipLeft": 0,
+        "clipRight": 0,
+        "clipTop": 0,
+        "clipBottom": 0,
+        "shiftDown": 16
+      },
+      "tape": {
+        "shiftDown": 0
+      },
+      "trades": {
+        "viewH": 210,
+        "iframeH": 770,
+        "iframeTop": -615,
+        "shiftDown": 0,
+        "left": 0,
+        "width": 103,
+        "maskTop": 8,
+        "maskFoot": 0,
+        "maskTopOn": true,
+        "maskFootOn": true,
+        "clipLeft": 0,
+        "clipRight": 0,
+        "clipTop": 0,
+        "clipBottom": 0
+      }
+    }
+  }
 }
