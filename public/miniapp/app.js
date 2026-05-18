@@ -44,6 +44,7 @@
   let feedTab = 'trending';
   let dexFilter = 'all';
   let homeShellBound = false;
+  let homeFeedBooted = false;
   let detailShellBound = false;
   let feedPollTimer = null;
   let tradesResizeHandler = null;
@@ -704,8 +705,10 @@
   }
 
   async function fetchFeed(tab) {
+    if (scannerNavActive) return null;
     await loadApiConfig();
     const t = tab || feedTab;
+    if (t === 'scan') return null;
     setFeedTab(t);
     const loadingEl = $('feedLoading');
     const list = $('homeTokenList');
@@ -841,8 +844,8 @@
         if (nav === 'scan') {
           location.hash = '';
           reportId = null;
-          showScannerHome();
           setFeedTab('scan');
+          showScannerHome();
           setTimeout(() => $('radarMintInput')?.focus({ preventScroll: true }), 120);
           return;
         }
@@ -882,14 +885,18 @@
     });
 
     feedPollTimer = setInterval(() => {
+      if (scannerNavActive) return;
       if (!$('scanner-home')?.classList.contains('hidden')) fetchFeed(feedTab);
     }, 90000);
   }
 
   function initScannerHome() {
-    bindHomeShell();
+    if (homeFeedBooted) return;
+    homeFeedBooted = true;
     setFeedTab(feedTab);
-    loadApiConfig().then(() => fetchFeed(feedTab));
+    loadApiConfig().then(() => {
+      if (!scannerNavActive) fetchFeed(feedTab);
+    });
   }
 
   function bindDetailShell() {
