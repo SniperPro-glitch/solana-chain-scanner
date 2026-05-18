@@ -1410,10 +1410,7 @@ bot.on('callback_query', async (cb) => {
     if (!ch || !(await isChatAdmin(ch.id, userId))) {
       return bot.answerCallbackQuery(cb.id, { text: 'Yetki yok' });
     }
-    const fc = channels.tokenPassesChannelFilters(pending.token, pending.audit, ch, { skipAge: true });
-    if (!fc.pass) {
-      return bot.answerCallbackQuery(cb.id, { text: fc.reason, show_alert: true });
-    }
+    /* Manuel /post — kanal filtresi yok (otomatik tarama filtreli kalır) */
     const r = await shareTokenToChannel(ch, pending.token, pending.audit, {
       customBannerFileId: pending.customBannerFileId || null,
     });
