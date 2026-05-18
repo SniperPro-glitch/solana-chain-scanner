@@ -1,5 +1,6 @@
 ﻿(function () {
   const tg = window.Telegram?.WebApp;
+  if (!tg) document.documentElement.classList.add('web-browser');
   let apiConfig = { botApiBase: '', webAppBase: '' };
 
   async function loadApiConfig() {

@@ -628,6 +628,8 @@ html.tg-expanded .scan-header {
 .token-table-scroll {
   overflow-x: auto;
   margin: 0 0 8px;
+  width: 100%;
+  max-width: 100%;
   scrollbar-width: none;
 }
 

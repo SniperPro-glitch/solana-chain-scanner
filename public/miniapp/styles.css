@@ -26,6 +26,9 @@ html, body {
   margin: 0;
   min-height: 100%;
   min-height: var(--app-height, 100dvh);
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
   font-family: var(--font);
   background: var(--bg);
   color: var(--text);
@@ -454,6 +457,7 @@ html, body {
   margin: 0;
   min-height: var(--app-height, 100dvh);
   height: var(--app-height, 100dvh);
+  overflow-x: hidden;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   padding-top: 0;
@@ -507,6 +511,8 @@ html, body {
   --detail-pad: 10px;
   padding: 10px var(--detail-pad) 8px;
   box-sizing: border-box;
+  max-width: 100%;
+  overflow-x: hidden;
 }
 
 .glass {
@@ -656,6 +662,8 @@ html, body {
   height: min(52vh, 400px);
   min-height: 300px;
   width: 100%;
+  max-width: 100%;
+  overflow: hidden;
 }
 
 .chart-terminal--bleed .chart-source {
@@ -825,7 +833,7 @@ html, body {
 
 .trades-list li {
   display: grid;
-  grid-template-columns: 52px 1fr auto auto;
+  grid-template-columns: 46px minmax(0, 1fr) auto auto;
   gap: 6px;
   align-items: center;
   padding: 7px 0;
@@ -1149,9 +1157,9 @@ html, body {
 }
 
 .dex-embed-chart {
-  width: 104%;
-  max-width: none;
-  margin-left: -2%;
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
   min-height: 320px;
   height: min(56vh, 440px);
   border: 0;
@@ -1159,6 +1167,45 @@ html, body {
   background: #0a0e1a;
   display: block;
   vertical-align: top;
+}
+
+/* Telegram içinde hafif yan kırpma (DexScreener iç boşluğu) */
+html.tg-mini-app .dex-embed-chart {
+  width: 102%;
+  max-width: none;
+  margin-left: -1%;
+}
+
+/* Tarayıcı: kenar taşması yok */
+html.web-browser .chart-terminal--bleed {
+  margin-left: 0;
+  margin-right: 0;
+  width: 100%;
+  border-left: 1px solid var(--border);
+  border-right: 1px solid var(--border);
+}
+
+html.web-browser .scanner-home,
+html.web-browser .view-detail,
+html.web-browser .boot-screen {
+  max-width: min(100vw, 480px);
+  margin-left: auto;
+  margin-right: auto;
+}
+
+html.web-browser .bottom-nav,
+html.web-browser .market-footer,
+html.web-browser .trade-bar {
+  left: 50%;
+  right: auto;
+  transform: translateX(-50%);
+  width: min(100vw, 480px);
+  max-width: 480px;
+}
+
+html.web-browser .token-table-scroll {
+  width: 100%;
+  max-width: 100%;
 }
 
 .dex-chart-link {
