@@ -162,41 +162,60 @@
     }
   }
 
-  /** Koddaki / sunucudaki profiller — localStorage üzerine yazmaz (herkes aynı görür). */
+  /** Önce kod/sunucu varsayılanı; senin kaydettiğin profil varsa localStorage kazanır. */
   function loadStore() {
     migrateLegacy();
-    return defaultStore();
+    const store = defaultStore();
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return store;
+      const parsed = JSON.parse(raw);
+      if (!parsed?.profiles) return store;
+      for (const id of PROFILE_ORDER) {
+        if (parsed.profiles[id]) {
+          store.profiles[id] = normalizeBlock(parsed.profiles[id]);
+        }
+      }
+      return store;
+    } catch {
+      localStorage.removeItem(STORAGE_KEY);
+      return store;
+    }
   }
 
-  /** Kalibre cihazında kayıtlı 5 profil varsa bir kez sunucuya + belleğe al (senin ölçülerin). */
+  let syncServerTimer = null;
+
+  function syncProfilesToServer(store) {
+    clearTimeout(syncServerTimer);
+    syncServerTimer = setTimeout(() => {
+      fetch('/api/crop-profiles', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ version: 1, profiles: store.profiles }),
+      }).catch(() => {});
+    }, 400);
+  }
+
+  /** Açılışta kayıtlı profilleri belleğe al ve sunucuya gönder. */
   function absorbLocalStorageToBaked() {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (!raw) return false;
       const parsed = JSON.parse(raw);
       if (!parsed?.profiles) return false;
-      for (const id of PROFILE_ORDER) {
-        if (!parsed.profiles[id]) return false;
-      }
-      const profiles = {};
+      const base = loadStore();
+      let any = false;
       PROFILE_ORDER.forEach((id) => {
-        profiles[id] = normalizeBlock(parsed.profiles[id]);
+        if (parsed.profiles[id]) any = true;
       });
+      if (!any) return false;
       serverBaked = {
         version: 1,
         updatedAt: new Date().toISOString(),
-        profiles,
+        profiles: base.profiles,
       };
       globalThis.__DEX_CROP_BAKED__ = serverBaked;
-      if (!localStorage.getItem('sniperDexCropSynced')) {
-        fetch('/api/crop-profiles', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(serverBaked),
-        })
-          .then(() => localStorage.setItem('sniperDexCropSynced', '1'))
-          .catch(() => {});
-      }
+      syncProfilesToServer(serverBaked);
       return true;
     } catch {
       return false;
@@ -230,11 +249,10 @@
     lsStore.profiles[profileId] = clone(block);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(lsStore));
 
-    if (!serverBaked) serverBaked = defaultStore();
-    serverBaked.profiles = serverBaked.profiles || {};
-    serverBaked.profiles[profileId] = normalizeBlock(block);
+    const store = loadStore();
+    serverBaked = { version: 1, updatedAt: new Date().toISOString(), profiles: store.profiles };
     globalThis.__DEX_CROP_BAKED__ = serverBaked;
-    localStorage.removeItem('sniperDexCropSynced');
+    syncProfilesToServer(store);
 
     if (profileId === detectProfile()) apply(block);
   }
@@ -538,7 +556,7 @@
     panelEl.innerHTML = [
       '<header class="dex-crop-head"><strong>Kırpma — 5 ekran</strong>',
       '<button type="button" class="crop-close" id="cropCloseBtn" aria-label="Kapat">✕</button></header>',
-      '<p class="crop-intro">Telefon otomatik algılanır. Ayarlar <b>koddan</b> gelir. Kalibre: kaydet → bir kez uygulamayı aç (sunucuya yazılır).</p>',
+      '<p class="crop-intro">Telefon otomatik algılanır. <b>Profili kaydet</b> = bu cihazda kalır + sunucuya gider.</p>',
       '<p class="crop-detect" id="cropDetectLabel"></p>',
       '<div class="crop-profile-tabs" role="tablist">',
       ...PROFILE_ORDER.map(
