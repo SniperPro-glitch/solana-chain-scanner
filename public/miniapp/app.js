@@ -859,7 +859,7 @@
     const q = new URLSearchParams({
       embed: '1',
       theme: 'dark',
-      trades: '1',
+      trades: '0',
       info: '0',
       chartLeftToolbar: '0',
       chartTheme: 'dark',
@@ -869,17 +869,23 @@
     return `https://dexscreener.com/solana/${encodeURIComponent(ref)}?${q.toString()}`;
   }
 
+  function setChartEmbedMode(on) {
+    document.querySelector('.chart-terminal')?.classList.toggle('chart-terminal--dex-embed', !!on);
+  }
+
   function showDexEmbedChart(container, m, note, tf) {
     const poolRef = m?.poolAddress || m?.address;
     const embed = m?.chart?.dexScreenerEmbedUrl || dexEmbedUrlFor(poolRef, tf);
     const page = m?.chart?.dexScreenerPageUrl || m?.dexScreenerUrl;
     if (embed) {
+      setChartEmbedMode(true);
       container.innerHTML = `<iframe class="dex-embed-chart" src="${escHtml(embed)}" title="DexScreener canlı grafik" loading="eager" allow="fullscreen" referrerpolicy="no-referrer-when-downgrade"></iframe>`;
       if (note) {
         note.textContent = `${(tf || '15m').toUpperCase()} · Canlı grafik · DexScreener`;
       }
       return true;
     }
+    setChartEmbedMode(false);
     const link = page
       ? `<a class="dex-chart-link" href="${escHtml(page)}" target="_blank" rel="noopener">DexScreener’da aç</a>`
       : '';
@@ -985,6 +991,7 @@
     renderChartPeriodChg(stats, tf);
 
     destroyChart();
+    setChartEmbedMode(false);
     container.innerHTML = '';
 
     if (preferDexEmbedChart(m)) {

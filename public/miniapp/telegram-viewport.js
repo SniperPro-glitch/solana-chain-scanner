@@ -26,9 +26,11 @@
       if (cLeft < 44) cLeft = 56;
       if (cTop < 36) cTop = Math.max(sTop, 52);
     } else {
-      /* Expand mod: Telegram üst çubuğu — hafif üst boşluk, logo ortada/solda serbest */
+      /* Expand mod: fazla üst inset grafikte boşluk bırakmasın */
       if (cTop < 8) cTop = Math.max(sTop, 0);
+      else if (cTop > 20) cTop = 20;
       cLeft = 0;
+      cRight = 0;
     }
 
     root.style.setProperty('--tg-safe-top', `${sTop}px`);
