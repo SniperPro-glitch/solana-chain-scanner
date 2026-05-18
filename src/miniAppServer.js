@@ -49,28 +49,55 @@ function shouldProxyToBot(pathname) {
   );
 }
 
-async function proxyBotApi(res, url) {
-  const botBase = getBotApiBaseUrl();
-  if (!botBase) return false;
-  const target = `${botBase}${url.pathname}${url.search}`;
+function getBotApiCandidates() {
   try {
-    const r = await fetch(target, {
-      method: 'GET',
-      headers: { Accept: 'application/json' },
-    });
-    const text = await r.text();
-    res.writeHead(r.status, {
-      'Content-Type': r.headers.get('content-type') || 'application/json; charset=utf-8',
-      'Cache-Control': 'no-store',
-      'Access-Control-Allow-Origin': '*',
-    });
-    res.end(text);
-    return true;
-  } catch (e) {
-    console.warn('[miniApp] BOT_API_URL proxy:', e.message);
-    sendJson(res, 502, { error: 'bot_proxy_failed', message: e.message });
-    return true;
+    const { getBotApiCandidatesFromEnv } = require('../scripts/railway-env');
+    const fromEnv = getBotApiCandidatesFromEnv();
+    if (fromEnv.length) return fromEnv;
+  } catch {
+    /* yoksay */
   }
+  const single = getBotApiBaseUrl();
+  return single ? [single] : [];
+}
+
+async function proxyBotApi(res, url) {
+  const candidates = getBotApiCandidates();
+  if (!candidates.length) return false;
+
+  let lastErr = null;
+  for (const botBase of candidates) {
+    const target = `${botBase}${url.pathname}${url.search}`;
+    try {
+      const r = await fetch(target, {
+        method: 'GET',
+        headers: { Accept: 'application/json' },
+        signal: AbortSignal.timeout(20000),
+      });
+      const text = await r.text();
+      if (candidates.length > 1 && botBase !== candidates[0]) {
+        console.log(`[miniApp] proxy OK (yedek): ${botBase}`);
+      }
+      res.writeHead(r.status, {
+        'Content-Type': r.headers.get('content-type') || 'application/json; charset=utf-8',
+        'Cache-Control': 'no-store',
+        'Access-Control-Allow-Origin': '*',
+      });
+      res.end(text);
+      return true;
+    } catch (e) {
+      lastErr = e;
+      console.warn(`[miniApp] proxy fail ${botBase}: ${e.message}`);
+    }
+  }
+
+  console.warn('[miniApp] BOT_API_URL proxy: tüm adresler başarısız —', lastErr?.message);
+  sendJson(res, 502, {
+    error: 'bot_proxy_failed',
+    message: lastErr?.message || 'fetch failed',
+    tried: candidates,
+  });
+  return true;
 }
 
 function serveStatic(res, filePath) {
@@ -232,10 +259,17 @@ function getWebAppBaseUrl() {
 
 /** İki Railway: DEX UI burada, feed BOT sunucusunda — BOT_API_URL = bot Railway https */
 function getBotApiBaseUrl() {
-  const raw = String(
-    process.env.BOT_API_URL || process.env.SCAN_BOT_API_URL || '',
-  ).trim();
-  return raw ? normalizePublicUrl(raw) : '';
+  try {
+    const { normalizeBotApiUrl } = require('../scripts/railway-env');
+    return normalizeBotApiUrl(
+      process.env.BOT_API_URL || process.env.SCAN_BOT_API_URL || '',
+    );
+  } catch {
+    const raw = String(
+      process.env.BOT_API_URL || process.env.SCAN_BOT_API_URL || '',
+    ).trim();
+    return raw ? normalizePublicUrl(raw) : '';
+  }
 }
 
 function buildWebAppUrl(reportId) {
@@ -260,9 +294,13 @@ function startMiniAppServer() {
   });
   server.listen(port, '0.0.0.0', () => {
     console.log(`   Mini App: http://0.0.0.0:${port}  (WEB_APP_URL=${getWebAppBaseUrl()})`);
-    const botApi = getBotApiBaseUrl();
-    if (botApi) {
-      console.log(`   DEX→Bot proxy: ${botApi} (/api/report, /api/feed, /api/open)`);
+    const candidates = getBotApiCandidates();
+    if (candidates.length) {
+      console.log(`   DEX→Bot proxy: ${candidates.join(' | ')}`);
+      const { probeBotApiFromDex, isMiniAppOnlyMode } = require('../scripts/railway-env');
+      if (isMiniAppOnlyMode()) {
+        probeBotApiFromDex().catch((e) => console.warn('[dex] probe:', e.message));
+      }
     }
   });
   return server;
