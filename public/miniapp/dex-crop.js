@@ -24,6 +24,7 @@
       brandCrop: CHART_BRAND_CROP,
       clipLeft: 0,
       clipRight: 0,
+      shiftDown: 0,
     },
     trades: {
       viewH: 268,
@@ -35,6 +36,7 @@
       maskFoot: 24,
       clipLeft: 0,
       clipRight: 0,
+      shiftDown: 0,
     },
   };
 
@@ -172,9 +174,12 @@
     const c = s.chart;
     const t = s.trades;
     const brandCrop = Number(c.brandCrop) || CHART_BRAND_CROP;
+    const chartDown = Number(c.shiftDown) || 0;
+    const tradesDown = Number(t.shiftDown) || 0;
 
     root.style.setProperty('--chart-embed-h', `${c.stageH}px`);
     root.style.setProperty('--chart-embed-top', `${c.top}px`);
+    root.style.setProperty('--chart-shift-down', `${chartDown}px`);
     root.style.setProperty('--chart-embed-left', `${c.left}%`);
     root.style.setProperty('--chart-embed-width', `${c.width}%`);
     root.style.setProperty('--chart-embed-extra', `${c.heightExtra}px`);
@@ -185,6 +190,7 @@
     root.style.setProperty('--dex-trades-view-h', `${t.viewH}px`);
     root.style.setProperty('--dex-iframe-h', `${t.iframeH}px`);
     root.style.setProperty('--dex-iframe-top', `${t.iframeTop}px`);
+    root.style.setProperty('--dex-trades-shift-down', `${tradesDown}px`);
     root.style.setProperty('--dex-iframe-left', `${t.left}%`);
     root.style.setProperty('--dex-iframe-width', `${t.width}%`);
     root.style.setProperty('--dex-mask-top-h', `${t.maskTop}px`);
@@ -202,7 +208,7 @@
     }
     if (chartIframe) {
       chartIframe.style.position = 'absolute';
-      chartIframe.style.top = `${c.top - brandCrop}px`;
+      chartIframe.style.top = `${c.top - brandCrop + chartDown}px`;
       chartIframe.style.left = `${c.left}%`;
       chartIframe.style.width = `${c.width}%`;
       chartIframe.style.height = `${c.stageH + c.heightExtra + brandCrop}px`;
@@ -222,7 +228,7 @@
     }
     if (tradesIframe) {
       tradesIframe.style.position = 'absolute';
-      tradesIframe.style.top = `${t.iframeTop}px`;
+      tradesIframe.style.top = `${t.iframeTop + tradesDown}px`;
       tradesIframe.style.left = `${t.left}%`;
       tradesIframe.style.width = `${t.width}%`;
       tradesIframe.style.height = `${t.iframeH}px`;
@@ -273,6 +279,7 @@
   const SLIDER_MAP = [
     ['cropChartStageH', 'chart', 'stageH'],
     ['cropChartTop', 'chart', 'top'],
+    ['cropChartDown', 'chart', 'shiftDown'],
     ['cropChartLeft', 'chart', 'left'],
     ['cropChartWidth', 'chart', 'width'],
     ['cropChartClipL', 'chart', 'clipLeft'],
@@ -282,6 +289,7 @@
     ['cropTradesViewH', 'trades', 'viewH'],
     ['cropTradesIframeH', 'trades', 'iframeH'],
     ['cropTradesTop', 'trades', 'iframeTop'],
+    ['cropTradesDown', 'trades', 'shiftDown'],
     ['cropTradesLeft', 'trades', 'left'],
     ['cropTradesWidth', 'trades', 'width'],
     ['cropTradesClipL', 'trades', 'clipLeft'],
@@ -377,7 +385,8 @@
       '<p class="crop-profile-hint" id="cropProfileHint"></p>',
       '<section class="crop-section"><h3>Grafik (Dex embed)</h3>',
       sliderRow('Kutu yüksekliği', 'cropChartStageH', 240, 480, 2, c.stageH, 'px'),
-      sliderRow('Üst kaydır', 'cropChartTop', -180, 40, 1, c.top, 'px — daha negatif = üstten daha çok kes'),
+      sliderRow('Üst kaydır', 'cropChartTop', -180, 40, 1, c.top, 'px — negatif = yukarı'),
+      sliderRow('Aşağı kaydır', 'cropChartDown', 0, 140, 1, c.shiftDown, 'px — telefon: grafiği aşağı it'),
       sliderRow('Sol kaydır (%)', 'cropChartLeft', -16, 12, 1, c.left, 'grafik konumu'),
       sliderRow('Genişlik (%)', 'cropChartWidth', 88, 120, 1, c.width, 'daralt / genişlet'),
       sliderRow('Sol kenar kırp', 'cropChartClipL', 0, 80, 1, c.clipLeft, 'px — soldan gizle'),
@@ -388,7 +397,8 @@
       '<section class="crop-section"><h3>Canlı alım / satım</h3>',
       sliderRow('Görünür yükseklik', 'cropTradesViewH', 180, 360, 2, t.viewH, 'px'),
       sliderRow('Iframe yükseklik', 'cropTradesIframeH', 700, 1200, 5, t.iframeH, 'px'),
-      sliderRow('Iframe üst', 'cropTradesTop', -1100, -400, 5, t.iframeTop, 'negatif'),
+      sliderRow('Iframe üst', 'cropTradesTop', -1100, -400, 5, t.iframeTop, 'negatif = tablo yukarı'),
+      sliderRow('Aşağı kaydır', 'cropTradesDown', 0, 200, 1, t.shiftDown, 'px — işlem listesini aşağı'),
       sliderRow('Sol kaydır (%)', 'cropTradesLeft', -16, 12, 1, t.left, ''),
       sliderRow('Genişlik (%)', 'cropTradesWidth', 88, 120, 1, t.width, ''),
       sliderRow('Sol kenar kırp', 'cropTradesClipL', 0, 80, 1, t.clipLeft, 'px'),
