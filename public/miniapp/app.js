@@ -212,8 +212,13 @@
     }
   }
 
+  let lastBottomNavAt = 0;
+
   function onBottomNav(nav) {
     if (!nav) return;
+    const now = Date.now();
+    if (now - lastBottomNavAt < 350) return;
+    lastBottomNavAt = now;
     if (nav === 'home') {
       location.hash = '';
       reportId = null;
