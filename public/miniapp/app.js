@@ -877,7 +877,7 @@
       trades: '0',
       info: '0',
       tabs: '0',
-      chartLeftToolbar: '0',
+      chartLeftToolbar: '1',
       chartTheme: 'dark',
       chartType: 'candle',
       interval,
@@ -991,8 +991,6 @@
   }
 
   function preferDexEmbedChart(m) {
-    const candles = m?.chart?.candles || [];
-    if (candles.length >= 3) return false;
     const poolRef = m?.poolAddress || m?.address;
     return !!dexEmbedUrlFor(poolRef, currentTf);
   }

@@ -778,9 +778,9 @@ html, body {
   display: none !important;
 }
 
-/* Dex embed: sadece mum grafiği — alt işlem paneli kırpılır */
+/* Dex embed — sol toolbar açık, hafif sola kaydır, minimal kırpma */
 .chart-terminal--dex-embed .chart-stage {
-  --chart-embed-h: clamp(240px, 36vh, 360px);
+  --chart-embed-h: clamp(300px, 42vh, 440px);
   height: var(--chart-embed-h);
   min-height: var(--chart-embed-h);
   max-height: var(--chart-embed-h);
@@ -799,15 +799,16 @@ html, body {
 
 .chart-terminal--dex-embed .dex-embed-chart {
   position: absolute;
-  top: -52px;
-  left: 0;
-  width: 100% !important;
-  max-width: 100% !important;
-  height: calc(var(--chart-embed-h) + 120px) !important;
+  top: -32px;
+  left: -5%;
+  width: 110% !important;
+  max-width: none !important;
+  height: calc(var(--chart-embed-h) + 36px) !important;
   min-height: 0 !important;
   margin: 0 !important;
   border: 0;
   display: block;
+  transform: translateX(-2px);
 }
 
 .trade-row.trade-placeholder {
@@ -1251,13 +1252,16 @@ html.web-browser .hero-price {
 
 html.tg-mini-app .chart-terminal--dex-embed .chart-stage,
 html.web-browser .chart-terminal--dex-embed .chart-stage {
-  --chart-embed-h: clamp(260px, 40vh, 400px);
+  --chart-embed-h: clamp(320px, 44vh, 460px);
 }
 
 html.tg-mini-app .chart-terminal--dex-embed .dex-embed-chart,
 html.web-browser .chart-terminal--dex-embed .dex-embed-chart {
-  top: -48px;
-  height: calc(var(--chart-embed-h) + 100px) !important;
+  top: -28px;
+  left: -6%;
+  width: 112% !important;
+  height: calc(var(--chart-embed-h) + 32px) !important;
+  transform: translateX(-4px);
 }
 
 html.tg-mini-app .trades-tape,
