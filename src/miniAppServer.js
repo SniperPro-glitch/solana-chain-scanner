@@ -40,11 +40,12 @@ function sendJson(res, code, obj) {
   res.end(body);
 }
 
-/** DEX Railway: rapor/feed bot sunucusunda; bu sunucu sadece UI ise istekleri BOT_API_URL'e ilet. */
+/** DEX Railway: rapor/feed bot sunucusunda; status/config yerel kalsın. */
 function shouldProxyToBot(pathname) {
+  if (pathname === '/api/feed/status' || pathname === '/api/config') return false;
   return (
     pathname.startsWith('/api/report/')
-    || pathname.startsWith('/api/feed')
+    || pathname === '/api/feed'
     || pathname.startsWith('/api/open/')
   );
 }
@@ -104,10 +105,17 @@ function shouldUseBotHttpProxy(req) {
 }
 
 function sendDexMisconfig(res) {
+  const pg = require('./pgClient');
   sendJson(res, 502, {
     error: 'dex_misconfigured',
     message:
-      'DEX ve bot aynı public domain\'de. DEX Variables: DATABASE_URL=${{ Postgres.DATABASE_URL }} veya BOT_RAILWAY_PRIVATE_DOMAIN kullanın.',
+      'DEX ve bot aynı public domain\'de. DEX servisine DATABASE_URL=${{ Postgres.DATABASE_URL }} ekleyin (Postgres → Connect → DEX).',
+    hints: {
+      databaseUrlSet: pg.enabled(),
+      webAppUrl: getWebAppBaseUrl(),
+      botApiUrl: getBotApiBaseUrl() || null,
+      fix: 'Railway → DEX servisi → Variables → DATABASE_URL = Reference → Postgres → DATABASE_URL → Redeploy',
+    },
   });
 }
 
@@ -251,7 +259,9 @@ function createMiniAppServer() {
         const botFeedStore = require('./botFeedStore');
         const { DATA_DIR, isPersistentDataDir } = require('./data-path');
         const pg = require('./pgClient');
-        sendJson(res, 200, {
+        const { isMiniAppOnlyMode } = require('../scripts/railway-env');
+        const misconfigured = isMiniAppOnlyMode() && !pg.enabled() && isDexProxyLoop(req);
+        sendJson(res, misconfigured ? 503 : 200, {
           botCount: await botFeedStore.feedCountAsync(),
           reportCount: await reportStore.reportCountAsync(),
           storage: pg.enabled() ? 'postgresql' : 'file',
@@ -259,6 +269,11 @@ function createMiniAppServer() {
           feedFile: botFeedStore.FEED_FILE,
           dataDir: DATA_DIR,
           botApiProxy: getBotApiBaseUrl() || null,
+          dexMode: isMiniAppOnlyMode(),
+          needsDatabaseUrl: misconfigured,
+          fix: misconfigured
+            ? 'DEX Variables: DATABASE_URL=${{ Postgres.DATABASE_URL }} then redeploy DEX'
+            : null,
         });
         return;
       }
