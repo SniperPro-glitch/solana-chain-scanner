@@ -204,7 +204,49 @@
     hideAllViews();
     $('scanner-home')?.classList.remove('hidden');
     refreshTgViewport();
-    initScannerHome();
+    bindHomeShell();
+    if (!homeFeedBooted) {
+      initScannerHome();
+    } else {
+      toggleHomeRadarPanels();
+    }
+  }
+
+  function onBottomNav(nav) {
+    if (!nav) return;
+    if (nav === 'home') {
+      location.hash = '';
+      reportId = null;
+      setFeedTab('home');
+      showScannerHome();
+      fetchFeed('home');
+      return;
+    }
+    if (nav === 'trend') {
+      location.hash = '';
+      reportId = null;
+      setFeedTab('trending');
+      showScannerHome();
+      fetchFeed('trending');
+      return;
+    }
+    if (nav === 'new') {
+      location.hash = '';
+      reportId = null;
+      setFeedTab('new');
+      showScannerHome();
+      fetchFeed('new');
+      return;
+    }
+    if (nav === 'scan') {
+      location.hash = '';
+      reportId = null;
+      setFeedTab('scan');
+      showScannerHome();
+      setTimeout(() => $('radarMintInput')?.focus({ preventScroll: true }), 120);
+      return;
+    }
+    showToast('Yakında');
   }
 
   function ensureDetailSpacer() {
@@ -814,44 +856,23 @@
       });
     });
 
-    document.querySelectorAll('.bnav[data-nav]').forEach((btn) => {
-      btn.addEventListener('click', () => {
-        const nav = btn.dataset.nav;
-        if (nav === 'home') {
-          location.hash = '';
-          reportId = null;
-          showScannerHome();
-          setFeedTab('home');
-          fetchFeed('home');
-          return;
-        }
-        if (nav === 'trend') {
-          location.hash = '';
-          reportId = null;
-          showScannerHome();
-          setFeedTab('trending');
-          fetchFeed('trending');
-          return;
-        }
-        if (nav === 'new') {
-          location.hash = '';
-          reportId = null;
-          showScannerHome();
-          setFeedTab('new');
-          fetchFeed('new');
-          return;
-        }
-        if (nav === 'scan') {
-          location.hash = '';
-          reportId = null;
-          setFeedTab('scan');
-          showScannerHome();
-          setTimeout(() => $('radarMintInput')?.focus({ preventScroll: true }), 120);
-          return;
-        }
-        showToast('Yakında');
-      });
+    const bottomNav = document.querySelector('#scanner-home .bottom-nav');
+    bottomNav?.addEventListener('click', (ev) => {
+      const btn = ev.target.closest('button.bnav[data-nav]');
+      if (!btn) return;
+      ev.preventDefault();
+      onBottomNav(btn.dataset.nav);
     });
+    bottomNav?.addEventListener(
+      'touchend',
+      (ev) => {
+        const btn = ev.target.closest('button.bnav[data-nav]');
+        if (!btn) return;
+        ev.preventDefault();
+        onBottomNav(btn.dataset.nav);
+      },
+      { passive: false },
+    );
 
     $('searchInput')?.addEventListener('input', onSearchInput);
     $('searchClearBtn')?.addEventListener('click', clearSearch);

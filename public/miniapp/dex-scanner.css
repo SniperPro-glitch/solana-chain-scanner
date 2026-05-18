@@ -81,8 +81,15 @@ html.tg-mini-app body {
 }
 
 .scanner-home .bottom-nav {
-  z-index: 200;
+  z-index: 500;
   pointer-events: auto;
+}
+
+.scanner-home .radar-scan-panel {
+  pointer-events: auto;
+  max-height: calc(var(--app-height, 100dvh) - var(--nav-h) - 80px);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .scanner-home .bnav {
