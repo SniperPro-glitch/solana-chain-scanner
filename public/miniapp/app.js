@@ -806,7 +806,7 @@
 
   function scheduleDexTradesCrop() {
     applyDexCrop();
-    [400, 1200].forEach((ms) => setTimeout(applyDexCrop, ms));
+    [400, 1200, 2500].forEach((ms) => setTimeout(applyDexCrop, ms));
   }
 
   function dexTradesEmbedUrl(poolOrMint) {
@@ -861,6 +861,9 @@
       scheduleDexTradesCrop();
       if (fallback) fallback.classList.add('hidden');
       if (meta) meta.textContent = 'canlı';
+      if (globalThis.SniperDexCrop?.isCalibrateMode?.()) {
+        setTimeout(() => SniperDexCrop.openPanel(), 300);
+      }
     };
     if (iframe.src !== url) iframe.src = url;
     else if (meta) meta.textContent = 'canlı';
@@ -901,6 +904,8 @@
     if (embed) {
       setChartEmbedMode(true);
       container.innerHTML = `<iframe class="dex-embed-chart" src="${escHtml(embed)}" title="DexScreener canlı grafik" loading="eager" allow="fullscreen" referrerpolicy="no-referrer-when-downgrade"></iframe>`;
+      const chartIfr = container.querySelector('iframe.dex-embed-chart');
+      if (chartIfr) chartIfr.addEventListener('load', () => applyDexCrop());
       if (note) {
         note.textContent = `${(tf || '15m').toUpperCase()} · DexScreener`;
         note.classList.remove('hidden');

@@ -1,6 +1,6 @@
 /**
- * DexScreener grafik + işlem iframe kırpma — manuel kalibrasyon.
- * Aç: ?kalibre=1 veya token sayfasında "Kırpma" butonu.
+ * DexScreener grafik + işlem kırpma — manuel kalibrasyon.
+ * Aç: ?kalibre=1 veya "Kırpma" butonu.
  */
 (function (global) {
   const STORAGE_KEY = 'sniperDexCropV1';
@@ -57,6 +57,7 @@
     return d;
   }
 
+  /** CSS değişkeni + doğrudan element style (Telegram / iframe için şart). */
   function apply(settings) {
     const s = settings || load();
     const root = document.documentElement;
@@ -79,8 +80,48 @@
     root.style.setProperty('--dex-mask-top-h', `${t.maskTop}px`);
     root.style.setProperty('--dex-mask-foot-h', `${t.maskFoot}px`);
 
+    const stage = document.querySelector('.chart-terminal--dex-embed .chart-stage');
+    const chartIframe = document.querySelector('iframe.dex-embed-chart');
+    const maskLogo = document.querySelector('.dex-chart-brand-mask');
+
+    if (stage) {
+      stage.style.height = `${c.stageH}px`;
+      stage.style.minHeight = `${c.stageH}px`;
+      stage.style.maxHeight = `${c.stageH}px`;
+    }
+    if (chartIframe) {
+      chartIframe.style.position = 'absolute';
+      chartIframe.style.top = `${c.top}px`;
+      chartIframe.style.left = `${c.left}%`;
+      chartIframe.style.width = `${c.width}%`;
+      chartIframe.style.height = `${c.stageH + c.heightExtra}px`;
+      chartIframe.style.maxWidth = 'none';
+    }
+    if (maskLogo) {
+      maskLogo.style.width = `${c.maskW}px`;
+      maskLogo.style.height = `${c.maskH}px`;
+    }
+
     const wrap = document.getElementById('dexTradesWrap');
-    if (wrap) wrap.dataset.cropOffset = String(t.iframeTop);
+    const tradesIframe = document.getElementById('dexTradesEmbed');
+    const maskTop = wrap?.querySelector('.dex-mask-top');
+    const maskFoot = wrap?.querySelector('.dex-mask-foot');
+
+    if (wrap) {
+      wrap.style.height = `${t.viewH}px`;
+      wrap.style.minHeight = `${t.viewH}px`;
+      wrap.style.maxHeight = `${t.viewH}px`;
+    }
+    if (tradesIframe) {
+      tradesIframe.style.position = 'absolute';
+      tradesIframe.style.top = `${t.iframeTop}px`;
+      tradesIframe.style.left = `${t.left}%`;
+      tradesIframe.style.width = `${t.width}%`;
+      tradesIframe.style.height = `${t.iframeH}px`;
+      tradesIframe.style.maxWidth = 'none';
+    }
+    if (maskTop) maskTop.style.height = `${t.maskTop}px`;
+    if (maskFoot) maskFoot.style.height = `${t.maskFoot}px`;
   }
 
   function isCalibrateMode() {
@@ -95,55 +136,61 @@
 
   function sliderRow(label, id, min, max, step, value, hint) {
     return `<label class="crop-row" for="${id}">
-      <span class="crop-lbl">${label}</span>
+      <span class="crop-lbl">${label} <output id="${id}Out" class="crop-val">${value}</output></span>
       <input type="range" id="${id}" min="${min}" max="${max}" step="${step}" value="${value}" />
-      <output id="${id}Out" class="crop-val">${value}</output>
       ${hint ? `<span class="crop-hint">${hint}</span>` : ''}
     </label>`;
   }
 
   let panelEl = null;
-  let current = null;
+  let current = clone(DEFAULTS);
+  let panelBuilt = false;
 
   function bindSlider(id, section, key, onChange) {
     const input = document.getElementById(id);
     const out = document.getElementById(`${id}Out`);
     if (!input) return;
-    const sync = () => {
+    const handler = () => {
+      if (!current?.[section]) return;
       const v = Number(input.value);
       current[section][key] = v;
       if (out) out.textContent = String(v);
       onChange();
     };
-    input.addEventListener('input', sync);
-    sync();
+    input.addEventListener('input', handler);
+    input.addEventListener('change', handler);
   }
 
-  function openPanel() {
-    if (!panelEl) buildPanel();
-    current = load();
-    const c = current.chart;
-    const t = current.trades;
-    const set = (id, val) => {
+  function syncSlidersFromCurrent() {
+    if (!current) return;
+    const map = [
+      ['cropChartStageH', current.chart.stageH],
+      ['cropChartTop', current.chart.top],
+      ['cropChartLeft', current.chart.left],
+      ['cropChartWidth', current.chart.width],
+      ['cropChartExtra', current.chart.heightExtra],
+      ['cropChartMaskW', current.chart.maskW],
+      ['cropChartMaskH', current.chart.maskH],
+      ['cropTradesViewH', current.trades.viewH],
+      ['cropTradesIframeH', current.trades.iframeH],
+      ['cropTradesTop', current.trades.iframeTop],
+      ['cropTradesLeft', current.trades.left],
+      ['cropTradesWidth', current.trades.width],
+      ['cropTradesMaskTop', current.trades.maskTop],
+      ['cropTradesMaskFoot', current.trades.maskFoot],
+    ];
+    map.forEach(([id, val]) => {
       const el = document.getElementById(id);
       const out = document.getElementById(`${id}Out`);
       if (el) el.value = String(val);
       if (out) out.textContent = String(val);
-    };
-    set('cropChartStageH', c.stageH);
-    set('cropChartTop', c.top);
-    set('cropChartLeft', c.left);
-    set('cropChartWidth', c.width);
-    set('cropChartExtra', c.heightExtra);
-    set('cropChartMaskW', c.maskW);
-    set('cropChartMaskH', c.maskH);
-    set('cropTradesViewH', t.viewH);
-    set('cropTradesIframeH', t.iframeH);
-    set('cropTradesTop', t.iframeTop);
-    set('cropTradesLeft', t.left);
-    set('cropTradesWidth', t.width);
-    set('cropTradesMaskTop', t.maskTop);
-    set('cropTradesMaskFoot', t.maskFoot);
+    });
+  }
+
+  function openPanel() {
+    if (!panelBuilt) buildPanel();
+    current = load();
+    syncSlidersFromCurrent();
     apply(current);
     panelEl.classList.remove('hidden');
     document.documentElement.classList.add('crop-panel-open');
@@ -169,22 +216,22 @@
     panelEl.innerHTML = [
       '<header class="dex-crop-head"><strong>Kırpma ayarı</strong>',
       '<button type="button" class="crop-close" id="cropCloseBtn" aria-label="Kapat">✕</button></header>',
-      '<p class="crop-intro">Kaydır → canlı önizleme → <b>Kaydet</b>. JSON kopyalayıp gönder.</p>',
+      '<p class="crop-intro">Kaydırıcıyı oynat — altta anında değişir. <b>Kaydet</b> ile kalıcı olur.</p>',
       '<section class="crop-section"><h3>Grafik</h3>',
-      sliderRow('Kutu yüksekliği', 'cropChartStageH', 260, 480, 2, c.stageH, 'px'),
-      sliderRow('Üst kaydır', 'cropChartTop', -40, 20, 1, c.top, 'px'),
-      sliderRow('Sol', 'cropChartLeft', -12, 8, 1, c.left, '%'),
-      sliderRow('Genişlik', 'cropChartWidth', 98, 115, 1, c.width, '%'),
+      sliderRow('Kutu yüksekliği', 'cropChartStageH', 260, 480, 2, c.stageH, ''),
+      sliderRow('Üst kaydır (px)', 'cropChartTop', -40, 20, 1, c.top, ''),
+      sliderRow('Sol (%)', 'cropChartLeft', -12, 8, 1, c.left, ''),
+      sliderRow('Genişlik (%)', 'cropChartWidth', 98, 115, 1, c.width, ''),
       sliderRow('Ekstra yükseklik', 'cropChartExtra', 0, 48, 1, c.heightExtra, 'px'),
-      sliderRow('Logo mask W', 'cropChartMaskW', 80, 200, 2, c.maskW, 'px'),
-      sliderRow('Logo mask H', 'cropChartMaskH', 16, 48, 1, c.maskH, 'px'),
+      sliderRow('Logo mask W', 'cropChartMaskW', 80, 200, 2, c.maskW, ''),
+      sliderRow('Logo mask H', 'cropChartMaskH', 16, 48, 1, c.maskH, ''),
       '</section>',
       '<section class="crop-section"><h3>Canlı alım / satım</h3>',
-      sliderRow('Görünür alan', 'cropTradesViewH', 200, 360, 2, t.viewH, 'px'),
+      sliderRow('Görünür yükseklik', 'cropTradesViewH', 200, 360, 2, t.viewH, 'px'),
       sliderRow('Iframe yükseklik', 'cropTradesIframeH', 700, 1200, 5, t.iframeH, 'px'),
-      sliderRow('Iframe üst', 'cropTradesTop', -1100, -400, 5, t.iframeTop, 'negatif'),
-      sliderRow('Sol', 'cropTradesLeft', -12, 8, 1, t.left, '%'),
-      sliderRow('Genişlik', 'cropTradesWidth', 98, 115, 1, t.width, '%'),
+      sliderRow('Iframe üst', 'cropTradesTop', -1100, -400, 5, t.iframeTop, 'negatif = tablo'),
+      sliderRow('Sol (%)', 'cropTradesLeft', -12, 8, 1, t.left, ''),
+      sliderRow('Genişlik (%)', 'cropTradesWidth', 98, 115, 1, t.width, ''),
       sliderRow('Üst maske', 'cropTradesMaskTop', 0, 80, 1, t.maskTop, 'px'),
       sliderRow('Alt maske', 'cropTradesMaskFoot', 0, 60, 1, t.maskFoot, 'px'),
       '</section>',
@@ -222,12 +269,14 @@
     document.getElementById('cropCloseBtn')?.addEventListener('click', closePanel);
     document.getElementById('cropSaveBtn')?.addEventListener('click', () => {
       save(current);
-      toast('Kırpma kaydedildi');
+      toast('Kaydedildi');
     });
     document.getElementById('cropResetBtn')?.addEventListener('click', () => {
       current = reset();
-      openPanel();
-      toast('Varsayılan');
+      syncSlidersFromCurrent();
+      apply(current);
+      refreshPreview();
+      toast('Sıfırlandı');
     });
     document.getElementById('cropCopyBtn')?.addEventListener('click', async () => {
       const text = JSON.stringify(current, null, 2);
@@ -235,9 +284,11 @@
         await navigator.clipboard.writeText(text);
         toast('JSON kopyalandı');
       } catch {
-        toast('Metni elle kopyala');
+        toast('Alttaki JSON\'u kopyala');
       }
     });
+
+    panelBuilt = true;
   }
 
   function toast(msg) {
@@ -266,6 +317,7 @@
     btn.textContent = 'Kırpma';
     btn.addEventListener('click', (e) => {
       e.preventDefault();
+      e.stopPropagation();
       openPanel();
     });
     head.appendChild(btn);
@@ -274,11 +326,19 @@
   function init() {
     apply(load());
     addCalibrateButton();
-    if (isCalibrateMode()) setTimeout(openPanel, 1000);
+    if (isCalibrateMode()) {
+      setTimeout(() => {
+        addCalibrateButton();
+        openPanel();
+      }, 1500);
+    }
     const vd = document.getElementById('view-detail');
     if (vd) {
       new MutationObserver(() => {
-        if (!vd.classList.contains('hidden')) addCalibrateButton();
+        if (!vd.classList.contains('hidden')) {
+          addCalibrateButton();
+          apply(load());
+        }
       }).observe(vd, { attributes: true, attributeFilter: ['class'] });
     }
   }

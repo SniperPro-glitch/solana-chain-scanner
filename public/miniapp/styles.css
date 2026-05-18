@@ -1485,7 +1485,8 @@ html.web-browser .token-table-scroll {
   position: fixed;
   top: 0;
   right: 0;
-  z-index: 300;
+  z-index: 9999;
+  pointer-events: auto;
   width: min(100vw, 320px);
   height: var(--app-height, 100dvh);
   overflow-y: auto;
@@ -1553,7 +1554,11 @@ html.web-browser .token-table-scroll {
 .crop-row input[type="range"] {
   grid-column: 1 / -1;
   width: 100%;
+  min-height: 36px;
   accent-color: var(--cyan);
+  touch-action: pan-x;
+  cursor: pointer;
+  pointer-events: auto;
 }
 
 .crop-val {
