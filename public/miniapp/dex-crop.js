@@ -98,10 +98,11 @@
         localStorage.removeItem(key);
         if (parsed.refViewport) continue;
         const store = defaultStore();
-        const block = {
-          chart: { ...DEFAULT_BLOCK.chart, ...parsed.chart },
-          trades: { ...DEFAULT_BLOCK.trades, ...parsed.trades },
-        };
+        const block = normalizeBlock({
+          chart: parsed.chart,
+          tape: parsed.tape,
+          trades: parsed.trades,
+        });
         if (parsed.profiles) {
           localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
           return;
