@@ -804,7 +804,7 @@
     const rowH = 44;
     const viewH = rowH * 6 + 24;
     const iframeH = Math.round(Math.min(980, Math.max(820, vh * 0.92)));
-    const offset = Math.round(iframeH * 0.535 - 8);
+    const offset = Math.round(iframeH * 0.58);
     wrap.style.setProperty('--dex-trades-view-h', `${viewH}px`);
     wrap.style.setProperty('--dex-iframe-h', `${iframeH}px`);
     wrap.style.setProperty('--dex-iframe-top', `-${offset}px`);

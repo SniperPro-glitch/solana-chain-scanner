@@ -846,8 +846,9 @@ html.detail-mode body {
 .dex-mask-brand {
   top: 0;
   left: 0;
-  width: 140px;
-  height: 32px;
+  right: 0;
+  width: 100%;
+  height: 48px;
 }
 
 .dex-mask-foot {
