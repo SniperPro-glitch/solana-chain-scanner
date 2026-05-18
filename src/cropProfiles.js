@@ -32,14 +32,41 @@ function loadBakedProfiles() {
   return null;
 }
 
+function profileLooksCustom(block) {
+  if (!block?.chart) return false;
+  const c = block.chart;
+  const t = block.trades || {};
+  return (
+    c.top !== -8
+    || c.stageH !== 340
+    || t.iframeTop !== -820
+    || t.viewH !== 268
+    || (block.tape?.shiftDown || 0) !== 0
+  );
+}
+
 function saveBakedProfiles(payload) {
   if (!payload?.profiles || typeof payload.profiles !== 'object') {
     throw new Error('profiles gerekli');
   }
+  const existing = loadBakedProfiles();
+  const fallback = readJsonFile(PUBLIC_FALLBACK);
+  const profiles = {};
+  PROFILE_ORDER.forEach((id) => {
+    const next = payload.profiles[id];
+    const prev = existing?.profiles?.[id] || fallback?.profiles?.[id];
+    const nextOk = profileLooksCustom(next);
+    const prevOk = profileLooksCustom(prev);
+    if (nextOk) profiles[id] = next;
+    else if (prevOk) profiles[id] = prev;
+    else if (next) profiles[id] = next;
+    else if (prev) profiles[id] = prev;
+  });
   const out = {
     version: payload.version || 1,
     updatedAt: new Date().toISOString(),
-    profiles: payload.profiles,
+    note: '5 cihaz — POST birleştirilir (web, 11, 13, 13pm, 16pm)',
+    profiles,
   };
   writeJsonFile(DATA_FILE, out);
   writeJsonFile(PUBLIC_FALLBACK, out);

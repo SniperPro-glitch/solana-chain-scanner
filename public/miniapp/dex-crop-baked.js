@@ -1,7 +1,7 @@
-/** Web, 11, 13, 13 PM, 16 PM — sunucu */
+/** 5 profil */
 globalThis.__DEX_CROP_BAKED__={
   "version": 1,
-  "updatedAt": "2026-05-18T17:39:12.978Z",
+  "updatedAt": "2026-05-18T17:50:47.950Z",
   "profiles": {
     "web": {
       "chart": {
@@ -73,32 +73,32 @@ globalThis.__DEX_CROP_BAKED__={
     },
     "app13": {
       "chart": {
-        "stageH": 340,
-        "top": -8,
-        "left": -4,
-        "width": 108,
-        "heightExtra": 20,
-        "brandCrop": 40,
+        "stageH": 314,
+        "top": -15,
+        "left": -1,
+        "width": 102,
+        "heightExtra": 0,
+        "brandCrop": 0,
         "clipLeft": 0,
         "clipRight": 0,
         "clipTop": 0,
         "clipBottom": 0,
-        "shiftDown": 0
+        "shiftDown": 55
       },
       "tape": {
         "shiftDown": 0
       },
       "trades": {
-        "viewH": 268,
-        "iframeH": 980,
+        "viewH": 174,
+        "iframeH": 990,
         "iframeTop": -820,
-        "shiftDown": 0,
-        "left": -3,
-        "width": 106,
+        "shiftDown": 195,
+        "left": 0,
+        "width": 100,
         "maskTop": 8,
         "maskFoot": 24,
-        "maskTopOn": true,
-        "maskFootOn": true,
+        "maskTopOn": false,
+        "maskFootOn": false,
         "clipLeft": 0,
         "clipRight": 0,
         "clipTop": 0,
