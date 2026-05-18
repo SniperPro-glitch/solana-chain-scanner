@@ -1,12 +1,10 @@
 /**
- * DexScreener grafik + işlem kırpma.
- * Kayıtlı ayarlar referans ekran boyutuna göre ölçeklenir (Telegram / resize).
+ * DexScreener grafik + işlem kırpma — manuel kalibrasyon.
+ * Aç: ?kalibre=1 veya "Kırpma" butonu.
  */
 (function (global) {
   const STORAGE_KEY = 'sniperDexCropV1';
   const D = 'di' + 'v';
-  const CHART_BRAND_CROP = 40;
-  const REF_VIEWPORT = { w: 390, h: 844 };
 
   const DEFAULTS = {
     chart: {
@@ -15,7 +13,6 @@
       left: -4,
       width: 108,
       heightExtra: 20,
-      brandCrop: CHART_BRAND_CROP,
     },
     trades: {
       viewH: 268,
@@ -28,106 +25,48 @@
     },
   };
 
-  let resizeDebounce = null;
-
   function clone(o) {
     return JSON.parse(JSON.stringify(o));
   }
 
-  function getViewport() {
-    const tg = global.Telegram?.WebApp;
-    return {
-      w: Math.max(320, window.innerWidth || REF_VIEWPORT.w),
-      h: Math.max(560, tg?.viewportStableHeight || tg?.viewportHeight || window.innerHeight || REF_VIEWPORT.h),
-    };
-  }
-
-  function loadRaw() {
+  function load() {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
-      if (!raw) {
-        return { chart: clone(DEFAULTS.chart), trades: clone(DEFAULTS.trades), refViewport: { ...REF_VIEWPORT } };
-      }
+      if (!raw) return clone(DEFAULTS);
       const parsed = JSON.parse(raw);
       return {
         chart: { ...DEFAULTS.chart, ...parsed.chart },
         trades: { ...DEFAULTS.trades, ...parsed.trades },
-        refViewport: parsed.refViewport || { ...REF_VIEWPORT },
       };
     } catch {
-      return { chart: clone(DEFAULTS.chart), trades: clone(DEFAULTS.trades), refViewport: { ...REF_VIEWPORT } };
+      return clone(DEFAULTS);
     }
   }
 
-  function load() {
-    const raw = loadRaw();
-    return { chart: raw.chart, trades: raw.trades };
-  }
-
-  function viewportScale(ref) {
-    const vp = getViewport();
-    const rw = ref?.w || REF_VIEWPORT.w;
-    const rh = ref?.h || REF_VIEWPORT.h;
-    const ratio = Math.min(vp.w / rw, vp.h / rh);
-    return Math.max(0.72, Math.min(1.14, ratio));
-  }
-
-  function scaleForViewport(base, ref) {
-    const ratio = viewportScale(ref);
-    const c = base.chart;
-    const t = base.trades;
-    return {
-      chart: {
-        ...c,
-        stageH: Math.round(c.stageH * ratio),
-        top: Math.round(c.top * ratio),
-        heightExtra: Math.round(c.heightExtra * ratio),
-        brandCrop: Math.round((c.brandCrop || CHART_BRAND_CROP) * ratio),
-      },
-      trades: {
-        ...t,
-        viewH: Math.round(t.viewH * ratio),
-        iframeH: Math.round(t.iframeH * ratio),
-        iframeTop: Math.round(t.iframeTop * ratio),
-        maskTop: Math.round(t.maskTop * ratio),
-        maskFoot: Math.round(t.maskFoot * ratio),
-      },
-    };
-  }
-
   function save(settings) {
-    const payload = {
-      chart: settings.chart,
-      trades: settings.trades,
-      refViewport: getViewport(),
-    };
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
-    apply(payload);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
+    apply(settings);
   }
 
   function reset() {
     localStorage.removeItem(STORAGE_KEY);
-    const d = {
-      chart: clone(DEFAULTS.chart),
-      trades: clone(DEFAULTS.trades),
-      refViewport: { ...REF_VIEWPORT },
-    };
+    const d = clone(DEFAULTS);
     apply(d);
     return d;
   }
 
-  function applyPixels(scaled) {
+  /** CSS değişkeni + doğrudan element style (Telegram / iframe için şart). */
+  function apply(settings) {
+    const s = settings || load();
     const root = document.documentElement;
-    const c = scaled.chart;
-    const t = scaled.trades;
-    const brandCrop = Number(c.brandCrop) || CHART_BRAND_CROP;
+    const c = s.chart;
+    const t = s.trades;
 
     root.style.setProperty('--chart-embed-h', `${c.stageH}px`);
     root.style.setProperty('--chart-embed-top', `${c.top}px`);
     root.style.setProperty('--chart-embed-left', `${c.left}%`);
     root.style.setProperty('--chart-embed-width', `${c.width}%`);
     root.style.setProperty('--chart-embed-extra', `${c.heightExtra}px`);
-    root.style.setProperty('--chart-brand-crop', `${brandCrop}px`);
 
     root.style.setProperty('--dex-trades-view-h', `${t.viewH}px`);
     root.style.setProperty('--dex-iframe-h', `${t.iframeH}px`);
@@ -146,13 +85,12 @@
     }
     if (chartIframe) {
       chartIframe.style.position = 'absolute';
-      chartIframe.style.top = `${c.top - brandCrop}px`;
+      chartIframe.style.top = `${c.top}px`;
       chartIframe.style.left = `${c.left}%`;
       chartIframe.style.width = `${c.width}%`;
-      chartIframe.style.height = `${c.stageH + c.heightExtra + brandCrop}px`;
+      chartIframe.style.height = `${c.stageH + c.heightExtra}px`;
       chartIframe.style.maxWidth = 'none';
     }
-
     const wrap = document.getElementById('dexTradesWrap');
     const tradesIframe = document.getElementById('dexTradesEmbed');
     const maskTop = wrap?.querySelector('.dex-mask-top');
@@ -175,32 +113,6 @@
     if (maskFoot) maskFoot.style.height = `${t.maskFoot}px`;
   }
 
-  function apply(input) {
-    const raw = input?.chart ? input : loadRaw();
-    const scaled = scaleForViewport(raw, raw.refViewport);
-    applyPixels(scaled);
-  }
-
-  function scheduleApply() {
-    clearTimeout(resizeDebounce);
-    resizeDebounce = setTimeout(() => apply(), 80);
-  }
-
-  function bindViewportListeners() {
-    window.addEventListener('resize', scheduleApply);
-    const tg = global.Telegram?.WebApp;
-    if (tg?.onEvent) {
-      tg.onEvent('viewportChanged', scheduleApply);
-    }
-    if (typeof global.__tgApplySafeArea === 'function') {
-      const orig = global.__tgApplySafeArea;
-      global.__tgApplySafeArea = function () {
-        orig();
-        scheduleApply();
-      };
-    }
-  }
-
   function isCalibrateMode() {
     try {
       const q = new URLSearchParams(location.search);
@@ -220,7 +132,7 @@
   }
 
   let panelEl = null;
-  let current = null;
+  let current = clone(DEFAULTS);
   let panelBuilt = false;
 
   function bindSlider(id, section, key, onChange) {
@@ -264,10 +176,9 @@
 
   function openPanel() {
     if (!panelBuilt) buildPanel();
-    const raw = loadRaw();
-    current = { chart: raw.chart, trades: raw.trades };
+    current = load();
     syncSlidersFromCurrent();
-    apply(raw);
+    apply(current);
     panelEl.classList.remove('hidden');
     document.documentElement.classList.add('crop-panel-open');
     refreshPreview();
@@ -280,14 +191,7 @@
 
   function refreshPreview() {
     const pre = document.getElementById('cropJsonPreview');
-    if (pre && current) {
-      const vp = getViewport();
-      pre.textContent = JSON.stringify(
-        { chart: current.chart, trades: current.trades, refViewport: vp },
-        null,
-        2,
-      );
-    }
+    if (pre && current) pre.textContent = JSON.stringify(current, null, 2);
   }
 
   function buildPanel() {
@@ -299,7 +203,7 @@
     panelEl.innerHTML = [
       '<header class="dex-crop-head"><strong>Kırpma ayarı</strong>',
       '<button type="button" class="crop-close" id="cropCloseBtn" aria-label="Kapat">✕</button></header>',
-      '<p class="crop-intro">Kaydır → önizleme. <b>Kaydet</b> bu ekran boyutunu referans alır; küçülünce otomatik ölçeklenir.</p>',
+      '<p class="crop-intro">Kaydırıcıyı oynat — altta anında değişir. <b>Kaydet</b> ile kalıcı olur.</p>',
       '<section class="crop-section"><h3>Grafik</h3>',
       sliderRow('Kutu yüksekliği', 'cropChartStageH', 260, 480, 2, c.stageH, ''),
       sliderRow('Üst kaydır (px)', 'cropChartTop', -40, 20, 1, c.top, ''),
@@ -310,7 +214,7 @@
       '<section class="crop-section"><h3>Canlı alım / satım</h3>',
       sliderRow('Görünür yükseklik', 'cropTradesViewH', 200, 360, 2, t.viewH, 'px'),
       sliderRow('Iframe yükseklik', 'cropTradesIframeH', 700, 1200, 5, t.iframeH, 'px'),
-      sliderRow('Iframe üst', 'cropTradesTop', -1100, -400, 5, t.iframeTop, 'negatif'),
+      sliderRow('Iframe üst', 'cropTradesTop', -1100, -400, 5, t.iframeTop, 'negatif = tablo'),
       sliderRow('Sol (%)', 'cropTradesLeft', -12, 8, 1, t.left, ''),
       sliderRow('Genişlik (%)', 'cropTradesWidth', 98, 115, 1, t.width, ''),
       sliderRow('Üst maske', 'cropTradesMaskTop', 0, 80, 1, t.maskTop, 'px'),
@@ -326,7 +230,7 @@
     document.body.appendChild(panelEl);
 
     const onLive = () => {
-      apply({ chart: current.chart, trades: current.trades, refViewport: getViewport() });
+      apply(current);
       refreshPreview();
     };
 
@@ -347,22 +251,18 @@
 
     document.getElementById('cropCloseBtn')?.addEventListener('click', closePanel);
     document.getElementById('cropSaveBtn')?.addEventListener('click', () => {
-      save({ chart: current.chart, trades: current.trades });
-      toast('Kaydedildi — bu ekran referans');
+      save(current);
+      toast('Kaydedildi');
     });
     document.getElementById('cropResetBtn')?.addEventListener('click', () => {
-      const d = reset();
-      current = { chart: d.chart, trades: d.trades };
+      current = reset();
       syncSlidersFromCurrent();
+      apply(current);
       refreshPreview();
-      toast('Varsayılan');
+      toast('Sıfırlandı');
     });
     document.getElementById('cropCopyBtn')?.addEventListener('click', async () => {
-      const text = JSON.stringify(
-        { chart: current.chart, trades: current.trades, refViewport: getViewport() },
-        null,
-        2,
-      );
+      const text = JSON.stringify(current, null, 2);
       try {
         await navigator.clipboard.writeText(text);
         toast('JSON kopyalandı');
@@ -407,8 +307,7 @@
   }
 
   function init() {
-    bindViewportListeners();
-    apply();
+    apply(load());
     addCalibrateButton();
     if (isCalibrateMode()) {
       setTimeout(() => {
@@ -421,7 +320,7 @@
       new MutationObserver(() => {
         if (!vd.classList.contains('hidden')) {
           addCalibrateButton();
-          scheduleApply();
+          apply(load());
         }
       }).observe(vd, { attributes: true, attributeFilter: ['class'] });
     }
@@ -430,19 +329,13 @@
   global.SniperDexCrop = {
     STORAGE_KEY,
     DEFAULTS,
-    REF_VIEWPORT,
     load,
-    loadRaw,
     save,
     reset,
     apply,
-    scheduleApply,
     openPanel,
     closePanel,
     isCalibrateMode,
-    getViewport,
-    viewportScale,
-    scaleForViewport,
   };
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
