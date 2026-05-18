@@ -1508,6 +1508,44 @@ html.web-browser .token-table-scroll {
   font-size: 11px;
   color: var(--muted);
   line-height: 1.45;
+  margin: 0 0 8px;
+}
+
+.crop-detect {
+  font-size: 10px;
+  color: var(--cyan);
+  margin: 0 0 10px;
+  font-variant-numeric: tabular-nums;
+}
+
+.crop-profile-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.crop-profile-tab {
+  padding: 8px 4px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--glass);
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 700;
+  cursor: pointer;
+  line-height: 1.2;
+}
+
+.crop-profile-tab.active {
+  border-color: var(--cyan);
+  color: var(--cyan);
+  background: rgba(0, 229, 255, 0.12);
+}
+
+.crop-profile-hint {
+  font-size: 10px;
+  color: var(--muted);
   margin: 0 0 12px;
 }
 

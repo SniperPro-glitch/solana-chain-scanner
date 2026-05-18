@@ -1,14 +1,20 @@
 /**
- * DexScreener grafik + işlem kırpma — manuel kalibrasyon.
- * Aç: ?kalibre=1 veya "Kırpma" butonu.
+ * DexScreener kırpma — 3 profil: Web, App 16 Pro Max, App iPhone 11
+ * ?kalibre=1 veya "Kırpma" butonu
  */
 (function (global) {
-  const STORAGE_KEY = 'sniperDexCropV2';
-  const LEGACY_KEY = 'sniperDexCropV1';
+  const STORAGE_KEY = 'sniperDexCropV3';
+  const LEGACY_KEYS = ['sniperDexCropV2', 'sniperDexCropV1'];
   const CHART_BRAND_CROP = 40;
   const D = 'di' + 'v';
 
-  const DEFAULTS = {
+  const PROFILE_META = {
+    web: { label: 'Web', hint: 'Tarayıcı / masaüstü' },
+    app16: { label: '16 Pro Max', hint: 'Telegram — büyük ekran' },
+    app11: { label: 'iPhone 11', hint: 'Telegram — küçük ekran' },
+  };
+
+  const DEFAULT_BLOCK = {
     chart: {
       stageH: 340,
       top: -8,
@@ -16,6 +22,8 @@
       width: 108,
       heightExtra: 20,
       brandCrop: CHART_BRAND_CROP,
+      clipLeft: 0,
+      clipRight: 0,
     },
     trades: {
       viewH: 268,
@@ -25,6 +33,8 @@
       width: 106,
       maskTop: 8,
       maskFoot: 24,
+      clipLeft: 0,
+      clipRight: 0,
     },
   };
 
@@ -32,61 +42,130 @@
     return JSON.parse(JSON.stringify(o));
   }
 
-  function purgeLegacyStorage() {
-    try {
-      const leg = localStorage.getItem(LEGACY_KEY);
-      if (!leg) return;
-      const parsed = JSON.parse(leg);
-      if (parsed.refViewport) {
-        localStorage.removeItem(LEGACY_KEY);
+  function defaultBlock() {
+    return clone(DEFAULT_BLOCK);
+  }
+
+  function defaultStore() {
+    return {
+      profiles: {
+        web: defaultBlock(),
+        app16: defaultBlock(),
+        app11: defaultBlock(),
+      },
+    };
+  }
+
+  function isTelegram() {
+    return !!global.Telegram?.WebApp?.initData || document.documentElement.classList.contains('tg-mini-app');
+  }
+
+  function detectProfile() {
+    if (!isTelegram()) return 'web';
+    const w = window.innerWidth || 390;
+    return w >= 420 ? 'app16' : 'app11';
+  }
+
+  function mergeBlock(base, patch) {
+    if (!patch) return clone(base);
+    return {
+      chart: { ...base.chart, ...patch.chart },
+      trades: { ...base.trades, ...patch.trades },
+    };
+  }
+
+  function migrateLegacy() {
+    for (const key of LEGACY_KEYS) {
+      try {
+        const raw = localStorage.getItem(key);
+        if (!raw) continue;
+        const parsed = JSON.parse(raw);
+        localStorage.removeItem(key);
+        if (parsed.refViewport) continue;
+        const store = defaultStore();
+        const block = {
+          chart: { ...DEFAULT_BLOCK.chart, ...parsed.chart },
+          trades: { ...DEFAULT_BLOCK.trades, ...parsed.trades },
+        };
+        if (parsed.profiles) {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
+          return;
+        }
+        store.profiles.web = clone(block);
+        store.profiles.app16 = clone(block);
+        store.profiles.app11 = clone(block);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(store));
         return;
+      } catch {
+        localStorage.removeItem(key);
       }
-      if (!localStorage.getItem(STORAGE_KEY) && parsed.chart && parsed.trades) {
-        localStorage.setItem(
-          STORAGE_KEY,
-          JSON.stringify({ chart: parsed.chart, trades: parsed.trades }),
-        );
-      }
-      localStorage.removeItem(LEGACY_KEY);
-    } catch {
-      localStorage.removeItem(LEGACY_KEY);
     }
+  }
+
+  function loadStore() {
+    migrateLegacy();
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return defaultStore();
+      const parsed = JSON.parse(raw);
+      if (!parsed.profiles) return defaultStore();
+      const store = defaultStore();
+      for (const id of Object.keys(PROFILE_META)) {
+        store.profiles[id] = mergeBlock(DEFAULT_BLOCK, parsed.profiles[id]);
+      }
+      return store;
+    } catch {
+      localStorage.removeItem(STORAGE_KEY);
+      return defaultStore();
+    }
+  }
+
+  function saveStore(store) {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(store));
+  }
+
+  function loadForProfile(profileId) {
+    const store = loadStore();
+    return clone(store.profiles[profileId] || store.profiles.web);
   }
 
   function load() {
-    purgeLegacyStorage();
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (!raw) return clone(DEFAULTS);
-      const parsed = JSON.parse(raw);
-      if (parsed.refViewport) {
-        localStorage.removeItem(STORAGE_KEY);
-        return clone(DEFAULTS);
-      }
-      return {
-        chart: { ...DEFAULTS.chart, ...parsed.chart },
-        trades: { ...DEFAULTS.trades, ...parsed.trades },
-      };
-    } catch {
-      localStorage.removeItem(STORAGE_KEY);
-      return clone(DEFAULTS);
-    }
+    return loadForProfile(detectProfile());
   }
 
-  function save(settings) {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
-    apply(settings);
+  function saveBlock(profileId, block) {
+    const store = loadStore();
+    store.profiles[profileId] = clone(block);
+    saveStore(store);
+    if (profileId === detectProfile()) apply(block);
+  }
+
+  function resetProfile(profileId) {
+    const store = loadStore();
+    store.profiles[profileId] = defaultBlock();
+    saveStore(store);
+    return clone(store.profiles[profileId]);
   }
 
   function reset() {
+    LEGACY_KEYS.forEach((k) => localStorage.removeItem(k));
     localStorage.removeItem(STORAGE_KEY);
-    localStorage.removeItem(LEGACY_KEY);
-    const d = clone(DEFAULTS);
+    const d = load();
     apply(d);
     return d;
   }
 
-  /** CSS değişkeni + doğrudan element style (Telegram / iframe için şart). */
+  function applyClip(el, left, right) {
+    if (!el) return;
+    const l = Math.max(0, Number(left) || 0);
+    const r = Math.max(0, Number(right) || 0);
+    if (l === 0 && r === 0) {
+      el.style.clipPath = '';
+      return;
+    }
+    el.style.clipPath = `inset(0 ${r}px 0 ${l}px)`;
+  }
+
   function apply(settings) {
     const s = settings || load();
     const root = document.documentElement;
@@ -100,6 +179,8 @@
     root.style.setProperty('--chart-embed-width', `${c.width}%`);
     root.style.setProperty('--chart-embed-extra', `${c.heightExtra}px`);
     root.style.setProperty('--chart-brand-crop', `${brandCrop}px`);
+    root.style.setProperty('--chart-clip-left', `${c.clipLeft || 0}px`);
+    root.style.setProperty('--chart-clip-right', `${c.clipRight || 0}px`);
 
     root.style.setProperty('--dex-trades-view-h', `${t.viewH}px`);
     root.style.setProperty('--dex-iframe-h', `${t.iframeH}px`);
@@ -108,6 +189,8 @@
     root.style.setProperty('--dex-iframe-width', `${t.width}%`);
     root.style.setProperty('--dex-mask-top-h', `${t.maskTop}px`);
     root.style.setProperty('--dex-mask-foot-h', `${t.maskFoot}px`);
+    root.style.setProperty('--dex-trades-clip-left', `${t.clipLeft || 0}px`);
+    root.style.setProperty('--dex-trades-clip-right', `${t.clipRight || 0}px`);
 
     const stage = document.querySelector('.chart-terminal--dex-embed .chart-stage');
     const chartIframe = document.querySelector('iframe.dex-embed-chart');
@@ -115,6 +198,7 @@
       stage.style.height = `${c.stageH}px`;
       stage.style.minHeight = `${c.stageH}px`;
       stage.style.maxHeight = `${c.stageH}px`;
+      applyClip(stage, c.clipLeft, c.clipRight);
     }
     if (chartIframe) {
       chartIframe.style.position = 'absolute';
@@ -124,6 +208,7 @@
       chartIframe.style.height = `${c.stageH + c.heightExtra + brandCrop}px`;
       chartIframe.style.maxWidth = 'none';
     }
+
     const wrap = document.getElementById('dexTradesWrap');
     const tradesIframe = document.getElementById('dexTradesEmbed');
     const maskTop = wrap?.querySelector('.dex-mask-top');
@@ -133,6 +218,7 @@
       wrap.style.height = `${t.viewH}px`;
       wrap.style.minHeight = `${t.viewH}px`;
       wrap.style.maxHeight = `${t.viewH}px`;
+      applyClip(wrap, t.clipLeft, t.clipRight);
     }
     if (tradesIframe) {
       tradesIframe.style.position = 'absolute';
@@ -165,7 +251,8 @@
   }
 
   let panelEl = null;
-  let current = clone(DEFAULTS);
+  let current = defaultBlock();
+  let editingProfile = 'web';
   let panelBuilt = false;
 
   function bindSlider(id, section, key, onChange) {
@@ -183,35 +270,70 @@
     input.addEventListener('change', handler);
   }
 
+  const SLIDER_MAP = [
+    ['cropChartStageH', 'chart', 'stageH'],
+    ['cropChartTop', 'chart', 'top'],
+    ['cropChartLeft', 'chart', 'left'],
+    ['cropChartWidth', 'chart', 'width'],
+    ['cropChartClipL', 'chart', 'clipLeft'],
+    ['cropChartClipR', 'chart', 'clipRight'],
+    ['cropChartExtra', 'chart', 'heightExtra'],
+    ['cropChartBrand', 'chart', 'brandCrop'],
+    ['cropTradesViewH', 'trades', 'viewH'],
+    ['cropTradesIframeH', 'trades', 'iframeH'],
+    ['cropTradesTop', 'trades', 'iframeTop'],
+    ['cropTradesLeft', 'trades', 'left'],
+    ['cropTradesWidth', 'trades', 'width'],
+    ['cropTradesClipL', 'trades', 'clipLeft'],
+    ['cropTradesClipR', 'trades', 'clipRight'],
+    ['cropTradesMaskTop', 'trades', 'maskTop'],
+    ['cropTradesMaskFoot', 'trades', 'maskFoot'],
+  ];
+
   function syncSlidersFromCurrent() {
     if (!current) return;
-    const map = [
-      ['cropChartStageH', current.chart.stageH],
-      ['cropChartTop', current.chart.top],
-      ['cropChartLeft', current.chart.left],
-      ['cropChartWidth', current.chart.width],
-      ['cropChartExtra', current.chart.heightExtra],
-      ['cropTradesViewH', current.trades.viewH],
-      ['cropTradesIframeH', current.trades.iframeH],
-      ['cropTradesTop', current.trades.iframeTop],
-      ['cropTradesLeft', current.trades.left],
-      ['cropTradesWidth', current.trades.width],
-      ['cropTradesMaskTop', current.trades.maskTop],
-      ['cropTradesMaskFoot', current.trades.maskFoot],
-    ];
-    map.forEach(([id, val]) => {
+    SLIDER_MAP.forEach(([id, sec, key]) => {
       const el = document.getElementById(id);
       const out = document.getElementById(`${id}Out`);
+      const val = current[sec][key];
       if (el) el.value = String(val);
       if (out) out.textContent = String(val);
     });
   }
 
-  function openPanel() {
-    if (!panelBuilt) buildPanel();
-    current = load();
+  function updateProfileTabs() {
+    panelEl?.querySelectorAll('[data-crop-profile]').forEach((btn) => {
+      const active = btn.getAttribute('data-crop-profile') === editingProfile;
+      btn.classList.toggle('active', active);
+      btn.setAttribute('aria-pressed', active ? 'true' : 'false');
+    });
+    const hint = document.getElementById('cropProfileHint');
+    if (hint) hint.textContent = PROFILE_META[editingProfile]?.hint || '';
+    const det = document.getElementById('cropDetectLabel');
+    if (det) {
+      const auto = detectProfile();
+      det.textContent = `Otomatik: ${PROFILE_META[auto]?.label || auto} (${window.innerWidth}×${window.innerHeight})`;
+    }
+  }
+
+  function switchProfile(nextId) {
+    if (!PROFILE_META[nextId] || nextId === editingProfile) return;
+    saveBlock(editingProfile, current);
+    editingProfile = nextId;
+    current = loadForProfile(editingProfile);
     syncSlidersFromCurrent();
     apply(current);
+    updateProfileTabs();
+    refreshPreview();
+  }
+
+  function openPanel() {
+    if (!panelBuilt) buildPanel();
+    editingProfile = detectProfile();
+    current = loadForProfile(editingProfile);
+    syncSlidersFromCurrent();
+    apply(current);
+    updateProfileTabs();
     panelEl.classList.remove('hidden');
     document.documentElement.classList.add('crop-panel-open');
     refreshPreview();
@@ -220,43 +342,65 @@
   function closePanel() {
     panelEl?.classList.add('hidden');
     document.documentElement.classList.remove('crop-panel-open');
+    apply(load());
   }
 
   function refreshPreview() {
     const pre = document.getElementById('cropJsonPreview');
-    if (pre && current) pre.textContent = JSON.stringify(current, null, 2);
+    if (!pre) return;
+    const store = loadStore();
+    store.profiles[editingProfile] = clone(current);
+    pre.textContent = JSON.stringify(
+      { activeProfile: detectProfile(), editingProfile, profiles: store.profiles },
+      null,
+      2,
+    );
   }
 
   function buildPanel() {
-    const c = DEFAULTS.chart;
-    const t = DEFAULTS.trades;
+    const c = DEFAULT_BLOCK.chart;
+    const t = DEFAULT_BLOCK.trades;
     panelEl = document.createElement('aside');
     panelEl.id = 'dexCropPanel';
     panelEl.className = 'dex-crop-panel hidden';
     panelEl.innerHTML = [
-      '<header class="dex-crop-head"><strong>Kırpma ayarı</strong>',
+      '<header class="dex-crop-head"><strong>Kırpma — 3 ekran</strong>',
       '<button type="button" class="crop-close" id="cropCloseBtn" aria-label="Kapat">✕</button></header>',
-      '<p class="crop-intro">Kaydırıcıyı oynat — altta anında değişir. <b>Kaydet</b> ile kalıcı olur.</p>',
-      '<section class="crop-section"><h3>Grafik</h3>',
-      sliderRow('Kutu yüksekliği', 'cropChartStageH', 260, 480, 2, c.stageH, ''),
-      sliderRow('Üst kaydır (px)', 'cropChartTop', -40, 20, 1, c.top, ''),
-      sliderRow('Sol (%)', 'cropChartLeft', -12, 8, 1, c.left, ''),
-      sliderRow('Genişlik (%)', 'cropChartWidth', 98, 115, 1, c.width, ''),
+      '<p class="crop-intro">Üstten profil seç → ayarla → <b>Kaydet</b>. Her cihaz için ayrı kayıt. JSON kopyala → koda sabitleyebiliriz.</p>',
+      '<p class="crop-detect" id="cropDetectLabel"></p>',
+      '<div class="crop-profile-tabs" role="tablist">',
+      ...Object.entries(PROFILE_META).map(
+        ([id, meta]) =>
+          `<button type="button" class="crop-profile-tab" data-crop-profile="${id}" role="tab">${meta.label}</button>`,
+      ),
+      `</${D}>`,
+      '<p class="crop-profile-hint" id="cropProfileHint"></p>',
+      '<section class="crop-section"><h3>Grafik (Dex embed)</h3>',
+      sliderRow('Kutu yüksekliği', 'cropChartStageH', 240, 480, 2, c.stageH, 'px'),
+      sliderRow('Üst kaydır', 'cropChartTop', -40, 24, 1, c.top, 'px'),
+      sliderRow('Sol kaydır (%)', 'cropChartLeft', -16, 12, 1, c.left, 'grafik konumu'),
+      sliderRow('Genişlik (%)', 'cropChartWidth', 88, 120, 1, c.width, 'daralt / genişlet'),
+      sliderRow('Sol kenar kırp', 'cropChartClipL', 0, 80, 1, c.clipLeft, 'px — soldan gizle'),
+      sliderRow('Sağ kenar kırp', 'cropChartClipR', 0, 80, 1, c.clipRight, 'px — sağdan gizle'),
+      sliderRow('Üst marka kırp', 'cropChartBrand', 0, 64, 1, c.brandCrop, 'dexscreener şeridi'),
       sliderRow('Ekstra yükseklik', 'cropChartExtra', 0, 48, 1, c.heightExtra, 'px'),
       '</section>',
       '<section class="crop-section"><h3>Canlı alım / satım</h3>',
-      sliderRow('Görünür yükseklik', 'cropTradesViewH', 200, 360, 2, t.viewH, 'px'),
+      sliderRow('Görünür yükseklik', 'cropTradesViewH', 180, 360, 2, t.viewH, 'px'),
       sliderRow('Iframe yükseklik', 'cropTradesIframeH', 700, 1200, 5, t.iframeH, 'px'),
-      sliderRow('Iframe üst', 'cropTradesTop', -1100, -400, 5, t.iframeTop, 'negatif = tablo'),
-      sliderRow('Sol (%)', 'cropTradesLeft', -12, 8, 1, t.left, ''),
-      sliderRow('Genişlik (%)', 'cropTradesWidth', 98, 115, 1, t.width, ''),
+      sliderRow('Iframe üst', 'cropTradesTop', -1100, -400, 5, t.iframeTop, 'negatif'),
+      sliderRow('Sol kaydır (%)', 'cropTradesLeft', -16, 12, 1, t.left, ''),
+      sliderRow('Genişlik (%)', 'cropTradesWidth', 88, 120, 1, t.width, ''),
+      sliderRow('Sol kenar kırp', 'cropTradesClipL', 0, 80, 1, t.clipLeft, 'px'),
+      sliderRow('Sağ kenar kırp', 'cropTradesClipR', 0, 80, 1, t.clipRight, 'px'),
       sliderRow('Üst maske', 'cropTradesMaskTop', 0, 80, 1, t.maskTop, 'px'),
       sliderRow('Alt maske', 'cropTradesMaskFoot', 0, 60, 1, t.maskFoot, 'px'),
       '</section>',
       `<${D} class="crop-actions">`,
-      '<button type="button" class="crop-btn crop-btn-save" id="cropSaveBtn">Kaydet</button>',
-      '<button type="button" class="crop-btn" id="cropCopyBtn">JSON kopyala</button>',
-      '<button type="button" class="crop-btn crop-btn-muted" id="cropResetBtn">Sıfırla</button>',
+      '<button type="button" class="crop-btn crop-btn-save" id="cropSaveBtn">Profili kaydet</button>',
+      '<button type="button" class="crop-btn" id="cropCopyBtn">Tüm JSON</button>',
+      '<button type="button" class="crop-btn crop-btn-muted" id="cropResetProfBtn">Profil sıfır</button>',
+      '<button type="button" class="crop-btn crop-btn-muted" id="cropResetAllBtn">Hepsi sıfır</button>',
       `</${D}>`,
       '<pre class="crop-json" id="cropJsonPreview"></pre>',
     ].join('');
@@ -267,38 +411,40 @@
       refreshPreview();
     };
 
-    [
-      ['cropChartStageH', 'chart', 'stageH'],
-      ['cropChartTop', 'chart', 'top'],
-      ['cropChartLeft', 'chart', 'left'],
-      ['cropChartWidth', 'chart', 'width'],
-      ['cropChartExtra', 'chart', 'heightExtra'],
-      ['cropTradesViewH', 'trades', 'viewH'],
-      ['cropTradesIframeH', 'trades', 'iframeH'],
-      ['cropTradesTop', 'trades', 'iframeTop'],
-      ['cropTradesLeft', 'trades', 'left'],
-      ['cropTradesWidth', 'trades', 'width'],
-      ['cropTradesMaskTop', 'trades', 'maskTop'],
-      ['cropTradesMaskFoot', 'trades', 'maskFoot'],
-    ].forEach(([id, sec, key]) => bindSlider(id, sec, key, onLive));
+    SLIDER_MAP.forEach(([id, sec, key]) => bindSlider(id, sec, key, onLive));
+
+    panelEl.querySelectorAll('[data-crop-profile]').forEach((btn) => {
+      btn.addEventListener('click', () => switchProfile(btn.getAttribute('data-crop-profile')));
+    });
 
     document.getElementById('cropCloseBtn')?.addEventListener('click', closePanel);
     document.getElementById('cropSaveBtn')?.addEventListener('click', () => {
-      save(current);
-      toast('Kaydedildi');
+      saveBlock(editingProfile, current);
+      toast(`${PROFILE_META[editingProfile].label} kaydedildi`);
     });
-    document.getElementById('cropResetBtn')?.addEventListener('click', () => {
-      current = reset();
+    document.getElementById('cropResetProfBtn')?.addEventListener('click', () => {
+      current = resetProfile(editingProfile);
       syncSlidersFromCurrent();
       apply(current);
       refreshPreview();
-      toast('Sıfırlandı');
+      toast('Bu profil sıfırlandı');
+    });
+    document.getElementById('cropResetAllBtn')?.addEventListener('click', () => {
+      current = reset();
+      editingProfile = detectProfile();
+      current = loadForProfile(editingProfile);
+      syncSlidersFromCurrent();
+      updateProfileTabs();
+      refreshPreview();
+      toast('Tüm profiller sıfır');
     });
     document.getElementById('cropCopyBtn')?.addEventListener('click', async () => {
-      const text = JSON.stringify(current, null, 2);
+      const store = loadStore();
+      store.profiles[editingProfile] = clone(current);
+      const text = JSON.stringify(store, null, 2);
       try {
         await navigator.clipboard.writeText(text);
-        toast('JSON kopyalandı');
+        toast('3 profil JSON kopyalandı');
       } catch {
         toast('Alttaki JSON\'u kopyala');
       }
@@ -342,6 +488,10 @@
   function init() {
     apply(load());
     addCalibrateButton();
+    window.addEventListener('resize', () => {
+      if (!document.getElementById('dexCropPanel')?.classList.contains('hidden')) return;
+      apply(load());
+    });
     if (isCalibrateMode()) {
       setTimeout(() => {
         addCalibrateButton();
@@ -361,9 +511,14 @@
 
   global.SniperDexCrop = {
     STORAGE_KEY,
-    DEFAULTS,
+    PROFILE_META,
+    DEFAULT_BLOCK,
+    detectProfile,
+    loadStore,
+    loadForProfile,
     load,
-    save,
+    saveBlock,
+    resetProfile,
     reset,
     apply,
     openPanel,
