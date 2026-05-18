@@ -182,9 +182,19 @@
     initScannerHome();
   }
 
+  function ensureDetailSpacer() {
+    const body = document.querySelector('.detail-body');
+    if (!body || body.querySelector('.detail-end-spacer')) return;
+    const sp = document.createElement('div');
+    sp.className = 'detail-end-spacer';
+    sp.setAttribute('aria-hidden', 'true');
+    body.appendChild(sp);
+  }
+
   function showDetailView() {
     hideAllViews();
     $('view-detail')?.classList.remove('hidden');
+    ensureDetailSpacer();
     refreshTgViewport();
   }
 
@@ -821,9 +831,9 @@
       return;
     }
     const sig = rows.map((t) => t.id || `${t.txHash}-${t.at}`).join('|');
+    wrap.classList.remove('hidden');
     if (sig === lastTradesSig) {
-      wrap.classList.remove('hidden');
-      if (meta) meta.textContent = `${rows.length} işlem`;
+      if (meta) meta.textContent = `${rows.length} işlem · canlı`;
       return;
     }
     lastTradesSig = sig;
@@ -847,14 +857,22 @@
     if (!mint) return;
     const pool = m?.poolAddress || '';
     const q = pool ? `?pool=${encodeURIComponent(pool)}` : '';
-    const res = await fetch(apiPath(`/api/trades/${encodeURIComponent(mint)}${q}`));
-    if (!res.ok) return;
-    const body = await res.json();
-    renderTradeTape(body.trades || []);
+    try {
+      const res = await fetch(apiPath(`/api/trades/${encodeURIComponent(mint)}${q}`));
+      if (!res.ok) throw new Error('trades');
+      const body = await res.json();
+      renderTradeTape(body.trades || []);
+    } catch {
+      const wrap = $('tradesTape');
+      if (wrap) wrap.classList.remove('hidden');
+      renderTradeTape(m?.recentTrades || []);
+    }
   }
 
   function startTradesPoll(m) {
     stopTradesPoll();
+    const tape = $('tradesTape');
+    if (tape) tape.classList.remove('hidden');
     renderTradeTape(m?.recentTrades || []);
     const mint = m?.address || appData?.address;
     if (!mint) return;

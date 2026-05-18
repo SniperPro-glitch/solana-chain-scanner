@@ -1,4 +1,5 @@
 :root {
+  --trade-bar-h: 84px;
   --bg: #020817;
   --bg2: #0a1018;
   --glass: rgba(12, 20, 32, 0.85);
@@ -461,8 +462,14 @@ html, body {
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   padding-top: 0;
-  padding-bottom: calc(76px + var(--tg-safe-bottom, env(safe-area-inset-bottom, 0px)));
+  padding-bottom: calc(var(--trade-bar-h) + var(--tg-safe-bottom, env(safe-area-inset-bottom, 0px)) + 16px);
   box-sizing: border-box;
+}
+
+.detail-end-spacer {
+  height: var(--trade-bar-h);
+  flex-shrink: 0;
+  pointer-events: none;
 }
 
 .detail-top {
@@ -510,6 +517,7 @@ html, body {
 .detail-body {
   --detail-pad: 10px;
   padding: 10px var(--detail-pad) 8px;
+  padding-bottom: calc(var(--trade-bar-h) + 24px);
   box-sizing: border-box;
   max-width: 100%;
   overflow-x: hidden;
@@ -739,13 +747,17 @@ html, body {
 .txn-buy { display: block; height: 100%; background: var(--green); border-radius: 999px; min-width: 2px; }
 
 .trades-tape {
-  --trade-row-h: 40px;
-  padding: 10px 10px 8px;
-  margin-bottom: 12px;
-  min-height: calc(var(--trade-row-h) * 6 + 52px);
+  --trade-row-h: 44px;
+  padding: 12px 10px 10px;
+  margin-bottom: 14px;
+  min-height: calc(var(--trade-row-h) * 6 + 56px);
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  overflow: visible;
+  position: relative;
+  z-index: 5;
+  border: 1px solid rgba(0, 229, 255, 0.2);
+  box-shadow: 0 0 20px rgba(0, 229, 255, 0.06);
 }
 
 .trades-thead,
@@ -799,16 +811,16 @@ html, body {
 
 .chart-terminal--dex-embed .dex-embed-chart {
   position: absolute;
-  top: -32px;
-  left: -5%;
-  width: 110% !important;
-  max-width: none !important;
-  height: calc(var(--chart-embed-h) + 36px) !important;
+  top: -8px;
+  left: 0;
+  width: 100% !important;
+  max-width: 100% !important;
+  height: calc(var(--chart-embed-h) + 20px) !important;
   min-height: 0 !important;
   margin: 0 !important;
   border: 0;
   display: block;
-  transform: translateX(-2px);
+  transform: none;
 }
 
 .trade-row.trade-placeholder {
@@ -863,9 +875,10 @@ html, body {
   margin: 0;
   padding: 0;
   overflow-y: auto;
-  flex: 1;
-  min-height: calc(var(--trade-row-h, 34px) * 6);
-  max-height: calc(var(--trade-row-h, 34px) * 10);
+  flex: none;
+  height: calc(var(--trade-row-h, 44px) * 6);
+  min-height: calc(var(--trade-row-h, 44px) * 6);
+  max-height: calc(var(--trade-row-h, 44px) * 6);
   -webkit-overflow-scrolling: touch;
 }
 
@@ -1123,15 +1136,17 @@ html, body {
   left: 0;
   right: 0;
   bottom: 0;
+  width: 100%;
   max-width: 480px;
   margin: 0 auto;
   display: flex;
   gap: 8px;
   padding: 10px 14px calc(10px + env(safe-area-inset-bottom));
-  background: rgba(5, 8, 10, 0.96);
+  background: rgba(5, 8, 10, 0.98);
   border-top: 1px solid var(--border-strong);
   backdrop-filter: blur(14px);
-  z-index: 60;
+  z-index: 50;
+  box-sizing: border-box;
 }
 
 .trade-bar a {
@@ -1257,16 +1272,16 @@ html.web-browser .chart-terminal--dex-embed .chart-stage {
 
 html.tg-mini-app .chart-terminal--dex-embed .dex-embed-chart,
 html.web-browser .chart-terminal--dex-embed .dex-embed-chart {
-  top: -28px;
-  left: -6%;
-  width: 112% !important;
-  height: calc(var(--chart-embed-h) + 32px) !important;
-  transform: translateX(-4px);
+  top: -6px;
+  left: 0;
+  width: 100% !important;
+  height: calc(var(--chart-embed-h) + 18px) !important;
+  transform: none;
 }
 
 html.tg-mini-app .trades-tape,
 html.web-browser .trades-tape {
-  --trade-row-h: 42px;
+  --trade-row-h: 44px;
   min-height: calc(var(--trade-row-h) * 6 + 56px);
 }
 
@@ -1278,8 +1293,19 @@ html.web-browser .chart-terminal:not(.chart-terminal--dex-embed) .chart-canvas {
 
 html.tg-mini-app .trades-list,
 html.web-browser .trades-list {
+  height: calc(var(--trade-row-h) * 6);
   min-height: calc(var(--trade-row-h) * 6);
-  max-height: calc(var(--trade-row-h) * 8);
+  max-height: calc(var(--trade-row-h) * 6);
+}
+
+html.web-browser .view-detail,
+html.web-browser .scanner-home {
+  max-width: 100%;
+  width: 100%;
+}
+
+html.web-browser .trade-bar {
+  max-width: 100%;
 }
 
 html.tg-mini-app .metrics-dashboard,
@@ -1303,11 +1329,15 @@ html.web-browser .panel-stack {
 }
 
 html.web-browser .scanner-home,
-html.web-browser .view-detail,
 html.web-browser .boot-screen {
   max-width: min(100vw, 480px);
   margin-left: auto;
   margin-right: auto;
+}
+
+html.web-browser .view-detail {
+  max-width: 100%;
+  margin: 0;
 }
 
 html.web-browser .bottom-nav,
