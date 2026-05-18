@@ -7,9 +7,15 @@ function isMiniAppOnlyMode() {
 }
 
 function normalizePublicUrl(raw) {
-  let u = String(raw || '').trim().replace(/\/$/, '');
+  let u = String(raw || '').trim().replace(/\/+$/, '');
   if (!u || /^\$\{\{/.test(u)) return '';
-  if (!/^https?:\/\//i.test(u)) u = `https://${u}`;
+  // Railway bazen //domain veya https:////domain verir
+  if (/^\/\//.test(u) && !/^https?:\/\//i.test(u)) {
+    u = `https:${u}`;
+  } else if (!/^https?:\/\//i.test(u)) {
+    u = `https://${u.replace(/^\/+/, '')}`;
+  }
+  u = u.replace(/^(https?:\/\/)\/+/, '$1');
   return u;
 }
 

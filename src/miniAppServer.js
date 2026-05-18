@@ -307,10 +307,8 @@ function createMiniAppServer() {
 }
 
 function normalizePublicUrl(raw) {
-  let u = String(raw || '').trim().replace(/\/$/, '');
-  if (!u) return '';
-  if (!/^https?:\/\//i.test(u)) u = `https://${u}`;
-  return u;
+  const { normalizePublicUrl: norm } = require('../scripts/railway-env');
+  return norm(raw);
 }
 
 function getWebAppBaseUrl() {

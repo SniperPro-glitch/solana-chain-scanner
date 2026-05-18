@@ -512,8 +512,10 @@ async function sendBotAnalysisFollowup(ch, cmEntry, token, audit, lang, cardLeve
     } else {
       console.log(`[report] mevcut id=${reportId} sembol=${sym}`);
     }
-    const { recordMiniAppShare } = require('./recordMiniAppShare');
-    recordMiniAppShare(ch, token, audit, lang, cardLevel, reportId);
+    if (!opts.reportId) {
+      const { recordMiniAppShare } = require('./recordMiniAppShare');
+      recordMiniAppShare(ch, token, audit, lang, cardLevel, reportId);
+    }
     const webAppUrl = opts.dexAppUrl || buildWebAppUrl(reportId);
     if (webAppUrl && /^https:\/\//i.test(webAppUrl)) {
       replyMarkup = {
