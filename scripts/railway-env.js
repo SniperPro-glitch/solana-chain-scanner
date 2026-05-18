@@ -26,21 +26,25 @@ function normalizeBotApiUrl(raw) {
 
 function getBotApiCandidatesFromEnv() {
   const out = [];
-  const pub = normalizeBotApiUrl(
-    process.env.BOT_API_URL || process.env.SCAN_BOT_API_URL || '',
-  );
-  if (pub) out.push(pub);
-
-  const privUrl = normalizeBotApiUrl(process.env.BOT_API_PRIVATE_URL || '');
-  if (privUrl) out.push(privUrl);
-
   const privDom = String(process.env.BOT_RAILWAY_PRIVATE_DOMAIN || '').trim();
   if (privDom && !/^\$\{\{/.test(privDom)) {
     const port = String(process.env.BOT_SERVICE_PORT || '8080').trim();
     out.push(`http://${privDom}:${port}`);
   }
 
+  const privUrl = normalizeBotApiUrl(process.env.BOT_API_PRIVATE_URL || '');
+  if (privUrl) out.push(privUrl);
+
+  const pub = normalizeBotApiUrl(
+    process.env.BOT_API_URL || process.env.SCAN_BOT_API_URL || '',
+  );
+  if (pub) out.push(pub);
+
   return [...new Set(out)];
+}
+
+function dexHasSharedDatabase() {
+  return !!resolveDatabaseUrl();
 }
 
 function buildPgUrlFromParts() {
@@ -126,7 +130,17 @@ function applyRailwayEnv() {
     const bot = normalizeBotApiUrl(process.env.BOT_API_URL || '');
     if (web && bot && web === bot) {
       console.warn(
-        '[railway-env] ⚠️ BOT_API_URL = WEB_APP_URL (DEX kendine proxy) — BOT_API_URL bot servisinin domain\'i olmalı',
+        '[railway-env] ⚠️ BOT_API_URL = WEB_APP_URL (proxy döngüsü / timeout) — aynı domain iki serviste olamaz',
+      );
+    }
+
+    if (dexHasSharedDatabase()) {
+      console.log(
+        '[railway-env] DEX + Postgres: rapor/liste DB\'den — BOT_API_URL proxy kapalı (önerilen)',
+      );
+    } else if (!getBotApiCandidatesFromEnv().length) {
+      console.warn(
+        '[railway-env] DEX: DATABASE_URL veya BOT_RAILWAY_PRIVATE_DOMAIN ekleyin',
       );
     }
   }
@@ -134,6 +148,10 @@ function applyRailwayEnv() {
 
 async function probeBotApiFromDex() {
   if (!isMiniAppOnlyMode()) return;
+  if (dexHasSharedDatabase()) {
+    console.log('[dex] Postgres aktif — HTTP bot probe atlandı');
+    return;
+  }
   const candidates = getBotApiCandidatesFromEnv();
   if (!candidates.length) return;
 
@@ -167,4 +185,5 @@ module.exports = {
   getBotApiCandidatesFromEnv,
   probeBotApiFromDex,
   isMiniAppOnlyMode,
+  dexHasSharedDatabase,
 };

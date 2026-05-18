@@ -61,6 +61,56 @@ function getBotApiCandidates() {
   return single ? [single] : [];
 }
 
+function isDexProxyLoop(req) {
+  const reqHost = String(req?.headers?.host || '').split(':')[0].toLowerCase();
+  if (!reqHost) return false;
+  for (const base of getBotApiCandidates()) {
+    try {
+      if (new URL(base).hostname.toLowerCase() === reqHost) return true;
+    } catch {
+      /* yoksay */
+    }
+  }
+  const web = getWebAppBaseUrl();
+  try {
+    if (web && new URL(web).hostname.toLowerCase() === reqHost) {
+      const bot = getBotApiBaseUrl();
+      if (bot && new URL(bot).hostname.toLowerCase() === reqHost) return true;
+    }
+  } catch {
+    /* yoksay */
+  }
+  return false;
+}
+
+function shouldUseBotHttpProxy(req) {
+  try {
+    const pg = require('./pgClient');
+    const { dexHasSharedDatabase } = require('../scripts/railway-env');
+    if (pg.enabled() || dexHasSharedDatabase()) return false;
+  } catch {
+    /* yoksay */
+  }
+  const candidates = getBotApiCandidates();
+  if (!candidates.length) return false;
+
+  if (isDexProxyLoop(req)) {
+    console.warn(
+      `[miniApp] proxy atlandı: BOT_API_URL bu servisin domain'i — döngü/timeout riski`,
+    );
+    return false;
+  }
+  return true;
+}
+
+function sendDexMisconfig(res) {
+  sendJson(res, 502, {
+    error: 'dex_misconfigured',
+    message:
+      'DEX ve bot aynı public domain\'de. DEX Variables: DATABASE_URL=${{ Postgres.DATABASE_URL }} veya BOT_RAILWAY_PRIVATE_DOMAIN kullanın.',
+  });
+}
+
 async function proxyBotApi(res, url) {
   const candidates = getBotApiCandidates();
   if (!candidates.length) return false;
@@ -72,7 +122,7 @@ async function proxyBotApi(res, url) {
       const r = await fetch(target, {
         method: 'GET',
         headers: { Accept: 'application/json' },
-        signal: AbortSignal.timeout(20000),
+        signal: AbortSignal.timeout(45000),
       });
       const text = await r.text();
       if (candidates.length > 1 && botBase !== candidates[0]) {
@@ -132,8 +182,21 @@ function createMiniAppServer() {
         return;
       }
 
-      if (req.method === 'GET' && getBotApiBaseUrl() && shouldProxyToBot(url.pathname)) {
-        if (await proxyBotApi(res, url)) return;
+      if (req.method === 'GET' && shouldProxyToBot(url.pathname)) {
+        if (shouldUseBotHttpProxy(req)) {
+          if (await proxyBotApi(res, url)) return;
+        } else {
+          try {
+            const pg = require('./pgClient');
+            if (!pg.enabled()) {
+              sendDexMisconfig(res);
+              return;
+            }
+          } catch {
+            sendDexMisconfig(res);
+            return;
+          }
+        }
       }
 
       const apiMatch = url.pathname.match(/^\/api\/report\/([A-Za-z0-9_-]+)$/);
