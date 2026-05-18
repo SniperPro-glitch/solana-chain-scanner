@@ -805,7 +805,9 @@
     if (!wrap || !list) return;
     const rows = Array.isArray(trades) ? trades : [];
     if (!rows.length) {
-      wrap.classList.add('hidden');
+      wrap.classList.remove('hidden');
+      if (meta) meta.textContent = 'yükleniyor…';
+      list.innerHTML = '<li class="trade-row trade-placeholder"><span>İşlemler yükleniyor…</span></li>';
       return;
     }
     const sig = rows.map((t) => t.id || `${t.txHash}-${t.at}`).join('|');
@@ -861,6 +863,7 @@
       theme: 'dark',
       trades: '0',
       info: '0',
+      tabs: '0',
       chartLeftToolbar: '0',
       chartTheme: 'dark',
       chartType: 'candle',
@@ -875,7 +878,7 @@
 
   function showDexEmbedChart(container, m, note, tf) {
     const poolRef = m?.poolAddress || m?.address;
-    const embed = m?.chart?.dexScreenerEmbedUrl || dexEmbedUrlFor(poolRef, tf);
+    const embed = dexEmbedUrlFor(poolRef, tf);
     const page = m?.chart?.dexScreenerPageUrl || m?.dexScreenerUrl;
     if (embed) {
       setChartEmbedMode(true);

@@ -76,6 +76,7 @@ function dexScreenerChartEmbedUrl(poolOrMint, timeframe = '15m') {
     theme: 'dark',
     trades: '0',
     info: '0',
+    tabs: '0',
     chartLeftToolbar: '0',
     chartTheme: 'dark',
     chartType: 'candle',

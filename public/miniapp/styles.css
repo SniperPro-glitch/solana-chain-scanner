@@ -456,12 +456,12 @@ html, body {
   max-width: 100%;
   margin: 0;
   min-height: var(--app-height, 100dvh);
-  height: var(--app-height, 100dvh);
+  height: auto;
   overflow-x: hidden;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   padding-top: 0;
-  padding-bottom: calc(var(--trade-h) + var(--tg-safe-bottom, env(safe-area-inset-bottom, 0px)));
+  padding-bottom: calc(76px + var(--tg-safe-bottom, env(safe-area-inset-bottom, 0px)));
   box-sizing: border-box;
 }
 
@@ -633,44 +633,6 @@ html, body {
 
 .chart-terminal { margin-bottom: 12px; }
 
-/* Grafik paneli — kenardan kenara (DexScreener embed iç boşluklarını kırp) */
-.chart-terminal--bleed {
-  margin-left: calc(-1 * var(--detail-pad, 10px));
-  margin-right: calc(-1 * var(--detail-pad, 10px));
-  width: calc(100% + 2 * var(--detail-pad, 10px));
-  max-width: none;
-  border-left: none;
-  border-right: none;
-  border-radius: 14px;
-}
-
-.chart-terminal--bleed .chart-toolbar,
-.chart-terminal--bleed .ohlc-bar {
-  padding-left: 12px;
-  padding-right: 12px;
-}
-
-.chart-terminal--bleed .chart-stage {
-  position: relative;
-  overflow: hidden;
-  background: #0a0e1a;
-  line-height: 0;
-  min-height: min(52vh, 400px);
-}
-
-.chart-terminal--bleed .chart-canvas {
-  height: min(52vh, 400px);
-  min-height: 300px;
-  width: 100%;
-  max-width: 100%;
-  overflow: hidden;
-}
-
-.chart-terminal--bleed .chart-source {
-  padding-left: 12px;
-  padding-right: 12px;
-}
-
 .chart-toolbar {
   display: flex;
   justify-content: space-between;
@@ -785,9 +747,52 @@ html, body {
   flex-direction: column;
 }
 
+.chart-terminal--dex-embed .chart-toolbar,
 .chart-terminal--dex-embed .ohlc-bar,
-.chart-terminal--dex-embed .chart-type-group {
+.chart-terminal--dex-embed .chart-type-group,
+.chart-terminal--dex-embed .chart-source {
   display: none !important;
+}
+
+/* Dex embed: sadece mum grafiği — alt işlem paneli kırpılır */
+.chart-terminal--dex-embed .chart-stage {
+  --chart-embed-h: clamp(240px, 36vh, 360px);
+  height: var(--chart-embed-h);
+  min-height: var(--chart-embed-h);
+  max-height: var(--chart-embed-h);
+  overflow: hidden;
+  position: relative;
+  background: #0a0e1a;
+}
+
+.chart-terminal--dex-embed .chart-canvas {
+  height: 100%;
+  min-height: 0;
+  max-height: 100%;
+  overflow: hidden;
+  position: relative;
+}
+
+.chart-terminal--dex-embed .dex-embed-chart {
+  position: absolute;
+  top: -108px;
+  left: 0;
+  width: 100% !important;
+  max-width: 100% !important;
+  height: calc(var(--chart-embed-h) + 280px) !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+  border: 0;
+  display: block;
+}
+
+.trade-row.trade-placeholder {
+  display: block;
+  text-align: center;
+  color: var(--muted);
+  font-size: 12px;
+  padding: 12px 0;
+  grid-column: 1 / -1;
 }
 
 .trades-head {
@@ -1169,8 +1174,6 @@ html, body {
   width: 100%;
   max-width: 100%;
   margin: 0;
-  min-height: 320px;
-  height: min(56vh, 440px);
   border: 0;
   border-radius: 0;
   background: #0a0e1a;
@@ -1178,109 +1181,74 @@ html, body {
   vertical-align: top;
 }
 
-/* ── Telegram Mini App: büyük grafik, üst boşluk kırpma, 6+ işlem ── */
+/* Telegram + web: taşma yok, büyük işlem listesi */
 html.tg-mini-app .view-detail,
-html.tg-mini-app .detail-body {
+html.tg-mini-app .detail-body,
+html.web-browser .view-detail,
+html.web-browser .detail-body {
   overflow-x: hidden;
   max-width: 100%;
 }
 
-html.tg-mini-app .detail-body {
-  --detail-pad: 8px;
-}
-
-html.tg-mini-app .detail-top {
-  padding-top: calc(8px + min(var(--tg-content-safe-top, 0px), 18px));
+html.tg-mini-app .detail-top,
+html.web-browser .detail-top {
+  padding-top: calc(8px + min(var(--tg-content-safe-top, 0px), 16px));
   padding-left: 12px;
   padding-right: 12px;
 }
 
-html.tg-mini-app .hero-card {
+html.tg-mini-app .hero-card,
+html.web-browser .hero-card {
   padding: 12px;
   margin-bottom: 8px;
 }
 
-html.tg-mini-app .hero-top {
-  margin-bottom: 8px;
+html.tg-mini-app .hero-price,
+html.web-browser .hero-price {
+  font-size: 26px;
 }
 
-html.tg-mini-app .hero-price {
-  font-size: 28px;
+html.tg-mini-app .chart-terminal--dex-embed .chart-stage,
+html.web-browser .chart-terminal--dex-embed .chart-stage {
+  --chart-embed-h: clamp(260px, 40vh, 400px);
 }
 
-html.tg-mini-app .logo-wrap,
-html.tg-mini-app .token-avatar {
-  width: 48px;
-  height: 48px;
+html.tg-mini-app .chart-terminal--dex-embed .dex-embed-chart,
+html.web-browser .chart-terminal--dex-embed .dex-embed-chart {
+  top: -112px;
+  height: calc(var(--chart-embed-h) + 300px) !important;
 }
 
-html.tg-mini-app .chart-terminal--bleed {
-  margin-left: calc(-1 * var(--detail-pad, 8px));
-  margin-right: calc(-1 * var(--detail-pad, 8px));
-  width: calc(100% + 2 * var(--detail-pad, 8px));
-  max-width: 100%;
-  overflow: hidden;
+html.tg-mini-app .trades-tape,
+html.web-browser .trades-tape {
+  --trade-row-h: 38px;
+  min-height: calc(var(--trade-row-h) * 6 + 44px);
 }
 
-html.tg-mini-app .chart-terminal--bleed .chart-stage {
-  min-height: clamp(280px, 50vh, 480px);
-  height: clamp(280px, 50vh, 480px);
-}
-
-html.tg-mini-app .chart-terminal--bleed .chart-canvas {
-  height: 100%;
-  min-height: 0;
-}
-
-html.tg-mini-app .chart-terminal--dex-embed .chart-stage .dex-embed-chart,
-html.tg-mini-app .dex-embed-chart {
-  width: 110%;
-  max-width: none;
-  margin-left: -5%;
-  height: calc(100% + 80px);
-  min-height: calc(100% + 40px);
-  margin-top: -72px;
-}
-
-html.tg-mini-app .trades-tape {
-  --trade-row-h: 36px;
-  min-height: calc(var(--trade-row-h) * 6 + 42px);
-}
-
-html.tg-mini-app .trades-list {
+html.tg-mini-app .trades-list,
+html.web-browser .trades-list {
   min-height: calc(var(--trade-row-h) * 6);
-  max-height: calc(var(--trade-row-h) * 10);
+  max-height: calc(var(--trade-row-h) * 8);
 }
 
-html.tg-mini-app .trades-list li {
-  font-size: 13px;
-  padding: 6px 0;
-}
-
-html.tg-mini-app .trade-side {
-  font-size: 12px;
-}
-
-html.tg-mini-app .metrics-dashboard {
+html.tg-mini-app .metrics-dashboard,
+html.web-browser .metrics-dashboard {
   gap: 6px;
   margin-bottom: 8px;
 }
 
-html.tg-mini-app .metric-cell {
+html.tg-mini-app .metric-cell,
+html.web-browser .metric-cell {
   padding: 10px 8px;
 }
 
-html.tg-mini-app .metric-cell .value {
+html.tg-mini-app .metric-cell .value,
+html.web-browser .metric-cell .value {
   font-size: 14px;
 }
 
-/* Tarayıcı: kenar taşması yok */
-html.web-browser .chart-terminal--bleed {
-  margin-left: 0;
-  margin-right: 0;
-  width: 100%;
-  border-left: 1px solid var(--border);
-  border-right: 1px solid var(--border);
+html.web-browser .panel-stack {
+  padding-bottom: 4px;
 }
 
 html.web-browser .scanner-home,
@@ -1294,11 +1262,13 @@ html.web-browser .boot-screen {
 html.web-browser .bottom-nav,
 html.web-browser .market-footer,
 html.web-browser .trade-bar {
-  left: 50%;
-  right: auto;
-  transform: translateX(-50%);
-  width: min(100vw, 480px);
-  max-width: 480px;
+  left: 0;
+  right: 0;
+  transform: none;
+  width: 100%;
+  max-width: min(100vw, 480px);
+  margin-left: auto;
+  margin-right: auto;
 }
 
 html.web-browser .token-table-scroll {
