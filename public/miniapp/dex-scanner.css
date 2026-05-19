@@ -275,7 +275,7 @@ html.tg-mini-app body {
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  min-height: 124px;
+  min-height: 52px;
   padding:
     calc(10px + var(--tg-content-safe-top, 0px))
     calc(12px + var(--tg-content-safe-right, 0px))
@@ -300,10 +300,10 @@ html.tg-mini-app body {
 }
 
 .brand-logo {
-  width: 108px;
-  height: 108px;
+  width: 54px;
+  height: 54px;
   flex-shrink: 0;
-  border-radius: 12px;
+  border-radius: 10px;
   object-fit: contain;
   object-position: center center;
   border: 1px solid rgba(0, 229, 255, 0.28);
