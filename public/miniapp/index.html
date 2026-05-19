@@ -16,7 +16,7 @@
     }
   </script>
   <link rel="stylesheet" href="styles.css?v=42" />
-  <link rel="stylesheet" href="dex-scanner.css?v=15" />
+  <link rel="stylesheet" href="dex-scanner.css?v=16" />
   <link rel="stylesheet" href="dex-scanner-radar.css?v=1" />
 </head>
 <body>
@@ -37,12 +37,14 @@
     <header class="scan-header">
       <div class="scan-brand">
         <img
-          src="assets/sniper-logo.png?v=1"
+          src="assets/sniper-logo.png"
+          srcset="assets/sniper-logo.png 1x, assets/sniper-logo@2x.png 2x, assets/sniper-logo@3x.png 3x"
           alt="SNIPER DEX SCANNER"
           class="brand-logo"
           width="108"
           height="108"
           decoding="async"
+          fetchpriority="high"
         />
         <div class="brand-titles brand-titles--hidden" aria-hidden="true">
           <span class="brand-main">SNIPER</span>

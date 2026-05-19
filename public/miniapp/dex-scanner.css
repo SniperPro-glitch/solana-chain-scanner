@@ -304,11 +304,12 @@ html.tg-mini-app body {
   height: 108px;
   flex-shrink: 0;
   border-radius: 12px;
-  object-fit: cover;
-  object-position: center 15%;
+  object-fit: contain;
+  object-position: center center;
   border: 1px solid rgba(0, 229, 255, 0.28);
   box-shadow: 0 0 18px rgba(0, 229, 255, 0.22);
   background: #000;
+  image-rendering: auto;
 }
 
 .brand-titles--hidden {
