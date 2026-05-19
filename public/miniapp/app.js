@@ -156,15 +156,11 @@
     orca: 'assets/dex-orca.png?v=8',
   };
 
-  /** Token avatar köşesi */
-  const SWAP_PIN_SRC = 'assets/swap-pin.png?v=1';
-  /** Alt satır — PumpSwap yazısının solu (mini kapsül) */
+  /** Alt satır — Pump.fun / PumpSwap yazısının solu (kapsül) */
   const SWAP_BADGE_SRC = 'assets/swap-badge.png?v=2';
 
-  function swapPinHtml(dexKey) {
-    if (dexKey === 'pumpswap' || dexKey === 'pumpfun') {
-      return `<img class="tr-dex-pin" src="${SWAP_PIN_SRC}" alt="" width="20" height="20" loading="lazy" decoding="async" />`;
-    }
+  function avatarCornerHtml(dexKey) {
+    if (dexKey === 'pumpswap' || dexKey === 'pumpfun') return '';
     return '<span class="tr-chain-dot" aria-hidden="true">◎</span>';
   }
 
@@ -191,7 +187,7 @@
     const up24 = chg24 == null ? true : Number(chg24) >= 0;
     const pairShort = escHtml((item.pairLabel || 'SOL').replace(/^.*\//, '') || 'SOL');
     const dexKey = item.dexPlatform || 'other';
-    const pin = swapPinHtml(dexKey);
+    const pin = avatarCornerHtml(dexKey);
     const avatar = item.imageUrl
       ? `<span class="tr-avatar-wrap"><img class="tr-img" src="${escHtml(item.imageUrl)}" alt="" loading="lazy" data-fb="${escHtml((item.imageFallbacks || []).join('|'))}" />${pin}</span>`
       : `<span class="tr-avatar-wrap"><span class="tr-avatar">${escHtml((item.symbol || '?').slice(0, 2))}</span>${pin}</span>`;
