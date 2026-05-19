@@ -18,7 +18,7 @@
   <link rel="stylesheet" href="styles.css?v=42" />
   <link rel="stylesheet" href="dex-scanner.css?v=29" />
   <link rel="stylesheet" href="dex-scanner-radar.css?v=1" />
-  <link rel="stylesheet" href="dex-sidebar.css?v=1" />
+  <link rel="stylesheet" href="dex-sidebar.css?v=2" />
 </head>
 <body>
   <div id="dexSidebar" class="dex-sidebar" aria-hidden="true">
@@ -52,16 +52,16 @@
         <p class="dex-sidebar-section-title">Ağlar</p>
         <div class="dex-sidebar-chains" role="list">
           <button type="button" class="dex-sidebar-chain active" data-chain="solana" role="listitem">
-            <span class="chain-dot sol" aria-hidden="true">◎</span> Solana
+            <span class="chain-ico"><img src="assets/chains/chain-solana.png" alt="" width="22" height="22" data-chain="solana" data-dot="sol" data-fallback="◎" loading="lazy" decoding="async" /></span> Solana
           </button>
           <button type="button" class="dex-sidebar-chain disabled" data-chain="ton" role="listitem">
-            <span class="chain-dot ton" aria-hidden="true">T</span> TON <span class="soon">SOON</span>
+            <span class="chain-ico"><img src="assets/chains/chain-ton.png" alt="" width="22" height="22" data-chain="ton" data-dot="ton" data-fallback="T" loading="lazy" decoding="async" /></span> TON <span class="soon">SOON</span>
           </button>
           <button type="button" class="dex-sidebar-chain disabled" data-chain="bsc" role="listitem">
-            <span class="chain-dot bsc" aria-hidden="true">B</span> BSC <span class="soon">SOON</span>
+            <span class="chain-ico"><img src="assets/chains/chain-bsc.png" alt="" width="22" height="22" data-chain="bsc" data-dot="bsc" data-fallback="B" loading="lazy" decoding="async" /></span> BSC <span class="soon">SOON</span>
           </button>
           <button type="button" class="dex-sidebar-chain disabled" data-chain="eth" role="listitem">
-            <span class="chain-dot eth" aria-hidden="true">Ξ</span> Ethereum <span class="soon">SOON</span>
+            <span class="chain-ico"><img src="assets/chains/chain-eth.png" alt="" width="22" height="22" data-chain="eth" data-dot="eth" data-fallback="Ξ" loading="lazy" decoding="async" /></span> Ethereum <span class="soon">SOON</span>
           </button>
         </div>
       </div>
@@ -77,8 +77,12 @@
           <button type="button" class="dex-sidebar-signin" id="sidebarSignIn">Sign in</button>
         </div>
         <div class="dex-sidebar-socials">
-          <a href="#" class="dex-sidebar-social" data-social="x" rel="noopener noreferrer">𝕏 X</a>
-          <a href="#" class="dex-sidebar-social telegram" data-social="telegram" rel="noopener noreferrer">✈ Telegram</a>
+          <a href="#" class="dex-sidebar-social" data-social="x" rel="noopener noreferrer">
+            <img src="assets/social-x.png" alt="" width="18" height="18" data-social-icon="x" data-label="X" loading="lazy" decoding="async" /> X
+          </a>
+          <a href="#" class="dex-sidebar-social telegram" data-social="telegram" rel="noopener noreferrer">
+            <img src="assets/social-telegram.png" alt="" width="18" height="18" data-social-icon="telegram" data-label="Telegram" loading="lazy" decoding="async" /> Telegram
+          </a>
           <button type="button" class="dex-sidebar-social settings" id="sidebarSettings" aria-label="Ayarlar">⚙</button>
         </div>
       </footer>
@@ -381,7 +385,7 @@
   <script src="dex-crop-baked.js?v=4"></script>
   <script src="dex-crop.js?v=21"></script>
   <script src="banner-studio.js?v=1"></script>
-  <script src="dex-sidebar.js?v=1"></script>
+  <script src="dex-sidebar.js?v=2"></script>
   <script src="app.js?v=59"></script>
 </body>
 </html>

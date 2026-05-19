@@ -3,17 +3,57 @@
  */
 (function (global) {
   const STORAGE_KEY = 'sniperSidebarChainV1';
+  const CHAIN_ICONS = {
+    solana: 'assets/chains/chain-solana.png',
+    ton: 'assets/chains/chain-ton.png',
+    bsc: 'assets/chains/chain-bsc.png',
+    eth: 'assets/chains/chain-eth.png',
+  };
+
+  const SOCIAL_ICONS = {
+    x: 'assets/social-x.png',
+    telegram: 'assets/social-telegram.png',
+  };
+
   const CHAINS = [
-    { id: 'solana', label: 'Solana', live: true, dotClass: 'sol', short: 'SOL' },
-    { id: 'ton', label: 'TON', live: false, dotClass: 'ton', short: 'TON' },
-    { id: 'bsc', label: 'BSC', live: false, dotClass: 'bsc', short: 'BSC' },
-    { id: 'eth', label: 'Ethereum', live: false, dotClass: 'eth', short: 'ETH' },
+    { id: 'solana', label: 'Solana', live: true, dotClass: 'sol', short: 'SOL', fallback: '◎' },
+    { id: 'ton', label: 'TON', live: false, dotClass: 'ton', short: 'TON', fallback: 'T' },
+    { id: 'bsc', label: 'BSC', live: false, dotClass: 'bsc', short: 'BSC', fallback: 'B' },
+    { id: 'eth', label: 'Ethereum', live: false, dotClass: 'eth', short: 'ETH', fallback: 'Ξ' },
   ];
 
   const SOCIAL = {
     x: 'https://x.com/',
     telegram: 'https://t.me/',
   };
+
+  function onChainIconError(img) {
+    const wrap = img.closest('.chain-ico');
+    if (!wrap || wrap.dataset.fellBack) return;
+    const dot = img.dataset.dot || 'sol';
+    const fb = img.dataset.fallback || '◎';
+    wrap.dataset.fellBack = '1';
+    wrap.innerHTML = `<span class="chain-dot ${dot}" aria-hidden="true">${fb}</span>`;
+  }
+
+  function bindChainIcons() {
+    document.querySelectorAll('.chain-ico img[data-chain]').forEach((img) => {
+      img.addEventListener('error', () => onChainIconError(img));
+    });
+  }
+
+  function bindSocialIcons() {
+    document.querySelectorAll('.dex-sidebar-social img[data-social-icon]').forEach((img) => {
+      img.addEventListener('error', () => {
+        const parent = img.closest('.dex-sidebar-social');
+        if (!parent || parent.dataset.fellBack) return;
+        parent.dataset.fellBack = '1';
+        const label = img.dataset.label || '';
+        img.remove();
+        if (!parent.textContent.trim()) parent.textContent = label;
+      });
+    });
+  }
 
   let activeChain = 'solana';
   let open = false;
@@ -140,6 +180,8 @@
   function bind() {
     loadChain();
     syncChainUi();
+    bindChainIcons();
+    bindSocialIcons();
 
     $('btnSidebarOpen')?.addEventListener('click', (e) => {
       e.preventDefault();
@@ -194,7 +236,10 @@
     toggle: toggleSidebar,
     getChain: () => activeChain,
     setChain: saveChain,
+    onChainIconError,
     CHAINS,
+    CHAIN_ICONS,
+    SOCIAL_ICONS,
   };
 
   if (document.readyState === 'loading') {

@@ -225,6 +225,22 @@
   cursor: pointer;
 }
 
+.dex-sidebar-chain .chain-ico {
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dex-sidebar-chain .chain-ico img {
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+  border-radius: 50%;
+}
+
 .dex-sidebar-chain .chain-dot {
   width: 22px;
   height: 22px;
@@ -353,6 +369,13 @@
   display: flex;
   align-items: center;
   gap: 6px;
+}
+
+.dex-sidebar-social img {
+  width: 18px;
+  height: 18px;
+  object-fit: contain;
+  flex-shrink: 0;
 }
 
 .dex-sidebar-social {
