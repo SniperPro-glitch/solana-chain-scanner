@@ -17,6 +17,7 @@ const { buildMarketFromToken } = require('./marketData');
 const { buildLogoCandidates } = require('./tokenLogo');
 
 const { fmtUsd, fmtPriceUsd } = require('./formatUsd');
+const { buildSeedFeedItems, mergeFeedItems, seedEnabled } = require('./miniAppSeed');
 
 function cardLevelFromAudit(audit) {
   if (audit?.isCritical) return 'critical';
@@ -184,33 +185,45 @@ async function buildFeedFromBotShares(tab = 'trending', limit = 24, dexFilter = 
     ranked = ranked.map((it, i) => ({ ...it, rank: i + 1 }));
   }
 
+  let finalItems = ranked;
+  let feedSource = 'bot_channel';
+  if (seedEnabled() && finalItems.length < limit) {
+    const seedItems = await buildSeedFeedItems(tokenToFeedItem, quickAudit);
+    if (seedItems.length) {
+      finalItems = mergeFeedItems(seedItems, finalItems, limit);
+      if (ranked.length === 0) feedSource = 'dev_seed';
+    }
+  }
+
   const now = Date.now();
   const newPairs = entries.filter((e) => now - (e.postedAt || 0) < 2 * 60 * 60 * 1000).length;
-  const volFromTokens = ranked.reduce((s, it) => s + (it.volume24h || 0), 0);
+  const volFromTokens = finalItems.reduce((s, it) => s + (it.volume24h || 0), 0);
+  const dexCountsFinal = countByPlatform(finalItems, (it) => it.dexPlatform);
 
   return {
     tab,
-    source: 'bot_channel',
+    source: feedSource,
     sortMode: tab === 'new' ? 'postedAt_desc' : 'volume24h_desc',
     updatedAt: Date.now(),
     botCount: await botFeedStore.feedCountAsync(),
     promo: getPromoBanner(),
-    trendingTicker: buildTrendingTicker(ranked, 14),
+    trendingTicker: buildTrendingTicker(finalItems, 14),
     dexFilter: dexFilter || 'all',
     dexPlatforms: listPlatformsForUi(),
-    dexCounts,
+    dexCounts: dexCountsFinal,
     stats: {
-      count: items.length,
+      count: finalItems.length,
       volume24hFmt: fmtUsd(volFromTokens),
-      liquidityFmt: fmtUsd(entries.reduce((s, e) => s + (e.token?.liquidityUsd || 0), 0)),
+      liquidityFmt: fmtUsd(finalItems.reduce((s, it) => s + (it.liquidityUsd || 0), 0)),
       newPairs,
-      activeNow: ranked.length,
+      activeNow: finalItems.length,
     },
-    items: ranked,
-    empty: ranked.length === 0,
-    emptyMessage: ranked.length === 0
+    items: finalItems,
+    empty: finalItems.length === 0,
+    emptyMessage: finalItems.length === 0
       ? 'Henüz kanal paylaşımı yok. Bot kanala admin ekleyin, /settings ile Solana seçin, SOLANA_SCAN_ENABLED=1 yapın.'
       : null,
+    devSeed: feedSource === 'dev_seed',
   };
 }
 

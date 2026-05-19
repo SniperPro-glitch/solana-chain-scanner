@@ -34,8 +34,7 @@ async function buildSeedFeedItems(tokenToFeedItem, quickAudit) {
         const token = await solana.resolveTokenFromInput(mint);
         if (!token?.tokenAddress) return null;
         const audit = quickAudit(token);
-        const logo = await resolveTokenLogo(token);
-        return tokenToFeedItem(token, audit, 0, logo);
+        return tokenToFeedItem(token, audit, 0, null);
       } catch (e) {
         console.warn('[miniApp] seed', mint.slice(0, 8), e.message);
         return null;

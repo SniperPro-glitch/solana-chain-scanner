@@ -1,4 +1,4 @@
-﻿(function () {
+(function () {
   const tg = window.Telegram?.WebApp;
   if (!tg) document.documentElement.classList.add('web-browser');
   let apiConfig = { botApiBase: '', webAppBase: '' };
@@ -734,11 +734,10 @@
 
   function syncFeedToolbarUi() {
     const meta = feedTfMeta(feedTimeframe);
-    const label = $('feedTfTriggerLabel');
-    if (label) {
-      const narrow = window.matchMedia('(max-width: 480px)').matches;
-      label.textContent = narrow ? meta.short : meta.label;
-    }
+    const full = $('feedTfLabelFull');
+    const compact = $('feedTfLabelCompact');
+    if (full) full.textContent = meta.label;
+    if (compact) compact.textContent = meta.short;
     document.querySelectorAll('.feed-tf-option[data-tf]').forEach((btn) => {
       const on = btn.dataset.tf === feedTimeframe;
       btn.classList.toggle('active', on);
@@ -762,26 +761,39 @@
     applySearchFilter();
   }
 
+  let feedTfDropdownBound = false;
+
   function bindFeedTfDropdown() {
     const dd = $('feedTfDropdown');
     const trigger = $('feedTfTrigger');
     const menu = $('feedTfMenu');
-    if (!trigger || !menu) return;
-    dd?.addEventListener('click', (e) => e.stopPropagation());
+    if (!trigger || !menu || !dd) return;
+    if (feedTfDropdownBound) return;
+    feedTfDropdownBound = true;
+
     trigger.addEventListener('click', (e) => {
+      e.preventDefault();
       e.stopPropagation();
       setFeedTfMenuOpen(!feedTfMenuOpen);
     });
+
     menu.querySelectorAll('.feed-tf-option[data-tf]').forEach((btn) => {
       btn.addEventListener('click', (e) => {
+        e.preventDefault();
         e.stopPropagation();
         setFeedTimeframe(btn.dataset.tf || '24h');
       });
     });
-    document.addEventListener('click', () => setFeedTfMenuOpen(false));
+
+    document.addEventListener('click', (e) => {
+      if (dd.contains(e.target)) return;
+      setFeedTfMenuOpen(false);
+    });
+
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') setFeedTfMenuOpen(false);
     });
+
     window.addEventListener('resize', () => syncFeedToolbarUi(), { passive: true });
   }
 

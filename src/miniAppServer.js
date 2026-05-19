@@ -49,15 +49,10 @@ function sendJson(res, code, obj, extraHeaders = {}) {
 function shouldProxyToBot(pathname, searchParams) {
   if (pathname === '/api/feed/status' || pathname === '/api/config') return false;
   if (pathname.startsWith('/api/trades/')) return false;
-  if (pathname === '/api/feed' || pathname === '/api/search') {
-    const q = String(searchParams?.get('q') || '').trim();
-    const chain = String(searchParams?.get('chain') || 'solana').toLowerCase();
-    // Arama + çoklu ağ: DEX üzerinde multiChainFeed (DexScreener); eski bot proxy q yok sayar.
-    if (q || chain !== 'solana' || pathname === '/api/search') return false;
-  }
+  // Feed + arama her zaman bu serviste (multiChainFeed / appSearch) — localhost'ta da çalışır.
+  if (pathname === '/api/feed' || pathname === '/api/search') return false;
   return (
     pathname.startsWith('/api/report/')
-    || pathname === '/api/feed'
     || pathname.startsWith('/api/open/')
   );
 }

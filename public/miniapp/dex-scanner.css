@@ -1080,43 +1080,51 @@ html.scanner-mode .search-box {
 }
 
 .feed-toolbar {
+  --feed-toolbar-pad-x: 10px;
+  --feed-toolbar-left: minmax(0, 1fr);
+  --feed-toolbar-right: minmax(168px, 42%);
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 1px minmax(0, 1fr);
+  grid-template-columns: var(--feed-toolbar-left) 1px var(--feed-toolbar-right);
   align-items: center;
-  column-gap: 10px;
-  row-gap: 0;
+  column-gap: 12px;
   margin: 0 8px 10px;
-  padding: 10px 10px 8px;
+  padding: 8px var(--feed-toolbar-pad-x);
+  min-height: 40px;
   border-radius: var(--radius);
   border: 1px solid var(--border);
   background: rgba(11, 16, 29, 0.92);
   width: calc(100% - 16px);
   max-width: calc(100% - 16px);
   box-sizing: border-box;
-  overflow: hidden;
+  overflow: visible;
+  position: relative;
+  z-index: 30;
 }
 
 .feed-toolbar-group {
   display: flex;
   align-items: center;
-  gap: 6px;
   min-width: 0;
+  min-height: 32px;
 }
 
 .feed-toolbar-trend {
+  gap: 8px;
   justify-content: flex-start;
 }
 
 .feed-toolbar-modes {
-  justify-content: flex-end;
+  justify-content: stretch;
+  width: 100%;
 }
 
 .feed-toolbar-sep {
   width: 1px;
-  align-self: stretch;
-  min-height: 24px;
-  background: var(--border);
+  height: 28px;
   justify-self: center;
+  align-self: center;
+  background: rgba(255, 255, 255, 0.12);
+  flex-shrink: 0;
 }
 
 .feed-toolbar-label {
@@ -1124,36 +1132,30 @@ html.scanner-mode .search-box {
   font-weight: 800;
   color: var(--text);
   white-space: nowrap;
-  flex-shrink: 0;
-}
-
-.feed-tf-trigger-label {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  max-width: clamp(64px, 22vw, 128px);
-}
-
-.feed-list-modes {
-  display: flex;
-  gap: 4px;
-  flex-wrap: nowrap;
-  min-width: 0;
-  justify-content: flex-end;
+  flex: 0 0 auto;
 }
 
 .feed-tf-dropdown {
   position: relative;
+  flex: 1 1 auto;
   min-width: 0;
-  max-width: 100%;
+  max-width: 156px;
+  z-index: 50;
+}
+
+.feed-tf-dropdown.open {
+  z-index: 120;
 }
 
 .feed-tf-trigger {
-  display: inline-flex;
+  display: flex;
   align-items: center;
+  justify-content: flex-start;
   gap: 6px;
-  padding: 6px 10px;
+  width: 100%;
+  min-width: 0;
+  height: 32px;
+  padding: 0 10px;
   font-size: 11px;
   font-weight: 700;
   border-radius: 10px;
@@ -1163,6 +1165,44 @@ html.scanner-mode .search-box {
   cursor: pointer;
   white-space: nowrap;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.25);
+  box-sizing: border-box;
+}
+
+.feed-tf-trigger-label {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: left;
+}
+
+.feed-tf-label-compact {
+  display: none;
+}
+
+.feed-list-modes {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 4px;
+  width: 100%;
+  min-width: 0;
+}
+
+.feed-mode-chip {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  padding: 6px 4px;
+  font-size: 10px;
+  font-weight: 700;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--muted);
+  cursor: pointer;
+  white-space: nowrap;
 }
 
 .feed-tf-dropdown.open .feed-tf-trigger {
@@ -1188,7 +1228,7 @@ html.scanner-mode .search-box {
   position: absolute;
   top: calc(100% + 6px);
   left: 0;
-  z-index: 40;
+  z-index: 200;
   min-width: 188px;
   padding: 6px;
   border-radius: 12px;
@@ -1226,17 +1266,6 @@ html.scanner-mode .search-box {
 
 .feed-tf-option.active .feed-tf-check {
   color: #fff;
-}
-
-.feed-mode-chip {
-  padding: 5px 10px;
-  font-size: 10px;
-  font-weight: 700;
-  border-radius: 8px;
-  border: 1px solid var(--border);
-  background: var(--bg);
-  color: var(--muted);
-  cursor: pointer;
 }
 
 .feed-mode-chip.active {
@@ -1706,25 +1735,36 @@ html.scanner-mode .search-box {
   }
 
   .feed-toolbar {
-    column-gap: 8px;
-    padding: 8px 8px 6px;
+    --feed-toolbar-pad-x: 8px;
+    --feed-toolbar-right: minmax(148px, 44%);
+    column-gap: 10px;
+    padding: 8px var(--feed-toolbar-pad-x);
   }
 
   .feed-toolbar-label {
     font-size: 10px;
   }
 
+  .feed-tf-dropdown {
+    max-width: 132px;
+  }
+
   .feed-tf-trigger {
-    padding: 5px 8px;
+    height: 30px;
+    padding: 0 8px;
     font-size: 10px;
   }
 
-  .feed-tf-trigger-label {
-    max-width: clamp(56px, 20vw, 96px);
+  .feed-tf-label-full {
+    display: none;
+  }
+
+  .feed-tf-label-compact {
+    display: inline;
   }
 
   .feed-mode-chip {
-    padding: 5px 7px;
+    padding: 6px 2px;
     font-size: 9px;
   }
 
@@ -1808,11 +1848,11 @@ html.scanner-mode .search-box {
 }
 
 @media (max-width: 360px) {
-  .feed-toolbar-label {
-    display: none;
+  .feed-toolbar {
+    --feed-toolbar-right: minmax(132px, 46%);
   }
 
-  .feed-tf-trigger-label {
-    max-width: 72px;
+  .feed-tf-dropdown {
+    max-width: 118px;
   }
 }
