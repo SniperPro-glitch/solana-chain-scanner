@@ -970,12 +970,13 @@ html.scanner-mode .search-box {
   justify-content: center;
 }
 
-/* DEX logos — token avatar sağ alt (Canva: 128×128 şeffaf PNG) */
+/* DEX logos — ekran perspektifi: avatar altı, hafif sağa (isim sütununa) */
 .tr-dex-pin {
   position: absolute;
-  right: -6px;
+  left: 62%;
   bottom: -7px;
-  left: auto;
+  right: auto;
+  transform: translateX(-50%);
   width: 26px;
   height: 26px;
   object-fit: contain;
