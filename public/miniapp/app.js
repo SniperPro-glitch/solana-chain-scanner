@@ -125,8 +125,8 @@
   }
 
   const DEX_LOGO_SRC = {
-    pumpfun: 'assets/dex-pumpfun.png',
-    pumpswap: 'assets/dex-pumpfun.png',
+    pumpfun: 'assets/dex-pumpfun.png?v=1',
+    pumpswap: 'assets/dex-pumpfun.png?v=1',
   };
 
   function dexPinHtml(dexKey) {
