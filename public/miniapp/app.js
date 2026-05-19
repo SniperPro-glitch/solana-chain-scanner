@@ -2035,6 +2035,7 @@
   };
 
   globalThis.loadHomeFeed = loadHomeFeed;
+  globalThis.ingestFeedResponse = ingestFeedResponse;
   globalThis.refreshHomeFeed = () => loadHomeFeed('trending', feedTab === 'new' ? 'new' : feedTab === 'home' ? 'home' : 'trending');
 
   main();

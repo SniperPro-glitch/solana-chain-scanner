@@ -377,15 +377,62 @@
   <script src="dex-crop.js?v=21"></script>
   <script src="banner-studio.js?v=1"></script>
   <script src="dex-sidebar.js?v=4"></script>
-  <script src="app.js?v=66"></script>
+  <script src="app.js?v=67"></script>
   <script>
-    window.addEventListener('load', function () {
-      setTimeout(function () {
+    (function () {
+      function esc(s) {
+        return String(s || '').replace(/[&<>"']/g, function (c) {
+          return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+        });
+      }
+      async function bootHomeFeed() {
         if (typeof globalThis.loadHomeFeed === 'function') {
-          globalThis.loadHomeFeed('trending', 'home');
+          try {
+            await globalThis.loadHomeFeed('trending', 'home');
+            return;
+          } catch (e) {
+            console.warn('[bootHomeFeed] loadHomeFeed', e);
+          }
         }
-      }, 80);
-    });
+        const list = document.getElementById('homeTokenList');
+        if (!list) return;
+        try {
+          const res = await fetch('/api/feed?tab=trending&limit=24&dex=all&chain=solana');
+          const body = await res.json().catch(function () { return {}; });
+          if (!res.ok) throw new Error(body.message || 'feed_failed');
+          if (typeof globalThis.ingestFeedResponse === 'function') {
+            globalThis.ingestFeedResponse(body, '');
+            return;
+          }
+          const items = body.items || [];
+          if (!items.length) {
+            list.innerHTML = '<p class="home-cta">Henüz bot paylaşımı yok.</p>';
+            return;
+          }
+          list.innerHTML = items
+            .map(function (it, i) {
+              return (
+                '<article class="token-row" data-mint="' + esc(it.mint) + '">' +
+                '<span class="tr-rank">' + (i + 1) + '</span>' +
+                '<div class="tr-token"><div class="tr-meta"><div class="tr-name">' + esc(it.symbol) + '</div>' +
+                '<div class="tr-sub">' + esc(it.pairLabel || '') + '</div></div></div>' +
+                '<span class="tr-price">' + esc(it.priceUsdFmt || '—') + '</span>' +
+                '<span class="tr-pct">—</span><span class="tr-pct">—</span>' +
+                '<span class="tr-vol">' + esc(it.volume24hFmt || '—') + '</span>' +
+                '<span class="tr-liq">' + esc(it.liquidityUsdFmt || '—') + '</span>' +
+                '<span class="tr-risk-col mid">SCAN</span></article>'
+              );
+            })
+            .join('');
+        } catch (e) {
+          console.error('[bootHomeFeed]', e);
+          list.innerHTML = '<p class="home-cta">Liste yüklenemedi — yenileyin.</p>';
+        }
+      }
+      window.addEventListener('load', function () {
+        setTimeout(bootHomeFeed, 120);
+      });
+    })();
   </script>
 </body>
 </html>
