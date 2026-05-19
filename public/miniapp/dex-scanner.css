@@ -970,19 +970,20 @@ html.scanner-mode .search-box {
   justify-content: center;
 }
 
-/* DEX logos — ekran perspektifi: avatar altı, hafif sağa (isim sütununa) */
+/* DEX pin: logonun sol-alt köşesi → avatarın sağ-alt köşesi (ekran perspektifi) */
 .tr-dex-pin {
   position: absolute;
-  left: 62%;
-  bottom: -7px;
+  left: 100%;
+  bottom: -6px;
   right: auto;
-  transform: translateX(-50%);
-  width: 26px;
-  height: 26px;
+  width: 28px;
+  height: 28px;
   object-fit: contain;
+  object-position: left bottom;
   background: none;
   border: none;
   box-shadow: none;
+  transform: none;
   z-index: 3;
   pointer-events: none;
 }
