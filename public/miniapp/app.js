@@ -124,6 +124,19 @@
     return fmt || '—';
   }
 
+  const DEX_LOGO_SRC = {
+    pumpfun: 'assets/dex-pumpfun.png',
+    pumpswap: 'assets/dex-pumpfun.png',
+  };
+
+  function dexPinHtml(dexKey) {
+    const src = DEX_LOGO_SRC[dexKey];
+    if (!src) {
+      return '<span class="tr-chain-dot" aria-hidden="true">◎</span>';
+    }
+    return `<img class="tr-dex-pin" src="${src}" alt="" width="32" height="32" loading="lazy" decoding="async" />`;
+  }
+
   function renderFeedRow(item, extraClass = '') {
     const risk = item.risk || {};
     const rc = risk.band || 'mid';
@@ -132,17 +145,23 @@
     const chg1 = item.change1h;
     const up24 = chg24 == null ? true : Number(chg24) >= 0;
     const pairShort = escHtml((item.pairLabel || 'SOL').replace(/^.*\//, '') || 'SOL');
-    const avatar = item.imageUrl
-      ? `<span class="tr-avatar-wrap"><img class="tr-img" src="${escHtml(item.imageUrl)}" alt="" loading="lazy" data-fb="${escHtml((item.imageFallbacks || []).join('|'))}" /><span class="tr-chain-dot">◎</span></span>`
-      : `<span class="tr-avatar-wrap"><span class="tr-avatar">${escHtml((item.symbol || '?').slice(0, 2))}</span><span class="tr-chain-dot">◎</span></span>`;
-    const reportAttr = item.reportId ? ` data-report="${escHtml(item.reportId)}"` : '';
     const dexKey = item.dexPlatform || 'other';
-    const dexBadge = item.dexLabel
-      ? `<span class="tr-dex-badge dex-${escHtml(dexKey)}">${escHtml(item.dexLabel)}</span>`
-      : '';
+    const pin = dexPinHtml(dexKey);
+    const avatar = item.imageUrl
+      ? `<span class="tr-avatar-wrap"><img class="tr-img" src="${escHtml(item.imageUrl)}" alt="" loading="lazy" data-fb="${escHtml((item.imageFallbacks || []).join('|'))}" />${pin}</span>`
+      : `<span class="tr-avatar-wrap"><span class="tr-avatar">${escHtml((item.symbol || '?').slice(0, 2))}</span>${pin}</span>`;
+    const reportAttr = item.reportId ? ` data-report="${escHtml(item.reportId)}"` : '';
+    const dexBadge =
+      !DEX_LOGO_SRC[dexKey] && item.dexLabel
+        ? `<span class="tr-dex-badge dex-${escHtml(dexKey)}">${escHtml(item.dexLabel)}</span>`
+        : '';
+    const subParts = [
+      dexBadge,
+      item.marketCapUsdFmt ? `MCap ${escHtml(item.marketCapUsdFmt)}` : '',
+    ].filter(Boolean).join(' · ');
     return `<article class="token-row ${extraClass}" data-mint="${escHtml(item.mint)}" data-dex="${escHtml(dexKey)}"${reportAttr}>
       <span class="tr-rank">${item.rank ?? '·'}</span>
-      <div class="tr-token">${avatar}<div class="tr-meta"><div class="tr-name">${escHtml(item.symbol)}<span class="tr-pair"> / ${pairShort}</span>${dexBadge}</div><div class="tr-sub">MCap ${escHtml(item.marketCapUsdFmt)}</div></div></div>
+      <div class="tr-token">${avatar}<div class="tr-meta"><div class="tr-name">${escHtml(item.symbol)}<span class="tr-pair"> / ${pairShort}</span></div><div class="tr-sub">${subParts || '—'}</div></div></div>
       <span class="tr-price" title="${item.priceUsd != null ? escHtml(String(item.priceUsd)) : ''}">${escHtml(fmtPriceDisplay(item))}</span>
       <span class="tr-pct ${chgClass(chg1)}">${formatPct(chg1)}</span>
       <span class="tr-pct ${chgClass(chg24)}">${formatPct(chg24)}</span>
