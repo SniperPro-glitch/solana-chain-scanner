@@ -1926,6 +1926,7 @@
   }
 
   globalThis.showToast = showToast;
+  globalThis.onBottomNav = onBottomNav;
 
   main();
 })();

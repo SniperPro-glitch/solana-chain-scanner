@@ -85,6 +85,10 @@ html.tg-mini-app body {
   pointer-events: auto;
 }
 
+body.sidebar-open {
+  overflow: hidden;
+}
+
 .scanner-home .radar-scan-panel {
   pointer-events: auto;
   max-height: calc(var(--app-height, 100dvh) - var(--nav-h) - 80px);

@@ -1,0 +1,429 @@
+/* Yan panel — DexScreener tarzı (mobil + Telegram) */
+
+.dex-sidebar {
+  position: fixed;
+  inset: 0;
+  z-index: 6500;
+  pointer-events: none;
+}
+
+.dex-sidebar.open {
+  pointer-events: auto;
+}
+
+.dex-sidebar-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.62);
+  opacity: 0;
+  transition: opacity 0.28s ease;
+}
+
+.dex-sidebar.open .dex-sidebar-backdrop {
+  opacity: 1;
+}
+
+.dex-sidebar-panel {
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: min(292px, 88vw);
+  max-width: 100%;
+  display: flex;
+  flex-direction: column;
+  background: #0a0e18;
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 8px 0 40px rgba(0, 0, 0, 0.55);
+  transform: translateX(-105%);
+  transition: transform 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+  overflow: hidden;
+}
+
+.dex-sidebar.open .dex-sidebar-panel {
+  transform: translateX(0);
+}
+
+.dex-sidebar-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 14px 14px 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.dex-sidebar-brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.dex-sidebar-brand img {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.dex-sidebar-brand-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.1;
+}
+
+.dex-sidebar-brand-text strong {
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  color: #eef2ff;
+}
+
+.dex-sidebar-brand-text span {
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  color: #00e5ff;
+}
+
+.dex-sidebar-collapse {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.04);
+  color: #758096;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.dex-sidebar-collapse:active {
+  transform: scale(0.96);
+}
+
+.dex-sidebar-search {
+  padding: 10px 12px 8px;
+}
+
+.dex-sidebar-search-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px;
+  height: 40px;
+  border-radius: 10px;
+  background: #12182a;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.dex-sidebar-search-box:focus-within {
+  border-color: rgba(0, 229, 255, 0.45);
+  box-shadow: 0 0 0 2px rgba(0, 229, 255, 0.12);
+}
+
+.dex-sidebar-search-box .ico {
+  color: #758096;
+  font-size: 15px;
+}
+
+.dex-sidebar-search-box input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  color: #eef2ff;
+  font-size: 13px;
+  font-family: inherit;
+  outline: none;
+}
+
+.dex-sidebar-search-box input::placeholder {
+  color: #5c6b82;
+}
+
+.dex-sidebar-search-box .kbd {
+  font-size: 10px;
+  font-weight: 700;
+  color: #5c6b82;
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.dex-sidebar-scroll {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 4px 0 8px;
+  -webkit-overflow-scrolling: touch;
+}
+
+.dex-sidebar-nav {
+  padding: 4px 8px;
+}
+
+.dex-sidebar-link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 10px 12px;
+  border: none;
+  border-radius: 10px;
+  background: transparent;
+  color: #c5d0e6;
+  font-size: 14px;
+  font-weight: 500;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.dex-sidebar-link .ico {
+  width: 20px;
+  text-align: center;
+  font-size: 15px;
+  opacity: 0.9;
+}
+
+.dex-sidebar-link:hover,
+.dex-sidebar-link.active {
+  background: rgba(0, 229, 255, 0.08);
+  color: #00e5ff;
+}
+
+.dex-sidebar-section-title {
+  padding: 14px 16px 6px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  color: #5c6b82;
+  text-transform: uppercase;
+}
+
+.dex-sidebar-chains {
+  padding: 0 8px 8px;
+}
+
+.dex-sidebar-chain {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 9px 12px;
+  border: none;
+  border-radius: 10px;
+  background: transparent;
+  color: #eef2ff;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.dex-sidebar-chain .chain-dot {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  font-weight: 900;
+  color: #fff;
+}
+
+.dex-sidebar-chain .chain-dot.sol {
+  background: linear-gradient(135deg, #9945ff 0%, #14f195 100%);
+}
+
+.dex-sidebar-chain .chain-dot.eth {
+  background: linear-gradient(135deg, #627eea 0%, #3c3c3d 100%);
+}
+
+.dex-sidebar-chain .chain-dot.bsc {
+  background: linear-gradient(135deg, #f0b90b 0%, #d4a008 100%);
+  color: #1a1200;
+}
+
+.dex-sidebar-chain .chain-dot.ton {
+  background: linear-gradient(135deg, #0098ea 0%, #45b6ff 100%);
+}
+
+.dex-sidebar-chain.active {
+  background: rgba(0, 229, 255, 0.1);
+  box-shadow: inset 3px 0 0 #00e5ff;
+}
+
+.dex-sidebar-chain.disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.dex-sidebar-chain .soon {
+  margin-left: auto;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  color: #f5a623;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: rgba(245, 166, 35, 0.12);
+  border: 1px solid rgba(245, 166, 35, 0.35);
+}
+
+.dex-sidebar-foot {
+  flex-shrink: 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  background: #080c14;
+  padding: 10px 12px calc(12px + env(safe-area-inset-bottom, 0px));
+}
+
+.dex-sidebar-watch-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  color: #758096;
+}
+
+.dex-sidebar-watch-empty {
+  font-size: 11px;
+  color: #5c6b82;
+  padding: 6px 4px 10px;
+}
+
+.dex-sidebar-user {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 4px;
+  margin-bottom: 8px;
+}
+
+.dex-sidebar-user-ava {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #12182a;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+}
+
+.dex-sidebar-user-meta {
+  flex: 1;
+  min-width: 0;
+}
+
+.dex-sidebar-user-meta strong {
+  display: block;
+  font-size: 13px;
+  color: #eef2ff;
+}
+
+.dex-sidebar-user-meta span {
+  font-size: 10px;
+  color: #758096;
+}
+
+.dex-sidebar-signin {
+  padding: 6px 10px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #00e5ff;
+  border: 1px solid rgba(0, 229, 255, 0.35);
+  border-radius: 8px;
+  background: rgba(0, 229, 255, 0.06);
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.dex-sidebar-socials {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.dex-sidebar-social {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 8px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: #12182a;
+  color: #c5d0e6;
+  font-size: 11px;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.dex-sidebar-social:active {
+  transform: scale(0.98);
+}
+
+.dex-sidebar-social.telegram {
+  color: #45b6ff;
+  border-color: rgba(69, 182, 255, 0.35);
+}
+
+.dex-sidebar-social.settings {
+  flex: 0 0 44px;
+  padding: 10px;
+}
+
+/* Header menü butonu */
+.btn-sidebar-open {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  margin-right: 4px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.04);
+  color: #eef2ff;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.btn-sidebar-open:active {
+  transform: scale(0.96);
+  border-color: rgba(0, 229, 255, 0.4);
+}
+
+.scan-header .scan-brand {
+  flex: 1;
+  min-width: 0;
+}
+
+.chain-pill-active {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 6px;
+  padding: 2px 8px;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  color: #00e5ff;
+  border: 1px solid rgba(0, 229, 255, 0.35);
+  border-radius: 999px;
+  background: rgba(0, 229, 255, 0.08);
+  text-transform: uppercase;
+}

@@ -16,10 +16,75 @@
     }
   </script>
   <link rel="stylesheet" href="styles.css?v=42" />
-  <link rel="stylesheet" href="dex-scanner.css?v=28" />
+  <link rel="stylesheet" href="dex-scanner.css?v=29" />
   <link rel="stylesheet" href="dex-scanner-radar.css?v=1" />
+  <link rel="stylesheet" href="dex-sidebar.css?v=1" />
 </head>
 <body>
+  <div id="dexSidebar" class="dex-sidebar" aria-hidden="true">
+    <div class="dex-sidebar-backdrop" id="dexSidebarBackdrop"></div>
+    <aside class="dex-sidebar-panel" aria-label="Menü">
+      <div class="dex-sidebar-head">
+        <div class="dex-sidebar-brand">
+          <img src="assets/sniper-logo.png?v=3" alt="" width="32" height="32" decoding="async" />
+          <div class="dex-sidebar-brand-text">
+            <strong>SNIPER</strong>
+            <span>DEX SCANNER</span>
+          </div>
+        </div>
+        <button type="button" class="dex-sidebar-collapse" id="btnSidebarClose" aria-label="Kapat">«</button>
+      </div>
+      <div class="dex-sidebar-search">
+        <label class="dex-sidebar-search-box">
+          <span class="ico" aria-hidden="true">⌕</span>
+          <input type="search" id="sidebarSearchInput" placeholder="Search" autocomplete="off" spellcheck="false" />
+          <span class="kbd">/</span>
+        </label>
+      </div>
+      <div class="dex-sidebar-scroll">
+        <nav class="dex-sidebar-nav" aria-label="Ana menü">
+          <button type="button" class="dex-sidebar-link" data-sidebar-nav="watchlist"><span class="ico">★</span> Watchlist</button>
+          <button type="button" class="dex-sidebar-link" data-sidebar-nav="alerts"><span class="ico">🔔</span> Alerts</button>
+          <button type="button" class="dex-sidebar-link" data-sidebar-nav="newpairs"><span class="ico">✦</span> New Pairs</button>
+          <button type="button" class="dex-sidebar-link" data-sidebar-nav="gainers"><span class="ico">↕</span> Gainers &amp; Losers</button>
+          <button type="button" class="dex-sidebar-link" data-sidebar-nav="scanner"><span class="ico">◎</span> Scanner</button>
+        </nav>
+        <p class="dex-sidebar-section-title">Ağlar</p>
+        <div class="dex-sidebar-chains" role="list">
+          <button type="button" class="dex-sidebar-chain active" data-chain="solana" role="listitem">
+            <span class="chain-dot sol" aria-hidden="true">◎</span> Solana
+          </button>
+          <button type="button" class="dex-sidebar-chain disabled" data-chain="ton" role="listitem">
+            <span class="chain-dot ton" aria-hidden="true">T</span> TON <span class="soon">SOON</span>
+          </button>
+          <button type="button" class="dex-sidebar-chain disabled" data-chain="bsc" role="listitem">
+            <span class="chain-dot bsc" aria-hidden="true">B</span> BSC <span class="soon">SOON</span>
+          </button>
+          <button type="button" class="dex-sidebar-chain disabled" data-chain="eth" role="listitem">
+            <span class="chain-dot eth" aria-hidden="true">Ξ</span> Ethereum <span class="soon">SOON</span>
+          </button>
+        </div>
+      </div>
+      <footer class="dex-sidebar-foot">
+        <div class="dex-sidebar-watch-head"><span>★ WATCHLIST</span></div>
+        <p class="dex-sidebar-watch-empty">Henüz liste yok — token ekle</p>
+        <div class="dex-sidebar-user">
+          <span class="dex-sidebar-user-ava" aria-hidden="true">👤</span>
+          <div class="dex-sidebar-user-meta">
+            <strong>anon</strong>
+            <span>Misafir</span>
+          </div>
+          <button type="button" class="dex-sidebar-signin" id="sidebarSignIn">Sign in</button>
+        </div>
+        <div class="dex-sidebar-socials">
+          <a href="#" class="dex-sidebar-social" data-social="x" rel="noopener noreferrer">𝕏 X</a>
+          <a href="#" class="dex-sidebar-social telegram" data-social="telegram" rel="noopener noreferrer">✈ Telegram</a>
+          <button type="button" class="dex-sidebar-social settings" id="sidebarSettings" aria-label="Ayarlar">⚙</button>
+        </div>
+      </footer>
+    </aside>
+  </div>
+
   <div id="loading" class="boot-screen">
     <div class="boot-logo">SNIPER DEX SCANNER</div>
     <div class="boot-spinner"></div>
@@ -35,6 +100,7 @@
   <!-- SNIPER DEX SCANNER home -->
   <div id="scanner-home" class="scanner-home hidden">
     <header class="scan-header">
+      <button type="button" class="btn-sidebar-open" id="btnSidebarOpen" aria-label="Menü">☰</button>
       <div class="scan-brand">
         <img
           src="assets/sniper-logo.png?v=3"
@@ -48,6 +114,7 @@
         <div class="brand-titles">
           <span class="brand-main">SNIPER</span>
           <span class="brand-sub">DEX SCANNER</span>
+          <span class="chain-pill-active" id="headerChainPill">SOL</span>
         </div>
       </div>
       <div class="header-actions">
@@ -314,6 +381,7 @@
   <script src="dex-crop-baked.js?v=4"></script>
   <script src="dex-crop.js?v=21"></script>
   <script src="banner-studio.js?v=1"></script>
-  <script src="app.js?v=58"></script>
+  <script src="dex-sidebar.js?v=1"></script>
+  <script src="app.js?v=59"></script>
 </body>
 </html>
