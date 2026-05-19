@@ -2,7 +2,20 @@
  * Ana sayfa feed — app.js yüklenmese bile liste doldurur.
  */
 (function (g) {
-  const FEED_URL = '/api/feed?tab=trending&limit=24&dex=all&chain=solana';
+  const FEED_QS = 'tab=trending&limit=24&dex=all';
+
+  function storedChain() {
+    try {
+      const s = localStorage.getItem('sniperSidebarChainV1');
+      if (s) return s;
+    } catch { /* yoksay */ }
+    return 'solana';
+  }
+
+  function feedUrl(chain) {
+    return `/api/feed?${FEED_QS}&chain=${encodeURIComponent(chain || storedChain())}`;
+  }
+
   let inflight = null;
 
   function esc(s) {
@@ -54,7 +67,7 @@
 
     inflight = (async () => {
       try {
-        const res = await fetch(FEED_URL, { cache: 'no-store', credentials: 'same-origin' });
+        const res = await fetch(feedUrl(storedChain()), { cache: 'no-store', credentials: 'same-origin' });
         const body = await res.json().catch(() => ({}));
         if (!res.ok) throw new Error(body.message || 'feed_failed');
         if (typeof g.ingestFeedResponse === 'function') {
@@ -86,6 +99,9 @@
 
   showHomeShell();
   void pullFeed();
+  document.addEventListener('sniper:chain', () => {
+    void pullFeed();
+  });
   window.addEventListener('load', () => {
     setTimeout(bootIfEmpty, 500);
     setTimeout(bootIfEmpty, 2200);

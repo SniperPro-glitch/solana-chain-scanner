@@ -555,6 +555,38 @@
     if (scroll) scroll.classList.toggle('hidden', chain !== 'solana');
   }
 
+  const CHAIN_UI = {
+    solana: { short: 'SOL', label: 'Solana', src: 'Bot + arama' },
+    ton: { short: 'TON', label: 'TON', src: 'DexScreener' },
+    bsc: { short: 'BSC', label: 'BSC', src: 'DexScreener' },
+    eth: { short: 'ETH', label: 'Ethereum', src: 'DexScreener' },
+  };
+
+  function applyChainHeaderUi(chain) {
+    const c = CHAIN_UI[chain] || { short: String(chain || '').toUpperCase().slice(0, 4), label: chain, src: 'DexScreener' };
+    const pill = $('headerChainPill');
+    if (pill) pill.textContent = c.short;
+    const meta = $('feedMetaText');
+    const bar = $('feedMetaBar');
+    if (meta) {
+      meta.dataset.lockChain = '1';
+      meta.textContent = `◎ ${c.label} · ${c.src} · yükleniyor…`;
+    }
+    bar?.classList.remove('hidden');
+  }
+
+  function switchActiveChain(chain) {
+    const chainKey = String(chain || 'solana').toLowerCase();
+    activeChain = chainKey;
+    syncDexChipsForChain(chainKey);
+    if (chainKey !== 'solana' && dexFilter !== 'all') setDexFilter('all');
+    applyChainHeaderUi(chainKey);
+    homeFeedCacheKey = '';
+    homeFeedInflight = null;
+    const uiTab = feedTab === 'scan' ? 'trending' : feedTab;
+    void loadHomeFeed(feedTabForApi(resolveFeedTab(uiTab)), uiTab, { force: true });
+  }
+
   function applySearchHintFromFeed() {
     const q = (searchQuery || '').trim();
     $('sidebarSearchClear')?.classList.toggle('hidden', !q);
@@ -765,9 +797,11 @@
     }
     const n = body.botCount ?? body.items?.length ?? 0;
     const vol = body.stats?.volume24hFmt || '—';
-    const chainLabel = { solana: 'Solana', ton: 'TON', bsc: 'BSC', eth: 'ETH' }[body.chain] || body.chain || '—';
-    const src = body.source === 'bot_channel' ? 'Bot + arama' : 'DexScreener';
-    txt.textContent = `◎ ${chainLabel} · ${src} · ${n} token · ${vol} 24h`;
+    const chainKey = body.chain || activeChain || 'solana';
+    const c = CHAIN_UI[chainKey] || { label: chainKey, src: 'DexScreener' };
+    const src = body.source === 'bot_channel' ? 'Bot + arama' : c.src;
+    txt.textContent = `◎ ${c.label} · ${src} · ${n} token · ${vol} 24h`;
+    delete txt.dataset.lockChain;
     bar.classList.remove('hidden');
   }
 
@@ -1056,9 +1090,7 @@
     });
 
     document.addEventListener('sniper:chain', (e) => {
-      activeChain = e.detail?.chain || 'solana';
-      syncDexChipsForChain(activeChain);
-      fetchFeed(feedTab);
+      switchActiveChain(e.detail?.chain || 'solana');
     });
 
     feedPollTimer = setInterval(() => {
@@ -2084,9 +2116,10 @@
   };
   globalThis.onBottomNav = onBottomNav;
   globalThis.fetchFeedForChain = (chainId) => {
-    if (chainId) activeChain = chainId;
+    if (!chainId) return;
+    if (global.SniperSidebar?.setChain) global.SniperSidebar.setChain(chainId);
+    else switchActiveChain(chainId);
     showScannerHome();
-    fetchFeed(resolveFeedTab(feedTab));
   };
 
   globalThis.loadHomeFeed = loadHomeFeed;

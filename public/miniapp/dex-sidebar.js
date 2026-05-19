@@ -156,9 +156,6 @@
     $('sidebarSearchInput')?.blur();
     saveChain(id);
     closeSidebar();
-    if (typeof global.fetchFeedForChain === 'function') {
-      global.fetchFeedForChain(id);
-    }
   }
 
   function bind() {
