@@ -807,12 +807,19 @@
     });
   }
 
+  function feedTabForApi(tab) {
+    const t = tab || feedTab;
+    if (t === 'home') return 'trending';
+    return t;
+  }
+
   async function fetchFeed(tab) {
     if (scannerNavActive) return null;
     await loadApiConfig();
     const t = tab || feedTab;
     if (t === 'scan') return null;
     setFeedTab(t);
+    const apiTab = feedTabForApi(t);
     activeChain = getActiveChain();
     syncDexChipsForChain(activeChain);
     syncSearchQuery();
@@ -823,7 +830,7 @@
     list?.classList.add('dimmed');
     try {
       const qs = new URLSearchParams({
-        tab: t,
+        tab: apiTab,
         limit: '24',
         dex: dexFilter,
         chain: activeChain,

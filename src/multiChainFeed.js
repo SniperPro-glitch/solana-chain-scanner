@@ -116,7 +116,8 @@ async function buildFeed(tab = 'trending', limit = 24, dexFilter = 'all', chain 
   }
 
   if (chainKey === 'solana') {
-    const feed = await miniAppFeed.buildFeedFromBotShares(tab, limit, dexFilter);
+    const solTab = tab === 'home' ? 'trending' : tab;
+    const feed = await miniAppFeed.buildFeedFromBotShares(solTab, limit, dexFilter);
     feed.chain = 'solana';
     feed.source = feed.source || 'bot_channel';
 

@@ -197,6 +197,7 @@ async function analyzeMintAndSave(mint, lang = 'tr') {
 
 module.exports = {
   buildFeed,
+  buildFeedFromBotShares,
   analyzeMintAndSave,
   tokenToFeedItem,
 };
