@@ -241,18 +241,21 @@
 
   function showScannerHome() {
     stopTradesPoll();
+    if (typeof globalThis.closeSearchOverlay === 'function') globalThis.closeSearchOverlay();
     document.documentElement.classList.remove('detail-mode');
     hideAllViews();
     $('scanner-home')?.classList.remove('hidden');
     refreshTgViewport();
     bindHomeShell();
+    toggleHomeRadarPanels();
     if (!homeFeedBooted) {
       initScannerHome();
-    } else {
-      toggleHomeRadarPanels();
-      if (!scannerNavActive && !feedItemsFull.length) {
-        void loadHomeFeed('trending', feedTab === 'new' ? 'new' : feedTab === 'home' ? 'home' : 'trending');
-      }
+      return;
+    }
+    if (!scannerNavActive && !feedItemsFull.length) {
+      void loadHomeFeed('trending', feedTab === 'new' ? 'new' : feedTab === 'home' ? 'home' : 'trending', {
+        force: true,
+      });
     }
   }
 
@@ -864,9 +867,10 @@
 
   /** Ana liste — Scanner modundan çıkar, feed API çağır. */
   async function loadHomeFeed(apiTab = 'trending', uiTab = 'trending', opts = {}) {
-    const q = (searchQuery || '').trim();
+    // Ana liste tam feed; metin araması yalnızca search-overlay (/api/search).
+    const q = '';
     const chain = getActiveChain();
-    const cacheKey = `${apiTab}|${chain}|${dexFilter}|${q}`;
+    const cacheKey = `${apiTab}|${chain}|${dexFilter}`;
     if (!opts.force && homeFeedInflight) return homeFeedInflight;
     if (!opts.force && feedItemsFull.length && cacheKey === homeFeedCacheKey) {
       applySearchFilter();
@@ -890,7 +894,11 @@
 
     activeChain = chain;
     syncDexChipsForChain(activeChain);
-    syncSearchQuery();
+    searchQuery = '';
+    const sideInp = $('sidebarSearchInput');
+    if (sideInp) sideInp.value = '';
+    $('sidebarSearchClear')?.classList.add('hidden');
+    setSearchHint('');
     const loadingEl = $('feedLoading');
     const list = $('homeTokenList');
     loadingEl?.classList.remove('hidden');
@@ -904,8 +912,7 @@
           dex: dexFilter,
           chain: activeChain,
         });
-        if (q) qs.set('q', q);
-        const res = await fetch(`/api/feed?${qs.toString()}`, { cache: q ? 'no-store' : 'default' });
+        const res = await fetch(`/api/feed?${qs.toString()}`, { cache: 'default' });
         const body = await res.json().catch(() => ({}));
         if (!res.ok) throw new Error(body.message || 'feed_failed');
         const items = body.items?.length ? body.items : [];
@@ -1065,12 +1072,19 @@
     homeFeedBooted = true;
     activeChain = getActiveChain();
     syncDexChipsForChain(activeChain);
-    setFeedTab(feedTab);
+    setFeedTab('home');
     searchQuery = '';
+    feedItemsFull = [];
+    homeFeedCacheKey = '';
     const sideInp = $('sidebarSearchInput');
     if (sideInp) sideInp.value = '';
     setSearchHint('');
-    void loadHomeFeed('trending', 'home');
+    void loadHomeFeed('trending', 'home', { force: true });
+    setTimeout(() => {
+      if (!scannerNavActive && !feedItemsFull.length && !$('scanner-home')?.classList.contains('hidden')) {
+        void loadHomeFeed('trending', 'home', { force: true });
+      }
+    }, 2500);
   }
 
   function bindDetailShell() {

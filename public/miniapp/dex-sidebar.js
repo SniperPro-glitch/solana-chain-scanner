@@ -109,13 +109,7 @@
     root.setAttribute('aria-hidden', 'false');
     open = true;
     document.body.classList.add('sidebar-open');
-    setTimeout(() => {
-      if (typeof global.openSearchOverlay === 'function') {
-        global.openSearchOverlay($('sidebarSearchInput')?.value || '');
-      } else {
-        $('sidebarSearchInput')?.focus({ preventScroll: true });
-      }
-    }, 280);
+    /* Arama paneli yalnızca arama kutusuna tıklanınca açılır (search-overlay.js). */
   }
 
   function closeSidebar() {

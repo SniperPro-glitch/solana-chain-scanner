@@ -396,9 +396,21 @@
   <script src="dex-crop-baked.js?v=4"></script>
   <script src="dex-crop.js?v=21"></script>
   <script src="banner-studio.js?v=1"></script>
-  <script src="dex-sidebar.js?v=5"></script>
+  <script src="dex-sidebar.js?v=6"></script>
   <script src="search-overlay.js?v=1"></script>
-  <script src="app.js?v=69"></script>
+  <script src="app.js?v=70"></script>
+  <script>
+    window.addEventListener('load', function () {
+      setTimeout(function () {
+        if (document.getElementById('scanner-home')?.classList.contains('hidden')) return;
+        var list = document.getElementById('homeTokenList');
+        if (!list || list.querySelector('.token-row')) return;
+        if (typeof globalThis.loadHomeFeed === 'function') {
+          globalThis.loadHomeFeed('trending', 'home', { force: true });
+        }
+      }, 800);
+    });
+  </script>
 </body>
 </html>
 
