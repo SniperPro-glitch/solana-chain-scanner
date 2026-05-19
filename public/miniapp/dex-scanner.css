@@ -19,19 +19,19 @@ html.tg-mini-app body {
   margin: 0;
   overflow: hidden;
   overscroll-behavior: none;
-  background: #0a0e1a;
+  background: #060910;
 }
 
 .scanner-home {
-  --bg: #0a0e1a;
-  --card: #0f1526;
-  --border: #2a1f3d;
+  --bg: #060910;
+  --card: #0b101d;
+  --border: rgba(255, 255, 255, 0.06);
   --cyan: #00e5ff;
   --green: #00ff88;
   --yellow: #f5a623;
   --red: #ff3b3b;
-  --text: #ffffff;
-  --muted: #8892a4;
+  --text: #eef2ff;
+  --muted: #758096;
   --radius: 12px;
   --w: 100%;
   --nav-h: 72px;
@@ -64,9 +64,9 @@ html.tg-mini-app body {
   pointer-events: none;
   z-index: 0;
   background:
-    linear-gradient(rgba(0, 229, 255, 0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(0, 229, 255, 0.03) 1px, transparent 1px),
-    radial-gradient(ellipse 70% 40% at 50% 0%, rgba(0, 229, 255, 0.1), transparent 55%);
+    linear-gradient(rgba(0, 229, 255, 0.022) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 229, 255, 0.022) 1px, transparent 1px),
+    radial-gradient(ellipse 70% 40% at 50% 0%, rgba(0, 229, 255, 0.055), transparent 55%);
   background-size: 20px 20px, 20px 20px, 100% 100%;
 }
 
@@ -899,7 +899,7 @@ html.scanner-mode .search-box {
   font-size: 11px;
   font-weight: 800;
   color: var(--cyan);
-  background: #0a0e1a;
+  background: var(--bg);
 }
 
 .tr-chain-dot {
