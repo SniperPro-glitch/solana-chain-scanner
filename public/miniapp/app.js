@@ -135,6 +135,9 @@
   function formatPct(n) {
     if (n == null || Number.isNaN(Number(n))) return '—';
     const x = Number(n);
+    const abs = Math.abs(x);
+    if (abs >= 10_000) return `${x >= 0 ? '+' : ''}${Math.round(x / 1000)}K%`;
+    if (abs >= 1000) return `${x >= 0 ? '+' : ''}${(x / 1000).toFixed(1)}K%`;
     return `${x >= 0 ? '+' : ''}${x.toFixed(1)}%`;
   }
 
@@ -203,6 +206,9 @@
     const dexBadge = dexSubBadgeHtml(dexKey, item.dexLabel);
     const subParts = [
       dexBadge,
+      item.marketCapUsdFmt && item.marketCapUsdFmt !== '—'
+        ? `<span class="tr-mcap-inline">${escHtml(item.marketCapUsdFmt)}</span>`
+        : '',
       item.txns24hFmt && item.txns24hFmt !== '—' ? `TXNs ${escHtml(item.txns24hFmt)}` : '',
     ].filter(Boolean).join(' · ');
     const dexUrlAttr = item.dexPageUrl ? ` data-dex-url="${escHtml(item.dexPageUrl)}"` : '';
@@ -828,8 +834,12 @@
       return `<article class="token-row token-row-last" data-report="${escHtml(last.id)}">
         <span class="tr-rank">★</span>
         <div class="tr-token"><span class="tr-avatar">${escHtml((last.symbol || '?').slice(0, 2))}</span><div class="tr-meta"><div class="tr-name">${escHtml(last.symbol)}</div><div class="tr-sub">Son analiz · Tekrar aç</div></div></div>
+        <span class="tr-mcap">—</span>
         <span class="tr-price">${escHtml(last.price || '—')}</span>
-        <span class="tr-pct"></span><span class="tr-pct"></span><span class="tr-vol"></span><span class="tr-liq"></span>
+        <span class="tr-age">—</span>
+        <span class="tr-pct ${chgClass(last.chg)}">${escHtml(last.chg != null ? formatPct(last.chg) : '—')}</span>
+        <span class="tr-vol" aria-hidden="true"></span>
+        <span class="tr-liq" aria-hidden="true"></span>
         ${riskColHtml(r.cls, r.text, up)}
       </article>`;
     } catch {
