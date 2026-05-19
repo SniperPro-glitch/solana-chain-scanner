@@ -815,6 +815,19 @@ html.scanner-mode .search-box {
 
 .chain-chip.disabled { opacity: 0.45; cursor: default; }
 
+.feed-list-title {
+  margin: 10px 14px 4px;
+  padding: 0;
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--text);
+  letter-spacing: 0.02em;
+}
+
+.feed-list-title.hidden {
+  display: none;
+}
+
 /* DEX platform — DexScreener tarzı (Pump / Raydium / Meteora …) */
 .dex-scroll {
   display: flex;

@@ -16,9 +16,9 @@
     }
   </script>
   <link rel="stylesheet" href="styles.css?v=42" />
-  <link rel="stylesheet" href="dex-scanner.css?v=31" />
+  <link rel="stylesheet" href="dex-scanner.css?v=32" />
   <link rel="stylesheet" href="dex-scanner-radar.css?v=2" />
-  <link rel="stylesheet" href="dex-sidebar.css?v=4" />
+  <link rel="stylesheet" href="dex-sidebar.css?v=5" />
   <link rel="stylesheet" href="search-overlay.css?v=2" />
 </head>
 <body>
@@ -121,7 +121,10 @@
         <div class="brand-titles">
           <span class="brand-main">SNIPER</span>
           <span class="brand-sub">DEX SCANNER</span>
-          <span class="chain-pill-active" id="headerChainPill">SOL</span>
+          <span class="chain-pill-active" id="headerChainPill">
+            <img class="chain-pill-ico" src="assets/chains/chain-solana.png?v=1" alt="" width="12" height="12" decoding="async" />
+            <span class="chain-pill-txt">SOL</span>
+          </span>
         </div>
       </div>
       <div class="header-actions">
@@ -191,6 +194,8 @@
     </div>
 
     <div class="feature-grid" id="quickCards"></div>
+
+    <h2 class="feed-list-title hidden" id="feedListTitle" aria-live="polite"></h2>
 
     <div class="token-table-scroll">
       <div class="token-table-inner">
@@ -398,7 +403,7 @@
   <script src="banner-studio.js?v=1"></script>
   <script src="dex-sidebar.js?v=7"></script>
   <script src="search-overlay.js?v=4"></script>
-  <script src="app.js?v=81"></script>
+  <script src="app.js?v=82"></script>
   <script src="boot-feed.js?v=3"></script>
 </body>
 </html>

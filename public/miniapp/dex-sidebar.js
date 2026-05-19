@@ -92,8 +92,13 @@
       const on = btn.dataset.chain === activeChain;
       btn.classList.toggle('active', on);
     });
-    const pill = $('headerChainPill');
-    if (pill) pill.textContent = chain.short;
+    if (typeof global.updateHeaderChainPill === 'function') {
+      global.updateHeaderChainPill(activeChain);
+    } else {
+      const pill = $('headerChainPill');
+      const txt = pill?.querySelector('.chain-pill-txt');
+      if (txt) txt.textContent = chain.short;
+    }
     const meta = $('feedMetaText');
     if (meta && !meta.dataset.lockChain) {
       const live = chain.live ? 'live' : 'soon';

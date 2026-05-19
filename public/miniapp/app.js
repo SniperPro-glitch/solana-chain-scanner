@@ -291,9 +291,10 @@
     if (nav === 'home') {
       location.hash = '';
       reportId = null;
+      setFeedTab('home');
       showScannerHome();
       clearSearch({ skipFetch: true });
-      void loadHomeFeed('trending', 'home');
+      void loadHomeFeed('trending', 'home', { force: true });
       return;
     }
     if (nav === 'trend') {
@@ -301,7 +302,7 @@
       reportId = null;
       setFeedTab('trending');
       showScannerHome();
-      fetchFeed('trending');
+      void loadHomeFeed('trending', 'trending', { force: true });
       return;
     }
     if (nav === 'new') {
@@ -309,7 +310,7 @@
       reportId = null;
       setFeedTab('new');
       showScannerHome();
-      fetchFeed('new');
+      void loadHomeFeed('new', 'new', { force: true });
       return;
     }
     if (nav === 'scan') {
@@ -388,6 +389,7 @@
       if ((searchQuery || '').trim()) applySearchFilter();
       else renderTokenList(feedItemsFull);
     }
+    updateFeedListTitle();
   }
 
   function setFeedTab(tab) {
@@ -408,6 +410,7 @@
         (!scannerNavActive && n === 'new' && feedTab === 'new');
       btn.classList.toggle('active', active);
     });
+    updateFeedListTitle();
   }
 
   function setSearchHint(msg) {
@@ -584,10 +587,49 @@
     eth: { short: 'ETH', label: 'Ethereum', src: 'Henüz paylaşım yok' },
   };
 
+  const CHAIN_PILL_ICONS = {
+    solana: 'assets/chains/chain-solana.png?v=1',
+    ton: 'assets/chains/chain-ton.png?v=1',
+    bsc: 'assets/chains/chain-bsc.png?v=1',
+    eth: 'assets/chains/chain-eth.png?v=1',
+  };
+
+  function updateHeaderChainPill(chain) {
+    const pill = $('headerChainPill');
+    if (!pill) return;
+    const c = CHAIN_UI[chain] || { short: String(chain || '').toUpperCase().slice(0, 4) };
+    const icon = CHAIN_PILL_ICONS[chain] || CHAIN_PILL_ICONS.solana;
+    let txt = pill.querySelector('.chain-pill-txt');
+    let img = pill.querySelector('.chain-pill-ico');
+    if (!txt || !img) {
+      pill.innerHTML = `<img class="chain-pill-ico" src="${icon}" alt="" width="12" height="12" decoding="async" /><span class="chain-pill-txt">${escHtml(c.short)}</span>`;
+      return;
+    }
+    txt.textContent = c.short;
+    img.src = icon;
+  }
+
+  function updateFeedListTitle() {
+    const el = $('feedListTitle');
+    if (!el) return;
+    if (scannerNavActive || feedTab === 'home') {
+      el.textContent = '';
+      el.classList.add('hidden');
+      return;
+    }
+    const title = feedTab === 'trending' ? 'Trading List' : feedTab === 'new' ? 'New Pairs List' : '';
+    if (title) {
+      el.textContent = title;
+      el.classList.remove('hidden');
+    } else {
+      el.textContent = '';
+      el.classList.add('hidden');
+    }
+  }
+
   function applyChainHeaderUi(chain) {
     const c = CHAIN_UI[chain] || { short: String(chain || '').toUpperCase().slice(0, 4), label: chain, src: 'DexScreener' };
-    const pill = $('headerChainPill');
-    if (pill) pill.textContent = c.short;
+    updateHeaderChainPill(chain);
     const meta = $('feedMetaText');
     const bar = $('feedMetaBar');
     if (meta) {
@@ -955,14 +997,7 @@
     if (uiTab === 'new') feedTab = 'new';
     else if (uiTab === 'home') feedTab = 'home';
     else feedTab = 'trending';
-    document.querySelectorAll('.bnav[data-nav]').forEach((btn) => {
-      const n = btn.dataset.nav;
-      const active =
-        (n === 'home' && feedTab === 'home') ||
-        (n === 'trend' && feedTab === 'trending') ||
-        (n === 'new' && feedTab === 'new');
-      btn.classList.toggle('active', active);
-    });
+    setFeedTab(feedTab);
 
     activeChain = chain;
     syncDexChipsForChain(activeChain);
@@ -1081,17 +1116,6 @@
       ev.preventDefault();
       onBottomNav(btn.dataset.nav);
     });
-    bottomNav?.addEventListener(
-      'touchend',
-      (ev) => {
-        const btn = ev.target.closest('button.bnav[data-nav]');
-        if (!btn) return;
-        ev.preventDefault();
-        onBottomNav(btn.dataset.nav);
-      },
-      { passive: false },
-    );
-
     /* Arama: search-overlay.js (Dex panel) */
     $('radarAnalyzeBtn')?.addEventListener('click', () => runRadarScan());
     $('radarMintInput')?.addEventListener('keydown', (e) => {
@@ -1142,6 +1166,7 @@
     homeFeedBooted = true;
     activeChain = getActiveChain();
     syncDexChipsForChain(activeChain);
+    updateHeaderChainPill(activeChain);
     setFeedTab('home');
     searchQuery = '';
     homeFeedCacheKey = '';
@@ -2153,6 +2178,7 @@
     loadReportFlow();
   };
   globalThis.onBottomNav = onBottomNav;
+  globalThis.updateHeaderChainPill = updateHeaderChainPill;
   globalThis.fetchFeedForChain = (chainId) => {
     if (!chainId) return;
     if (global.SniperSidebar?.setChain) global.SniperSidebar.setChain(chainId);
