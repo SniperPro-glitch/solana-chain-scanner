@@ -86,7 +86,18 @@ html.radar-tab-active .scanner-home {
   cursor: wait;
 }
 
-.radar-analyze-ico { font-size: 18px; }
+.radar-analyze-ico {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.radar-analyze-ico .scanner-ico-img {
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+}
 
 .radar-how-title {
   margin: 0 0 12px;
@@ -183,9 +194,17 @@ html.radar-tab-active .scanner-home {
   left: 50%;
   top: 50%;
   transform: translate(-50%, -50%);
-  font-size: 28px;
-  color: var(--cyan);
-  text-shadow: 0 0 12px rgba(0, 229, 255, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+}
+
+.radar-ring-center .scanner-ico-img {
+  width: 44px;
+  height: 44px;
+  object-fit: contain;
+  filter: drop-shadow(0 0 10px rgba(0, 229, 255, 0.65));
 }
 
 .radar-scan-sub {

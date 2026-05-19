@@ -145,6 +145,8 @@
     return fmt || '—';
   }
 
+  const SCANNER_ICON = 'assets/sniper-scanner-icon.png?v=1';
+
   const DEX_LOGO_SRC = {
     pumpfun: 'assets/dex-pumpfun.png?v=8',
     pumpswap: 'assets/dex-pumpfun.png?v=8',
@@ -828,7 +830,14 @@
     const cards = [
       { icon: '🔥', title: 'Live Trending', val: trending.toLocaleString('en-US'), accent: 'accent-pink', tag: 'LIVE', tagCls: 'live', action: 'trending' },
       { icon: '✦', title: 'New Pairs', val: String(stats?.newPairs ?? items.length), accent: 'accent-green', tag: 'NEW', tagCls: 'new', action: 'new' },
-      { icon: '◎', title: 'Liquidity Scanner', val: stats?.liquidityFmt || '$243.6M', accent: 'accent-cyan', tag: '', action: null },
+      {
+        icon: `<img class="scanner-ico-img qc-scanner-ico" src="${SCANNER_ICON}" alt="" width="26" height="26" loading="lazy" decoding="async" />`,
+        title: 'Liquidity Scanner',
+        val: stats?.liquidityFmt || '$243.6M',
+        accent: 'accent-cyan',
+        tag: '',
+        action: 'scan',
+      },
       { icon: '🐋', title: 'Whale Buys', val: String(Math.min(99, Math.max(1, items.length))), accent: 'accent-purple', tag: '', action: null },
       { icon: '🛡', title: 'AI Risk Check', val: 'Protected', accent: 'accent-gold', tag: '', action: null },
     ];
@@ -844,6 +853,7 @@
       card.addEventListener('click', () => {
         const a = card.dataset.action;
         if (a === 'trending' || a === 'new') fetchFeed(a);
+        else if (a === 'scan' && typeof globalThis.onBottomNav === 'function') globalThis.onBottomNav('scan');
       });
     });
   }
