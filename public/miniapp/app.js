@@ -1013,9 +1013,7 @@
       { passive: false },
     );
 
-    $('sidebarSearchInput')?.addEventListener('input', onSearchInput);
-    $('sidebarSearchInput')?.addEventListener('keydown', onSearchKeydown);
-    $('sidebarSearchClear')?.addEventListener('click', clearSearch);
+    /* Arama: search-overlay.js (Dex panel) */
     $('radarAnalyzeBtn')?.addEventListener('click', () => runRadarScan());
     $('radarMintInput')?.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') runRadarScan();
@@ -2056,6 +2054,17 @@
   }
 
   globalThis.showToast = showToast;
+  globalThis.getActiveChain = getActiveChain;
+  globalThis.openTokenByMint = openTokenByMint;
+  globalThis.sniperFmtPrice = fmtPriceDisplay;
+  globalThis.clearHomeSearch = () => clearSearch({ skipFetch: false });
+  globalThis.sniperOpenReport = (rid) => {
+    if (!rid) return;
+    markReportOpen(scannerNavActive);
+    reportId = rid;
+    location.hash = `r=${rid}`;
+    loadReportFlow();
+  };
   globalThis.onBottomNav = onBottomNav;
   globalThis.fetchFeedForChain = (chainId) => {
     if (chainId) activeChain = chainId;

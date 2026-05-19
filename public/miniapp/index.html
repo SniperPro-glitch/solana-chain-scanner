@@ -19,6 +19,7 @@
   <link rel="stylesheet" href="dex-scanner.css?v=29" />
   <link rel="stylesheet" href="dex-scanner-radar.css?v=1" />
   <link rel="stylesheet" href="dex-sidebar.css?v=3" />
+  <link rel="stylesheet" href="search-overlay.css?v=1" />
   <link rel="preload" href="/api/feed?tab=trending&limit=24&dex=all&chain=solana" as="fetch" crossorigin />
 </head>
 <body>
@@ -373,12 +374,31 @@
     <footer class="trade-bar" id="tradeBar"></footer>
   </div>
 
+  <div id="searchOverlay" class="search-overlay hidden" aria-hidden="true">
+    <div class="search-overlay-backdrop" id="searchOverlayBackdrop"></div>
+    <div class="search-overlay-panel" role="dialog" aria-modal="true" aria-label="Token ara">
+      <div class="search-overlay-head">
+        <label class="search-overlay-input-wrap">
+          <span class="ico" aria-hidden="true">⌕</span>
+          <input type="search" id="searchOverlayInput" placeholder="Token, pair veya adres" autocomplete="off" spellcheck="false" enterkeyhint="search" />
+          <button type="button" class="search-overlay-clear hidden" id="searchOverlayClear">Clear</button>
+        </label>
+        <button type="button" class="search-overlay-close" id="searchOverlayClose" aria-label="Kapat">✕</button>
+      </div>
+      <p class="search-overlay-status" id="searchOverlayStatus" aria-live="polite"></p>
+      <div class="search-overlay-results" id="searchOverlayResults">
+        <p class="sr-hint">Token adı, pair veya kontrat adresi yazın…</p>
+      </div>
+    </div>
+  </div>
+
   <script src="wallet.js?v=1"></script>
   <script src="dex-crop-baked.js?v=4"></script>
   <script src="dex-crop.js?v=21"></script>
   <script src="banner-studio.js?v=1"></script>
-  <script src="dex-sidebar.js?v=4"></script>
-  <script src="app.js?v=68"></script>
+  <script src="dex-sidebar.js?v=5"></script>
+  <script src="search-overlay.js?v=1"></script>
+  <script src="app.js?v=69"></script>
 </body>
 </html>
 

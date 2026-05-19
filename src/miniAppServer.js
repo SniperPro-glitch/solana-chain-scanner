@@ -49,11 +49,11 @@ function sendJson(res, code, obj, extraHeaders = {}) {
 function shouldProxyToBot(pathname, searchParams) {
   if (pathname === '/api/feed/status' || pathname === '/api/config') return false;
   if (pathname.startsWith('/api/trades/')) return false;
-  if (pathname === '/api/feed') {
+  if (pathname === '/api/feed' || pathname === '/api/search') {
     const q = String(searchParams?.get('q') || '').trim();
     const chain = String(searchParams?.get('chain') || 'solana').toLowerCase();
     // Arama + çoklu ağ: DEX üzerinde multiChainFeed (DexScreener); eski bot proxy q yok sayar.
-    if (q || chain !== 'solana') return false;
+    if (q || chain !== 'solana' || pathname === '/api/search') return false;
   }
   return (
     pathname.startsWith('/api/report/')
@@ -354,6 +354,21 @@ function createMiniAppServer() {
         } catch (e) {
           console.warn('[miniApp] feed:', e.message);
           sendJson(res, 502, { error: 'feed_failed', message: e.message });
+        }
+        return;
+      }
+
+      if (req.method === 'GET' && url.pathname === '/api/search') {
+        const q = url.searchParams.get('q') || '';
+        const chain = url.searchParams.get('chain') || 'all';
+        const limit = Math.min(50, parseInt(url.searchParams.get('limit') || '40', 10));
+        try {
+          const { searchListedTokens } = require('./appSearch');
+          const body = await searchListedTokens(q, limit, chain);
+          sendJson(res, 200, body, { 'Cache-Control': 'private, max-age=8' });
+        } catch (e) {
+          console.warn('[miniApp] search:', e.message);
+          sendJson(res, 502, { error: 'search_failed', message: e.message });
         }
         return;
       }

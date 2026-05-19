@@ -164,4 +164,6 @@ module.exports = {
   buildFeed,
   buildDexChainFeed,
   LIVE_CHAINS,
+  normalizeSearchQ,
+  itemMatchesSearch,
 };

@@ -140,6 +140,11 @@ async function listRecentAsync(limit = 48, tab = 'trending') {
   return listRecent(limit, tab);
 }
 
+/** Tüm kanal listesi (arama için, en fazla MAX_ITEMS). */
+async function listAllAsync() {
+  return listRecentAsync(MAX_ITEMS, 'trending');
+}
+
 async function feedCountAsync() {
   if (!pg.enabled()) return feedCount();
   try {
@@ -177,6 +182,7 @@ module.exports = {
   recordShare,
   listRecent,
   listRecentAsync,
+  listAllAsync,
   feedCount,
   feedCountAsync,
   migrateFileToPg,

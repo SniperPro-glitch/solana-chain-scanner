@@ -109,7 +109,13 @@
     root.setAttribute('aria-hidden', 'false');
     open = true;
     document.body.classList.add('sidebar-open');
-    setTimeout(() => $('sidebarSearchInput')?.focus({ preventScroll: true }), 280);
+    setTimeout(() => {
+      if (typeof global.openSearchOverlay === 'function') {
+        global.openSearchOverlay($('sidebarSearchInput')?.value || '');
+      } else {
+        $('sidebarSearchInput')?.focus({ preventScroll: true });
+      }
+    }, 280);
   }
 
   function closeSidebar() {
@@ -209,6 +215,9 @@
       if (e.key === 'Escape' && open) closeSidebar();
     });
   }
+
+  global.closeDexSidebar = closeSidebar;
+  global.getActiveChain = () => activeChain;
 
   global.SniperSidebar = {
     open: openSidebar,
