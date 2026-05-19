@@ -43,6 +43,7 @@
 
   let feedTab = 'trending';
   let dexFilter = 'all';
+  let activeChain = 'solana';
   let homeShellBound = false;
   let homeFeedBooted = false;
   let detailShellBound = false;
@@ -159,7 +160,9 @@
       dexBadge,
       item.marketCapUsdFmt ? `MCap ${escHtml(item.marketCapUsdFmt)}` : '',
     ].filter(Boolean).join(' · ');
-    return `<article class="token-row ${extraClass}" data-mint="${escHtml(item.mint)}" data-dex="${escHtml(dexKey)}"${reportAttr}>
+    const dexUrlAttr = item.dexPageUrl ? ` data-dex-url="${escHtml(item.dexPageUrl)}"` : '';
+    const chainAttr = item.chain ? ` data-chain="${escHtml(item.chain)}"` : '';
+    return `<article class="token-row ${extraClass}" data-mint="${escHtml(item.mint)}" data-dex="${escHtml(dexKey)}" data-chain="${escHtml(item.chain || 'solana')}"${reportAttr}${dexUrlAttr}${chainAttr}>
       <span class="tr-rank">${item.rank ?? '·'}</span>
       <div class="tr-token">${avatar}<div class="tr-meta"><div class="tr-name">${escHtml(item.symbol)}<span class="tr-pair"> / ${pairShort}</span></div><div class="tr-sub">${subParts || '—'}</div></div></div>
       <span class="tr-price" title="${item.priceUsd != null ? escHtml(String(item.priceUsd)) : ''}">${escHtml(fmtPriceDisplay(item))}</span>
@@ -519,46 +522,39 @@
     }
   }
 
-  function tokenMatchesQuery(it, qLower) {
-    const hay = [
-      it.symbol,
-      it.mint,
-      it.pairLabel,
-      it.fullName,
-      it.name,
-      it.dexLabel,
-    ]
-      .filter(Boolean)
-      .map((s) => String(s).toLowerCase());
-    return hay.some((s) => s.includes(qLower));
+  function getActiveChain() {
+    return global.SniperSidebar?.getChain?.() || activeChain || 'solana';
   }
 
-  function applySearchFilter() {
+  function syncDexChipsForChain(chain) {
+    const scroll = $('dexScroll');
+    if (scroll) scroll.classList.toggle('hidden', chain !== 'solana');
+  }
+
+  function applySearchHintFromFeed() {
     const q = (searchQuery || '').trim();
-    const qLower = q.toLowerCase();
     $('searchClearBtn')?.classList.toggle('hidden', !q);
     hideScannerCard();
     scannerPreviewId = null;
-
     if (!q) {
       setSearchHint('');
-      renderTokenList(feedItemsFull);
       return;
     }
-
     if (!feedItemsFull.length) {
-      renderTokenList([], { searching: true });
-      setSearchHint('Liste yükleniyor — biraz bekleyin');
+      const chain = getActiveChain();
+      setSearchHint(
+        chain === 'solana'
+          ? 'Bu token listemizde mevcut değil.'
+          : 'Bu ağda token bulunamadı.',
+      );
       return;
     }
+    setSearchHint(`${feedItemsFull.length} sonuç`);
+  }
 
-    const filtered = feedItemsFull.filter((it) => tokenMatchesQuery(it, qLower));
-    renderTokenList(filtered, { searching: true });
-    if (filtered.length) {
-      setSearchHint(`${filtered.length} sonuç`);
-    } else {
-      setSearchHint('Bu token listemizde mevcut değil.');
-    }
+  function applySearchFilter() {
+    applySearchHintFromFeed();
+    renderTokenList(feedItemsFull, { searching: !!(searchQuery || '').trim() });
   }
 
   function onSearchInput() {
@@ -568,8 +564,8 @@
     if (side && side.value !== searchQuery) side.value = searchQuery;
     clearTimeout(searchDebounce);
     searchDebounce = setTimeout(() => {
-      applySearchFilter();
-    }, 200);
+      fetchFeed(feedTab);
+    }, 320);
   }
 
   function onSearchKeydown(e) {
@@ -748,8 +744,9 @@
     }
     const n = body.botCount ?? body.items?.length ?? 0;
     const vol = body.stats?.volume24hFmt || '—';
-    const src = body.source === 'bot_channel' ? 'Bot kanal paylaşımları' : 'Feed';
-    txt.textContent = `◎ ${src} · ${n} token · ${vol} 24h vol`;
+    const chainLabel = { solana: 'Solana', ton: 'TON', bsc: 'BSC', eth: 'ETH' }[body.chain] || body.chain || '—';
+    const src = body.source === 'bot_channel' ? 'Bot + arama' : 'DexScreener';
+    txt.textContent = `◎ ${chainLabel} · ${src} · ${n} token · ${vol} 24h`;
     bar.classList.remove('hidden');
   }
 
@@ -812,14 +809,22 @@
     const t = tab || feedTab;
     if (t === 'scan') return null;
     setFeedTab(t);
+    activeChain = getActiveChain();
+    syncDexChipsForChain(activeChain);
+    const q = (searchQuery || '').trim();
     const loadingEl = $('feedLoading');
     const list = $('homeTokenList');
     loadingEl?.classList.remove('hidden');
     list?.classList.add('dimmed');
     try {
-      const res = await fetch(
-        apiPath(`/api/feed?tab=${encodeURIComponent(t)}&limit=24&dex=${encodeURIComponent(dexFilter)}`),
-      );
+      const qs = new URLSearchParams({
+        tab: t,
+        limit: '24',
+        dex: dexFilter,
+        chain: activeChain,
+      });
+      if (q) qs.set('q', q);
+      const res = await fetch(apiPath(`/api/feed?${qs.toString()}`));
       const body = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(body.message || 'feed_failed');
       if (body.empty && body.emptyMessage) {
@@ -828,9 +833,8 @@
         applyHomeExtras(body);
         updateFeedMetaBar(body);
         feedItemsFull = [];
-        if ((searchQuery || '').trim()) applySearchFilter();
-        else renderTokenList([]);
-        showToast(body.emptyMessage.slice(0, 80));
+        applySearchFilter();
+        if (!q) showToast(body.emptyMessage.slice(0, 80));
         return body;
       }
       const items = body.items?.length ? body.items : [];
@@ -841,8 +845,8 @@
       applyHomeExtras(body);
       updateFeedMetaBar(body);
       feedItemsFull = items;
-      if ((searchQuery || '').trim()) applySearchFilter();
-      else renderTokenList(items);
+      if (body.chain) activeChain = body.chain;
+      applySearchFilter();
       if (dexFilter !== 'all' && !items.length && (body.dexCounts?.all || 0) > 0) {
         showToast('Bu DEX filtresinde yok — Tümü\'ne geçiliyor');
         setDexFilter('all');
@@ -858,9 +862,8 @@
       applyHomeExtras(null);
       updateFeedMetaBar(null);
       feedItemsFull = [];
-      if ((searchQuery || '').trim()) applySearchFilter();
-      else renderTokenList([]);
-      showToast('Liste yüklenemedi — bot paylaşımlarını bekleyin');
+      applySearchFilter();
+      showToast('Liste yüklenemedi — tekrar deneyin');
       return null;
     } finally {
       loadingEl?.classList.add('hidden');
@@ -978,8 +981,19 @@
         loadReportFlow();
         return;
       }
+      const dexUrl = row.dataset.dexUrl;
+      if (dexUrl && getActiveChain() !== 'solana') {
+        openExternalUrl(dexUrl);
+        return;
+      }
       const m = row.dataset.mint;
       if (m) openTokenByMint(m);
+    });
+
+    document.addEventListener('sniper:chain', (e) => {
+      activeChain = e.detail?.chain || 'solana';
+      syncDexChipsForChain(activeChain);
+      fetchFeed(feedTab);
     });
 
     feedPollTimer = setInterval(() => {
@@ -991,6 +1005,8 @@
   function initScannerHome() {
     if (homeFeedBooted) return;
     homeFeedBooted = true;
+    activeChain = getActiveChain();
+    syncDexChipsForChain(activeChain);
     setFeedTab(feedTab);
     loadApiConfig().then(() => {
       if (!scannerNavActive) fetchFeed(feedTab);
@@ -1979,6 +1995,11 @@
 
   globalThis.showToast = showToast;
   globalThis.onBottomNav = onBottomNav;
+  globalThis.fetchFeedForChain = (chainId) => {
+    if (chainId) activeChain = chainId;
+    showScannerHome();
+    fetchFeed(feedTab);
+  };
 
   main();
 })();

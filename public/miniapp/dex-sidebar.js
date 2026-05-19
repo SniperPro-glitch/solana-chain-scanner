@@ -17,9 +17,9 @@
 
   const CHAINS = [
     { id: 'solana', label: 'Solana', live: true, dotClass: 'sol', short: 'SOL', fallback: '◎' },
-    { id: 'ton', label: 'TON', live: false, dotClass: 'ton', short: 'TON', fallback: 'T' },
-    { id: 'bsc', label: 'BSC', live: false, dotClass: 'bsc', short: 'BSC', fallback: 'B' },
-    { id: 'eth', label: 'Ethereum', live: false, dotClass: 'eth', short: 'ETH', fallback: 'Ξ' },
+    { id: 'ton', label: 'TON', live: true, dotClass: 'ton', short: 'TON', fallback: 'T' },
+    { id: 'bsc', label: 'BSC', live: true, dotClass: 'bsc', short: 'BSC', fallback: 'B' },
+    { id: 'eth', label: 'Ethereum', live: true, dotClass: 'eth', short: 'ETH', fallback: 'Ξ' },
   ];
 
   const SOCIAL = {
@@ -115,7 +115,8 @@
     const meta = $('feedMetaText');
     if (meta && !meta.dataset.lockChain) {
       const live = chain.live ? 'live' : 'soon';
-      meta.textContent = `◎ ${chain.label} · ${live === 'live' ? 'bot feed' : 'yakında'}`;
+      const src = chain.id === 'solana' ? 'bot + arama' : 'DexScreener';
+      meta.textContent = `◎ ${chain.label} · ${src}`;
     }
   }
 
@@ -169,12 +170,11 @@
   function pickChain(id) {
     const c = CHAINS.find((x) => x.id === id);
     if (!c) return;
-    if (!c.live) {
-      toast(`${c.label} yakında — şimdilik Solana aktif`);
-      return;
-    }
     saveChain(id);
     closeSidebar();
+    if (typeof global.fetchFeedForChain === 'function') {
+      global.fetchFeedForChain(id);
+    }
   }
 
   function bind() {
