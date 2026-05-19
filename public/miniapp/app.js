@@ -159,7 +159,7 @@
   /** Token avatar köşesi */
   const SWAP_PIN_SRC = 'assets/swap-pin.png?v=1';
   /** Alt satır — PumpSwap yazısının solu (mini kapsül) */
-  const SWAP_BADGE_SRC = 'assets/swap-badge.png?v=1';
+  const SWAP_BADGE_SRC = 'assets/swap-badge.png?v=2';
 
   function swapPinHtml(dexKey) {
     if (dexKey === 'pumpswap' || dexKey === 'pumpfun') {
@@ -172,7 +172,7 @@
     if (!label) return '';
     let ico = '';
     if (dexKey === 'pumpswap' || dexKey === 'pumpfun') {
-      ico = `<img class="tr-dex-badge-ico" src="${SWAP_BADGE_SRC}" alt="" width="12" height="12" loading="lazy" decoding="async" />`;
+      ico = `<img class="tr-dex-badge-ico tr-dex-badge-ico--swap" src="${SWAP_BADGE_SRC}" alt="" width="16" height="16" loading="lazy" decoding="async" />`;
     } else {
       const src = DEX_LOGO_SRC[dexKey];
       if (src) {

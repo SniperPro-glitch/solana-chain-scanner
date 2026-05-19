@@ -935,6 +935,11 @@ html.scanner-mode .search-box {
   display: block;
 }
 
+.tr-dex-badge-ico--swap {
+  width: 16px;
+  height: 16px;
+}
+
 .tr-dex-badge-txt {
   overflow: hidden;
   text-overflow: ellipsis;
