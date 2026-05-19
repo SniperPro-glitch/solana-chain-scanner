@@ -16,7 +16,7 @@
     }
   </script>
   <link rel="stylesheet" href="styles.css?v=42" />
-  <link rel="stylesheet" href="dex-scanner.css?v=32" />
+  <link rel="stylesheet" href="dex-scanner.css?v=33" />
   <link rel="stylesheet" href="dex-scanner-radar.css?v=2" />
   <link rel="stylesheet" href="dex-sidebar.css?v=5" />
   <link rel="stylesheet" href="search-overlay.css?v=2" />
@@ -197,10 +197,67 @@
 
     <h2 class="feed-list-title hidden" id="feedListTitle" aria-live="polite"></h2>
 
+    <section class="feed-toolbar" id="feedToolbar" aria-label="Liste filtreleri">
+      <div class="feed-toolbar-row feed-toolbar-trend">
+        <span class="feed-toolbar-label">Trending</span>
+        <div class="feed-tf-group" role="group" aria-label="Zaman dilimi">
+          <button type="button" class="feed-tf" data-tf="1h">1H</button>
+          <button type="button" class="feed-tf active" data-tf="24h">24H</button>
+        </div>
+      </div>
+      <div class="feed-toolbar-row feed-toolbar-actions">
+        <div class="feed-list-modes" role="group" aria-label="Liste türü">
+          <button type="button" class="feed-mode-chip active" data-list-mode="top">Top</button>
+          <button type="button" class="feed-mode-chip" data-list-mode="gainers">Gainers</button>
+          <button type="button" class="feed-mode-chip" data-list-mode="new">New</button>
+        </div>
+        <label class="feed-sort-wrap">
+          <span class="visually-hidden">Sırala</span>
+          <select id="feedSortSelect" class="feed-sort-select" aria-label="Sıralama">
+            <option value="volume">Vol 24H ↓</option>
+            <option value="mcap">MCap ↓</option>
+            <option value="change">% Change ↓</option>
+            <option value="age">Age ↓</option>
+            <option value="txns">TXNs ↓</option>
+          </select>
+        </label>
+        <button type="button" class="feed-filters-btn" id="feedFiltersBtn" aria-expanded="false">Filters</button>
+      </div>
+    </section>
+
+    <div id="feedFiltersSheet" class="feed-filters-sheet hidden" aria-hidden="true">
+      <div class="feed-filters-backdrop" id="feedFiltersBackdrop"></div>
+      <div class="feed-filters-panel">
+        <div class="feed-filters-head">
+          <h3>Filtreler</h3>
+          <button type="button" class="feed-filters-close" id="feedFiltersClose" aria-label="Kapat">✕</button>
+        </div>
+        <label class="feed-filter-row">
+          <span>Min. volume 24H</span>
+          <select id="feedMinVol">
+            <option value="0">Any</option>
+            <option value="10000">$10K+</option>
+            <option value="100000">$100K+</option>
+            <option value="500000">$500K+</option>
+          </select>
+        </label>
+        <label class="feed-filter-row">
+          <span>Min. liquidity</span>
+          <select id="feedMinLiq">
+            <option value="0">Any</option>
+            <option value="10000">$10K+</option>
+            <option value="50000">$50K+</option>
+            <option value="100000">$100K+</option>
+          </select>
+        </label>
+        <button type="button" class="btn-neon feed-filters-apply" id="feedFiltersApply">Uygula</button>
+      </div>
+    </div>
+
     <div class="token-table-scroll">
       <div class="token-table-inner">
         <div class="token-thead">
-          <span>#</span><span>TOKEN / PAIR</span><span>PRICE</span><span>1H %</span><span>24H %</span><span>VOL 24H</span><span>LIQUIDITY</span><span>RISK</span>
+          <span>#</span><span>TOKEN</span><span>MCAP</span><span>PRICE</span><span>AGE</span><span class="th-chg">24H %</span><span class="th-vol">VOL</span><span class="th-liq">LIQ</span><span>RISK</span>
         </div>
         <div class="feed-loading hidden" id="feedLoading">Bot paylaşımları yükleniyor…</div>
         <div class="token-list" id="homeTokenList"></div>
@@ -403,7 +460,7 @@
   <script src="banner-studio.js?v=1"></script>
   <script src="dex-sidebar.js?v=7"></script>
   <script src="search-overlay.js?v=4"></script>
-  <script src="app.js?v=84"></script>
+  <script src="app.js?v=85"></script>
   <script src="boot-feed.js?v=3"></script>
 </body>
 </html>

@@ -49,6 +49,24 @@ function quickAudit(token) {
   }
 }
 
+function formatAgeMinutes(mins) {
+  const m = Math.max(0, Math.floor(Number(mins) || 0));
+  if (m < 60) return `${m}m`;
+  if (m < 1440) return `${Math.floor(m / 60)}h`;
+  if (m < 43200) return `${Math.floor(m / 1440)}d`;
+  return `${Math.floor(m / 43200)}mo`;
+}
+
+function ageFmtForToken(token, postedAt = null) {
+  if (postedAt) return formatAgeMinutes((Date.now() - postedAt) / 60000);
+  if (token?.ageMinutes != null) return formatAgeMinutes(token.ageMinutes);
+  if (token?.createdAt) {
+    const t = new Date(token.createdAt).getTime();
+    if (t) return formatAgeMinutes((Date.now() - t) / 60000);
+  }
+  return '—';
+}
+
 function tokenToFeedItem(token, audit, rank, reportId = null) {
   const risk = riskBandFromAudit(audit);
   const safe = audit ? safetyPercent(audit.riskPercent) : null;
@@ -76,9 +94,13 @@ function tokenToFeedItem(token, audit, rank, reportId = null) {
     change24h: token.priceChange24h,
     change1h: token.priceChange1h,
     marketCapUsdFmt: fmtUsd(token.marketCapUsd || token.fdvUsd),
+    liquidityUsd: Number(token.liquidityUsd) || 0,
     liquidityUsdFmt: fmtUsd(token.liquidityUsd),
     volume24h: Number(token.volume24h) || 0,
     volume24hFmt: fmtUsd(token.volume24h),
+    marketCapUsd: Number(token.marketCapUsd || token.fdvUsd) || 0,
+    ageMinutes: token.ageMinutes ?? null,
+    txns24h: (Number(token.buys24h) || 0) + (Number(token.sells24h) || 0),
     risk,
     trustScore: safe,
     level: cardLevelFromAudit(audit),
@@ -132,6 +154,8 @@ async function buildFeedFromBotShares(tab = 'trending', limit = 24, dexFilter = 
 
     const item = tokenToFeedItem(token, audit, rank, entry.reportId);
     item.postedAt = entry.postedAt;
+    item.ageFmt = ageFmtForToken(token, entry.postedAt);
+    item.txns24hFmt = item.txns24h > 0 ? String(item.txns24h) : '—';
     item.channelTitle = entry.channelTitle;
     items.push(item);
     rank += 1;

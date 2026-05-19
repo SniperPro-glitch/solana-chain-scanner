@@ -71,6 +71,11 @@
   let openingMint = false;
   let feedItemsFull = [];
   let feedEmptyMessage = '';
+  let feedListMode = 'top';
+  let feedTimeframe = '24h';
+  let feedSortKey = 'volume';
+  let feedMinVol = 0;
+  let feedMinLiq = 0;
   let searchQuery = '';
   let searchDebounce = null;
   let scannerAnalyzing = false;
@@ -182,9 +187,8 @@
     const risk = item.risk || {};
     const rc = risk.band || 'mid';
     const label = risk.label || 'SCAN';
-    const chg24 = item.change24h;
-    const chg1 = item.change1h;
-    const up24 = chg24 == null ? true : Number(chg24) >= 0;
+    const chg = getFeedChange(item);
+    const up = chg == null ? true : Number(chg) >= 0;
     const pairShort = escHtml((item.pairLabel || 'SOL').replace(/^.*\//, '') || 'SOL');
     const dexKey = item.dexPlatform || 'other';
     const pin = avatarCornerHtml(dexKey);
@@ -195,19 +199,20 @@
     const dexBadge = dexSubBadgeHtml(dexKey, item.dexLabel);
     const subParts = [
       dexBadge,
-      item.marketCapUsdFmt ? `MCap ${escHtml(item.marketCapUsdFmt)}` : '',
+      item.txns24hFmt && item.txns24hFmt !== '—' ? `TXNs ${escHtml(item.txns24hFmt)}` : '',
     ].filter(Boolean).join(' · ');
     const dexUrlAttr = item.dexPageUrl ? ` data-dex-url="${escHtml(item.dexPageUrl)}"` : '';
     const chainAttr = item.chain ? ` data-chain="${escHtml(item.chain)}"` : '';
     return `<article class="token-row ${extraClass}" data-mint="${escHtml(item.mint)}" data-dex="${escHtml(dexKey)}" data-chain="${escHtml(item.chain || 'solana')}"${reportAttr}${dexUrlAttr}${chainAttr}>
       <span class="tr-rank">${item.rank ?? '·'}</span>
       <div class="tr-token">${avatar}<div class="tr-meta"><div class="tr-name">${escHtml(item.symbol)}<span class="tr-pair"> / ${pairShort}</span></div><div class="tr-sub">${subParts || '—'}</div></div></div>
+      <span class="tr-mcap">${escHtml(item.marketCapUsdFmt || '—')}</span>
       <span class="tr-price" title="${item.priceUsd != null ? escHtml(String(item.priceUsd)) : ''}">${escHtml(fmtPriceDisplay(item))}</span>
-      <span class="tr-pct ${chgClass(chg1)}">${formatPct(chg1)}</span>
-      <span class="tr-pct ${chgClass(chg24)}">${formatPct(chg24)}</span>
+      <span class="tr-age">${escHtml(item.ageFmt || '—')}</span>
+      <span class="tr-pct ${chgClass(chg)}">${formatPct(chg)}</span>
       <span class="tr-vol">${escHtml(item.volume24hFmt || '—')}</span>
       <span class="tr-liq">${escHtml(item.liquidityUsdFmt || '—')}</span>
-      ${riskColHtml(rc, label, up24)}
+      ${riskColHtml(rc, label, up)}
     </article>`;
   }
 
@@ -287,25 +292,31 @@
     if (nav === 'home') {
       location.hash = '';
       reportId = null;
+      feedListMode = 'top';
       setFeedTab('home');
       showScannerHome();
       clearSearch({ skipFetch: true });
+      syncFeedToolbarUi();
       void loadHomeFeed('trending', 'home', { force: true });
       return;
     }
     if (nav === 'trend') {
       location.hash = '';
       reportId = null;
+      feedListMode = 'top';
       setFeedTab('trending');
       showScannerHome();
+      syncFeedToolbarUi();
       void loadHomeFeed('trending', 'trending', { force: true });
       return;
     }
     if (nav === 'new') {
       location.hash = '';
       reportId = null;
+      feedListMode = 'new';
       setFeedTab('new');
       showScannerHome();
+      syncFeedToolbarUi();
       void loadHomeFeed('new', 'new', { force: true });
       return;
     }
@@ -668,9 +679,78 @@
     setSearchHint(`${feedItemsFull.length} sonuç`);
   }
 
+  function getFeedChange(item) {
+    return feedTimeframe === '1h' ? item.change1h : item.change24h;
+  }
+
+  function prepareFeedListItems(items) {
+    let list = Array.isArray(items) ? [...items] : [];
+    if (feedMinVol > 0) list = list.filter((it) => (it.volume24h || 0) >= feedMinVol);
+    if (feedMinLiq > 0) list = list.filter((it) => (it.liquidityUsd || 0) >= feedMinLiq);
+    if (feedListMode === 'gainers') {
+      list = list.filter((it) => (getFeedChange(it) ?? -1) > 0);
+      list.sort((a, b) => (getFeedChange(b) ?? 0) - (getFeedChange(a) ?? 0));
+    } else if (feedListMode === 'new') {
+      list.sort((a, b) => (b.postedAt || 0) - (a.postedAt || 0));
+    } else {
+      list.sort((a, b) => {
+        if (feedSortKey === 'mcap') return (b.marketCapUsd || 0) - (a.marketCapUsd || 0);
+        if (feedSortKey === 'change') return (getFeedChange(b) ?? 0) - (getFeedChange(a) ?? 0);
+        if (feedSortKey === 'age') return (b.postedAt || 0) - (a.postedAt || 0);
+        if (feedSortKey === 'txns') return (b.txns24h || 0) - (a.txns24h || 0);
+        return (b.volume24h || 0) - (a.volume24h || 0);
+      });
+    }
+    return list.map((it, i) => ({ ...it, rank: i + 1 }));
+  }
+
+  function updateFeedTableHead() {
+    const chg = document.querySelector('.token-thead .th-chg');
+    if (chg) chg.textContent = feedTimeframe === '1h' ? '1H %' : '24H %';
+    const sortSel = $('feedSortSelect');
+    if (sortSel && sortSel.value !== feedSortKey) sortSel.value = feedSortKey;
+  }
+
+  function syncFeedToolbarUi() {
+    document.querySelectorAll('.feed-tf[data-tf]').forEach((btn) => {
+      btn.classList.toggle('active', btn.dataset.tf === feedTimeframe);
+    });
+    document.querySelectorAll('.feed-mode-chip[data-list-mode]').forEach((btn) => {
+      btn.classList.toggle('active', btn.dataset.listMode === feedListMode);
+    });
+    updateFeedTableHead();
+  }
+
+  function setFeedListMode(mode) {
+    feedListMode = mode || 'top';
+    syncFeedToolbarUi();
+    if (mode === 'new') {
+      setFeedTab('new');
+      void loadHomeFeed('new', 'new', { force: true });
+      return;
+    }
+    if (feedTab === 'new') {
+      setFeedTab('trending');
+      void loadHomeFeed('trending', 'trending', { force: true });
+      return;
+    }
+    applySearchFilter();
+  }
+
+  function openFeedFilters(open) {
+    const sheet = $('feedFiltersSheet');
+    const btn = $('feedFiltersBtn');
+    if (!sheet) return;
+    const on = open !== false;
+    sheet.classList.toggle('hidden', !on);
+    sheet.setAttribute('aria-hidden', on ? 'false' : 'true');
+    if (btn) btn.setAttribute('aria-expanded', on ? 'true' : 'false');
+  }
+
   function applySearchFilter() {
     applySearchHintFromFeed();
-    renderTokenList(feedItemsFull, {
+    const prepared = prepareFeedListItems(feedItemsFull);
+    renderTokenList(prepared, {
       searching: !!(searchQuery || '').trim(),
       emptyMessage: feedEmptyMessage,
     });
@@ -1105,6 +1185,30 @@
       });
     });
 
+    document.querySelectorAll('.feed-tf[data-tf]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        feedTimeframe = btn.dataset.tf || '24h';
+        syncFeedToolbarUi();
+        applySearchFilter();
+      });
+    });
+    document.querySelectorAll('.feed-mode-chip[data-list-mode]').forEach((btn) => {
+      btn.addEventListener('click', () => setFeedListMode(btn.dataset.listMode || 'top'));
+    });
+    $('feedSortSelect')?.addEventListener('change', (e) => {
+      feedSortKey = e.target.value || 'volume';
+      applySearchFilter();
+    });
+    $('feedFiltersBtn')?.addEventListener('click', () => openFeedFilters(true));
+    $('feedFiltersClose')?.addEventListener('click', () => openFeedFilters(false));
+    $('feedFiltersBackdrop')?.addEventListener('click', () => openFeedFilters(false));
+    $('feedFiltersApply')?.addEventListener('click', () => {
+      feedMinVol = Number($('feedMinVol')?.value || 0);
+      feedMinLiq = Number($('feedMinLiq')?.value || 0);
+      openFeedFilters(false);
+      applySearchFilter();
+    });
+
     const bottomNav = document.querySelector('#scanner-home .bottom-nav');
     bottomNav?.addEventListener('click', (ev) => {
       const btn = ev.target.closest('button.bnav[data-nav]');
@@ -1163,6 +1267,7 @@
     activeChain = getActiveChain();
     syncDexChipsForChain(activeChain);
     updateHeaderChainPill(activeChain);
+    syncFeedToolbarUi();
     setFeedTab('home');
     searchQuery = '';
     homeFeedCacheKey = '';
