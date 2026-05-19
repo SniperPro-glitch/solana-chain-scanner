@@ -848,14 +848,21 @@ html.scanner-mode .search-box {
 }
 
 .dex-chip .dex-ico-img {
-  width: 14px;
-  height: 14px;
+  width: 16px;
+  height: 16px;
   object-fit: contain;
   flex-shrink: 0;
   display: block;
+  order: 0;
+}
+
+.dex-chip .dex-chip-label {
+  order: 1;
+  line-height: 1;
 }
 
 .dex-chip .dex-count {
+  order: 2;
   font-size: 9px;
   font-weight: 600;
   opacity: 0.75;
@@ -890,20 +897,34 @@ html.scanner-mode .search-box {
 }
 
 .tr-dex-badge {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
   font-size: 7px;
   font-weight: 700;
   letter-spacing: 0.03em;
-  padding: 1px 4px;
+  padding: 1px 4px 1px 2px;
   border-radius: 4px;
   margin-right: 2px;
   vertical-align: middle;
   border: 1px solid var(--border);
   color: var(--muted);
-  max-width: 72px;
+  max-width: 88px;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.tr-dex-badge-ico {
+  width: 12px;
+  height: 12px;
+  object-fit: contain;
+  flex-shrink: 0;
+  display: block;
+}
+
+.tr-dex-badge-txt {
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .tr-dex-badge.dex-pumpfun { color: var(--green); border-color: rgba(0, 255, 136, 0.35); }

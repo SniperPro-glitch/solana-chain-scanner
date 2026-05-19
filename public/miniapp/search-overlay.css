@@ -206,6 +206,20 @@
 .sr-dex-fb.dex-orca { color: #67e8f9; }
 .sr-dex-fb.dex-pumpfun { color: #86efac; }
 
+.sr-dex-sub {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  vertical-align: middle;
+}
+
+.sr-dex-sub-ico {
+  width: 12px;
+  height: 12px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
 .sr-main {
   min-width: 0;
 }

@@ -146,9 +146,21 @@
   }
 
   const DEX_LOGO_SRC = {
-    pumpfun: 'assets/dex-pumpfun.png?v=5',
-    pumpswap: 'assets/dex-pumpfun.png?v=5',
+    pumpfun: 'assets/dex-pumpfun.png?v=8',
+    pumpswap: 'assets/dex-pumpfun.png?v=8',
+    raydium: 'assets/dex-raydium.png?v=8',
+    meteora: 'assets/dex-meteora.png?v=8',
+    orca: 'assets/dex-orca.png?v=8',
   };
+
+  function dexBadgeHtml(dexKey, label) {
+    if (!label) return '';
+    const src = DEX_LOGO_SRC[dexKey];
+    const ico = src
+      ? `<img class="tr-dex-badge-ico" src="${src}" alt="" width="12" height="12" loading="lazy" decoding="async" />`
+      : '';
+    return `<span class="tr-dex-badge dex-${escHtml(dexKey)}">${ico}<span class="tr-dex-badge-txt">${escHtml(label)}</span></span>`;
+  }
 
   function dexPinHtml(dexKey) {
     const src = DEX_LOGO_SRC[dexKey];
@@ -172,10 +184,7 @@
       ? `<span class="tr-avatar-wrap"><img class="tr-img" src="${escHtml(item.imageUrl)}" alt="" loading="lazy" data-fb="${escHtml((item.imageFallbacks || []).join('|'))}" />${pin}</span>`
       : `<span class="tr-avatar-wrap"><span class="tr-avatar">${escHtml((item.symbol || '?').slice(0, 2))}</span>${pin}</span>`;
     const reportAttr = item.reportId ? ` data-report="${escHtml(item.reportId)}"` : '';
-    const dexBadge =
-      !DEX_LOGO_SRC[dexKey] && item.dexLabel
-        ? `<span class="tr-dex-badge dex-${escHtml(dexKey)}">${escHtml(item.dexLabel)}</span>`
-        : '';
+    const dexBadge = item.dexLabel ? dexBadgeHtml(dexKey, item.dexLabel) : '';
     const subParts = [
       dexBadge,
       item.marketCapUsdFmt ? `MCap ${escHtml(item.marketCapUsdFmt)}` : '',
