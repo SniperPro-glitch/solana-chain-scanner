@@ -86,24 +86,6 @@
     if (typeof global.showToast === 'function') global.showToast(msg);
   }
 
-  function mainSearch() {
-    return $('searchInput');
-  }
-
-  function syncSearchFromMain() {
-    const side = $('sidebarSearchInput');
-    const main = mainSearch();
-    if (side && main) side.value = main.value;
-  }
-
-  function syncSearchToMain() {
-    const side = $('sidebarSearchInput');
-    const main = mainSearch();
-    if (!side || !main) return;
-    main.value = side.value;
-    main.dispatchEvent(new Event('input', { bubbles: true }));
-  }
-
   function syncChainUi() {
     const chain = CHAINS.find((c) => c.id === activeChain) || CHAINS[0];
     document.querySelectorAll('.dex-sidebar-chain[data-chain]').forEach((btn) => {
@@ -123,7 +105,6 @@
   function openSidebar() {
     const root = $('dexSidebar');
     if (!root) return;
-    syncSearchFromMain();
     root.classList.add('open');
     root.setAttribute('aria-hidden', 'false');
     open = true;
@@ -190,7 +171,6 @@
     $('btnSidebarClose')?.addEventListener('click', closeSidebar);
     $('dexSidebarBackdrop')?.addEventListener('click', closeSidebar);
 
-    $('sidebarSearchInput')?.addEventListener('input', syncSearchToMain);
     $('sidebarSearchInput')?.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') closeSidebar();
     });

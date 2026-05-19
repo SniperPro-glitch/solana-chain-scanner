@@ -18,7 +18,7 @@
   <link rel="stylesheet" href="styles.css?v=42" />
   <link rel="stylesheet" href="dex-scanner.css?v=29" />
   <link rel="stylesheet" href="dex-scanner-radar.css?v=1" />
-  <link rel="stylesheet" href="dex-sidebar.css?v=2" />
+  <link rel="stylesheet" href="dex-sidebar.css?v=3" />
 </head>
 <body>
   <div id="dexSidebar" class="dex-sidebar" aria-hidden="true">
@@ -37,9 +37,10 @@
       <div class="dex-sidebar-search">
         <label class="dex-sidebar-search-box">
           <span class="ico" aria-hidden="true">⌕</span>
-          <input type="search" id="sidebarSearchInput" placeholder="Search" autocomplete="off" spellcheck="false" />
-          <span class="kbd">/</span>
+          <input type="search" id="sidebarSearchInput" placeholder="Token, pair veya adres" autocomplete="off" spellcheck="false" />
+          <button type="button" class="dex-sidebar-search-clear hidden" id="sidebarSearchClear" aria-label="Temizle">✕</button>
         </label>
+        <p id="sidebarSearchHint" class="dex-sidebar-search-hint hidden" aria-live="polite"></p>
       </div>
       <div class="dex-sidebar-scroll">
         <nav class="dex-sidebar-nav" aria-label="Ana menü">
@@ -177,18 +178,8 @@
       </div>
     </section>
 
-    <div class="search-row">
-      <div class="search-box">
-        <span class="search-ico">⌕</span>
-        <input type="text" id="searchInput" placeholder="Search token, pair or contract" autocomplete="off" spellcheck="false" />
-        <button type="button" class="search-clear hidden" id="searchClearBtn" aria-label="Temizle">✕</button>
-        <button type="button" class="search-filter" aria-label="Filter">☰</button>
-      </div>
-    </div>
 
     <section id="scannerCardSlot" class="scanner-card-slot hidden" aria-live="polite"></section>
-    <p id="scannerSearchHint" class="scanner-search-hint hidden"></p>
-
     <div class="dex-scroll" id="dexScroll" role="tablist" aria-label="DEX platform">
       <button type="button" class="dex-chip active" data-dex="all">All</button>
       <button type="button" class="dex-chip" data-dex="pumpfun"><img class="dex-ico-img" src="assets/dex-pumpfun.png?v=5" alt="" width="28" height="28" decoding="async" /> Pump.fun</button>
@@ -385,7 +376,7 @@
   <script src="dex-crop-baked.js?v=4"></script>
   <script src="dex-crop.js?v=21"></script>
   <script src="banner-studio.js?v=1"></script>
-  <script src="dex-sidebar.js?v=3"></script>
-  <script src="app.js?v=61"></script>
+  <script src="dex-sidebar.js?v=4"></script>
+  <script src="app.js?v=63"></script>
 </body>
 </html>

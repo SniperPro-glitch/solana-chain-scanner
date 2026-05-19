@@ -23,6 +23,14 @@
     return root ? `${root}${path}` : path;
   }
 
+  function readSearchQuery() {
+    return ($('sidebarSearchInput')?.value || '').trim();
+  }
+
+  function syncSearchQuery() {
+    searchQuery = readSearchQuery();
+  }
+
   if (tg?.themeParams?.bg_color) {
     document.documentElement.style.setProperty('--bg', tg.themeParams.bg_color);
   }
@@ -246,7 +254,7 @@
       reportId = null;
       setFeedTab('home');
       showScannerHome();
-      fetchFeed('home');
+      clearSearch();
       return;
     }
     if (nav === 'trend') {
@@ -364,7 +372,7 @@
   }
 
   function setSearchHint(msg) {
-    const el = $('scannerSearchHint');
+    const el = $('sidebarSearchHint');
     if (!el) return;
     if (!msg) {
       el.classList.add('hidden');
@@ -373,7 +381,7 @@
       return;
     }
     el.textContent = msg;
-    el.classList.toggle('is-miss', msg.includes('mevcut değil'));
+    el.classList.toggle('is-miss', msg.includes('mevcut değil') || msg.includes('bulunamadı'));
     el.classList.remove('hidden');
   }
 
@@ -384,17 +392,16 @@
     if (slot) slot.innerHTML = '';
   }
 
-  function clearSearch() {
-    const inp = $('searchInput');
+  function clearSearch(opts = {}) {
+    const inp = $('sidebarSearchInput');
     if (inp) inp.value = '';
-    const side = $('sidebarSearchInput');
-    if (side) side.value = '';
     searchQuery = '';
-    $('searchClearBtn')?.classList.add('hidden');
+    $('sidebarSearchClear')?.classList.add('hidden');
     hideScannerCard();
     scannerPreviewId = null;
     setSearchHint('');
-    renderTokenList(feedItemsFull);
+    if (!opts.skipFetch) fetchFeed(feedTab);
+    else renderTokenList(feedItemsFull);
   }
 
   function bindScannerCardActions(root) {
@@ -533,7 +540,7 @@
 
   function applySearchHintFromFeed() {
     const q = (searchQuery || '').trim();
-    $('searchClearBtn')?.classList.toggle('hidden', !q);
+    $('sidebarSearchClear')?.classList.toggle('hidden', !q);
     hideScannerCard();
     scannerPreviewId = null;
     if (!q) {
@@ -558,10 +565,7 @@
   }
 
   function onSearchInput() {
-    const inp = $('searchInput');
-    searchQuery = inp?.value || '';
-    const side = $('sidebarSearchInput');
-    if (side && side.value !== searchQuery) side.value = searchQuery;
+    syncSearchQuery();
     clearTimeout(searchDebounce);
     searchDebounce = setTimeout(() => {
       fetchFeed(feedTab);
@@ -571,7 +575,7 @@
   function onSearchKeydown(e) {
     if (e.key === 'Enter') {
       clearTimeout(searchDebounce);
-      applySearchFilter();
+      fetchFeed(feedTab);
     }
   }
 
@@ -811,6 +815,7 @@
     setFeedTab(t);
     activeChain = getActiveChain();
     syncDexChipsForChain(activeChain);
+    syncSearchQuery();
     const q = (searchQuery || '').trim();
     const loadingEl = $('feedLoading');
     const list = $('homeTokenList');
@@ -827,7 +832,8 @@
       const res = await fetch(apiPath(`/api/feed?${qs.toString()}`));
       const body = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(body.message || 'feed_failed');
-      if (body.empty && body.emptyMessage) {
+      const items = body.items?.length ? body.items : [];
+      if (body.empty && body.emptyMessage && !items.length) {
         applyMarketStats({ count: 0, volume24hFmt: '—', liquidityFmt: '—', newPairs: 0, activeNow: 0 }, []);
         updateQuickCards({ count: 0, newPairs: 0, liquidityFmt: '—' }, []);
         applyHomeExtras(body);
@@ -837,7 +843,6 @@
         if (!q) showToast(body.emptyMessage.slice(0, 80));
         return body;
       }
-      const items = body.items?.length ? body.items : [];
       updateDexChipCounts(body.dexCounts);
       if (body.dexFilter) setDexFilter(body.dexFilter);
       applyMarketStats(body.stats || PLACEHOLDER_STATS, items);
@@ -937,25 +942,9 @@
       { passive: false },
     );
 
-    $('searchInput')?.addEventListener('input', onSearchInput);
-    $('searchInput')?.addEventListener('keydown', onSearchKeydown);
-    $('sidebarSearchInput')?.addEventListener('input', () => {
-      const side = $('sidebarSearchInput');
-      const main = $('searchInput');
-      if (main && side) main.value = side.value;
-      onSearchInput();
-    });
-    $('sidebarSearchInput')?.addEventListener('keydown', (e) => {
-      const side = $('sidebarSearchInput');
-      const main = $('searchInput');
-      if (main && side) main.value = side.value;
-      onSearchKeydown(e);
-    });
-    $('searchClearBtn')?.addEventListener('click', clearSearch);
-    document.querySelector('.search-filter')?.addEventListener('click', (e) => {
-      e.preventDefault();
-      globalThis.SniperSidebar?.open?.();
-    });
+    $('sidebarSearchInput')?.addEventListener('input', onSearchInput);
+    $('sidebarSearchInput')?.addEventListener('keydown', onSearchKeydown);
+    $('sidebarSearchClear')?.addEventListener('click', clearSearch);
     $('radarAnalyzeBtn')?.addEventListener('click', () => runRadarScan());
     $('radarMintInput')?.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') runRadarScan();
@@ -1008,6 +997,10 @@
     activeChain = getActiveChain();
     syncDexChipsForChain(activeChain);
     setFeedTab(feedTab);
+    searchQuery = '';
+    const sideInp = $('sidebarSearchInput');
+    if (sideInp) sideInp.value = '';
+    setSearchHint('');
     loadApiConfig().then(() => {
       if (!scannerNavActive) fetchFeed(feedTab);
     });

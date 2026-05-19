@@ -143,13 +143,31 @@
   color: #5c6b82;
 }
 
-.dex-sidebar-search-box .kbd {
-  font-size: 10px;
-  font-weight: 700;
-  color: #5c6b82;
-  padding: 2px 6px;
-  border-radius: 4px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+.dex-sidebar-search-clear {
+  flex-shrink: 0;
+  width: 26px;
+  height: 26px;
+  border: none;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.06);
+  color: #9aa8bc;
+  font-size: 12px;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.dex-sidebar-search-clear:active {
+  transform: scale(0.94);
+}
+
+.dex-sidebar-search-hint {
+  margin: 6px 4px 0;
+  font-size: 11px;
+  color: #00e5ff;
+}
+
+.dex-sidebar-search-hint.is-miss {
+  color: #ff8a8a;
 }
 
 .dex-sidebar-scroll {

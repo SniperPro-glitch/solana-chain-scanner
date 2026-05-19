@@ -45,9 +45,15 @@ function sendJson(res, code, obj) {
 }
 
 /** DEX Railway: rapor/feed bot sunucusunda; status/config yerel kalsın. */
-function shouldProxyToBot(pathname) {
+function shouldProxyToBot(pathname, searchParams) {
   if (pathname === '/api/feed/status' || pathname === '/api/config') return false;
   if (pathname.startsWith('/api/trades/')) return false;
+  if (pathname === '/api/feed') {
+    const q = String(searchParams?.get('q') || '').trim();
+    const chain = String(searchParams?.get('chain') || 'solana').toLowerCase();
+    // Arama + çoklu ağ: DEX üzerinde multiChainFeed (DexScreener); eski bot proxy q yok sayar.
+    if (q || chain !== 'solana') return false;
+  }
   return (
     pathname.startsWith('/api/report/')
     || pathname === '/api/feed'
@@ -245,7 +251,7 @@ function createMiniAppServer() {
         }
       }
 
-      if (req.method === 'GET' && shouldProxyToBot(url.pathname)) {
+      if (req.method === 'GET' && shouldProxyToBot(url.pathname, url.searchParams)) {
         if (shouldUseBotHttpProxy(req)) {
           if (await proxyBotApi(res, url)) return;
         } else {

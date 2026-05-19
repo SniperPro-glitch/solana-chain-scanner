@@ -10,6 +10,18 @@ const solana = require('./chains/solana');
 
 const LIVE_CHAINS = new Set(['solana', 'ton', 'bsc', 'eth']);
 
+function normalizeSearchQ(q) {
+  return String(q || '').trim().toLowerCase().replace(/^\$/, '');
+}
+
+function itemMatchesSearch(it, qLower) {
+  if (!qLower) return true;
+  const parts = [it.symbol, it.mint, it.pairLabel, it.name, it.fullName, it.dexLabel]
+    .filter(Boolean)
+    .map((s) => String(s).toLowerCase());
+  return parts.some((s) => s.includes(qLower));
+}
+
 function defaultAudit() {
   return {
     isCritical: false,
@@ -109,28 +121,33 @@ async function buildFeed(tab = 'trending', limit = 24, dexFilter = 'all', chain 
     feed.source = feed.source || 'bot_channel';
 
     if (q) {
-      const qLower = q.toLowerCase();
-      let filtered = feed.items.filter((it) => {
-        const hay = [it.symbol, it.mint, it.pairLabel, it.name, it.fullName, it.dexLabel]
-          .filter(Boolean)
-          .map((s) => String(s).toLowerCase());
-        return hay.some((s) => s.includes(qLower));
-      });
+      const qLower = normalizeSearchQ(q);
+      let filtered = feed.items.filter((it) => itemMatchesSearch(it, qLower));
 
-      if (filtered.length < limit) {
-        const extraPairs = await searchDexPairs('solana', q, limit);
-        const seen = new Set(filtered.map((it) => it.mint));
-        for (const p of extraPairs) {
-          const row = pairToFeedItem(p, 'solana', filtered.length + 1);
-          if (!row || seen.has(row.mint)) continue;
-          if (dexFilter !== 'all' && !matchesDexFilter(row.dexPlatform, dexFilter)) continue;
-          seen.add(row.mint);
-          filtered.push(row);
-          if (filtered.length >= limit) break;
-        }
+      const extraPairs = await searchDexPairs('solana', q, Math.max(limit, 24));
+      const seen = new Set(filtered.map((it) => it.mint));
+      for (const p of extraPairs) {
+        const row = pairToFeedItem(p, 'solana', filtered.length + 1);
+        if (!row || seen.has(row.mint)) continue;
+        if (dexFilter !== 'all' && !matchesDexFilter(row.dexPlatform, dexFilter)) continue;
+        seen.add(row.mint);
+        filtered.push(row);
+        if (filtered.length >= limit) break;
       }
 
-      feed.items = filtered.map((it, i) => ({ ...it, rank: i + 1 }));
+      filtered.sort((a, b) => {
+        const symA = String(a.symbol || '').toLowerCase();
+        const symB = String(b.symbol || '').toLowerCase();
+        const aExact = symA === qLower ? 1 : 0;
+        const bExact = symB === qLower ? 1 : 0;
+        if (bExact !== aExact) return bExact - aExact;
+        const aStart = symA.startsWith(qLower) ? 1 : 0;
+        const bStart = symB.startsWith(qLower) ? 1 : 0;
+        if (bStart !== aStart) return bStart - aStart;
+        return (b.volume24h || 0) - (a.volume24h || 0);
+      });
+
+      feed.items = filtered.slice(0, limit).map((it, i) => ({ ...it, rank: i + 1 }));
       feed.searchQuery = q;
       feed.empty = feed.items.length === 0;
       feed.emptyMessage = feed.empty ? 'Bu token listemizde mevcut değil.' : null;

@@ -72,18 +72,58 @@ function pickBestPairs(pairs, chainKey, limit) {
   return list.slice(0, limit);
 }
 
+function pairMatchesQuery(pair, qLower) {
+  if (!qLower) return true;
+  const base = pair?.baseToken || {};
+  const quote = pair?.quoteToken || {};
+  const fields = [
+    base.symbol,
+    base.name,
+    base.address,
+    quote.symbol,
+    quote.name,
+    pair.pairAddress,
+  ]
+    .filter(Boolean)
+    .map((s) => String(s).toLowerCase());
+  return fields.some((s) => s.includes(qLower));
+}
+
 async function searchDexPairs(chainKey, query, limit = 24) {
-  const q = String(query || '').trim();
+  const q = String(query || '').trim().replace(/^\$/, '');
   if (!q) return [];
-  try {
-    const { data } = await http.get(
-      `${config.api.dexScreenerBase}/latest/dex/search?q=${encodeURIComponent(q)}`,
-    );
-    return pickBestPairs(data?.pairs || [], chainKey, limit);
-  } catch (e) {
-    console.warn(`[dexscreener/${chainKey}] search:`, e.message);
-    return [];
+  const qLower = q.toLowerCase();
+  const { quote } = chainMeta(chainKey);
+  const attempts = [q];
+  if (quote && !q.toUpperCase().includes(quote)) {
+    attempts.push(`${q} ${quote}`, `${q}/${quote}`);
   }
+
+  const merged = [];
+  const seenAddr = new Set();
+  for (const attempt of attempts) {
+    try {
+      const { data } = await http.get(
+        `${config.api.dexScreenerBase}/latest/dex/search?q=${encodeURIComponent(attempt)}`,
+      );
+      for (const p of data?.pairs || []) {
+        const addr = p.baseToken?.address;
+        if (!addr || seenAddr.has(addr)) continue;
+        seenAddr.add(addr);
+        merged.push(p);
+      }
+    } catch (e) {
+      console.warn(`[dexscreener/${chainKey}] search "${attempt}":`, e.message);
+    }
+    if (merged.length >= limit * 2) break;
+  }
+
+  let picked = pickBestPairs(merged, chainKey, Math.max(limit, merged.length));
+  if (qLower.length >= 2) {
+    const strict = picked.filter((p) => pairMatchesQuery(p, qLower));
+    if (strict.length) picked = strict;
+  }
+  return picked.slice(0, limit);
 }
 
 async function discoverDexPairs(chainKey, limit = 24) {
