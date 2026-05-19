@@ -970,14 +970,14 @@ html.scanner-mode .search-box {
   justify-content: center;
 }
 
-/* DEX pin — avatar sağ-altına yakın (fazla dışarı taşmasın) */
+/* DEX pin — sağ-alt; sadece ~8px içeri (bir tık) */
 .tr-dex-pin {
   position: absolute;
-  right: 2px;
-  bottom: -4px;
-  left: auto;
-  width: 26px;
-  height: 26px;
+  left: calc(100% - 8px);
+  bottom: -6px;
+  right: auto;
+  width: 28px;
+  height: 28px;
   object-fit: contain;
   object-position: left bottom;
   background: none;
