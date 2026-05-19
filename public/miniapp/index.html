@@ -377,12 +377,14 @@
   <script src="dex-crop.js?v=21"></script>
   <script src="banner-studio.js?v=1"></script>
   <script src="dex-sidebar.js?v=4"></script>
-  <script src="app.js?v=65"></script>
+  <script src="app.js?v=66"></script>
   <script>
     window.addEventListener('load', function () {
       setTimeout(function () {
-        if (typeof globalThis.refreshHomeFeed === 'function') globalThis.refreshHomeFeed();
-      }, 50);
+        if (typeof globalThis.loadHomeFeed === 'function') {
+          globalThis.loadHomeFeed('trending', 'home');
+        }
+      }, 80);
     });
   </script>
 </body>

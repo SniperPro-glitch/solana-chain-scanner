@@ -240,7 +240,7 @@
     } else {
       toggleHomeRadarPanels();
       if (!scannerNavActive && !feedItemsFull.length) {
-        void fetchFeed(resolveFeedTab(feedTab));
+        void loadHomeFeed('trending', feedTab === 'new' ? 'new' : feedTab === 'home' ? 'home' : 'trending');
       }
     }
   }
@@ -255,9 +255,9 @@
     if (nav === 'home') {
       location.hash = '';
       reportId = null;
-      setFeedTab('home');
       showScannerHome();
-      clearSearch();
+      clearSearch({ skipFetch: true });
+      void loadHomeFeed('trending', 'home');
       return;
     }
     if (nav === 'trend') {
@@ -824,14 +824,50 @@
     return t;
   }
 
-  async function fetchFeed(tab) {
+  function ingestFeedResponse(body, q) {
+    const items = body?.items?.length ? body.items : [];
+    if (body?.empty && body.emptyMessage && !items.length) {
+      applyMarketStats({ count: 0, volume24hFmt: '—', liquidityFmt: '—', newPairs: 0, activeNow: 0 }, []);
+      updateQuickCards({ count: 0, newPairs: 0, liquidityFmt: '—' }, []);
+      applyHomeExtras(body);
+      updateFeedMetaBar(body);
+      feedItemsFull = [];
+      applySearchFilter();
+      if (!q) showToast(body.emptyMessage.slice(0, 80));
+      return body;
+    }
+    updateDexChipCounts(body.dexCounts);
+    if (body.dexFilter) setDexFilter(body.dexFilter);
+    applyMarketStats(body.stats || PLACEHOLDER_STATS, items);
+    updateQuickCards(body.stats || PLACEHOLDER_STATS, items);
+    applyHomeExtras(body);
+    updateFeedMetaBar(body);
+    feedItemsFull = items;
+    if (body.chain) activeChain = body.chain;
+    applySearchFilter();
+    if (body.empty && body.emptyMessage) {
+      showToast('Liste boş — /post ile kanala paylaşın');
+    }
+    return body;
+  }
+
+  /** Ana liste — Scanner modundan çıkar, feed API çağır. */
+  async function loadHomeFeed(apiTab = 'trending', uiTab = 'trending') {
     await loadApiConfig();
-    if (scannerNavActive) return null;
-    const uiTab = tab || feedTab;
-    if (uiTab === 'scan') return null;
-    const t = resolveFeedTab(uiTab);
-    setFeedTab(uiTab === 'new' ? 'new' : uiTab === 'home' ? 'home' : t);
-    const apiTab = feedTabForApi(t);
+    setScannerNav(false);
+    toggleHomeRadarPanels();
+    if (uiTab === 'new') feedTab = 'new';
+    else if (uiTab === 'home') feedTab = 'home';
+    else feedTab = 'trending';
+    document.querySelectorAll('.bnav[data-nav]').forEach((btn) => {
+      const n = btn.dataset.nav;
+      const active =
+        (n === 'home' && feedTab === 'home') ||
+        (n === 'trend' && feedTab === 'trending') ||
+        (n === 'new' && feedTab === 'new');
+      btn.classList.toggle('active', active);
+    });
+
     activeChain = getActiveChain();
     syncDexChipsForChain(activeChain);
     syncSearchQuery();
@@ -852,35 +888,13 @@
       const body = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(body.message || 'feed_failed');
       const items = body.items?.length ? body.items : [];
-      if (body.empty && body.emptyMessage && !items.length) {
-        applyMarketStats({ count: 0, volume24hFmt: '—', liquidityFmt: '—', newPairs: 0, activeNow: 0 }, []);
-        updateQuickCards({ count: 0, newPairs: 0, liquidityFmt: '—' }, []);
-        applyHomeExtras(body);
-        updateFeedMetaBar(body);
-        feedItemsFull = [];
-        applySearchFilter();
-        if (!q) showToast(body.emptyMessage.slice(0, 80));
-        return body;
-      }
-      updateDexChipCounts(body.dexCounts);
-      if (body.dexFilter) setDexFilter(body.dexFilter);
-      applyMarketStats(body.stats || PLACEHOLDER_STATS, items);
-      updateQuickCards(body.stats || PLACEHOLDER_STATS, items);
-      applyHomeExtras(body);
-      updateFeedMetaBar(body);
-      feedItemsFull = items;
-      if (body.chain) activeChain = body.chain;
-      applySearchFilter();
       if (dexFilter !== 'all' && !items.length && (body.dexCounts?.all || 0) > 0) {
-        showToast('Bu DEX filtresinde yok — Tümü\'ne geçiliyor');
         setDexFilter('all');
-        return fetchFeed(t);
+        return loadHomeFeed(apiTab, uiTab);
       }
-      if (body.empty && body.emptyMessage) {
-        showToast('Liste boş — /post ile kanala paylaşın');
-      }
-      return body;
+      return ingestFeedResponse(body, q);
     } catch (e) {
+      console.error('[feed]', e);
       applyMarketStats(PLACEHOLDER_STATS, []);
       updateQuickCards(PLACEHOLDER_STATS, []);
       applyHomeExtras(null);
@@ -893,6 +907,15 @@
       loadingEl?.classList.add('hidden');
       list?.classList.remove('dimmed');
     }
+  }
+
+  async function fetchFeed(tab) {
+    const uiTab = tab || feedTab;
+    if (uiTab === 'scan') {
+      setFeedTab('scan');
+      return null;
+    }
+    return loadHomeFeed(feedTabForApi(resolveFeedTab(uiTab)), uiTab);
   }
 
   async function openTokenByMint(mint) {
@@ -1020,9 +1043,7 @@
     const sideInp = $('sidebarSearchInput');
     if (sideInp) sideInp.value = '';
     setSearchHint('');
-    loadApiConfig().then(() => {
-      if (!scannerNavActive) void fetchFeed('trending');
-    });
+    void loadHomeFeed('trending', 'home');
   }
 
   function bindDetailShell() {
@@ -2013,7 +2034,8 @@
     fetchFeed(resolveFeedTab(feedTab));
   };
 
-  globalThis.refreshHomeFeed = () => fetchFeed(resolveFeedTab(feedTab));
+  globalThis.loadHomeFeed = loadHomeFeed;
+  globalThis.refreshHomeFeed = () => loadHomeFeed('trending', feedTab === 'new' ? 'new' : feedTab === 'home' ? 'home' : 'trending');
 
   main();
 })();
