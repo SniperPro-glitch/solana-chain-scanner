@@ -36,11 +36,12 @@
         <button type="button" class="dex-sidebar-collapse" id="btnSidebarClose" aria-label="Kapat">«</button>
       </div>
       <div class="dex-sidebar-search">
-        <label class="dex-sidebar-search-box">
+        <button type="button" class="dex-sidebar-search-box" id="sidebarSearchTrigger" aria-label="Token ara">
           <span class="ico" aria-hidden="true">⌕</span>
-          <input type="search" id="sidebarSearchInput" placeholder="Token, pair veya adres" autocomplete="off" spellcheck="false" />
-          <button type="button" class="dex-sidebar-search-clear hidden" id="sidebarSearchClear" aria-label="Temizle">✕</button>
-        </label>
+          <span class="dex-sidebar-search-ph">Örnek: doge, bonk, mint adresi…</span>
+        </button>
+        <input type="search" id="sidebarSearchInput" class="visually-hidden" tabindex="-1" aria-hidden="true" autocomplete="off" />
+        <button type="button" class="dex-sidebar-search-clear hidden" id="sidebarSearchClear" aria-label="Temizle">✕</button>
         <p id="sidebarSearchHint" class="dex-sidebar-search-hint hidden" aria-live="polite"></p>
       </div>
       <div class="dex-sidebar-scroll">
@@ -379,14 +380,14 @@
       <div class="search-overlay-head">
         <label class="search-overlay-input-wrap">
           <span class="ico" aria-hidden="true">⌕</span>
-          <input type="search" id="searchOverlayInput" placeholder="Token, pair veya adres" autocomplete="off" spellcheck="false" enterkeyhint="search" />
+          <input type="search" id="searchOverlayInput" placeholder="Ara: doge, bonk, token adı veya mint…" autocomplete="off" spellcheck="false" enterkeyhint="search" />
           <button type="button" class="search-overlay-clear hidden" id="searchOverlayClear">Clear</button>
         </label>
         <button type="button" class="search-overlay-close" id="searchOverlayClose" aria-label="Kapat">✕</button>
       </div>
       <p class="search-overlay-status" id="searchOverlayStatus" aria-live="polite"></p>
       <div class="search-overlay-results" id="searchOverlayResults">
-        <p class="sr-hint">Token adı, pair veya kontrat adresi yazın…</p>
+        <p class="sr-hint">Örnek: doge, do, bonk — listelenen tokenler arasında arar</p>
       </div>
     </div>
   </div>
@@ -395,8 +396,8 @@
   <script src="dex-crop-baked.js?v=4"></script>
   <script src="dex-crop.js?v=21"></script>
   <script src="banner-studio.js?v=1"></script>
-  <script src="dex-sidebar.js?v=6"></script>
-  <script src="search-overlay.js?v=1"></script>
+  <script src="dex-sidebar.js?v=7"></script>
+  <script src="search-overlay.js?v=2"></script>
   <script src="app.js?v=71"></script>
   <script src="boot-feed.js?v=1"></script>
 </body>

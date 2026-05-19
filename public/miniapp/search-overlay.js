@@ -195,17 +195,19 @@
   function openSearchOverlay(prefill) {
     const root = $('searchOverlay');
     if (!root) return;
+    if (typeof global.closeDexSidebar === 'function') global.closeDexSidebar();
+
     root.classList.remove('hidden');
     root.setAttribute('aria-hidden', 'false');
     document.body.classList.add('search-open');
+    document.body.classList.remove('sidebar-open');
 
     const inp = $('searchOverlayInput');
     if (prefill != null && inp) inp.value = String(prefill);
-    const side = $('sidebarSearchInput');
-    if (side && inp && prefill == null) inp.value = side.value || '';
+    else if (inp) inp.value = '';
 
     scheduleSearch();
-    setTimeout(() => inp?.focus({ preventScroll: true }), 50);
+    setTimeout(() => inp?.focus({ preventScroll: true }), 80);
   }
 
   function closeSearchOverlay() {
@@ -265,17 +267,14 @@
       }
     });
 
-    const sideInp = $('sidebarSearchInput');
-    sideInp?.addEventListener('focus', (e) => {
+    $('sidebarSearchTrigger')?.addEventListener('click', (e) => {
       e.preventDefault();
-      openSearchOverlay(sideInp.value);
-    });
-    sideInp?.addEventListener('click', (e) => {
-      e.preventDefault();
-      openSearchOverlay(sideInp.value);
+      e.stopPropagation();
+      openSearchOverlay('');
     });
 
-    $('sidebarSearchClear')?.addEventListener('click', () => {
+    $('sidebarSearchClear')?.addEventListener('click', (e) => {
+      e.stopPropagation();
       if (typeof global.clearHomeSearch === 'function') global.clearHomeSearch();
       const oinp = $('searchOverlayInput');
       if (oinp) oinp.value = '';

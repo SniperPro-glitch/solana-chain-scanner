@@ -127,6 +127,7 @@
   }
 
   function navAction(action) {
+    if (typeof global.closeSearchOverlay === 'function') global.closeSearchOverlay();
     closeSidebar();
     const map = {
       home: 'home',
@@ -151,6 +152,8 @@
   function pickChain(id) {
     const c = CHAINS.find((x) => x.id === id);
     if (!c) return;
+    if (typeof global.closeSearchOverlay === 'function') global.closeSearchOverlay();
+    $('sidebarSearchInput')?.blur();
     saveChain(id);
     closeSidebar();
     if (typeof global.fetchFeedForChain === 'function') {
@@ -180,7 +183,11 @@
     });
 
     document.querySelectorAll('.dex-sidebar-chain[data-chain]').forEach((btn) => {
-      btn.addEventListener('click', () => pickChain(btn.dataset.chain));
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        pickChain(btn.dataset.chain);
+      });
     });
 
     $('sidebarSignIn')?.addEventListener('click', () => {
