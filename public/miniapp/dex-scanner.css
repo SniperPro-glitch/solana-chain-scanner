@@ -1102,7 +1102,6 @@ html.scanner-mode .search-box {
   white-space: nowrap;
 }
 
-.feed-tf-group,
 .feed-list-modes {
   display: inline-flex;
   gap: 4px;
@@ -1114,7 +1113,89 @@ html.scanner-mode .search-box {
   .feed-toolbar-modes { margin-left: 0; width: 100%; }
 }
 
-.feed-tf,
+.feed-tf-dropdown {
+  position: relative;
+}
+
+.feed-tf-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  font-size: 11px;
+  font-weight: 700;
+  border-radius: 10px;
+  border: 1px solid rgba(99, 120, 255, 0.55);
+  background: linear-gradient(180deg, rgba(72, 88, 200, 0.55) 0%, rgba(48, 58, 140, 0.75) 100%);
+  color: #f4f6ff;
+  cursor: pointer;
+  white-space: nowrap;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.25);
+}
+
+.feed-tf-dropdown.open .feed-tf-trigger {
+  border-color: rgba(0, 229, 255, 0.55);
+  box-shadow: 0 0 0 1px rgba(0, 229, 255, 0.15);
+}
+
+.feed-tf-ico,
+.feed-tf-chevron {
+  flex-shrink: 0;
+  opacity: 0.95;
+}
+
+.feed-tf-chevron {
+  transition: transform 0.15s ease;
+}
+
+.feed-tf-dropdown.open .feed-tf-chevron {
+  transform: rotate(180deg);
+}
+
+.feed-tf-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 40;
+  min-width: 188px;
+  padding: 6px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(16, 20, 34, 0.98);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+}
+
+.feed-tf-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 10px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  text-align: left;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: #e8ecf8;
+  cursor: pointer;
+}
+
+.feed-tf-option:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.feed-tf-check {
+  width: 14px;
+  font-size: 12px;
+  color: transparent;
+  flex-shrink: 0;
+}
+
+.feed-tf-option.active .feed-tf-check {
+  color: #fff;
+}
+
 .feed-mode-chip {
   padding: 5px 10px;
   font-size: 10px;
@@ -1126,7 +1207,6 @@ html.scanner-mode .search-box {
   cursor: pointer;
 }
 
-.feed-tf.active,
 .feed-mode-chip.active {
   color: var(--text);
   border-color: rgba(0, 229, 255, 0.45);

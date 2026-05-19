@@ -73,6 +73,13 @@
   let feedEmptyMessage = '';
   let feedListMode = 'top';
   let feedTimeframe = '24h';
+  const FEED_TF_META = {
+    '5m': { label: 'Last 5 minutes', col: '5M %', changeKey: 'change5m', volKey: 'volume5m', volFmtKey: 'volume5mFmt' },
+    '1h': { label: 'Last hour', col: '1H %', changeKey: 'change1h', volKey: 'volume1h', volFmtKey: 'volume1hFmt' },
+    '6h': { label: 'Last 6 hours', col: '6H %', changeKey: 'change6h', volKey: 'volume6h', volFmtKey: 'volume6hFmt' },
+    '24h': { label: 'Last 24 hours', col: '24H %', changeKey: 'change24h', volKey: 'volume24h', volFmtKey: 'volume24hFmt' },
+  };
+  let feedTfMenuOpen = false;
   let searchQuery = '';
   let searchDebounce = null;
   let scannerAnalyzing = false;
@@ -207,7 +214,7 @@
       <span class="tr-price" title="${item.priceUsd != null ? escHtml(String(item.priceUsd)) : ''}">${escHtml(fmtPriceDisplay(item))}</span>
       <span class="tr-age">${escHtml(item.ageFmt || '—')}</span>
       <span class="tr-pct ${chgClass(chg)}">${formatPct(chg)}</span>
-      <span class="tr-vol">${escHtml(item.volume24hFmt || '—')}</span>
+      <span class="tr-vol">${escHtml(getFeedVolumeFmt(item))}</span>
       <span class="tr-liq">${escHtml(item.liquidityUsdFmt || '—')}</span>
       ${riskColHtml(rc, label, up)}
     </article>`;
@@ -676,8 +683,18 @@
     setSearchHint(`${feedItemsFull.length} sonuç`);
   }
 
+  function feedTfMeta(tf) {
+    return FEED_TF_META[tf] || FEED_TF_META['24h'];
+  }
+
   function getFeedChange(item) {
-    return feedTimeframe === '1h' ? item.change1h : item.change24h;
+    const key = feedTfMeta(feedTimeframe).changeKey;
+    return item[key];
+  }
+
+  function getFeedVolumeFmt(item) {
+    const meta = feedTfMeta(feedTimeframe);
+    return item[meta.volFmtKey] || item.volume24hFmt || '—';
   }
 
   function prepareFeedListItems(items) {
@@ -688,24 +705,74 @@
     } else if (feedListMode === 'new') {
       list.sort((a, b) => (b.postedAt || 0) - (a.postedAt || 0));
     } else {
-      list.sort((a, b) => (b.volume24h || 0) - (a.volume24h || 0));
+      const volKey = feedTfMeta(feedTimeframe).volKey;
+      list.sort((a, b) => (b[volKey] || 0) - (a[volKey] || 0));
     }
     return list.map((it, i) => ({ ...it, rank: i + 1 }));
   }
 
   function updateFeedTableHead() {
     const chg = document.querySelector('.token-thead .th-chg');
-    if (chg) chg.textContent = feedTimeframe === '1h' ? '1H %' : '24H %';
+    if (chg) chg.textContent = feedTfMeta(feedTimeframe).col;
+  }
+
+  function setFeedTfMenuOpen(open) {
+    feedTfMenuOpen = !!open;
+    const dd = $('feedTfDropdown');
+    const menu = $('feedTfMenu');
+    const trigger = $('feedTfTrigger');
+    dd?.classList.toggle('open', feedTfMenuOpen);
+    menu?.classList.toggle('hidden', !feedTfMenuOpen);
+    trigger?.setAttribute('aria-expanded', feedTfMenuOpen ? 'true' : 'false');
   }
 
   function syncFeedToolbarUi() {
-    document.querySelectorAll('.feed-tf[data-tf]').forEach((btn) => {
-      btn.classList.toggle('active', btn.dataset.tf === feedTimeframe);
+    const meta = feedTfMeta(feedTimeframe);
+    const label = $('feedTfTriggerLabel');
+    if (label) label.textContent = meta.label;
+    document.querySelectorAll('.feed-tf-option[data-tf]').forEach((btn) => {
+      const on = btn.dataset.tf === feedTimeframe;
+      btn.classList.toggle('active', on);
+      btn.setAttribute('aria-selected', on ? 'true' : 'false');
     });
     document.querySelectorAll('.feed-mode-chip[data-list-mode]').forEach((btn) => {
       btn.classList.toggle('active', btn.dataset.listMode === feedListMode);
     });
     updateFeedTableHead();
+  }
+
+  function setFeedTimeframe(tf) {
+    const next = FEED_TF_META[tf] ? tf : '24h';
+    if (next === feedTimeframe) {
+      setFeedTfMenuOpen(false);
+      return;
+    }
+    feedTimeframe = next;
+    setFeedTfMenuOpen(false);
+    syncFeedToolbarUi();
+    applySearchFilter();
+  }
+
+  function bindFeedTfDropdown() {
+    const dd = $('feedTfDropdown');
+    const trigger = $('feedTfTrigger');
+    const menu = $('feedTfMenu');
+    if (!trigger || !menu) return;
+    dd?.addEventListener('click', (e) => e.stopPropagation());
+    trigger.addEventListener('click', (e) => {
+      e.stopPropagation();
+      setFeedTfMenuOpen(!feedTfMenuOpen);
+    });
+    menu.querySelectorAll('.feed-tf-option[data-tf]').forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        setFeedTimeframe(btn.dataset.tf || '24h');
+      });
+    });
+    document.addEventListener('click', () => setFeedTfMenuOpen(false));
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') setFeedTfMenuOpen(false);
+    });
   }
 
   function setFeedListMode(mode) {
@@ -1162,13 +1229,8 @@
       });
     });
 
-    document.querySelectorAll('.feed-tf[data-tf]').forEach((btn) => {
-      btn.addEventListener('click', () => {
-        feedTimeframe = btn.dataset.tf || '24h';
-        syncFeedToolbarUi();
-        applySearchFilter();
-      });
-    });
+    bindFeedTfDropdown();
+    syncFeedToolbarUi();
     document.querySelectorAll('.feed-mode-chip[data-list-mode]').forEach((btn) => {
       btn.addEventListener('click', () => setFeedListMode(btn.dataset.listMode || 'top'));
     });

@@ -16,7 +16,7 @@
     }
   </script>
   <link rel="stylesheet" href="styles.css?v=42" />
-  <link rel="stylesheet" href="dex-scanner.css?v=35" />
+  <link rel="stylesheet" href="dex-scanner.css?v=36" />
   <link rel="stylesheet" href="dex-scanner-radar.css?v=2" />
   <link rel="stylesheet" href="dex-sidebar.css?v=5" />
   <link rel="stylesheet" href="search-overlay.css?v=2" />
@@ -200,9 +200,18 @@
     <section class="feed-toolbar" id="feedToolbar" aria-label="Liste">
       <div class="feed-toolbar-group feed-toolbar-trend">
         <span class="feed-toolbar-label">Trending</span>
-        <div class="feed-tf-group" role="group" aria-label="Zaman dilimi">
-          <button type="button" class="feed-tf" data-tf="1h">1H</button>
-          <button type="button" class="feed-tf active" data-tf="24h">24H</button>
+        <div class="feed-tf-dropdown" id="feedTfDropdown">
+          <button type="button" class="feed-tf-trigger" id="feedTfTrigger" aria-expanded="false" aria-haspopup="listbox" aria-controls="feedTfMenu">
+            <svg class="feed-tf-ico" width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8"/><path d="M12 7v5l3 2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+            <span class="feed-tf-trigger-label" id="feedTfTriggerLabel">Last 24 hours</span>
+            <svg class="feed-tf-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+          <div class="feed-tf-menu hidden" id="feedTfMenu" role="listbox" aria-label="Zaman dilimi">
+            <button type="button" class="feed-tf-option" role="option" data-tf="5m"><span class="feed-tf-check" aria-hidden="true">✓</span>Last 5 minutes</button>
+            <button type="button" class="feed-tf-option" role="option" data-tf="1h"><span class="feed-tf-check" aria-hidden="true">✓</span>Last hour</button>
+            <button type="button" class="feed-tf-option" role="option" data-tf="6h"><span class="feed-tf-check" aria-hidden="true">✓</span>Last 6 hours</button>
+            <button type="button" class="feed-tf-option active" role="option" data-tf="24h"><span class="feed-tf-check" aria-hidden="true">✓</span>Last 24 hours</button>
+          </div>
         </div>
       </div>
       <span class="feed-toolbar-sep" aria-hidden="true"></span>
@@ -421,7 +430,7 @@
   <script src="banner-studio.js?v=1"></script>
   <script src="dex-sidebar.js?v=7"></script>
   <script src="search-overlay.js?v=4"></script>
-  <script src="app.js?v=86"></script>
+  <script src="app.js?v=87"></script>
   <script src="boot-feed.js?v=3"></script>
 </body>
 </html>

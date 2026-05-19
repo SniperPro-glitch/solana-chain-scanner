@@ -59,8 +59,12 @@ function normalizePair(pair) {
 
     liquidityUsd: parseFloat(pair.liquidity?.usd) || 0,
     volume24h: parseFloat(pair.volume?.h24) || 0,
+    volume6h: parseFloat(pair.volume?.h6) || 0,
     volume1h: parseFloat(pair.volume?.h1) || 0,
+    volume5m: parseFloat(pair.volume?.m5) || 0,
+    priceChange5m: parseFloat(pair.priceChange?.m5) || 0,
     priceChange1h: parseFloat(pair.priceChange?.h1) || 0,
+    priceChange6h: parseFloat(pair.priceChange?.h6) || 0,
     priceChange24h: parseFloat(pair.priceChange?.h24) || 0,
 
     buys24h: pair.txns?.h24?.buys || 0,
