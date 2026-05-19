@@ -691,8 +691,8 @@ html.scanner-mode .search-box {
 }
 
 .dex-chip .dex-ico-img {
-  width: 14px;
-  height: 14px;
+  width: 18px;
+  height: 18px;
   object-fit: contain;
   flex-shrink: 0;
   display: block;
@@ -970,20 +970,19 @@ html.scanner-mode .search-box {
   justify-content: center;
 }
 
-/* DEX logos — token avatar altı (Canva PNG: 64×64) */
+/* DEX logos — token avatar sağ alt (Canva: 128×128 şeffaf PNG) */
 .tr-dex-pin {
   position: absolute;
-  left: 50%;
-  bottom: -5px;
-  transform: translateX(-50%);
-  width: 18px;
-  height: 18px;
+  right: -6px;
+  bottom: -7px;
+  left: auto;
+  width: 26px;
+  height: 26px;
   object-fit: contain;
-  border-radius: 5px;
-  border: 1.5px solid var(--card);
-  background: #000;
-  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.5);
-  z-index: 2;
+  background: none;
+  border: none;
+  box-shadow: none;
+  z-index: 3;
   pointer-events: none;
 }
 

@@ -125,8 +125,8 @@
   }
 
   const DEX_LOGO_SRC = {
-    pumpfun: 'assets/dex-pumpfun.png?v=1',
-    pumpswap: 'assets/dex-pumpfun.png?v=1',
+    pumpfun: 'assets/dex-pumpfun.png?v=2',
+    pumpswap: 'assets/dex-pumpfun.png?v=2',
   };
 
   function dexPinHtml(dexKey) {
@@ -134,7 +134,7 @@
     if (!src) {
       return '<span class="tr-chain-dot" aria-hidden="true">◎</span>';
     }
-    return `<img class="tr-dex-pin" src="${src}" alt="" width="32" height="32" loading="lazy" decoding="async" />`;
+    return `<img class="tr-dex-pin" src="${src}" alt="" width="52" height="52" loading="lazy" decoding="async" />`;
   }
 
   function renderFeedRow(item, extraClass = '') {
