@@ -19,6 +19,10 @@ const MIME = {
   '.json': 'application/json; charset=utf-8',
   '.svg': 'image/svg+xml',
   '.png': 'image/png',
+  '.gif': 'image/gif',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.webp': 'image/webp',
 };
 
 function readBody(req) {
@@ -189,6 +193,31 @@ function createMiniAppServer() {
         });
         res.end();
         return;
+      }
+
+      if (url.pathname === '/api/promo-banner') {
+        const promoBannerStore = require('./promoBannerStore');
+        if (req.method === 'GET') {
+          const cfg = promoBannerStore.loadConfig();
+          if (!cfg) {
+            sendJson(res, 200, { enabled: false, posX: 50, link: null, imageUrl: null });
+            return;
+          }
+          sendJson(res, 200, cfg);
+          return;
+        }
+        if (req.method === 'POST') {
+          if (!promoBannerStore.isPublishAuthorized(req)) {
+            sendJson(res, 403, { error: 'forbidden' });
+            return;
+          }
+          const raw = await readBody(req);
+          const payload = JSON.parse(raw.toString('utf8') || '{}');
+          const saved = promoBannerStore.saveConfig(payload);
+          console.log('[miniApp] promo-banner kaydedildi:', saved.imageUrl);
+          sendJson(res, 200, { ok: true, saved });
+          return;
+        }
       }
 
       if (url.pathname === '/api/crop-profiles') {

@@ -1,7 +1,8 @@
-// Mini App — üst reklam banner (GIF + link).
+// Mini App — üst reklam banner (yükleme + yatay hizalama veya env).
 
 const fs = require('fs');
 const path = require('path');
+const promoBannerStore = require('./promoBannerStore');
 
 const PUBLIC_MINIAPP = path.join(__dirname, '..', 'public', 'miniapp');
 const DEFAULT_GIF = '/assets/promo-banner.gif';
@@ -21,9 +22,28 @@ function localAssetExists(rel) {
   }
 }
 
+function cacheBust(url, updatedAt) {
+  if (!url || !updatedAt) return url;
+  const sep = url.includes('?') ? '&' : '?';
+  return `${url}${sep}v=${encodeURIComponent(updatedAt)}`;
+}
+
 function getPromoBanner() {
   if (!envOn('MINI_APP_BANNER_ENABLED', '1')) {
     return { enabled: false };
+  }
+
+  const stored = promoBannerStore.loadConfig();
+  if (stored?.enabled && stored.imageUrl) {
+    return {
+      enabled: true,
+      imageUrl: cacheBust(stored.imageUrl, stored.updatedAt),
+      link: stored.link || null,
+      posX: stored.posX ?? 50,
+      alt: String(process.env.MINI_APP_BANNER_ALT || 'Reklam').trim(),
+      isGif: /\.gif(\?|$)/i.test(stored.imageUrl),
+      source: 'upload',
+    };
   }
 
   const link = String(process.env.MINI_APP_BANNER_LINK || '').trim();
@@ -41,8 +61,10 @@ function getPromoBanner() {
     enabled: true,
     imageUrl,
     link: link || null,
+    posX: 50,
     alt,
     isGif: /\.gif(\?|$)/i.test(imageUrl),
+    source: 'env',
   };
 }
 

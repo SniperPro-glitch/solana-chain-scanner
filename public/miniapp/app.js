@@ -606,6 +606,7 @@
     }
     img.src = promo.imageUrl;
     img.alt = promo.alt || 'Reklam';
+    img.style.objectPosition = `${Math.min(100, Math.max(0, Number(promo.posX) || 50))}% center`;
     el.classList.remove('hidden');
     if (promo.link) {
       el.href = promo.link;

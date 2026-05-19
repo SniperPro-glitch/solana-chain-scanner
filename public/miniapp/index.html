@@ -16,7 +16,7 @@
     }
   </script>
   <link rel="stylesheet" href="styles.css?v=42" />
-  <link rel="stylesheet" href="dex-scanner.css?v=27" />
+  <link rel="stylesheet" href="dex-scanner.css?v=28" />
   <link rel="stylesheet" href="dex-scanner-radar.css?v=1" />
 </head>
 <body>
@@ -52,7 +52,7 @@
       </div>
       <div class="header-actions">
         <button type="button" class="btn-connect" id="btnConnect"><span class="wallet-ico">👛</span> Connect Wallet</button>
-        <button type="button" class="btn-settings" aria-label="Ayarlar">⚙</button>
+        <button type="button" class="btn-settings" id="btnSettings" aria-label="Banner ayarla">⚙</button>
       </div>
     </header>
 
@@ -62,10 +62,38 @@
       <span id="feedMetaText">◎ Bot channel posts · live prices</span>
     </div>
 
-    <a href="#" class="promo-banner hidden" id="promoBanner" rel="noopener noreferrer">
+    <a href="#" class="promo-banner hidden" id="promoBanner" rel="noopener noreferrer" title="Çift tık: banner ayarla">
       <img class="promo-banner-img" id="promoBannerImg" alt="Reklam" loading="lazy" />
       <span class="promo-banner-badge">AD</span>
     </a>
+
+    <div id="bannerStudio" class="banner-studio hidden" aria-hidden="true">
+      <div class="banner-studio-backdrop" id="bannerStudioBackdrop"></div>
+      <div class="banner-studio-sheet">
+        <div class="banner-studio-head">
+          <h2>Banner</h2>
+          <button type="button" class="banner-studio-x" id="btnBannerStudioClose" aria-label="Kapat">✕</button>
+        </div>
+        <p class="banner-studio-hint">Önerilen: <strong>780 × 144 px</strong> · PNG / JPG / GIF</p>
+        <label class="banner-studio-upload">
+          <input type="file" id="bannerFileInput" accept="image/png,image/jpeg,image/gif,image/webp" />
+          <span>📤 Görsel seç</span>
+        </label>
+        <div class="banner-studio-preview-wrap">
+          <img id="bannerStudioPreview" class="banner-studio-preview" alt="" />
+        </div>
+        <label class="banner-studio-row">
+          <span>Sola ← → Sağa</span>
+          <input type="range" id="bannerPosRange" min="0" max="100" value="50" />
+          <span id="bannerPosVal" class="banner-pos-val">50%</span>
+        </label>
+        <label class="banner-studio-row">
+          <span>Link (isteğe bağlı)</span>
+          <input type="url" id="bannerLinkInput" placeholder="https://t.me/..." />
+        </label>
+        <button type="button" class="btn-neon banner-studio-save" id="btnBannerSave">Kaydet</button>
+      </div>
+    </div>
 
     <section class="trending-band hidden" id="trendingBand" aria-label="Trending">
       <div class="trending-band-head">
@@ -285,6 +313,7 @@
   <script src="wallet.js?v=1"></script>
   <script src="dex-crop-baked.js?v=4"></script>
   <script src="dex-crop.js?v=21"></script>
-  <script src="app.js?v=57"></script>
+  <script src="banner-studio.js?v=1"></script>
+  <script src="app.js?v=58"></script>
 </body>
 </html>
