@@ -912,7 +912,7 @@
           dex: dexFilter,
           chain: activeChain,
         });
-        const res = await fetch(`/api/feed?${qs.toString()}`, { cache: 'default' });
+        const res = await fetch(`/api/feed?${qs.toString()}`, { cache: 'no-store', credentials: 'same-origin' });
         const body = await res.json().catch(() => ({}));
         if (!res.ok) throw new Error(body.message || 'feed_failed');
         const items = body.items?.length ? body.items : [];
@@ -1074,15 +1074,18 @@
     syncDexChipsForChain(activeChain);
     setFeedTab('home');
     searchQuery = '';
-    feedItemsFull = [];
     homeFeedCacheKey = '';
     const sideInp = $('sidebarSearchInput');
     if (sideInp) sideInp.value = '';
     setSearchHint('');
+    applyMarketStats(PLACEHOLDER_STATS, PLACEHOLDER_TOKENS);
+    updateQuickCards(PLACEHOLDER_STATS, PLACEHOLDER_TOKENS);
+    renderTokenList(PLACEHOLDER_TOKENS);
     void loadHomeFeed('trending', 'home', { force: true });
     setTimeout(() => {
       if (!scannerNavActive && !feedItemsFull.length && !$('scanner-home')?.classList.contains('hidden')) {
-        void loadHomeFeed('trending', 'home', { force: true });
+        if (typeof globalThis.bootHomeFeed === 'function') void globalThis.bootHomeFeed();
+        else void loadHomeFeed('trending', 'home', { force: true });
       }
     }, 2500);
   }
@@ -2055,13 +2058,13 @@
     setupShell();
     initWallet();
     reportId = reportIdFromUrl();
-    $('loading')?.classList.remove('hidden');
 
     if (!reportId) {
-      $('loading')?.classList.add('hidden');
       showScannerHome();
       return;
     }
+
+    $('loading')?.classList.remove('hidden');
 
     markReportOpen(false);
     await loadReportFlow();

@@ -20,7 +20,6 @@
   <link rel="stylesheet" href="dex-scanner-radar.css?v=1" />
   <link rel="stylesheet" href="dex-sidebar.css?v=3" />
   <link rel="stylesheet" href="search-overlay.css?v=1" />
-  <link rel="preload" href="/api/feed?tab=trending&limit=24&dex=all&chain=solana" as="fetch" crossorigin />
 </head>
 <body>
   <div id="dexSidebar" class="dex-sidebar" aria-hidden="true">
@@ -398,19 +397,8 @@
   <script src="banner-studio.js?v=1"></script>
   <script src="dex-sidebar.js?v=6"></script>
   <script src="search-overlay.js?v=1"></script>
-  <script src="app.js?v=70"></script>
-  <script>
-    window.addEventListener('load', function () {
-      setTimeout(function () {
-        if (document.getElementById('scanner-home')?.classList.contains('hidden')) return;
-        var list = document.getElementById('homeTokenList');
-        if (!list || list.querySelector('.token-row')) return;
-        if (typeof globalThis.loadHomeFeed === 'function') {
-          globalThis.loadHomeFeed('trending', 'home', { force: true });
-        }
-      }, 800);
-    });
-  </script>
+  <script src="app.js?v=71"></script>
+  <script src="boot-feed.js?v=1"></script>
 </body>
 </html>
 
