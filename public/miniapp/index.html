@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="tr" class="mockup-ui">
+<html lang="tr">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
@@ -17,8 +17,7 @@
   </script>
   <link rel="stylesheet" href="styles.css?v=41" />
   <link rel="stylesheet" href="dex-scanner.css?v=12" />
-  <link rel="stylesheet" href="dex-scanner-radar.css?v=2" />
-  <link rel="stylesheet" href="mockup.css?v=4" />
+  <link rel="stylesheet" href="dex-scanner-radar.css?v=1" />
 </head>
 <body>
   <div id="loading" class="boot-screen">
@@ -34,7 +33,7 @@
   </div>
 
   <!-- SNIPER DEX SCANNER home -->
-  <div id="scanner-home" class="scanner-home mockup-shell hidden">
+  <div id="scanner-home" class="scanner-home hidden">
     <header class="scan-header">
       <div class="scan-brand">
         <span class="brand-crosshair" aria-hidden="true">
@@ -147,29 +146,18 @@
           </article>
         </div>
       </section>
-      <section id="radarStage" class="radar-stage" aria-label="Solana radar">
-        <p class="radar-scan-title" id="radarScanTitle">Solana Radar</p>
-        <div class="radar-ring radar-ring--display" aria-hidden="true">
-          <div class="radar-ring-outer"></div>
+      <section id="radarActive" class="radar-active hidden" aria-live="polite">
+        <p class="radar-scan-title" id="radarScanTitle">Scanning token...</p>
+        <div class="radar-ring" aria-hidden="true">
           <div class="radar-ring-grid"></div>
           <div class="radar-sweep"></div>
-          <div class="radar-pulse"></div>
           <span class="radar-ring-center">◎</span>
         </div>
-        <p class="radar-scan-sub" id="radarScanSub">Paste a contract address and tap Analyze</p>
-        <div class="radar-progress-block hidden" id="radarProgressBlock">
-          <div class="radar-progress-track">
-            <div class="radar-progress-fill" id="radarProgressFill"></div>
-          </div>
-          <span class="radar-progress-pct" id="radarProgressPct">0%</span>
+        <p class="radar-scan-sub" id="radarScanSub">Parsing contract</p>
+        <div class="radar-progress-track">
+          <div class="radar-progress-fill" id="radarProgressFill"></div>
         </div>
-        <ul class="radar-status-list hidden" id="radarStatusList">
-          <li data-step="contract"><span>Contract</span></li>
-          <li data-step="liquidity"><span>Liquidity</span></li>
-          <li data-step="risk"><span>AI risk</span></li>
-          <li data-step="holders"><span>Holders</span></li>
-          <li data-step="report"><span>Report</span></li>
-        </ul>
+        <span class="radar-progress-pct" id="radarProgressPct">0%</span>
       </section>
     </section>
 
@@ -182,121 +170,115 @@
     </nav>
   </div>
 
-  <!-- Screen C: Token detail (mockup) -->
-  <div id="view-detail" class="view-detail mockup-report hidden">
-    <header class="mrpt-top">
-      <button type="button" class="mrpt-back" id="btnBack" aria-label="Back">←</button>
-      <div class="mrpt-logo">
-        <span class="mrpt-logo-main">SNIPER</span>
-        <span class="mrpt-logo-sub">SCANNER</span>
-      </div>
-      <div class="mrpt-top-actions">
-        <button type="button" class="mrpt-icon-btn" id="btnShareHeader" aria-label="Share">↗</button>
-        <button type="button" class="mrpt-icon-btn" id="btnFavorite" aria-label="Favorite">★</button>
-      </div>
+  <!-- Token detay (rapor #r=) -->
+  <div id="view-detail" class="view-detail hidden">
+    <header class="detail-top">
+      <button type="button" class="btn-back" id="btnBack">←</button>
+      <span class="detail-title">Token analizi</span>
+      <span id="riskPillTop" class="risk-pill-top">—</span>
     </header>
 
-    <div class="detail-body mrpt-scroll">
-      <section class="mrpt-hero">
-        <div class="mrpt-logo-ring" id="logoWrap">
-          <div class="logo-skeleton" id="logoSkeleton"></div>
-          <img id="tokenLogo" class="mrpt-token-img hidden" alt="" width="72" height="72" />
+    <div class="detail-body">
+      <section class="hero-card">
+        <div class="hero-top">
+          <div class="logo-wrap" id="logoWrap">
+            <div class="logo-skeleton" id="logoSkeleton"></div>
+            <img id="tokenLogo" class="token-avatar hidden" alt="" width="56" height="56" />
+          </div>
+          <div class="hero-meta">
+            <div class="hero-title-row">
+              <h1 id="pairTitle">—</h1>
+              <button type="button" id="copyMint" class="icon-btn">⧉</button>
+            </div>
+            <p id="pairSub" class="mint-line">—</p>
+            <div class="hero-badges">
+              <span id="dexBadge" class="pill">—</span>
+              <span id="levelChip" class="pill">—</span>
+              <span id="trustMini" class="pill trust">—</span>
+            </div>
+          </div>
         </div>
-        <div class="mrpt-hero-info">
-          <h1 id="pairTitle">—</h1>
-          <p id="tokenTagline" class="mrpt-subtitle">—</p>
-          <span id="mrptDexPill" class="mrpt-dex-pill">—</span>
-          <p id="pairSub" class="mint-line hidden" aria-hidden="true">—</p>
-          <button type="button" id="copyMint" class="hidden" aria-hidden="true">⧉</button>
-        </div>
-        <div class="mrpt-hero-right">
-          <div id="priceUsd" class="mrpt-price">—</div>
-          <div id="quoteChanges" class="mrpt-chg24-wrap"></div>
-        </div>
+        <div class="hero-price" id="priceUsd">—</div>
+        <div class="quote-changes" id="quoteChanges"></div>
       </section>
 
-      <div id="detailBadgeRow" class="mrpt-badges-scroll"></div>
-
-      <div class="mrpt-actions">
-        <button type="button" class="mrpt-act" id="btnWatchlist" disabled>Add to Watchlist</button>
-        <button type="button" class="mrpt-act" id="btnShareReport">Share Report</button>
-        <button type="button" class="mrpt-act mrpt-act-ai" id="btnAiSummary">AI Summary</button>
+      <div id="detailBadgeRow" class="detail-badge-row"></div>
+      <div class="detail-action-row">
+        <button type="button" class="detail-act-btn" id="btnWatchlist" disabled>Add to Watchlist</button>
+        <button type="button" class="detail-act-btn" id="btnShareReport">Share Report</button>
+        <button type="button" class="detail-act-btn detail-act-ai" id="btnAiSummary">AI Summary</button>
       </div>
 
-      <section id="metricsDash" class="mrpt-metrics"></section>
-
-      <section class="mrpt-risk-row">
-        <div class="mrpt-gauge-card">
-          <h3>Risk Analysis</h3>
-          <div class="mrpt-gauge" id="mrptGauge">
-            <span class="mrpt-gauge-score" id="mrptGaugeScore">—</span>
-          </div>
-          <p class="mrpt-gauge-label" id="mrptGaugeLabel">—</p>
-        </div>
-        <div class="mrpt-check-card">
-          <ul id="mrptChecklist" class="mrpt-checklist"></ul>
-        </div>
-      </section>
-
-      <div class="mrpt-grid-2">
-        <article class="mrpt-panel">
-          <h4>About Token</h4>
-          <div class="mrpt-panel-body" id="mrptAboutBody"></div>
-        </article>
-        <article class="mrpt-panel">
-          <h4>Liquidity Details</h4>
-          <div class="mrpt-panel-body" id="mrptLiquidityBody"></div>
-        </article>
-      </div>
-
-      <div class="mrpt-grid-3">
-        <article class="mrpt-panel">
-          <h4>Top Holders</h4>
-          <div id="mrptHoldersBody"></div>
-        </article>
-        <article class="mrpt-panel">
-          <h4>Transactions 24H</h4>
-          <div id="mrptTxnsBody"></div>
-        </article>
-        <article class="mrpt-panel">
-          <h4>AI Summary</h4>
-          <p class="mrpt-ai-text" id="mrptAiText"></p>
-          <div class="mrpt-confidence">
-            <span>Confidence</span>
-            <div class="mrpt-conf-bar"><span id="mrptConfFill"></span></div>
-            <strong id="mrptConfPct">—</strong>
-          </div>
-        </article>
-      </div>
-    </div>
-
-    <div class="mrpt-legacy hidden" aria-hidden="true">
-      <span id="riskPillTop"></span>
-      <span id="dexBadge"></span>
-      <span id="levelChip"></span>
-      <span id="trustMini"></span>
       <section class="chart-terminal glass">
-        <div class="chart-toolbar"><div id="tfGroup"></div></div>
-        <div class="ohlc-bar" id="ohlcBar"></div>
-        <div class="chart-stage"><div id="chartLoader"></div><div id="priceChart" class="chart-canvas"></div></div>
-        <p id="chartNote"></p>
+        <div class="chart-toolbar">
+          <div class="tf-group" id="tfGroup">
+            <button type="button" class="tf" data-tf="1m">1m</button>
+            <button type="button" class="tf" data-tf="5m">5m</button>
+            <button type="button" class="tf active" data-tf="15m">15m</button>
+            <button type="button" class="tf" data-tf="1h">1H</button>
+            <button type="button" class="tf" data-tf="4h">4H</button>
+            <button type="button" class="tf" data-tf="1d">1D</button>
+          </div>
+          <div class="chart-type-group">
+            <button type="button" class="ctype active" data-type="candle">Mum</button>
+            <button type="button" class="ctype" data-type="line">Çizgi</button>
+          </div>
+        </div>
+        <div class="ohlc-bar" id="ohlcBar">
+          <span>O <b id="ohlcO">—</b></span>
+          <span>H <b id="ohlcH">—</b></span>
+          <span>L <b id="ohlcL">—</b></span>
+          <span>C <b id="ohlcC">—</b></span>
+          <span class="ohlc-chg" id="chartPeriodChg">Δ —</span>
+          <span class="ohlc-vol">Vol <b id="ohlcV">—</b></span>
+        </div>
+        <div class="chart-stage">
+          <div class="chart-loader hidden" id="chartLoader"><span></span></div>
+          <div id="priceChart" class="chart-canvas"></div>
+        </div>
+        <p id="chartNote" class="chart-source hidden">—</p>
       </section>
-      <section id="tradesTape"></section>
-      <nav id="mainNav"></nav>
+
+      <section class="trades-tape glass" id="tradesTape" aria-live="polite">
+        <div class="trades-head">
+          <span class="trades-title">Canlı alım / satım</span>
+          <span class="trades-live" aria-hidden="true"><span class="trades-live-dot"></span> LIVE</span>
+          <span class="trades-meta" id="tradesMeta">DexScreener</span>
+        </div>
+        <div class="dex-trades-embed-wrap" id="dexTradesWrap">
+          <iframe id="dexTradesEmbed" class="dex-trades-embed hidden" title="DexScreener canlı işlemler" loading="eager" referrerpolicy="no-referrer-when-downgrade"></iframe>
+          <div class="dex-mask dex-mask-top" aria-hidden="true"></div>
+          <div class="dex-mask dex-mask-foot" aria-hidden="true"></div>
+          <p class="dex-trades-fallback" id="dexTradesFallback">İşlem akışı yükleniyor…</p>
+        </div>
+      </section>
+
+      <section class="metrics-dashboard" id="metricsDash"></section>
+
+      <section class="txn-section glass hidden" id="txnSection">
+        <div class="txn-head"><span>24s işlem akışı</span><span id="txnCounts">—</span></div>
+        <div class="txn-track"><span id="txnBuyBar" class="txn-buy"></span></div>
+      </section>
+
+      <nav class="main-nav" id="mainNav">
+        <button type="button" class="nav-tab active" data-tab="info">Özet</button>
+        <button type="button" class="nav-tab" data-tab="security">Denetim</button>
+        <button type="button" class="nav-tab" data-tab="trade">İşlem</button>
+      </nav>
+
       <div class="panel-stack">
-        <div id="panel-info"></div>
-        <div id="panel-security"></div>
-        <div id="panel-trade"></div>
+        <div id="panel-info" class="tab-panel active"></div>
+        <div id="panel-security" class="tab-panel hidden"></div>
+        <div id="panel-trade" class="tab-panel hidden"></div>
       </div>
-      <section id="txnSection"></section>
     </div>
 
-    <footer class="trade-bar hidden" id="tradeBar"></footer>
+    <footer class="trade-bar" id="tradeBar"></footer>
   </div>
 
   <script src="wallet.js?v=1"></script>
   <script src="dex-crop-baked.js?v=4"></script>
   <script src="dex-crop.js?v=21"></script>
-  <script src="app.js?v=53"></script>
+  <script src="app.js?v=50"></script>
 </body>
 </html>
