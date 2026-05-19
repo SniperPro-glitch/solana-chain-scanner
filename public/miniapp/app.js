@@ -142,7 +142,7 @@
       : '';
     return `<article class="token-row ${extraClass}" data-mint="${escHtml(item.mint)}" data-dex="${escHtml(dexKey)}"${reportAttr}>
       <span class="tr-rank">${item.rank ?? '·'}</span>
-      <div class="tr-token">${avatar}<div class="tr-meta"><div class="tr-name">${escHtml(item.symbol)}<span class="tr-pair"> / ${pairShort}</span>${dexBadge}</div><div class="tr-sub">MCap ${escHtml(item.marketCapUsdFmt)}</div></div></div>
+      <div class="tr-token">${avatar}<div class="tr-meta"><div class="tr-name">${escHtml(item.symbol)}<span class="tr-pair"> / ${pairShort}</span>${dexBadge}</div><div class="tr-sub">${escHtml(item.fullName || item.name || '')}${item.marketCapUsdFmt ? ` · MCap ${escHtml(item.marketCapUsdFmt)}` : ''}</div></div></div>
       <span class="tr-price" title="${item.priceUsd != null ? escHtml(String(item.priceUsd)) : ''}">${escHtml(fmtPriceDisplay(item))}</span>
       <span class="tr-pct ${chgClass(chg1)}">${formatPct(chg1)}</span>
       <span class="tr-pct ${chgClass(chg24)}">${formatPct(chg24)}</span>
@@ -186,11 +186,52 @@
     return `<svg class="tr-spark" viewBox="0 0 40 22" preserveAspectRatio="none"><polyline fill="none" stroke="${col}" stroke-width="1.5" points="${pts}"/></svg>`;
   }
 
+  function screenHome() {
+    return $('sniper-screen-home') || $('scanner-home');
+  }
+
+  function screenScanner() {
+    return $('sniper-screen-scanner');
+  }
+
   function hideAllViews() {
     $('loading')?.classList.add('hidden');
     $('error')?.classList.add('hidden');
-    $('scanner-home')?.classList.add('hidden');
+    screenHome()?.classList.add('hidden');
+    screenScanner()?.classList.add('hidden');
     $('view-detail')?.classList.add('hidden');
+    $('sniperBottomNav')?.classList.remove('hidden');
+  }
+
+  function showHomeScreen() {
+    stopTradesPoll();
+    document.documentElement.classList.remove('detail-mode');
+    hideAllViews();
+    screenHome()?.classList.remove('hidden');
+    scannerNavActive = false;
+    document.documentElement.classList.toggle('scanner-mode', false);
+    document.documentElement.classList.toggle('radar-tab-active', false);
+    screenHome()?.classList.remove('scanner-nav-active');
+    refreshTgViewport();
+    bindHomeShell();
+    if (!homeFeedBooted) initScannerHome();
+  }
+
+  function showScannerScreen() {
+    stopTradesPoll();
+    document.documentElement.classList.remove('detail-mode');
+    hideAllViews();
+    screenScanner()?.classList.remove('hidden');
+    scannerNavActive = true;
+    document.documentElement.classList.add('scanner-mode');
+    document.documentElement.classList.add('radar-tab-active');
+    screenHome()?.classList.add('scanner-nav-active');
+    resetRadarStage();
+    refreshTgViewport();
+    bindHomeShell();
+    document.querySelectorAll('.bnav[data-nav]').forEach((btn) => {
+      btn.classList.toggle('active', btn.dataset.nav === 'scan');
+    });
   }
 
   function refreshTgViewport() {
@@ -199,17 +240,8 @@
   }
 
   function showScannerHome() {
-    stopTradesPoll();
-    document.documentElement.classList.remove('detail-mode');
-    hideAllViews();
-    $('scanner-home')?.classList.remove('hidden');
-    refreshTgViewport();
-    bindHomeShell();
-    if (!homeFeedBooted) {
-      initScannerHome();
-    } else {
-      toggleHomeRadarPanels();
-    }
+    if (scannerNavActive) showScannerScreen();
+    else showHomeScreen();
   }
 
   let lastBottomNavAt = 0;
@@ -268,6 +300,7 @@
     hideAllViews();
     document.documentElement.classList.add('detail-mode');
     $('view-detail')?.classList.remove('hidden');
+    $('sniperBottomNav')?.classList.remove('hidden');
     ensureDetailSpacer();
     refreshTgViewport();
   }
@@ -277,10 +310,8 @@
   }
 
   function toggleHomeRadarPanels() {
-    $('homeFeedPanel')?.classList.toggle('hidden', scannerNavActive);
-    $('radarScanPanel')?.classList.toggle('hidden', !scannerNavActive);
-    document.documentElement.classList.toggle('radar-tab-active', scannerNavActive);
-    if (!scannerNavActive) hideRadarActive();
+    if (scannerNavActive) showScannerScreen();
+    else showHomeScreen();
   }
 
   function setRadarStep(step) {
@@ -345,13 +376,17 @@
 
   function setScannerNav(on) {
     const was = scannerNavActive;
-    scannerNavActive = !!on;
-    document.documentElement.classList.toggle('scanner-mode', scannerNavActive);
-    $('scanner-home')?.classList.toggle('scanner-nav-active', scannerNavActive);
-    toggleHomeRadarPanels();
-    if (was !== scannerNavActive && feedItemsFull.length && !scannerNavActive) {
-      if ((searchQuery || '').trim()) applySearchFilter();
-      else renderTokenList(feedItemsFull);
+    if (on) {
+      if (!scannerNavActive) showScannerScreen();
+      return;
+    }
+    if (was) {
+      scannerNavActive = false;
+      if (was && feedItemsFull.length) {
+        if ((searchQuery || '').trim()) applySearchFilter();
+        else renderTokenList(feedItemsFull);
+      }
+      showHomeScreen();
     }
   }
 
@@ -446,6 +481,46 @@
     bindScannerCardActions(slot);
   }
 
+  function renderRadarSuccessPreview(data, id, mint) {
+    const slot = $('radarSuccessSlot');
+    const wrap = $('radarSuccessPreview');
+    if (!slot || !wrap) {
+      markReportOpen(true);
+      reportId = id;
+      location.hash = `r=${id}`;
+      loadReportFlow();
+      return;
+    }
+    const m = data.market || {};
+    const sym = m.symbol || data.symbol || '?';
+    const score = data.trust?.score;
+    const rb = riskBadgeLabel(data.level, score);
+    const chg24 = m.priceChange24h;
+    const avatar = m.imageUrl
+      ? `<img class="sc-avatar" src="${escHtml(m.imageUrl)}" alt="" loading="lazy" />`
+      : `<span class="sc-avatar sc-avatar-fallback">${escHtml(sym.slice(0, 2))}</span>`;
+    slot.innerHTML = `<article class="scanner-card">
+      <div class="sc-top">${avatar}<div class="sc-meta"><div class="sc-title">${escHtml(sym)}<span class="sc-pair"> / SOL</span></div><div class="sc-mint">${escHtml(shortMint(mint))}</div></div>
+      <span class="risk-badge ${rb.cls}">${rb.text}</span></div>
+      <div class="sc-stats">
+        <div><span class="sc-lbl">Price</span><span class="sc-val">${escHtml(fmtPriceDisplay({ priceUsd: m.priceUsd, priceUsdFmt: m.priceUsdFmt }) || '—')}</span></div>
+        <div><span class="sc-lbl">24H</span><span class="sc-val ${chgClass(chg24)}">${formatPct(chg24)}</span></div>
+        <div><span class="sc-lbl">Score</span><span class="sc-val">${score != null ? escHtml(String(score)) : '—'}</span></div>
+        <motion><span class="sc-lbl">MCap</span><span class="sc-val">${escHtml(m.marketCapUsdFmt || '—')}</span></div>
+      </div>
+      <div class="sc-actions">
+        <button type="button" class="scanner-card-btn primary" data-action="report">Open report</button>
+      </div>
+    </article>`;
+    wrap.classList.remove('hidden');
+    slot.querySelector('[data-action="report"]')?.addEventListener('click', () => {
+      markReportOpen(true);
+      reportId = id;
+      location.hash = `r=${id}`;
+      loadReportFlow();
+    });
+  }
+
   async function runRadarScan() {
     const inp = $('radarMintInput');
     const mint = (inp?.value || '').trim();
@@ -460,10 +535,10 @@
     startRadarScanning();
     const phases = [
       [14, 'Parsing contract', 'contract'],
-      [32, 'Fetching liquidity', 'liquidity'],
-      [52, 'Running AI risk engine', 'risk'],
-      [72, 'Checking holders', 'holders'],
-      [88, 'Building report', 'report'],
+      [32, 'Reading LP', 'liquidity'],
+      [52, 'Analyzing holders', 'holders'],
+      [72, 'Checking honeypot', 'risk'],
+      [88, 'Finalizing report', 'report'],
     ];
     let phase = 0;
     setRadarProgress(8, phases[0][1], 'Scanning token…', phases[0][2]);
@@ -480,12 +555,13 @@
       if (!openRes.ok) throw new Error(openBody.message || 'Token not found');
       const id = openBody.reportId;
       if (!id) throw new Error('Report failed');
-      setRadarProgress(100, 'Complete', 'Opening report…', 'report');
-      markReportOpen(true);
-      reportId = id;
-      location.hash = `r=${id}`;
+      setRadarProgress(100, 'Complete', 'Analysis ready', 'report');
+      const repRes = await fetch(apiPath(`/api/report/${encodeURIComponent(id)}?tf=15m`));
+      const data = await repRes.json().catch(() => ({}));
+      if (!repRes.ok) throw new Error(data.message || 'Report failed');
+      scannerPreviewId = id;
+      renderRadarSuccessPreview(data, id, mint);
       hideRadarActive();
-      await loadReportFlow();
     } catch (e) {
       hideRadarActive();
       showToast(e.message || 'Analysis failed');
@@ -887,16 +963,22 @@
       });
     });
 
-    document.querySelectorAll('.dex-chip[data-dex]').forEach((btn) => {
+    document.querySelectorAll('.chain-chip[data-chain]').forEach((btn) => {
       btn.addEventListener('click', () => {
-        const d = btn.dataset.dex || 'all';
-        if (d === dexFilter) return;
-        setDexFilter(d);
+        if (btn.classList.contains('disabled')) return;
+        document.querySelectorAll('.chain-chip[data-chain]').forEach((b) => {
+          b.classList.toggle('active', b === btn);
+        });
+        const ch = btn.dataset.chain;
+        if (ch && ch !== 'solana' && ch !== 'all') {
+          showToast('Only Solana is live — more chains soon');
+          return;
+        }
         fetchFeed(feedTab);
       });
     });
 
-    const bottomNav = document.querySelector('#scanner-home .bottom-nav');
+    const bottomNav = $('sniperBottomNav') || document.querySelector('.sniper-bottom-nav');
     bottomNav?.addEventListener('click', (ev) => {
       const btn = ev.target.closest('button.bnav[data-nav]');
       if (!btn) return;
@@ -947,7 +1029,7 @@
 
     feedPollTimer = setInterval(() => {
       if (scannerNavActive) return;
-      if (!$('scanner-home')?.classList.contains('hidden')) fetchFeed(feedTab);
+      if (!screenHome()?.classList.contains('hidden')) fetchFeed(feedTab);
     }, 90000);
   }
 
