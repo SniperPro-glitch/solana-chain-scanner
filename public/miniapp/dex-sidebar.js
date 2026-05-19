@@ -17,9 +17,9 @@
 
   const CHAINS = [
     { id: 'solana', label: 'Solana', live: true, dotClass: 'sol', short: 'SOL', fallback: '◎' },
-    { id: 'ton', label: 'TON', live: true, dotClass: 'ton', short: 'TON', fallback: 'T' },
-    { id: 'bsc', label: 'BSC', live: true, dotClass: 'bsc', short: 'BSC', fallback: 'B' },
-    { id: 'eth', label: 'Ethereum', live: true, dotClass: 'eth', short: 'ETH', fallback: 'Ξ' },
+    { id: 'ton', label: 'TON', live: false, dotClass: 'ton', short: 'TON', fallback: 'T' },
+    { id: 'bsc', label: 'BSC', live: false, dotClass: 'bsc', short: 'BSC', fallback: 'B' },
+    { id: 'eth', label: 'Ethereum', live: false, dotClass: 'eth', short: 'ETH', fallback: 'Ξ' },
   ];
 
   const SOCIAL = {
@@ -97,7 +97,7 @@
     const meta = $('feedMetaText');
     if (meta && !meta.dataset.lockChain) {
       const live = chain.live ? 'live' : 'soon';
-      const src = chain.id === 'solana' ? 'bot + arama' : 'DexScreener';
+      const src = chain.live ? 'bot kanalı' : 'yakında';
       meta.textContent = `◎ ${chain.label} · ${src}`;
     }
   }
@@ -152,6 +152,9 @@
   function pickChain(id) {
     const c = CHAINS.find((x) => x.id === id);
     if (!c) return;
+    if (!c.live) {
+      toast(`${c.label}: henüz paylaşım yok — tokenler Solana bot kanalından eklenir`);
+    }
     if (typeof global.closeSearchOverlay === 'function') global.closeSearchOverlay();
     $('sidebarSearchInput')?.blur();
     saveChain(id);

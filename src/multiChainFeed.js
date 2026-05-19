@@ -1,4 +1,4 @@
-// Mini App feed — Solana (bot) + TON / BSC / ETH (DexScreener).
+// Mini App feed — liste yalnızca Solana bot kanalı paylaşımları (sc_feed).
 
 const miniAppFeed = require('./miniAppFeed');
 const { discoverDexPairs, searchDexPairs, normalizeDexPair } = require('./chains/dexscreenerPair');
@@ -46,6 +46,26 @@ function pairToFeedItem(pair, chainKey, rank) {
   item.dexPageUrl = token.dexScreener?.url || null;
   item.source = 'dexscreener';
   return item;
+}
+
+function emptyNonSolanaFeed(chainKey) {
+  const label = { ton: 'TON', bsc: 'BSC', eth: 'Ethereum' }[chainKey] || chainKey;
+  return {
+    tab: 'trending',
+    chain: chainKey,
+    source: 'app_catalog',
+    sortMode: 'volume24h_desc',
+    updatedAt: Date.now(),
+    promo: getPromoBanner(),
+    trendingTicker: [],
+    dexFilter: 'all',
+    dexPlatforms: listPlatformsForUi(),
+    dexCounts: { all: 0 },
+    stats: { count: 0, volume24hFmt: '—', liquidityFmt: '—', newPairs: 0, activeNow: 0 },
+    items: [],
+    empty: true,
+    emptyMessage: `${label} listesi henüz boş. Tokenler yalnızca Solana bot kanalına düştükçe burada görünür.`,
+  };
 }
 
 async function buildDexChainFeed(chainKey, tab = 'trending', limit = 24, dexFilter = 'all', searchQ = '') {
@@ -125,17 +145,6 @@ async function buildFeed(tab = 'trending', limit = 24, dexFilter = 'all', chain 
       const qLower = normalizeSearchQ(q);
       let filtered = feed.items.filter((it) => itemMatchesSearch(it, qLower));
 
-      const extraPairs = await searchDexPairs('solana', q, Math.max(limit, 24));
-      const seen = new Set(filtered.map((it) => it.mint));
-      for (const p of extraPairs) {
-        const row = pairToFeedItem(p, 'solana', filtered.length + 1);
-        if (!row || seen.has(row.mint)) continue;
-        if (dexFilter !== 'all' && !matchesDexFilter(row.dexPlatform, dexFilter)) continue;
-        seen.add(row.mint);
-        filtered.push(row);
-        if (filtered.length >= limit) break;
-      }
-
       filtered.sort((a, b) => {
         const symA = String(a.symbol || '').toLowerCase();
         const symB = String(b.symbol || '').toLowerCase();
@@ -157,7 +166,7 @@ async function buildFeed(tab = 'trending', limit = 24, dexFilter = 'all', chain 
     return feed;
   }
 
-  return buildDexChainFeed(chainKey, tab, limit, dexFilter, q);
+  return emptyNonSolanaFeed(chainKey);
 }
 
 module.exports = {

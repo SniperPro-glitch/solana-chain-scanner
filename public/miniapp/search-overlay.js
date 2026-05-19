@@ -144,9 +144,7 @@
 
     if (query.length < 1) return;
 
-    const chain = readChain();
-    const searchChain = chain === 'solana' ? 'solana' : 'all';
-    const url = `/api/search?q=${encodeURIComponent(query)}&limit=40&chain=${encodeURIComponent(searchChain)}`;
+    const url = `/api/search?q=${encodeURIComponent(query)}&limit=40&chain=solana`;
 
     if (inflight) inflight.abort?.();
     const ac = typeof AbortController !== 'undefined' ? new AbortController() : null;

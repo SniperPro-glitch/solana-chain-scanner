@@ -70,6 +70,7 @@
   let tradesResizeHandler = null;
   let openingMint = false;
   let feedItemsFull = [];
+  let feedEmptyMessage = '';
   let searchQuery = '';
   let searchDebounce = null;
   let scannerAnalyzing = false;
@@ -556,10 +557,10 @@
   }
 
   const CHAIN_UI = {
-    solana: { short: 'SOL', label: 'Solana', src: 'Bot + arama' },
-    ton: { short: 'TON', label: 'TON', src: 'DexScreener' },
-    bsc: { short: 'BSC', label: 'BSC', src: 'DexScreener' },
-    eth: { short: 'ETH', label: 'Ethereum', src: 'DexScreener' },
+    solana: { short: 'SOL', label: 'Solana', src: 'Bot kanalı' },
+    ton: { short: 'TON', label: 'TON', src: 'Henüz paylaşım yok' },
+    bsc: { short: 'BSC', label: 'BSC', src: 'Henüz paylaşım yok' },
+    eth: { short: 'ETH', label: 'Ethereum', src: 'Henüz paylaşım yok' },
   };
 
   function applyChainHeaderUi(chain) {
@@ -610,7 +611,10 @@
 
   function applySearchFilter() {
     applySearchHintFromFeed();
-    renderTokenList(feedItemsFull, { searching: !!(searchQuery || '').trim() });
+    renderTokenList(feedItemsFull, {
+      searching: !!(searchQuery || '').trim(),
+      emptyMessage: feedEmptyMessage,
+    });
   }
 
   function onSearchInput() {
@@ -754,9 +758,12 @@
     const lastRow = searching ? '' : renderLastReportRow();
     const rows = (items || []).map((it) => renderFeedRow(it)).join('');
     if (!rows) {
-      list.innerHTML = searching
-        ? '<p class="home-search-empty">Eşleşen token yok.</p>'
-        : '<p class="home-cta">Henüz bot paylaşımı yok. Kanala token düştükçe burada listelenecek.</p>';
+      const emptyMsg =
+        opts.emptyMessage ||
+        (searching
+          ? 'Eşleşen token yok.'
+          : 'Henüz bot paylaşımı yok. Tokenler yalnızca Solana bot kanalına düştükçe listelenir.');
+      list.innerHTML = `<p class="home-cta">${escHtml(emptyMsg)}</p>`;
       return;
     }
     list.innerHTML = lastRow + rows;
@@ -874,6 +881,7 @@
 
   function ingestFeedResponse(body, q) {
     const items = body?.items?.length ? body.items : [];
+    feedEmptyMessage = body?.emptyMessage || '';
     if (body?.empty && body.emptyMessage && !items.length) {
       applyMarketStats({ count: 0, volume24hFmt: '—', liquidityFmt: '—', newPairs: 0, activeNow: 0 }, []);
       updateQuickCards({ count: 0, newPairs: 0, liquidityFmt: '—' }, []);
@@ -891,6 +899,7 @@
     applyHomeExtras(body);
     updateFeedMetaBar(body);
     feedItemsFull = items;
+    if (items.length) feedEmptyMessage = '';
     if (body.chain) activeChain = body.chain;
     applySearchFilter();
     if (body.empty && body.emptyMessage) {
@@ -1110,9 +1119,9 @@
     const sideInp = $('sidebarSearchInput');
     if (sideInp) sideInp.value = '';
     setSearchHint('');
-    applyMarketStats(PLACEHOLDER_STATS, PLACEHOLDER_TOKENS);
-    updateQuickCards(PLACEHOLDER_STATS, PLACEHOLDER_TOKENS);
-    renderTokenList(PLACEHOLDER_TOKENS);
+    const list = $('homeTokenList');
+    if (list) list.innerHTML = '';
+    $('feedLoading')?.classList.remove('hidden');
     void loadHomeFeed('trending', 'home', { force: true });
     setTimeout(() => {
       if (!scannerNavActive && !feedItemsFull.length && !$('scanner-home')?.classList.contains('hidden')) {

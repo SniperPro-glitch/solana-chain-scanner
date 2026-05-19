@@ -117,47 +117,24 @@ async function searchListedTokens(q, limit = 40, chain = 'all') {
     return { items: [], query: '', chain: chainKey, total: 0 };
   }
 
-  if (chainKey === 'solana' || chainKey === 'all') {
-    let items = await searchSolanaCatalog(qTrim, cap);
-
-    if (chainKey === 'all' && items.length < cap) {
-      const seen = new Set(items.map((it) => `${it.chain}:${it.mint}`));
-      for (const ck of ['ton', 'bsc', 'eth']) {
-        try {
-          const extra = await searchDexChain(ck, qTrim, cap - items.length);
-          for (const row of extra) {
-            const key = `${row.chain}:${row.mint}`;
-            if (seen.has(key)) continue;
-            seen.add(key);
-            items.push(row);
-            if (items.length >= cap) break;
-          }
-        } catch (e) {
-          console.warn(`[search] ${ck}:`, e.message);
-        }
-        if (items.length >= cap) break;
-      }
-      items = items
-        .map((it, i) => ({ ...it, rank: i + 1 }))
-        .slice(0, cap);
-    }
-
+  if (chainKey !== 'solana' && chainKey !== 'all') {
     return {
-      items,
+      items: [],
       query: qTrim,
       chain: chainKey,
-      total: items.length,
+      total: 0,
       source: 'app_catalog',
+      emptyMessage: 'Arama yalnızca Solana bot listesinde.',
     };
   }
 
-  const items = await searchDexChain(chainKey, qTrim, cap);
+  const items = await searchSolanaCatalog(qTrim, cap);
   return {
-    items: items.filter((it) => itemMatchesSearch(it, normalizeSearchQ(qTrim))),
+    items,
     query: qTrim,
-    chain: chainKey,
+    chain: 'solana',
     total: items.length,
-    source: 'dexscreener',
+    source: 'app_catalog',
   };
 }
 
