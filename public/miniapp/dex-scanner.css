@@ -623,6 +623,16 @@ html.scanner-mode .search-box {
 
 .scanner-card-slot.hidden { display: none; }
 
+.home-search-empty {
+  margin: 8px 12px 16px;
+  padding: 14px 12px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--muted);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+}
+
 .scanner-search-hint {
   margin: -4px 10px 10px;
   font-size: 11px;
@@ -631,6 +641,15 @@ html.scanner-mode .search-box {
 }
 
 .scanner-search-hint.hidden { display: none; }
+
+.scanner-search-hint.is-miss {
+  color: #f5a623;
+  border: 1px solid rgba(245, 166, 35, 0.35);
+  background: rgba(245, 166, 35, 0.08);
+  border-radius: var(--radius);
+  padding: 8px 12px;
+  margin: 0 10px 10px;
+}
 
 .scanner-card {
   padding: 14px;

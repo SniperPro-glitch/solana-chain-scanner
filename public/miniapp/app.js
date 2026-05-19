@@ -365,10 +365,12 @@
     if (!el) return;
     if (!msg) {
       el.classList.add('hidden');
+      el.classList.remove('is-miss');
       el.textContent = '';
       return;
     }
     el.textContent = msg;
+    el.classList.toggle('is-miss', msg.includes('mevcut değil'));
     el.classList.remove('hidden');
   }
 
@@ -382,9 +384,12 @@
   function clearSearch() {
     const inp = $('searchInput');
     if (inp) inp.value = '';
+    const side = $('sidebarSearchInput');
+    if (side) side.value = '';
     searchQuery = '';
     $('searchClearBtn')?.classList.add('hidden');
     hideScannerCard();
+    scannerPreviewId = null;
     setSearchHint('');
     renderTokenList(feedItemsFull);
   }
@@ -514,42 +519,64 @@
     }
   }
 
+  function tokenMatchesQuery(it, qLower) {
+    const hay = [
+      it.symbol,
+      it.mint,
+      it.pairLabel,
+      it.fullName,
+      it.name,
+      it.dexLabel,
+    ]
+      .filter(Boolean)
+      .map((s) => String(s).toLowerCase());
+    return hay.some((s) => s.includes(qLower));
+  }
+
   function applySearchFilter() {
     const q = (searchQuery || '').trim();
     const qLower = q.toLowerCase();
     $('searchClearBtn')?.classList.toggle('hidden', !q);
+    hideScannerCard();
+    scannerPreviewId = null;
+
     if (!q) {
-      hideScannerCard();
       setSearchHint('');
       renderTokenList(feedItemsFull);
       return;
     }
-    if (isSolanaMint(q)) {
-      renderTokenList(feedItemsFull);
+
+    if (!feedItemsFull.length) {
+      renderTokenList([], { searching: true });
+      setSearchHint('Liste yükleniyor — biraz bekleyin');
       return;
     }
-    const filtered = feedItemsFull.filter((it) => {
-      const sym = (it.symbol || '').toLowerCase();
-      const mint = (it.mint || '').toLowerCase();
-      const pair = (it.pairLabel || '').toLowerCase();
-      return sym.includes(qLower) || mint.includes(qLower) || pair.includes(qLower);
-    });
-    hideScannerCard();
-    renderTokenList(filtered);
+
+    const filtered = feedItemsFull.filter((it) => tokenMatchesQuery(it, qLower));
+    renderTokenList(filtered, { searching: true });
     if (filtered.length) {
       setSearchHint(`${filtered.length} sonuç`);
     } else {
-      setSearchHint('Listede yok — geçerli mint yapıştırırsan analiz ederiz');
+      setSearchHint('Bu token listemizde mevcut değil.');
     }
   }
 
   function onSearchInput() {
     const inp = $('searchInput');
     searchQuery = inp?.value || '';
+    const side = $('sidebarSearchInput');
+    if (side && side.value !== searchQuery) side.value = searchQuery;
     clearTimeout(searchDebounce);
     searchDebounce = setTimeout(() => {
       applySearchFilter();
-    }, 400);
+    }, 200);
+  }
+
+  function onSearchKeydown(e) {
+    if (e.key === 'Enter') {
+      clearTimeout(searchDebounce);
+      applySearchFilter();
+    }
   }
 
   function renderLastReportRow() {
@@ -671,11 +698,19 @@
     renderTrendingBand(body?.trendingTicker, body?.sortMode);
   }
 
-  function renderTokenList(items) {
+  function renderTokenList(items, opts = {}) {
     const list = $('homeTokenList');
     if (!list) return;
-    const rows = renderLastReportRow() + (items || []).map((it) => renderFeedRow(it)).join('');
-    list.innerHTML = rows || '<p class="home-cta">Henüz bot paylaşımı yok. Kanala token düştükçe burada listelenecek.</p>';
+    const searching = !!opts.searching || !!(searchQuery || '').trim();
+    const lastRow = searching ? '' : renderLastReportRow();
+    const rows = (items || []).map((it) => renderFeedRow(it)).join('');
+    if (!rows) {
+      list.innerHTML = searching
+        ? '<p class="home-search-empty">Eşleşen token yok.</p>'
+        : '<p class="home-cta">Henüz bot paylaşımı yok. Kanala token düştükçe burada listelenecek.</p>';
+      return;
+    }
+    list.innerHTML = lastRow + rows;
     bindFeedRowLogos(list);
   }
 
@@ -900,7 +935,24 @@
     );
 
     $('searchInput')?.addEventListener('input', onSearchInput);
+    $('searchInput')?.addEventListener('keydown', onSearchKeydown);
+    $('sidebarSearchInput')?.addEventListener('input', () => {
+      const side = $('sidebarSearchInput');
+      const main = $('searchInput');
+      if (main && side) main.value = side.value;
+      onSearchInput();
+    });
+    $('sidebarSearchInput')?.addEventListener('keydown', (e) => {
+      const side = $('sidebarSearchInput');
+      const main = $('searchInput');
+      if (main && side) main.value = side.value;
+      onSearchKeydown(e);
+    });
     $('searchClearBtn')?.addEventListener('click', clearSearch);
+    document.querySelector('.search-filter')?.addEventListener('click', (e) => {
+      e.preventDefault();
+      globalThis.SniperSidebar?.open?.();
+    });
     $('radarAnalyzeBtn')?.addEventListener('click', () => runRadarScan());
     $('radarMintInput')?.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') runRadarScan();
