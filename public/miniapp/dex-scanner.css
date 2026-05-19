@@ -1064,32 +1064,19 @@ html.scanner-mode .search-box {
   --tbl-pad: 8px;
   --tbl-cols:
     20px
-    minmax(108px, 1.45fr)
-    58px
-    68px
-    34px
-    50px
-    54px
-    54px
-    62px;
+    minmax(0, 1.5fr)
+    minmax(0, 0.8fr)
+    minmax(0, 0.9fr)
+    minmax(0, 0.55fr)
+    minmax(0, 0.65fr)
+    minmax(0, 0.7fr)
+    minmax(0, 0.7fr)
+    minmax(0, 0.85fr);
   width: 100%;
   max-width: 100%;
   min-width: 0;
   padding: 0 var(--tbl-pad);
   box-sizing: border-box;
-}
-
-@media (min-width: 641px) {
-  .token-table-scroll {
-    overflow-x: auto;
-    scrollbar-width: none;
-  }
-
-  .token-table-scroll::-webkit-scrollbar { display: none; }
-
-  .token-table-inner {
-    min-width: 600px;
-  }
 }
 
 .feed-toolbar {
@@ -1704,34 +1691,10 @@ html.scanner-mode .search-box {
   border-radius: var(--radius);
 }
 
-/* Ana sayfa tablo — mobil / dar ekran */
+/* Ana sayfa tablo — mobil kart düzeni */
 @media (max-width: 640px) {
-  .token-table-scroll {
-    overflow-x: hidden;
-  }
-
-  .token-table-inner {
-    --tbl-pad: 8px;
-    min-width: 0;
-    --tbl-cols:
-      16px
-      minmax(0, 1fr)
-      0
-      minmax(62px, auto)
-      0
-      minmax(52px, auto)
-      0
-      0
-      minmax(54px, auto);
-  }
-
   .token-thead {
     display: none;
-  }
-
-  .token-row .tr-mcap,
-  .token-row .tr-age {
-    display: none !important;
   }
 
   .tr-mcap-inline {
@@ -1765,18 +1728,69 @@ html.scanner-mode .search-box {
     font-size: 9px;
   }
 
-  .token-thead,
-  .token-row {
-    gap: 2px 4px;
+  .token-list .token-row {
+    display: grid;
+    grid-template-columns: 18px minmax(0, 1fr) auto;
+    grid-template-rows: auto auto auto;
+    gap: 2px 10px;
+    padding: 10px 8px;
+    align-items: start;
   }
 
-  .token-thead .th-vol,
-  .token-thead .th-liq,
-  .token-row .tr-vol,
-  .token-row .tr-liq {
+  .token-list .token-row > .tr-rank {
+    grid-column: 1;
+    grid-row: 1 / 4;
+    align-self: center;
+  }
+
+  .token-list .token-row > .tr-token {
+    grid-column: 2;
+    grid-row: 1 / 4;
+    align-self: center;
+    min-width: 0;
+  }
+
+  .token-list .token-row > .tr-mcap,
+  .token-list .token-row > .tr-age,
+  .token-list .token-row > .tr-vol,
+  .token-list .token-row > .tr-liq {
     display: none !important;
   }
 
+  .token-list .token-row > .tr-price {
+    grid-column: 3;
+    grid-row: 1;
+    justify-self: end;
+    align-self: end;
+    font-size: 11px;
+    padding-top: 2px;
+  }
+
+  .token-list .token-row > .tr-pct {
+    grid-column: 3;
+    grid-row: 2;
+    justify-self: end;
+    font-size: 10px;
+    line-height: 1.2;
+  }
+
+  .token-list .token-row > .tr-risk-col {
+    grid-column: 3;
+    grid-row: 3;
+    justify-self: end;
+    align-items: flex-end;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .token-list .token-row .tr-spark {
+    display: none;
+  }
+
+  .token-list .token-row .risk-badge {
+    font-size: 6px;
+    padding: 2px 5px;
+  }
 
   .tr-meta {
     min-width: 0;
@@ -1787,19 +1801,9 @@ html.scanner-mode .search-box {
     max-width: 100%;
   }
 
-  .token-row .tr-price,
-  .tr-pct {
-    font-size: 9px;
-  }
-
-  .token-row .tr-spark {
-    width: 44px;
-    height: 16px;
-  }
-
-  .risk-badge {
-    font-size: 6px;
-    padding: 2px 5px;
+  .tr-sub {
+    white-space: normal;
+    line-height: 1.35;
   }
 }
 
