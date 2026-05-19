@@ -1066,22 +1066,15 @@ html.scanner-mode .search-box {
 .token-table-inner { min-width: 620px; padding: 0 8px; }
 
 .feed-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
   margin: 0 8px 10px;
   padding: 10px 10px 8px;
   border-radius: var(--radius);
   border: 1px solid var(--border);
   background: rgba(11, 16, 29, 0.92);
-}
-
-.feed-toolbar-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.feed-toolbar-row + .feed-toolbar-row {
-  margin-top: 8px;
 }
 
 .feed-toolbar-label {
@@ -1115,103 +1108,6 @@ html.scanner-mode .search-box {
   color: var(--text);
   border-color: rgba(0, 229, 255, 0.45);
   background: rgba(0, 229, 255, 0.1);
-}
-
-.feed-toolbar-actions {
-  justify-content: space-between;
-}
-
-.feed-sort-select {
-  min-width: 108px;
-  padding: 6px 8px;
-  font-size: 10px;
-  font-weight: 700;
-  border-radius: 8px;
-  border: 1px solid var(--border);
-  background: var(--bg);
-  color: var(--text);
-}
-
-.feed-filters-btn {
-  padding: 6px 12px;
-  font-size: 10px;
-  font-weight: 700;
-  border-radius: 8px;
-  border: 1px solid var(--border);
-  background: var(--bg);
-  color: var(--cyan);
-  cursor: pointer;
-}
-
-.feed-filters-sheet {
-  position: fixed;
-  inset: 0;
-  z-index: 120;
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-}
-
-.feed-filters-sheet.hidden {
-  display: none;
-}
-
-.feed-filters-backdrop {
-  position: absolute;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.55);
-}
-
-.feed-filters-panel {
-  position: relative;
-  width: 100%;
-  max-width: 420px;
-  padding: 16px;
-  border-radius: 16px 16px 0 0;
-  background: var(--card);
-  border: 1px solid var(--border);
-}
-
-.feed-filters-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 12px;
-}
-
-.feed-filters-head h3 {
-  margin: 0;
-  font-size: 14px;
-}
-
-.feed-filters-close {
-  border: none;
-  background: transparent;
-  color: var(--muted);
-  font-size: 16px;
-  cursor: pointer;
-}
-
-.feed-filter-row {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  margin-bottom: 12px;
-  font-size: 11px;
-  color: var(--muted);
-}
-
-.feed-filter-row select {
-  padding: 8px 10px;
-  border-radius: 8px;
-  border: 1px solid var(--border);
-  background: var(--bg);
-  color: var(--text);
-}
-
-.feed-filters-apply {
-  width: 100%;
-  margin-top: 4px;
 }
 
 .token-thead,
@@ -1689,15 +1585,6 @@ html.scanner-mode .search-box {
     display: none !important;
   }
 
-  .feed-toolbar-actions {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .feed-sort-select,
-  .feed-filters-btn {
-    width: 100%;
-  }
 
   .tr-meta {
     min-width: 0;

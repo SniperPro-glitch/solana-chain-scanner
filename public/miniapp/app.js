@@ -73,9 +73,6 @@
   let feedEmptyMessage = '';
   let feedListMode = 'top';
   let feedTimeframe = '24h';
-  let feedSortKey = 'volume';
-  let feedMinVol = 0;
-  let feedMinLiq = 0;
   let searchQuery = '';
   let searchDebounce = null;
   let scannerAnalyzing = false;
@@ -685,21 +682,13 @@
 
   function prepareFeedListItems(items) {
     let list = Array.isArray(items) ? [...items] : [];
-    if (feedMinVol > 0) list = list.filter((it) => (it.volume24h || 0) >= feedMinVol);
-    if (feedMinLiq > 0) list = list.filter((it) => (it.liquidityUsd || 0) >= feedMinLiq);
     if (feedListMode === 'gainers') {
       list = list.filter((it) => (getFeedChange(it) ?? -1) > 0);
       list.sort((a, b) => (getFeedChange(b) ?? 0) - (getFeedChange(a) ?? 0));
     } else if (feedListMode === 'new') {
       list.sort((a, b) => (b.postedAt || 0) - (a.postedAt || 0));
     } else {
-      list.sort((a, b) => {
-        if (feedSortKey === 'mcap') return (b.marketCapUsd || 0) - (a.marketCapUsd || 0);
-        if (feedSortKey === 'change') return (getFeedChange(b) ?? 0) - (getFeedChange(a) ?? 0);
-        if (feedSortKey === 'age') return (b.postedAt || 0) - (a.postedAt || 0);
-        if (feedSortKey === 'txns') return (b.txns24h || 0) - (a.txns24h || 0);
-        return (b.volume24h || 0) - (a.volume24h || 0);
-      });
+      list.sort((a, b) => (b.volume24h || 0) - (a.volume24h || 0));
     }
     return list.map((it, i) => ({ ...it, rank: i + 1 }));
   }
@@ -707,8 +696,6 @@
   function updateFeedTableHead() {
     const chg = document.querySelector('.token-thead .th-chg');
     if (chg) chg.textContent = feedTimeframe === '1h' ? '1H %' : '24H %';
-    const sortSel = $('feedSortSelect');
-    if (sortSel && sortSel.value !== feedSortKey) sortSel.value = feedSortKey;
   }
 
   function syncFeedToolbarUi() {
@@ -735,16 +722,6 @@
       return;
     }
     applySearchFilter();
-  }
-
-  function openFeedFilters(open) {
-    const sheet = $('feedFiltersSheet');
-    const btn = $('feedFiltersBtn');
-    if (!sheet) return;
-    const on = open !== false;
-    sheet.classList.toggle('hidden', !on);
-    sheet.setAttribute('aria-hidden', on ? 'false' : 'true');
-    if (btn) btn.setAttribute('aria-expanded', on ? 'true' : 'false');
   }
 
   function applySearchFilter() {
@@ -1195,20 +1172,6 @@
     document.querySelectorAll('.feed-mode-chip[data-list-mode]').forEach((btn) => {
       btn.addEventListener('click', () => setFeedListMode(btn.dataset.listMode || 'top'));
     });
-    $('feedSortSelect')?.addEventListener('change', (e) => {
-      feedSortKey = e.target.value || 'volume';
-      applySearchFilter();
-    });
-    $('feedFiltersBtn')?.addEventListener('click', () => openFeedFilters(true));
-    $('feedFiltersClose')?.addEventListener('click', () => openFeedFilters(false));
-    $('feedFiltersBackdrop')?.addEventListener('click', () => openFeedFilters(false));
-    $('feedFiltersApply')?.addEventListener('click', () => {
-      feedMinVol = Number($('feedMinVol')?.value || 0);
-      feedMinLiq = Number($('feedMinLiq')?.value || 0);
-      openFeedFilters(false);
-      applySearchFilter();
-    });
-
     const bottomNav = document.querySelector('#scanner-home .bottom-nav');
     bottomNav?.addEventListener('click', (ev) => {
       const btn = ev.target.closest('button.bnav[data-nav]');
