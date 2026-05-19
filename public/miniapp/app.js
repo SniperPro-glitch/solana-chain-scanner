@@ -74,10 +74,10 @@
   let feedListMode = 'top';
   let feedTimeframe = '24h';
   const FEED_TF_META = {
-    '5m': { label: 'Last 5 minutes', col: '5M %', changeKey: 'change5m', volKey: 'volume5m', volFmtKey: 'volume5mFmt' },
-    '1h': { label: 'Last hour', col: '1H %', changeKey: 'change1h', volKey: 'volume1h', volFmtKey: 'volume1hFmt' },
-    '6h': { label: 'Last 6 hours', col: '6H %', changeKey: 'change6h', volKey: 'volume6h', volFmtKey: 'volume6hFmt' },
-    '24h': { label: 'Last 24 hours', col: '24H %', changeKey: 'change24h', volKey: 'volume24h', volFmtKey: 'volume24hFmt' },
+    '5m': { label: 'Last 5 minutes', short: '5 min', col: '5M %', changeKey: 'change5m', volKey: 'volume5m', volFmtKey: 'volume5mFmt' },
+    '1h': { label: 'Last hour', short: '1 hour', col: '1H %', changeKey: 'change1h', volKey: 'volume1h', volFmtKey: 'volume1hFmt' },
+    '6h': { label: 'Last 6 hours', short: '6 hours', col: '6H %', changeKey: 'change6h', volKey: 'volume6h', volFmtKey: 'volume6hFmt' },
+    '24h': { label: 'Last 24 hours', short: '24 hours', col: '24H %', changeKey: 'change24h', volKey: 'volume24h', volFmtKey: 'volume24hFmt' },
   };
   let feedTfMenuOpen = false;
   let searchQuery = '';
@@ -729,7 +729,10 @@
   function syncFeedToolbarUi() {
     const meta = feedTfMeta(feedTimeframe);
     const label = $('feedTfTriggerLabel');
-    if (label) label.textContent = meta.label;
+    if (label) {
+      const narrow = window.matchMedia('(max-width: 480px)').matches;
+      label.textContent = narrow ? meta.short : meta.label;
+    }
     document.querySelectorAll('.feed-tf-option[data-tf]').forEach((btn) => {
       const on = btn.dataset.tf === feedTimeframe;
       btn.classList.toggle('active', on);
@@ -773,6 +776,7 @@
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') setFeedTfMenuOpen(false);
     });
+    window.addEventListener('resize', () => syncFeedToolbarUi(), { passive: true });
   }
 
   function setFeedListMode(mode) {

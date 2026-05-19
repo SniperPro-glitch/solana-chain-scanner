@@ -1459,6 +1459,7 @@ html.web-browser .trade-bar {
 html.web-browser .token-table-scroll {
   width: 100%;
   max-width: 100%;
+  overflow-x: hidden;
 }
 
 .dex-chart-link {

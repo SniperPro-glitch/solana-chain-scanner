@@ -1054,45 +1054,69 @@ html.scanner-mode .search-box {
 
 /* Token table */
 .token-table-scroll {
-  overflow-x: auto;
+  overflow-x: hidden;
   margin: 0 0 8px;
   width: 100%;
   max-width: 100%;
-  scrollbar-width: none;
 }
 
-.token-table-scroll::-webkit-scrollbar { display: none; }
-
-.token-table-inner { min-width: 620px; padding: 0 8px; }
+.token-table-inner {
+  --tbl-pad: 8px;
+  --tbl-cols:
+    18px
+    minmax(0, 1.35fr)
+    minmax(0, 0.78fr)
+    minmax(0, 0.88fr)
+    minmax(0, 0.52fr)
+    minmax(0, 0.62fr)
+    minmax(0, 0.68fr)
+    minmax(0, 0.68fr)
+    minmax(0, 0.88fr);
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  padding: 0 var(--tbl-pad);
+  box-sizing: border-box;
+}
 
 .feed-toolbar {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 1px minmax(0, 1fr);
   align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
+  column-gap: 10px;
+  row-gap: 0;
   margin: 0 8px 10px;
-  padding: 10px 12px 8px;
+  padding: 10px 10px 8px;
   border-radius: var(--radius);
   border: 1px solid var(--border);
   background: rgba(11, 16, 29, 0.92);
+  width: calc(100% - 16px);
+  max-width: calc(100% - 16px);
+  box-sizing: border-box;
+  overflow: hidden;
 }
 
 .feed-toolbar-group {
   display: flex;
   align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
+  gap: 6px;
+  min-width: 0;
+}
+
+.feed-toolbar-trend {
+  justify-content: flex-start;
 }
 
 .feed-toolbar-modes {
-  margin-left: auto;
+  justify-content: flex-end;
 }
 
 .feed-toolbar-sep {
   width: 1px;
-  height: 22px;
+  align-self: stretch;
+  min-height: 24px;
   background: var(--border);
-  flex-shrink: 0;
+  justify-self: center;
 }
 
 .feed-toolbar-label {
@@ -1100,21 +1124,29 @@ html.scanner-mode .search-box {
   font-weight: 800;
   color: var(--text);
   white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.feed-tf-trigger-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: clamp(64px, 22vw, 128px);
 }
 
 .feed-list-modes {
-  display: inline-flex;
+  display: flex;
   gap: 4px;
-  flex-wrap: wrap;
-}
-
-@media (max-width: 420px) {
-  .feed-toolbar-sep { display: none; }
-  .feed-toolbar-modes { margin-left: 0; width: 100%; }
+  flex-wrap: nowrap;
+  min-width: 0;
+  justify-content: flex-end;
 }
 
 .feed-tf-dropdown {
   position: relative;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .feed-tf-trigger {
@@ -1216,18 +1248,12 @@ html.scanner-mode .search-box {
 .token-thead,
 .token-row {
   display: grid;
-  grid-template-columns:
-    20px
-    minmax(96px, 1.35fr)
-    minmax(44px, auto)
-    minmax(52px, auto)
-    minmax(30px, auto)
-    minmax(38px, auto)
-    minmax(42px, auto)
-    minmax(42px, auto)
-    minmax(58px, auto);
+  grid-template-columns: var(--tbl-cols);
   gap: 4px 5px;
   align-items: center;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .token-row > * {
@@ -1255,7 +1281,7 @@ html.scanner-mode .search-box {
 }
 
 .token-thead {
-  padding: 0 8px 8px;
+  padding: 0 0 8px;
   font-size: 7px;
   font-weight: 700;
   letter-spacing: 0.05em;
@@ -1271,10 +1297,14 @@ html.scanner-mode .search-box {
   font-variant-numeric: tabular-nums;
 }
 
-.token-list { padding: 0; }
+.token-list {
+  padding: 0;
+  width: 100%;
+  max-width: 100%;
+}
 
 .token-row {
-  padding: 10px 8px;
+  padding: 10px 0;
   margin-bottom: 6px;
   border-radius: var(--radius);
   background: var(--card);
@@ -1655,29 +1685,47 @@ html.scanner-mode .search-box {
   border-radius: var(--radius);
 }
 
-/* Ana sayfa tablo — mobil */
-@media (max-width: 480px) {
+/* Ana sayfa tablo — mobil / dar ekran */
+@media (max-width: 640px) {
   .token-table-inner {
-    min-width: 0;
-    padding: 0 6px;
+    --tbl-pad: 6px;
+    --tbl-cols:
+      16px
+      minmax(0, 1fr)
+      minmax(0, 0.72fr)
+      minmax(0, 0.78fr)
+      minmax(0, 0.46fr)
+      minmax(0, 0.56fr)
+      0
+      0
+      minmax(0, 0.82fr);
   }
 
-  .token-table-inner {
-    min-width: 0;
+  .feed-toolbar {
+    column-gap: 8px;
+    padding: 8px 8px 6px;
+  }
+
+  .feed-toolbar-label {
+    font-size: 10px;
+  }
+
+  .feed-tf-trigger {
+    padding: 5px 8px;
+    font-size: 10px;
+  }
+
+  .feed-tf-trigger-label {
+    max-width: clamp(56px, 20vw, 96px);
+  }
+
+  .feed-mode-chip {
+    padding: 5px 7px;
+    font-size: 9px;
   }
 
   .token-thead,
   .token-row {
-    grid-template-columns:
-      16px
-      minmax(0, 1fr)
-      minmax(40px, auto)
-      minmax(48px, auto)
-      minmax(28px, auto)
-      minmax(36px, auto)
-      0
-      0
-      minmax(52px, auto);
     gap: 2px 4px;
   }
 
@@ -1711,5 +1759,15 @@ html.scanner-mode .search-box {
   .risk-badge {
     font-size: 6px;
     padding: 2px 5px;
+  }
+}
+
+@media (max-width: 360px) {
+  .feed-toolbar-label {
+    display: none;
+  }
+
+  .feed-tf-trigger-label {
+    max-width: 72px;
   }
 }
