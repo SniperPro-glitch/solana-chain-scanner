@@ -96,15 +96,32 @@ async function refreshTokenFromDex(storedToken) {
   return storedToken;
 }
 
+function tokenSnapshotUsable(token) {
+  return token?.tokenAddress && (Number(token.priceUsd) > 0 || Number(token.volume24h) > 0);
+}
+
 async function buildFeedFromBotShares(tab = 'trending', limit = 24, dexFilter = 'all') {
   const entries = await botFeedStore.listRecentAsync(limit, tab);
+  const tokens = await Promise.all(
+    entries.map(async (entry) => {
+      const snap = entry.token;
+      if (tokenSnapshotUsable(snap)) return snap;
+      try {
+        const live = await refreshTokenFromDex(snap);
+        return live || snap;
+      } catch {
+        return snap;
+      }
+    }),
+  );
   const items = [];
   let rank = 1;
 
-  for (const entry of entries) {
-    let token = await refreshTokenFromDex(entry.token);
+  for (let i = 0; i < entries.length; i++) {
+    const entry = entries[i];
+    let token = tokens[i];
     if (!token?.tokenAddress) token = entry.token;
-    token.chain = 'solana';
+    token = { ...token, chain: 'solana' };
 
     let audit = null;
     if (entry.reportId) {

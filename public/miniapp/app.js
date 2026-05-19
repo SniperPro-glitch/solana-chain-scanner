@@ -2,15 +2,26 @@
   const tg = window.Telegram?.WebApp;
   if (!tg) document.documentElement.classList.add('web-browser');
   let apiConfig = { botApiBase: '', webAppBase: '' };
+  let apiConfigPromise = null;
+  let homeFeedInflight = null;
+  let homeFeedCacheKey = '';
 
   async function loadApiConfig() {
-    try {
-      const res = await fetch('/api/config');
-      if (res.ok) apiConfig = await res.json();
-    } catch {
-      /* aynı sunucu */
-    }
-    return apiConfig;
+    if (apiConfigPromise) return apiConfigPromise;
+    apiConfigPromise = (async () => {
+      try {
+        const res = await fetch('/api/config');
+        if (res.ok) apiConfig = await res.json();
+      } catch {
+        /* aynı sunucu */
+      }
+      return apiConfig;
+    })();
+    return apiConfigPromise;
+  }
+
+  function loadApiConfigOnce() {
+    void loadApiConfig();
   }
 
   function apiRoot() {
@@ -852,8 +863,17 @@
   }
 
   /** Ana liste — Scanner modundan çıkar, feed API çağır. */
-  async function loadHomeFeed(apiTab = 'trending', uiTab = 'trending') {
-    await loadApiConfig();
+  async function loadHomeFeed(apiTab = 'trending', uiTab = 'trending', opts = {}) {
+    const q = (searchQuery || '').trim();
+    const chain = getActiveChain();
+    const cacheKey = `${apiTab}|${chain}|${dexFilter}|${q}`;
+    if (!opts.force && homeFeedInflight) return homeFeedInflight;
+    if (!opts.force && feedItemsFull.length && cacheKey === homeFeedCacheKey) {
+      applySearchFilter();
+      return { items: feedItemsFull };
+    }
+
+    loadApiConfigOnce();
     setScannerNav(false);
     toggleHomeRadarPanels();
     if (uiTab === 'new') feedTab = 'new';
@@ -868,44 +888,53 @@
       btn.classList.toggle('active', active);
     });
 
-    activeChain = getActiveChain();
+    activeChain = chain;
     syncDexChipsForChain(activeChain);
     syncSearchQuery();
-    const q = (searchQuery || '').trim();
     const loadingEl = $('feedLoading');
     const list = $('homeTokenList');
     loadingEl?.classList.remove('hidden');
     list?.classList.add('dimmed');
-    try {
-      const qs = new URLSearchParams({
-        tab: apiTab,
-        limit: '24',
-        dex: dexFilter,
-        chain: activeChain,
-      });
-      if (q) qs.set('q', q);
-      const res = await fetch(`/api/feed?${qs.toString()}`);
-      const body = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(body.message || 'feed_failed');
-      const items = body.items?.length ? body.items : [];
-      if (dexFilter !== 'all' && !items.length && (body.dexCounts?.all || 0) > 0) {
-        setDexFilter('all');
-        return loadHomeFeed(apiTab, uiTab);
+
+    homeFeedInflight = (async () => {
+      try {
+        const qs = new URLSearchParams({
+          tab: apiTab,
+          limit: '24',
+          dex: dexFilter,
+          chain: activeChain,
+        });
+        if (q) qs.set('q', q);
+        const res = await fetch(`/api/feed?${qs.toString()}`, { cache: q ? 'no-store' : 'default' });
+        const body = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(body.message || 'feed_failed');
+        const items = body.items?.length ? body.items : [];
+        if (dexFilter !== 'all' && !items.length && (body.dexCounts?.all || 0) > 0) {
+          setDexFilter('all');
+          return loadHomeFeed(apiTab, uiTab, { force: true });
+        }
+        homeFeedCacheKey = cacheKey;
+        return ingestFeedResponse(body, q);
+      } catch (e) {
+        console.error('[feed]', e);
+        applyMarketStats(PLACEHOLDER_STATS, []);
+        updateQuickCards(PLACEHOLDER_STATS, []);
+        applyHomeExtras(null);
+        updateFeedMetaBar(null);
+        feedItemsFull = [];
+        applySearchFilter();
+        showToast('Liste yüklenemedi — tekrar deneyin');
+        return null;
+      } finally {
+        loadingEl?.classList.add('hidden');
+        list?.classList.remove('dimmed');
       }
-      return ingestFeedResponse(body, q);
-    } catch (e) {
-      console.error('[feed]', e);
-      applyMarketStats(PLACEHOLDER_STATS, []);
-      updateQuickCards(PLACEHOLDER_STATS, []);
-      applyHomeExtras(null);
-      updateFeedMetaBar(null);
-      feedItemsFull = [];
-      applySearchFilter();
-      showToast('Liste yüklenemedi — tekrar deneyin');
-      return null;
+    })();
+
+    try {
+      return await homeFeedInflight;
     } finally {
-      loadingEl?.classList.add('hidden');
-      list?.classList.remove('dimmed');
+      homeFeedInflight = null;
     }
   }
 

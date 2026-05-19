@@ -34,12 +34,13 @@ function readBody(req) {
   });
 }
 
-function sendJson(res, code, obj) {
+function sendJson(res, code, obj, extraHeaders = {}) {
   const body = JSON.stringify(obj);
   res.writeHead(code, {
     'Content-Type': 'application/json; charset=utf-8',
-    'Cache-Control': 'no-store',
+    'Cache-Control': extraHeaders['Cache-Control'] || 'no-store',
     'Access-Control-Allow-Origin': '*',
+    ...extraHeaders,
   });
   res.end(body);
 }
@@ -348,7 +349,8 @@ function createMiniAppServer() {
         try {
           const { buildFeed } = require('./multiChainFeed');
           const feed = await buildFeed(tab, limit, dex, chain, q);
-          sendJson(res, 200, feed);
+          const feedCache = q ? 'no-store' : 'private, max-age=25';
+          sendJson(res, 200, feed, { 'Cache-Control': feedCache });
         } catch (e) {
           console.warn('[miniApp] feed:', e.message);
           sendJson(res, 502, { error: 'feed_failed', message: e.message });
