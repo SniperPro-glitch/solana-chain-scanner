@@ -165,6 +165,15 @@
       if (!res.ok) throw new Error(body.message || 'search_failed');
 
       lastItems = body.items || [];
+      if (!lastItems.length && typeof global.sniperFeedCatalog === 'function') {
+        const qLower = query.toLowerCase().replace(/^\$/, '');
+        lastItems = global.sniperFeedCatalog().filter((it) => {
+          const parts = [it.symbol, it.tokenSymbol, it.mint, it.name, it.pairLabel]
+            .filter(Boolean)
+            .map((s) => String(s).toLowerCase());
+          return parts.some((s) => s.includes(qLower));
+        });
+      }
       activeIdx = lastItems.length ? 0 : -1;
 
       if (!lastItems.length) {

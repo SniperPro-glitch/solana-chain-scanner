@@ -1,14 +1,13 @@
 // Uygulama içi token araması — bot kanal listesi (+ isteğe bağlı DexScreener).
 
-const botFeedStore = require('./botFeedStore');
 const miniAppFeed = require('./miniAppFeed');
 const { normalizeSearchQ, itemMatchesSearch } = require('./multiChainFeed');
 const { searchDexPairs, normalizeDexPair } = require('./chains/dexscreenerPair');
 const solana = require('./chains/solana');
 
 function searchScore(it, qLower) {
-  const sym = String(it.symbol || '').toLowerCase();
-  const name = String(it.name || it.fullName || '').toLowerCase();
+  const sym = String(it.symbol || it.tokenSymbol || '').toLowerCase();
+  const name = String(it.name || it.fullName || it.tokenName || '').toLowerCase();
   const mint = String(it.mint || '').toLowerCase();
   const pair = String(it.pairLabel || '').toLowerCase();
 
@@ -69,12 +68,21 @@ async function searchSolanaCatalog(q, limit = 40) {
   const qLower = normalizeSearchQ(q);
   if (!qLower || qLower.length < 1) return [];
 
-  const entries = await botFeedStore.listAllAsync();
-  const items = await buildItemsFromBotEntries(entries);
+  // Feed ile aynı pipeline (Dex yenileme + seed) — ham bot_feed snapshot'ı değil.
+  const catalogLimit = 200;
+  const [trendFeed, newFeed] = await Promise.all([
+    miniAppFeed.buildFeedFromBotShares('trending', catalogLimit, 'all'),
+    miniAppFeed.buildFeedFromBotShares('new', catalogLimit, 'all'),
+  ]);
+  const byMint = new Map();
+  for (const it of [...(trendFeed.items || []), ...(newFeed.items || [])]) {
+    if (it?.mint) byMint.set(it.mint, it);
+  }
+  const items = [...byMint.values()];
 
   const ranked = items
-    .map((it) => ({ it, score: searchScore(it, qLower) }))
-    .filter((x) => x.score > 0)
+    .filter((it) => itemMatchesSearch(it, qLower))
+    .map((it) => ({ it, score: searchScore(it, qLower) || 1 }))
     .sort((a, b) => {
       if (b.score !== a.score) return b.score - a.score;
       return (b.it.volume24h || 0) - (a.it.volume24h || 0);

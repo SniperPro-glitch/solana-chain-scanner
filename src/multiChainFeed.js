@@ -16,7 +16,7 @@ function normalizeSearchQ(q) {
 
 function itemMatchesSearch(it, qLower) {
   if (!qLower) return true;
-  const parts = [it.symbol, it.mint, it.pairLabel, it.name, it.fullName, it.dexLabel]
+  const parts = [it.symbol, it.tokenSymbol, it.mint, it.pairLabel, it.name, it.fullName, it.tokenName, it.dexLabel]
     .filter(Boolean)
     .map((s) => String(s).toLowerCase());
   return parts.some((s) => s.includes(qLower));

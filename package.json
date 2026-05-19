@@ -6,7 +6,8 @@
   "scripts": {
     "start": "node src/index.js",
     "dev": "node --watch src/index.js",
-    "miniapp": "node scripts/miniapp-only.js"
+    "miniapp": "node scripts/miniapp-only.js",
+    "miniapp:dev": "node --watch scripts/miniapp-only.js"
   },
   "engines": {
     "node": ">=18.0.0"

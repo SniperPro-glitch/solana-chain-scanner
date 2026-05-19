@@ -2319,6 +2319,7 @@
 
   globalThis.showToast = showToast;
   globalThis.getActiveChain = getActiveChain;
+  globalThis.sniperFeedCatalog = () => feedItemsFull || [];
   globalThis.openTokenByMint = openTokenByMint;
   globalThis.sniperFmtPrice = fmtPriceDisplay;
   globalThis.clearHomeSearch = () => clearSearch({ skipFetch: false });
