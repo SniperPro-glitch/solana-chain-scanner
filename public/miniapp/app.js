@@ -161,7 +161,7 @@
 
   function swapPinHtml(dexKey) {
     if (dexKey === 'pumpswap' || dexKey === 'pumpfun') {
-      return `<img class="tr-dex-pin" src="${SWAP_PIN_SRC}" alt="Swap" width="20" height="20" loading="lazy" decoding="async" />`;
+      return `<img class="tr-dex-pin" src="${SWAP_PIN_SRC}" alt="" width="20" height="20" loading="lazy" decoding="async" />`;
     }
     return '<span class="tr-chain-dot" aria-hidden="true">◎</span>';
   }
@@ -180,11 +180,7 @@
       ? `<span class="tr-avatar-wrap"><img class="tr-img" src="${escHtml(item.imageUrl)}" alt="" loading="lazy" data-fb="${escHtml((item.imageFallbacks || []).join('|'))}" />${pin}</span>`
       : `<span class="tr-avatar-wrap"><span class="tr-avatar">${escHtml((item.symbol || '?').slice(0, 2))}</span>${pin}</span>`;
     const reportAttr = item.reportId ? ` data-report="${escHtml(item.reportId)}"` : '';
-    const dexBadge = item.dexLabel
-      ? `<span class="tr-dex-badge dex-${escHtml(dexKey)}">${escHtml(item.dexLabel)}</span>`
-      : '';
     const subParts = [
-      dexBadge,
       item.marketCapUsdFmt ? `MCap ${escHtml(item.marketCapUsdFmt)}` : '',
     ].filter(Boolean).join(' · ');
     const dexUrlAttr = item.dexPageUrl ? ` data-dex-url="${escHtml(item.dexPageUrl)}"` : '';

@@ -82,7 +82,7 @@
     const chg = item.change24h;
     const up = chg == null || Number(chg) >= 0;
     const quote = esc((item.pairLabel || 'SOL').replace(/^.*\//, '') || 'SOL');
-    const sub = [item.dexLabel, item.marketCapUsdFmt ? `MCap ${item.marketCapUsdFmt}` : '']
+    const sub = [item.marketCapUsdFmt ? `MCap ${item.marketCapUsdFmt}` : '']
       .filter(Boolean)
       .join(' · ');
     return `<button type="button" class="sr-row${idx === activeIdx ? ' active' : ''}" data-idx="${idx}" data-mint="${esc(item.mint)}" data-report="${esc(item.reportId || '')}" data-chain="${esc(item.chain || 'solana')}">
