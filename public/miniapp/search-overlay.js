@@ -78,21 +78,11 @@
     </span>`;
   }
 
-  function dexSubPart(item) {
-    if (!item.dexLabel) return '';
-    const dex = item.dexPlatform || 'other';
-    const src = DEX_ICONS[dex];
-    const ico = src
-      ? `<img class="sr-dex-sub-ico" src="${esc(src)}" alt="" width="12" height="12" loading="lazy" decoding="async" />`
-      : `<span class="sr-dex-fb dex-${esc(dex)}">${esc(DEX_FB[dex] || DEX_FB.other)}</span>`;
-    return `<span class="sr-dex-sub">${ico}<span>${esc(item.dexLabel)}</span></span>`;
-  }
-
   function renderRow(item, idx) {
     const chg = item.change24h;
     const up = chg == null || Number(chg) >= 0;
     const quote = esc((item.pairLabel || 'SOL').replace(/^.*\//, '') || 'SOL');
-    const sub = [dexSubPart(item), item.marketCapUsdFmt ? `MCap ${item.marketCapUsdFmt}` : '']
+    const sub = [item.dexLabel, item.marketCapUsdFmt ? `MCap ${item.marketCapUsdFmt}` : '']
       .filter(Boolean)
       .join(' · ');
     return `<button type="button" class="sr-row${idx === activeIdx ? ' active' : ''}" data-idx="${idx}" data-mint="${esc(item.mint)}" data-report="${esc(item.reportId || '')}" data-chain="${esc(item.chain || 'solana')}">

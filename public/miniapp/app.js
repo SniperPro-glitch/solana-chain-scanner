@@ -147,6 +147,7 @@
 
   const SCANNER_ICON = 'assets/sniper-scanner-icon.png?v=1';
 
+  /** Üst DEX chip + arama — token satırında kullanılmaz */
   const DEX_LOGO_SRC = {
     pumpfun: 'assets/dex-pumpfun.png?v=8',
     pumpswap: 'assets/dex-pumpfun.png?v=8',
@@ -155,21 +156,14 @@
     orca: 'assets/dex-orca.png?v=8',
   };
 
-  function dexBadgeHtml(dexKey, label) {
-    if (!label) return '';
-    const src = DEX_LOGO_SRC[dexKey];
-    const ico = src
-      ? `<img class="tr-dex-badge-ico" src="${src}" alt="" width="12" height="12" loading="lazy" decoding="async" />`
-      : '';
-    return `<span class="tr-dex-badge dex-${escHtml(dexKey)}">${ico}<span class="tr-dex-badge-txt">${escHtml(label)}</span></span>`;
-  }
+  /** Token avatar köşesi — yalnızca PumpSwap marka pini (Pump.fun / Raydium vb. değil) */
+  const SWAP_PIN_SRC = 'assets/swap-pin.png?v=1';
 
-  function dexPinHtml(dexKey) {
-    const src = DEX_LOGO_SRC[dexKey];
-    if (!src) {
-      return '<span class="tr-chain-dot" aria-hidden="true">◎</span>';
+  function swapPinHtml(dexKey) {
+    if (dexKey === 'pumpswap' || dexKey === 'pumpfun') {
+      return `<img class="tr-dex-pin" src="${SWAP_PIN_SRC}" alt="Swap" width="20" height="20" loading="lazy" decoding="async" />`;
     }
-    return `<img class="tr-dex-pin" src="${src}" alt="" width="40" height="40" loading="lazy" decoding="async" />`;
+    return '<span class="tr-chain-dot" aria-hidden="true">◎</span>';
   }
 
   function renderFeedRow(item, extraClass = '') {
@@ -181,12 +175,14 @@
     const up24 = chg24 == null ? true : Number(chg24) >= 0;
     const pairShort = escHtml((item.pairLabel || 'SOL').replace(/^.*\//, '') || 'SOL');
     const dexKey = item.dexPlatform || 'other';
-    const pin = dexPinHtml(dexKey);
+    const pin = swapPinHtml(dexKey);
     const avatar = item.imageUrl
       ? `<span class="tr-avatar-wrap"><img class="tr-img" src="${escHtml(item.imageUrl)}" alt="" loading="lazy" data-fb="${escHtml((item.imageFallbacks || []).join('|'))}" />${pin}</span>`
       : `<span class="tr-avatar-wrap"><span class="tr-avatar">${escHtml((item.symbol || '?').slice(0, 2))}</span>${pin}</span>`;
     const reportAttr = item.reportId ? ` data-report="${escHtml(item.reportId)}"` : '';
-    const dexBadge = item.dexLabel ? dexBadgeHtml(dexKey, item.dexLabel) : '';
+    const dexBadge = item.dexLabel
+      ? `<span class="tr-dex-badge dex-${escHtml(dexKey)}">${escHtml(item.dexLabel)}</span>`
+      : '';
     const subParts = [
       dexBadge,
       item.marketCapUsdFmt ? `MCap ${escHtml(item.marketCapUsdFmt)}` : '',
