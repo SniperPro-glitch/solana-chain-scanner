@@ -166,6 +166,20 @@
     return '<span class="tr-chain-dot" aria-hidden="true">◎</span>';
   }
 
+  function dexSubBadgeHtml(dexKey, label) {
+    if (!label) return '';
+    let ico = '';
+    if (dexKey === 'pumpswap' || dexKey === 'pumpfun') {
+      ico = `<img class="tr-dex-badge-ico" src="${SWAP_PIN_SRC}" alt="" width="12" height="12" loading="lazy" decoding="async" />`;
+    } else {
+      const src = DEX_LOGO_SRC[dexKey];
+      if (src) {
+        ico = `<img class="tr-dex-badge-ico" src="${src}" alt="" width="12" height="12" loading="lazy" decoding="async" />`;
+      }
+    }
+    return `<span class="tr-dex-badge dex-${escHtml(dexKey)}">${ico}<span class="tr-dex-badge-txt">${escHtml(label)}</span></span>`;
+  }
+
   function renderFeedRow(item, extraClass = '') {
     const risk = item.risk || {};
     const rc = risk.band || 'mid';
@@ -180,9 +194,7 @@
       ? `<span class="tr-avatar-wrap"><img class="tr-img" src="${escHtml(item.imageUrl)}" alt="" loading="lazy" data-fb="${escHtml((item.imageFallbacks || []).join('|'))}" />${pin}</span>`
       : `<span class="tr-avatar-wrap"><span class="tr-avatar">${escHtml((item.symbol || '?').slice(0, 2))}</span>${pin}</span>`;
     const reportAttr = item.reportId ? ` data-report="${escHtml(item.reportId)}"` : '';
-    const dexBadge = item.dexLabel
-      ? `<span class="tr-dex-badge dex-${escHtml(dexKey)}">${escHtml(item.dexLabel)}</span>`
-      : '';
+    const dexBadge = dexSubBadgeHtml(dexKey, item.dexLabel);
     const subParts = [
       dexBadge,
       item.marketCapUsdFmt ? `MCap ${escHtml(item.marketCapUsdFmt)}` : '',
