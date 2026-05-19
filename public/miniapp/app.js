@@ -239,6 +239,9 @@
       initScannerHome();
     } else {
       toggleHomeRadarPanels();
+      if (!scannerNavActive && !feedItemsFull.length) {
+        void fetchFeed(resolveFeedTab(feedTab));
+      }
     }
   }
 
@@ -809,16 +812,25 @@
 
   function feedTabForApi(tab) {
     const t = tab || feedTab;
-    if (t === 'home') return 'trending';
+    if (t === 'home' || t === 'scan') return 'trending';
+    if (t === 'trend') return 'trending';
+    return t;
+  }
+
+  function resolveFeedTab(tab) {
+    const t = tab || feedTab;
+    if (t === 'scan' || t === 'home') return 'trending';
+    if (t === 'trend') return 'trending';
     return t;
   }
 
   async function fetchFeed(tab) {
-    if (scannerNavActive) return null;
     await loadApiConfig();
-    const t = tab || feedTab;
-    if (t === 'scan') return null;
-    setFeedTab(t);
+    if (scannerNavActive) return null;
+    const uiTab = tab || feedTab;
+    if (uiTab === 'scan') return null;
+    const t = resolveFeedTab(uiTab);
+    setFeedTab(uiTab === 'new' ? 'new' : uiTab === 'home' ? 'home' : t);
     const apiTab = feedTabForApi(t);
     activeChain = getActiveChain();
     syncDexChipsForChain(activeChain);
@@ -836,7 +848,7 @@
         chain: activeChain,
       });
       if (q) qs.set('q', q);
-      const res = await fetch(apiPath(`/api/feed?${qs.toString()}`));
+      const res = await fetch(`/api/feed?${qs.toString()}`);
       const body = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(body.message || 'feed_failed');
       const items = body.items?.length ? body.items : [];
@@ -1009,7 +1021,7 @@
     if (sideInp) sideInp.value = '';
     setSearchHint('');
     loadApiConfig().then(() => {
-      if (!scannerNavActive) fetchFeed(feedTab);
+      if (!scannerNavActive) void fetchFeed('trending');
     });
   }
 
@@ -1998,8 +2010,10 @@
   globalThis.fetchFeedForChain = (chainId) => {
     if (chainId) activeChain = chainId;
     showScannerHome();
-    fetchFeed(feedTab);
+    fetchFeed(resolveFeedTab(feedTab));
   };
+
+  globalThis.refreshHomeFeed = () => fetchFeed(resolveFeedTab(feedTab));
 
   main();
 })();

@@ -386,6 +386,12 @@ function createMiniAppServer() {
         return;
       }
 
+      if (url.pathname === '/miniapp' || url.pathname === '/miniapp/') {
+        res.writeHead(302, { Location: '/' });
+        res.end();
+        return;
+      }
+
       let rel = url.pathname === '/' ? '/index.html' : url.pathname;
       if (rel.startsWith('/miniapp')) rel = rel.slice('/miniapp'.length) || '/index.html';
       const safe = path.normalize(rel).replace(/^(\.\.[/\\])+/, '');
