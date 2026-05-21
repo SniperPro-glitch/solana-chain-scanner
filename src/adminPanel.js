@@ -785,10 +785,14 @@ async function handleAdminApi(req, res, url, helpers) {
       const result = await addTokenToFeed(input, body.lang || 'tr');
       sendJson(res, 200, result);
     } catch (e) {
-      const code = e.code === 'not_found' || e.code === 'bad_input' || e.code === 'wrong_chain'
+      const code = e.code === 'not_found' || e.code === 'bad_input' || e.code === 'wrong_chain' || e.code === 'duplicate'
         ? 400
         : 500;
-      sendJson(res, code, { error: e.code || 'add_failed', message: e.message });
+      sendJson(res, code, {
+        error: e.code || 'add_failed',
+        message: e.message,
+        ...(e.code === 'duplicate' ? { mint: e.mint, symbol: e.symbol } : {}),
+      });
     }
     return true;
   }

@@ -145,6 +145,32 @@ async function listAllAsync() {
   return listRecentAsync(MAX_ITEMS, 'trending');
 }
 
+/** Feed'de mint zaten var mı (TTL içinde). */
+async function findByMintAsync(mint) {
+  const key = String(mint || '').trim();
+  if (!key) return null;
+
+  if (pg.enabled()) {
+    try {
+      const r = await pg.query(
+        'SELECT body FROM sc_feed WHERE mint = $1 AND posted_at > $2 ORDER BY posted_at DESC LIMIT 1',
+        [key, Date.now() - TTL_MS],
+      );
+      if (r.rows[0]) {
+        const b = r.rows[0].body;
+        return typeof b === 'string' ? JSON.parse(b) : b;
+      }
+      return null;
+    } catch (e) {
+      console.warn('[botFeed] findByMint pg:', e.message);
+    }
+  }
+
+  const data = load();
+  prune(data);
+  return (data.items || []).find((it) => it.mint === key) || null;
+}
+
 async function feedCountAsync() {
   if (!pg.enabled()) return feedCount();
   try {
@@ -183,6 +209,7 @@ module.exports = {
   listRecent,
   listRecentAsync,
   listAllAsync,
+  findByMintAsync,
   feedCount,
   feedCountAsync,
   migrateFileToPg,

@@ -2,8 +2,23 @@
 
 const solana = require('./chains/solana');
 const reportStore = require('./reportStore');
+const botFeedStore = require('./botFeedStore');
 const { recordMiniAppShare } = require('./recordMiniAppShare');
 const { tokenToFeedItem } = require('./miniAppFeed');
+
+function duplicateFeedError(existing, token) {
+  const sym = existing?.token?.tokenSymbol || token?.tokenSymbol || existing?.mint?.slice(0, 8) || '?';
+  const err = new Error(`Bu token zaten feed listesinde (${sym}). Tekrar eklenemez.`);
+  err.code = 'duplicate';
+  err.symbol = sym;
+  err.mint = existing?.mint || token?.tokenAddress;
+  return err;
+}
+
+async function assertNotInFeed(mint, token) {
+  const existing = await botFeedStore.findByMintAsync(mint);
+  if (existing) throw duplicateFeedError(existing, token);
+}
 
 function cardLevelFromAudit(audit) {
   if (audit?.isCritical) return 'critical';
@@ -41,7 +56,9 @@ async function addTokenToFeed(input, lang = 'tr') {
   token.chain = 'solana';
   token.initialLiquidity = token.liquidityUsd || 0;
 
-  const { ensureShareEnrichment } = require('./shareEnrichment');
+  await assertNotInFeed(token.tokenAddress, token);
+
+  const { ensureShareEnrichment } = require('./shareEnrich');
   await ensureShareEnrichment(token, 'solana').catch(() => {});
 
   const audit = solana.auditToken(token);
@@ -95,9 +112,18 @@ async function previewTokenFromInput(input, lang = 'tr') {
   }
 
   token.chain = 'solana';
+  const existing = await botFeedStore.findByMintAsync(token.tokenAddress);
   const audit = solana.auditToken(token);
   const item = tokenToFeedItem(token, audit, 1, null);
-  return { ok: true, item };
+  const sym = existing?.token?.tokenSymbol || token.tokenSymbol || token.tokenAddress?.slice(0, 8);
+  return {
+    ok: true,
+    item,
+    duplicate: !!existing,
+    duplicateMessage: existing
+      ? `Bu token zaten feed listesinde (${sym}).`
+      : null,
+  };
 }
 
 module.exports = { addTokenToFeed, previewTokenFromInput };

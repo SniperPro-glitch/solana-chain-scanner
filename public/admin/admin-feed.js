@@ -188,7 +188,11 @@
         body: JSON.stringify({ input }),
       });
       if (result.item) applyPreviewItem(result.item);
-      setStatus('Önizleme güncellendi.');
+      if (result.duplicate) {
+        setStatus(result.duplicateMessage || 'Bu token zaten feed listesinde.', true);
+      } else {
+        setStatus('Önizleme güncellendi.');
+      }
     } catch (e) {
       setStatus(e.message || 'Önizleme alınamadı', true);
     } finally {
@@ -215,7 +219,11 @@
       await loadFeed();
       setTimeout(goFeed, 800);
     } catch (e) {
-      setStatus(e.message || 'Eklenemedi', true);
+      if (e.code === 'duplicate') {
+        setStatus(e.message || 'Bu token zaten feed listesinde.', true);
+      } else {
+        setStatus(e.message || 'Eklenemedi', true);
+      }
     } finally {
       if (btn) btn.disabled = false;
     }
