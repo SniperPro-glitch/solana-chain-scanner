@@ -244,6 +244,39 @@ function createMiniAppServer() {
         }
       }
 
+      if (url.pathname === '/api/miniapp-version' && req.method === 'GET') {
+        let cropV = '';
+        let bakedV = '';
+        let appV = '';
+        let webIframeTop = null;
+        try {
+          const indexPath = path.join(PUBLIC_DIR, 'index.html');
+          const html = fs.readFileSync(indexPath, 'utf8');
+          const m1 = html.match(/dex-crop\.js\?v=(\d+)/);
+          const m2 = html.match(/dex-crop-baked\.js\?v=(\d+)/);
+          const m3 = html.match(/app\.js\?v=(\d+)/);
+          cropV = m1?.[1] || '';
+          bakedV = m2?.[1] || '';
+          appV = m3?.[1] || '';
+          const bakedPath = path.join(PUBLIC_DIR, 'dex-crop-baked.js');
+          const bakedJs = fs.readFileSync(bakedPath, 'utf8');
+          const topM = bakedJs.match(/"web"[\s\S]*?"iframeTop":\s*(-?\d+)/);
+          webIframeTop = topM ? Number(topM[1]) : null;
+        } catch {
+          /* yoksay */
+        }
+        sendJson(res, 200, {
+          build: MINIAPP_BUILD_ID,
+          git: String(process.env.RAILWAY_GIT_COMMIT_SHA || '').slice(0, 7),
+          assets: { cropV, bakedV, appV },
+          cropWebIframeTop: webIframeTop,
+          expectedBakedV: '8',
+          expectedCropV: '36',
+          expectedWebIframeTop: -470,
+        });
+        return;
+      }
+
       if (url.pathname === '/api/crop-profiles') {
         const cropProfiles = require('./cropProfiles');
         if (req.method === 'GET') {
