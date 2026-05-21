@@ -27,6 +27,8 @@
     if (tf && FEED_TF_META[tf]) feedTimeframe = tf;
     const dex = String(trend.defaults?.dexFilter || '').trim();
     if (dex) dexFilter = dex;
+    const sec = parseInt(trend.refresh?.intervalSec, 10);
+    if (Number.isFinite(sec) && sec >= 30 && sec <= 120) feedRefreshSec = sec;
   }
 
   function loadApiConfigOnce() {
@@ -78,6 +80,7 @@
   let homeFeedBooted = false;
   let detailShellBound = false;
   let feedPollTimer = null;
+  let feedRefreshSec = 45;
   let tradesResizeHandler = null;
   let openingMint = false;
   let feedItemsFull = [];
@@ -1363,11 +1366,11 @@
     const c = CHAIN_UI[chainKey] || { label: chainKey, src: 'DexScreener' };
     if (body.tab === 'new' || feedTab === 'new') {
       const n = body.items?.length ?? 0;
-      const demo = body.previewDemo ? ' · örnek liste' : '';
+      const live = body.liveRefresh ? ' · canlı DEX' : '';
       if (body.empty) {
         txt.textContent = `◎ ${c.label} · New Pairs · DEX listeleme 48h · boş`;
       } else {
-        txt.textContent = `◎ ${c.label} · New Pairs · DEX listeleme 48h · ${n} çift${demo}`;
+        txt.textContent = `◎ ${c.label} · New Pairs · DEX 48h · ${n} çift${live}`;
       }
       delete txt.dataset.lockChain;
       bar.classList.remove('hidden');
@@ -1383,10 +1386,15 @@
     const src =
       body.source === 'dev_seed'
         ? 'Örnek'
-        : body.source === 'bot_channel'
-          ? 'Bot + arama'
-          : c.src;
-    txt.textContent = `◎ ${c.label} · ${src} · ${n} token · ${vol} 24h${demo}`;
+        : body.source === 'dex_live_hybrid'
+          ? 'Bot + canlı DEX'
+          : body.source === 'dexscreener_live'
+            ? 'Canlı DEX'
+            : body.source === 'bot_channel'
+              ? 'Bot kanal'
+              : c.src;
+    const live = body.liveRefresh ? ' · anlık' : '';
+    txt.textContent = `◎ ${c.label} · ${src} · ${n} token · ${vol} 24h${live}${demo}`;
     delete txt.dataset.lockChain;
     bar.classList.remove('hidden');
   }
@@ -1539,13 +1547,13 @@
     }
   }
 
-  async function fetchFeed(tab) {
+  async function fetchFeed(tab, opts = {}) {
     const uiTab = tab || feedTab;
     if (uiTab === 'scan') {
       setFeedTab('scan');
       return null;
     }
-    return loadHomeFeed(feedTabForApi(resolveFeedTab(uiTab)), uiTab);
+    return loadHomeFeed(feedTabForApi(resolveFeedTab(uiTab)), uiTab, opts);
   }
 
   async function openTokenByMint(mint) {
@@ -1652,8 +1660,11 @@
 
     feedPollTimer = setInterval(() => {
       if (scannerNavActive) return;
-      if (!$('scanner-home')?.classList.contains('hidden')) fetchFeed(feedTab);
-    }, 90000);
+      if (!$('scanner-home')?.classList.contains('hidden')) {
+        homeFeedCacheKey = '';
+        void fetchFeed(feedTab, { force: true });
+      }
+    }, feedRefreshSec * 1000);
   }
 
   function initScannerHome() {

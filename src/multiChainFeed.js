@@ -261,7 +261,7 @@ async function buildFeed(tab = 'trending', limit = 24, dexFilter = 'all', chain 
     const solTab = apiTab;
     const feed = await miniAppFeed.buildFeedFromBotShares(solTab, limit, dexFilter);
     feed.chain = 'solana';
-    feed.source = feed.source || 'bot_channel';
+    feed.source = feed.source || 'dex_live_hybrid';
 
     if (q) {
       const qLower = normalizeSearchQ(q);

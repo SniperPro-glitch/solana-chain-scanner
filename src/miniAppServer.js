@@ -359,7 +359,7 @@ function createMiniAppServer() {
         try {
           const { buildFeed } = require('./multiChainFeed');
           const feed = await buildFeed(tab, limit, dex, chain, q);
-          const feedCache = q ? 'no-store' : 'private, max-age=25';
+          const feedCache = q ? 'no-store' : 'private, max-age=20';
           sendJson(res, 200, feed, { 'Cache-Control': feedCache });
         } catch (e) {
           console.warn('[miniApp] feed:', e.message);

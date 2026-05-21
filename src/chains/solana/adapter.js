@@ -106,6 +106,49 @@ async function fetchPairByPoolAddress(poolAddr) {
   return null;
 }
 
+/** Çoklu mint — feed için canlı DexScreener (en likit çift / mint). */
+async function fetchLivePairsForMints(mints) {
+  const out = new Map();
+  const uniq = [...new Set((mints || []).map((m) => String(m).trim()).filter(Boolean))];
+  if (!uniq.length) return out;
+
+  for (let i = 0; i < uniq.length; i += 30) {
+    const chunk = uniq.slice(i, i + 30);
+    for (let att = 0; att < 3; att++) {
+      try {
+        const { data: tok } = await http.get(
+          `${config.api.dexScreenerBase}/latest/dex/tokens/${chunk.join(',')}`,
+        );
+        const best = {};
+        for (const p of tok?.pairs || []) {
+          if (p.chainId !== 'solana') continue;
+          const mint = p.baseToken?.address;
+          if (!mint) continue;
+          const liq = parseFloat(p.liquidity?.usd) || 0;
+          if (!best[mint] || liq > (parseFloat(best[mint].liquidity?.usd) || 0)) {
+            best[mint] = p;
+          }
+        }
+        for (const mint of Object.keys(best)) {
+          const n = normalizePair(best[mint]);
+          if (n?.tokenAddress) out.set(mint, n);
+        }
+        break;
+      } catch (e) {
+        if (is429Error(e)) {
+          const h = e.response?.headers || {};
+          const ra = parseInt(h['retry-after'] || h['Retry-After'] || '0', 10);
+          await sleep(Math.min(10_000, (ra > 0 ? ra * 1000 : 700) * (2 ** att)));
+          continue;
+        }
+        console.warn('[adapter] batch tokens:', e.message);
+        break;
+      }
+    }
+  }
+  return out;
+}
+
 async function fetchTopPairForToken(tokenAddr) {
   for (let att = 0; att < 3; att++) {
     try {
@@ -370,6 +413,7 @@ module.exports = {
   fetchPoolLiquidity,
   normalizePair,
   fetchTopPairForToken,
+  fetchLivePairsForMints,
   fetchPairByPoolAddress,
   fetchPoolsHybrid,
 };

@@ -18,6 +18,7 @@ const { buildLogoCandidates } = require('./tokenLogo');
 
 const { fmtUsd, fmtPriceUsd } = require('./formatUsd');
 const { classifyMomentumBadge } = require('./feedBadges');
+const { discoverDexPairs, discoverNewDexPairs, normalizeDexPair } = require('./chains/dexscreenerPair');
 
 /** New Pairs sekmesi — DEX çift oluşturma zamanına göre (kanala eklenme değil). */
 const NEW_PAIRS_MAX_AGE_MS = 48 * 60 * 60 * 1000;
@@ -158,35 +159,61 @@ async function refreshTokenFromDex(storedToken) {
   return storedToken;
 }
 
-function tokenSnapshotUsable(token) {
-  return token?.tokenAddress && (Number(token.priceUsd) > 0 || Number(token.volume24h) > 0);
+function mergeLiveToken(stored, live) {
+  if (!live?.tokenAddress) return stored;
+  if (!stored?.tokenAddress) return live;
+  return {
+    ...stored,
+    ...live,
+    reportId: stored.reportId,
+    poolId: live.poolId || stored.poolId,
+    tokenAddress: live.tokenAddress || stored.tokenAddress,
+  };
+}
+
+function tokenForFeed(entry, liveMap, fallbackToken) {
+  const mint = entry?.token?.tokenAddress || fallbackToken?.tokenAddress;
+  const live = mint ? liveMap.get(mint) : null;
+  let token = mergeLiveToken(entry?.token || fallbackToken, live);
+  if (!token?.tokenAddress && fallbackToken) token = { ...fallbackToken };
+  return token ? { ...token, chain: 'solana' } : null;
 }
 
 async function buildFeedFromBotShares(tab = 'trending', limit = 24, dexFilter = 'all') {
   const isNewTab = tab === 'new';
-  const fetchLimit = isNewTab ? 400 : limit;
+  const fetchLimit = isNewTab ? 400 : Math.max(limit, 24);
   const now = Date.now();
   const entries = await botFeedStore.listRecentAsync(fetchLimit, tab);
-  const tokens = await Promise.all(
-    entries.map(async (entry) => {
-      const snap = entry.token;
-      if (tokenSnapshotUsable(snap)) return snap;
-      try {
-        const live = await refreshTokenFromDex(snap);
-        return live || snap;
-      } catch {
-        return snap;
-      }
-    }),
-  );
+
+  let dexPairs = [];
+  try {
+    dexPairs = isNewTab
+      ? await discoverNewDexPairs('solana', Math.min(80, limit * 3))
+      : await discoverDexPairs('solana', Math.min(50, limit * 2));
+  } catch (e) {
+    console.warn('[miniApp] dex discover:', e.message);
+  }
+
+  const mints = new Set();
+  for (const e of entries) {
+    if (e.token?.tokenAddress) mints.add(e.token.tokenAddress);
+  }
+  for (const p of dexPairs) {
+    const t = normalizeDexPair(p, 'solana');
+    if (t?.tokenAddress) mints.add(t.tokenAddress);
+  }
+
+  const liveMap = await adapter.fetchLivePairsForMints([...mints]);
+  const botMintSet = new Set();
   let items = [];
   let rank = 1;
 
   for (let i = 0; i < entries.length; i++) {
     const entry = entries[i];
-    let token = tokens[i];
-    if (!token?.tokenAddress) token = entry.token;
-    token = { ...token, chain: 'solana' };
+    const mint = entry.token?.tokenAddress;
+    if (mint) botMintSet.add(mint);
+    const token = tokenForFeed(entry, liveMap, entry.token);
+    if (!token?.tokenAddress) continue;
 
     let audit = null;
     if (entry.reportId) {
@@ -204,8 +231,37 @@ async function buildFeedFromBotShares(tab = 'trending', limit = 24, dexFilter = 
     item.ageFmt = ageFmtForToken(token, listedAt);
     item.txns24hFmt = item.txns24h > 0 ? String(item.txns24h) : '—';
     item.channelTitle = entry.channelTitle;
+    item.fromBot = true;
+    item.liveAt = now;
     items.push(item);
     rank += 1;
+  }
+
+  const dexOnlyCap = Math.max(limit, 12);
+  const dexSorted = [...dexPairs]
+    .map((p) => normalizeDexPair(p, 'solana'))
+    .filter((t) => t?.tokenAddress && !botMintSet.has(t.tokenAddress))
+    .sort((a, b) => (Number(b.volume24h) || 0) - (Number(a.volume24h) || 0));
+
+  for (const base of dexSorted) {
+    if (items.length >= fetchLimit) break;
+    const token = tokenForFeed(null, liveMap, base);
+    if (!token?.tokenAddress) continue;
+    const listedAt = getPairListedAtMs(token);
+    if (isNewTab && !isWithinNewPairsWindowMs(listedAt, now)) continue;
+    if (!isNewTab && isWithinNewPairsWindowMs(listedAt, now)) continue;
+
+    const audit = quickAudit(token);
+    const item = tokenToFeedItem(token, audit, rank, null);
+    item.postedAt = listedAt;
+    item.listedAt = listedAt;
+    item.ageFmt = ageFmtForToken(token, listedAt);
+    item.txns24hFmt = item.txns24h > 0 ? String(item.txns24h) : '—';
+    item.fromBot = false;
+    item.liveAt = now;
+    items.push(item);
+    rank += 1;
+    if (items.filter((it) => !it.fromBot).length >= dexOnlyCap) break;
   }
 
   // ≤48s DEX listelemesi yalnızca New Pairs sekmesinde; Trending/Home'da gösterme.
@@ -257,14 +313,18 @@ async function buildFeedFromBotShares(tab = 'trending', limit = 24, dexFilter = 
   }
 
   const finalItems = ranked;
-  const feedSource = 'bot_channel';
+  const hasBot = finalItems.some((it) => it.fromBot);
+  const hasDex = finalItems.some((it) => !it.fromBot);
+  const feedSource = hasBot && hasDex ? 'dex_live_hybrid' : hasDex ? 'dexscreener_live' : 'bot_channel';
 
   let newPairs = 0;
-  for (let i = 0; i < entries.length; i++) {
-    const listedAt = getPairListedAtMs(tokens[i]) ?? getPairListedAtMs(entries[i].token);
-    if (isWithinNewPairsWindowMs(listedAt, now)) newPairs += 1;
+  if (isNewTab) {
+    newPairs = finalItems.length;
+  } else {
+    for (const it of finalItems) {
+      if (it.listedAt && isWithinNewPairsWindowMs(it.listedAt, now)) newPairs += 1;
+    }
   }
-  if (isNewTab) newPairs = finalItems.length;
   const volFromTokens = finalItems.reduce((s, it) => s + (it.volume24h || 0), 0);
   const dexCountsFinal = countByPlatform(finalItems, (it) => it.dexPlatform);
 
@@ -298,8 +358,9 @@ async function buildFeedFromBotShares(tab = 'trending', limit = 24, dexFilter = 
     emptyMessage: finalItems.length === 0
       ? (isNewTab
         ? null
-        : 'Henüz kanal paylaşımı yok. Bot kanala admin ekleyin, /settings ile Solana seçin, SOLANA_SCAN_ENABLED=1 yapın.')
+        : 'Liste boş — DexScreener veya bot kanalından veri alınamadı.')
       : null,
+    liveRefresh: true,
     newPairsWindowHours: NEW_PAIRS_MAX_AGE_HOURS,
     devSeed: false,
   };
