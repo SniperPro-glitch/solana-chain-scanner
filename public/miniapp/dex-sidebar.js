@@ -195,15 +195,7 @@
       });
     });
 
-    $('sidebarSignIn')?.addEventListener('click', () => {
-      closeSidebar();
-      $('btnConnect')?.click();
-    });
-
-    $('sidebarSettings')?.addEventListener('click', () => {
-      closeSidebar();
-      $('btnSettings')?.click();
-    });
+    /* Giriş / çıkış — sidebar-account.js */
 
     document.querySelectorAll('.dex-sidebar-social[data-social]').forEach((a) => {
       a.addEventListener('click', (e) => {

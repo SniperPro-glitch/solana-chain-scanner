@@ -8,18 +8,20 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  <script src="telegram-viewport.js?v=4"></script>
+  <script src="host-detect.js?v=1"></script>
+  <script src="telegram-viewport.js?v=5"></script>
   <script src="/vendor/lightweight-charts.js?v=3"></script>
   <script>
     if (!window.LightweightCharts) {
       document.write('<script src="https://cdn.jsdelivr.net/npm/lightweight-charts@4.2.0/dist/lightweight-charts.standalone.production.js"><\/script>');
     }
   </script>
-  <link rel="stylesheet" href="styles.css?v=42" />
-  <link rel="stylesheet" href="dex-scanner.css?v=41" />
+  <link rel="stylesheet" href="styles.css?v=45" />
+  <link rel="stylesheet" href="dex-scanner.css?v=46" />
   <link rel="stylesheet" href="dex-scanner-radar.css?v=2" />
   <link rel="stylesheet" href="dex-sidebar.css?v=5" />
   <link rel="stylesheet" href="search-overlay.css?v=2" />
+  <link rel="stylesheet" href="support.css?v=3" />
 </head>
 <body>
   <div id="dexSidebar" class="dex-sidebar" aria-hidden="true">
@@ -51,6 +53,7 @@
           <button type="button" class="dex-sidebar-link" data-sidebar-nav="newpairs"><span class="ico">✦</span> New Pairs</button>
           <button type="button" class="dex-sidebar-link" data-sidebar-nav="gainers"><span class="ico">↕</span> Gainers &amp; Losers</button>
           <button type="button" class="dex-sidebar-link" data-sidebar-nav="scanner"><span class="ico"><img class="scanner-ico-img" src="assets/sniper-scanner-icon.png?v=1" alt="" width="18" height="18" decoding="async" /></span> Scanner</button>
+          <button type="button" class="dex-sidebar-link" data-sidebar-nav="support"><span class="ico">💬</span> Canlı Destek</button>
         </nav>
         <p class="dex-sidebar-section-title">Ağlar</p>
         <div class="dex-sidebar-chains" role="list">
@@ -72,13 +75,14 @@
         <div class="dex-sidebar-watch-head"><span>★ WATCHLIST</span></div>
         <p class="dex-sidebar-watch-empty">Henüz liste yok — token ekle</p>
         <div class="dex-sidebar-user">
-          <span class="dex-sidebar-user-ava" aria-hidden="true">👤</span>
+          <span class="dex-sidebar-user-ava" id="sidebarUserAva" aria-hidden="true">👤</span>
           <div class="dex-sidebar-user-meta">
-            <strong>anon</strong>
-            <span>Misafir</span>
+            <strong id="sidebarUserName">anon</strong>
+            <span id="sidebarUserSub">Misafir</span>
           </div>
-          <button type="button" class="dex-sidebar-signin" id="sidebarSignIn">Sign in</button>
+          <button type="button" class="dex-sidebar-signin" id="sidebarSignIn">Giriş yap</button>
         </div>
+        <button type="button" class="dex-sidebar-admin hidden" id="sidebarAdminPanel">⚙ Yönetim Paneli</button>
         <div class="dex-sidebar-socials">
           <a href="#" class="dex-sidebar-social" data-social="x" rel="noopener noreferrer">
             <img src="assets/social-x.png?v=1" alt="" width="18" height="18" data-social-icon="x" data-label="X" loading="lazy" decoding="async" /> X
@@ -86,8 +90,7 @@
           <a href="#" class="dex-sidebar-social telegram" data-social="telegram" rel="noopener noreferrer">
             <img src="assets/social-telegram.png?v=1" alt="" width="18" height="18" data-social-icon="telegram" data-label="Telegram" loading="lazy" decoding="async" /> Telegram
           </a>
-          <button type="button" class="dex-sidebar-social settings" id="sidebarSettings" aria-label="Ayarlar">⚙</button>
-        </div>
+</div>
       </footer>
     </aside>
   </div>
@@ -129,7 +132,6 @@
       </div>
       <div class="header-actions">
         <button type="button" class="btn-connect" id="btnConnect"><span class="wallet-ico">👛</span> Connect Wallet</button>
-        <button type="button" class="btn-settings" id="btnSettings" aria-label="Banner ayarla">⚙</button>
       </div>
     </header>
 
@@ -139,38 +141,14 @@
       <span id="feedMetaText">◎ Bot channel posts · live prices</span>
     </div>
 
-    <a href="#" class="promo-banner hidden" id="promoBanner" rel="noopener noreferrer" title="Çift tık: banner ayarla">
-      <img class="promo-banner-img" id="promoBannerImg" alt="Reklam" loading="lazy" />
+    <a href="#" class="promo-banner hidden" id="promoBanner" rel="noopener noreferrer">
+      <picture class="promo-banner-picture">
+        <source id="promoBannerSrcMobile" media="(max-width: 479px)" srcset="" />
+        <source id="promoBannerSrcTablet" media="(max-width: 899px)" srcset="" />
+        <img class="promo-banner-img" id="promoBannerImg" alt="Reklam" loading="lazy" decoding="async" />
+      </picture>
       <span class="promo-banner-badge">AD</span>
     </a>
-
-    <div id="bannerStudio" class="banner-studio hidden" aria-hidden="true">
-      <div class="banner-studio-backdrop" id="bannerStudioBackdrop"></div>
-      <div class="banner-studio-sheet">
-        <div class="banner-studio-head">
-          <h2>Banner</h2>
-          <button type="button" class="banner-studio-x" id="btnBannerStudioClose" aria-label="Kapat">✕</button>
-        </div>
-        <p class="banner-studio-hint">Önerilen: <strong>780 × 144 px</strong> · PNG / JPG / GIF</p>
-        <label class="banner-studio-upload">
-          <input type="file" id="bannerFileInput" accept="image/png,image/jpeg,image/gif,image/webp" />
-          <span>📤 Görsel seç</span>
-        </label>
-        <div class="banner-studio-preview-wrap">
-          <img id="bannerStudioPreview" class="banner-studio-preview" alt="" />
-        </div>
-        <label class="banner-studio-row">
-          <span>Sola ← → Sağa</span>
-          <input type="range" id="bannerPosRange" min="0" max="100" value="50" />
-          <span id="bannerPosVal" class="banner-pos-val">50%</span>
-        </label>
-        <label class="banner-studio-row">
-          <span>Link (isteğe bağlı)</span>
-          <input type="url" id="bannerLinkInput" placeholder="https://t.me/..." />
-        </label>
-        <button type="button" class="btn-neon banner-studio-save" id="btnBannerSave">Kaydet</button>
-      </div>
-    </div>
 
     <section class="trending-band hidden" id="trendingBand" aria-label="Trending">
       <div class="trending-band-head">
@@ -409,6 +387,29 @@
     <footer class="trade-bar" id="tradeBar"></footer>
   </div>
 
+  <div id="supportOverlay" class="support-overlay hidden" aria-hidden="true">
+    <div class="support-overlay-backdrop" id="supportOverlayBackdrop"></div>
+    <div class="support-overlay-panel" role="dialog" aria-label="Canlı destek">
+      <div class="support-head">
+        <div class="support-head-user">
+          <div class="support-avatar" id="supportUserAvatar">💬</div>
+          <div>
+            <strong>Destek Sohbeti</strong>
+            <span class="support-sub" id="supportTicketId">SNIPER · Kullanıcı</span>
+            <span class="support-live-pill">Çevrimiçi</span>
+          </div>
+        </div>
+        <button type="button" class="support-close" id="supportOverlayClose" aria-label="Kapat">✕</button>
+      </div>
+      <div class="support-messages" id="supportMessages"></div>
+      <p class="support-status" id="supportStatus" aria-live="polite"></p>
+      <div class="support-compose">
+        <textarea id="supportInput" rows="3" placeholder="Mesajınızı yazın…" maxlength="2000"></textarea>
+        <button type="button" class="support-send" id="supportSend">Gönder ➤</button>
+      </div>
+    </div>
+  </div>
+
   <div id="searchOverlay" class="search-overlay hidden" aria-hidden="true">
     <div class="search-overlay-backdrop" id="searchOverlayBackdrop"></div>
     <div class="search-overlay-panel" role="dialog" aria-modal="true" aria-label="Token ara">
@@ -430,10 +431,11 @@
   <script src="wallet.js?v=1"></script>
   <script src="dex-crop-baked.js?v=4"></script>
   <script src="dex-crop.js?v=21"></script>
-  <script src="banner-studio.js?v=1"></script>
-  <script src="dex-sidebar.js?v=7"></script>
+<script src="dex-sidebar.js?v=7"></script>
   <script src="search-overlay.js?v=5"></script>
-  <script src="app.js?v=92"></script>
+  <script src="support.js?v=3"></script>
+  <script src="sidebar-account.js?v=2"></script>
+  <script src="app.js?v=96"></script>
   <script src="boot-feed.js?v=3"></script>
 </body>
 </html>

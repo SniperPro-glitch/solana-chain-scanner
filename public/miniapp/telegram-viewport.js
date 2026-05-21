@@ -4,7 +4,7 @@
  */
 (function () {
   const tg = window.Telegram?.WebApp;
-  if (!tg) return;
+  if (!tg || window.SniperHost?.isWebBrowser?.()) return;
 
   const BG = '#0a0e1a';
   const root = document.documentElement;

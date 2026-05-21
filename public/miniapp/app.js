@@ -1,6 +1,6 @@
 (function () {
   const tg = window.Telegram?.WebApp;
-  if (!tg) document.documentElement.classList.add('web-browser');
+  const isWebBrowser = window.SniperHost?.isWebBrowser?.() ?? !tg;
   let apiConfig = { botApiBase: '', webAppBase: '' };
   let apiConfigPromise = null;
   let homeFeedInflight = null;
@@ -885,18 +885,84 @@
     else window.open(url, '_blank', 'noopener,noreferrer');
   }
 
+  const PROMO_BREAKPOINTS = { mobile: 479, tablet: 899 };
+
+  function promoVariantKey(width) {
+    if (width <= PROMO_BREAKPOINTS.mobile) return 'mobile';
+    if (width <= PROMO_BREAKPOINTS.tablet) return 'tablet';
+    return 'desktop';
+  }
+
+  let activePromoBanner = null;
+
+  function promoUrls(promo) {
+    const v = promo?.variants || {};
+    const desktop = v.desktop?.imageUrl || promo?.imageUrl || '';
+    const tablet = v.tablet?.imageUrl || desktop;
+    const mobile = v.mobile?.imageUrl || tablet;
+    return { desktop, tablet, mobile };
+  }
+
+  function applyPromoBannerLayout() {
+    const el = $('promoBanner');
+    const img = $('promoBannerImg');
+    if (!img || !activePromoBanner?.enabled) return;
+    const key = promoVariantKey(window.innerWidth);
+    const urls = promoUrls(activePromoBanner);
+    const activeUrl = urls[key] || urls.desktop;
+    const slot = activePromoBanner.variants?.[key];
+    const posX = Math.min(100, Math.max(0, Number(slot?.posX ?? activePromoBanner.posX) || 50));
+    if (activeUrl) img.src = activeUrl;
+    img.style.objectPosition = `${posX}% center`;
+    el?.classList.toggle('promo-banner--mobile', key === 'mobile');
+    el?.classList.toggle('promo-banner--tablet', key === 'tablet');
+    el?.classList.toggle('promo-banner--desktop', key === 'desktop');
+  }
+
   function renderPromoBanner(promo) {
     const el = $('promoBanner');
     const img = $('promoBannerImg');
+    const srcMobile = $('promoBannerSrcMobile');
+    const srcTablet = $('promoBannerSrcTablet');
     if (!el || !img) return;
-    if (!promo?.enabled || !promo.imageUrl) {
+
+    activePromoBanner = promo;
+    if (!promo?.enabled) {
       el.classList.add('hidden');
       return;
     }
-    img.src = promo.imageUrl;
+
+    const { desktop, tablet, mobile } = promoUrls(promo);
+    if (!desktop) {
+      el.classList.add('hidden');
+      return;
+    }
+
+    if (srcMobile) srcMobile.srcset = mobile ? `${mobile} 1x` : '';
+    if (srcTablet) srcTablet.srcset = tablet ? `${tablet} 1x` : '';
     img.alt = promo.alt || 'Reklam';
-    img.style.objectPosition = `${Math.min(100, Math.max(0, Number(promo.posX) || 50))}% center`;
+    img.onerror = () => {
+      console.warn('[promo] görsel yüklenemedi', img.src);
+    };
     el.classList.remove('hidden');
+    applyPromoBannerLayout();
+    if (isWebBrowser && typeof console !== 'undefined') {
+      requestAnimationFrame(() => {
+        const r = el.getBoundingClientRect();
+        const ir = img.getBoundingClientRect();
+        const w = Math.round(r.width);
+        const h = Math.round(r.height);
+        console.info(
+          `[banner ölçü] tam ekran kutu: ${w}×${h} px — Canva canvas bu boyutta (oran 12.5:1, ÷12.5)`,
+        );
+      });
+    }
+
+    if (!window.__sniperPromoResizeBound) {
+      window.__sniperPromoResizeBound = true;
+      window.addEventListener('resize', applyPromoBannerLayout, { passive: true });
+    }
+
     if (promo.link) {
       el.href = promo.link;
       el.onclick = (e) => {
@@ -955,8 +1021,18 @@
     band.classList.remove('hidden');
   }
 
+  async function loadPromoBanner() {
+    try {
+      const res = await fetch('/api/promo-banner', { cache: 'no-store', credentials: 'same-origin' });
+      const promo = await res.json().catch(() => ({}));
+      if (res.ok) renderPromoBanner(promo);
+    } catch (e) {
+      console.warn('[promo]', e);
+    }
+  }
+
   function applyHomeExtras(body) {
-    renderPromoBanner(body?.promo);
+    if (body?.promo) renderPromoBanner(body.promo);
     renderTrendingBand(body?.trendingTicker, body?.sortMode);
   }
 
@@ -1179,7 +1255,7 @@
         console.error('[feed]', e);
         applyMarketStats(PLACEHOLDER_STATS, []);
         updateQuickCards(PLACEHOLDER_STATS, []);
-        applyHomeExtras(null);
+        void loadPromoBanner();
         updateFeedMetaBar(null);
         feedItemsFull = [];
         applySearchFilter();
@@ -1328,6 +1404,7 @@
     const list = $('homeTokenList');
     if (list) list.innerHTML = '';
     $('feedLoading')?.classList.remove('hidden');
+    void loadPromoBanner();
     void loadHomeFeed('trending', 'home', { force: true });
     setTimeout(() => {
       if (!scannerNavActive && !feedItemsFull.length && !$('scanner-home')?.classList.contains('hidden')) {

@@ -1,0 +1,1564 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SNIPER Admin Panel</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="admin-shell.css?v=10" />
+</head>
+<body><div id="loginGate" class="login-gate">
+  <div class="login-card">
+    <div class="login-brand">
+      <div class="brand-logo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/></svg></div>
+      <div><strong style="font-size:18px">SNIPER</strong><div style="font-size:11px;color:#758096;letter-spacing:1px">ADMIN PANEL</div></div>
+    </div>
+    <p class="login-hint" id="loginHint">Kullanıcı adı ve şifre</p>
+    <label class="input-group"><div class="input-label">Kullanıcı adı</div><input class="input" id="loginUser" autocomplete="username" /></label>
+    <label class="input-group"><div class="input-label">Şifre</div><input class="input" id="loginPass" type="password" autocomplete="current-password" /></label>
+    <button type="button" class="btn btn-primary btn-md" id="btnLogin" style="width:100%;margin-top:10px">Giriş yap</button>
+  </div>
+</div>
+<div class="layout hidden" id="appLayout">
+<button type="button" class="sidebar-backdrop" id="sidebarBackdrop" aria-hidden="true" tabindex="-1"></button>
+
+<!-- ═══════════════════ SIDEBAR ═══════════════════ -->
+<aside class="sidebar" id="adminSidebar">
+  <div class="sidebar-brand">
+    <div class="brand-logo">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/>
+        <line x1="12" y1="2" x2="12" y2="5"/><line x1="12" y1="19" x2="12" y2="22"/>
+        <line x1="2" y1="12" x2="5" y2="12"/><line x1="19" y1="12" x2="22" y2="12"/>
+      </svg>
+    </div>
+    <div class="brand-text">
+      <div class="t1">SNIPER</div>
+      <div class="t2">Admin Panel</div>
+    </div>
+  </div>
+
+  <nav class="sidebar-nav">
+    <div class="nav-section">
+      <div class="nav-section-label">Genel</div>
+      <a class="nav-item active" onclick="showPage('dashboard')">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+        Dashboard
+      </a>
+      <a class="nav-item" onclick="showPage('activity')">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        Aktivite
+        <span class="nav-badge">12</span>
+      </a>
+    </div>
+
+    <div class="nav-section">
+      <div class="nav-section-label">Bot & Feed</div>
+      <a class="nav-item" onclick="showPage('channels')">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        Bot & Kanallar
+        <span class="nav-badge">3</span>
+      </a>
+      <a class="nav-item" onclick="showPage('feed')">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+        Token Feed
+      </a>
+      <a class="nav-item" onclick="showPage('trending')">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+        Trend Ayarları
+      </a>
+    </div>
+
+    <div class="nav-section">
+      <div class="nav-section-label">Mini App</div>
+      <a class="nav-item" onclick="showPage('banner')">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+        Banner Stüdyosu
+      </a>
+      <a class="nav-item" onclick="showPage('miniapp')">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+        Mini App Ayarları
+      </a>
+    </div>
+
+    <div class="nav-section">
+      <div class="nav-section-label">Ayarlar</div>
+      <a class="nav-item" onclick="showPage('security')">
+        <svg class="nav-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        Güvenlik
+      </a>
+      <a class="nav-item" onclick="showPage('chains')">
+        <svg class="nav-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+        Zincir Yönetimi
+      </a>
+      <a class="nav-item" onclick="showPage('risk')">
+        <svg class="nav-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        Risk Filtreleri
+      </a>
+      <a class="nav-item" onclick="showPage('admins')">
+        <svg class="nav-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        Admin Kullanıcılar
+      </a>
+      <a class="nav-item" onclick="showPage('support')">
+        <svg class="nav-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        Canlı Destek
+      </a>
+    </div>
+    <div class="nav-section">
+      <div class="nav-section-label">Sistem</div>
+      <a class="nav-item" onclick="showPage('connections')">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+        Bağlantılar & API
+      </a>
+      <a class="nav-item" onclick="showPage('env')">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+        Ortam Değişkenleri
+      </a>
+      <a class="nav-item" onclick="showPage('settings')">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        Ayarlar
+      </a>
+    </div>
+  </nav>
+
+  <div class="sidebar-footer">
+    <div class="admin-user">
+      <div class="admin-avatar">A</div>
+      <div>
+        <div class="admin-name">admin</div>
+        <div class="admin-role">Super Admin</div>
+      </div>
+      <button class="logout-btn" title="Çıkış">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      </button>
+    </div>
+  </div>
+</aside>
+
+<!-- ═══════════════════ MAIN ═══════════════════ -->
+<div class="main">
+
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <button type="button" class="sidebar-menu-btn" id="btnSidebarToggle" aria-label="Menüyü aç" aria-expanded="false" aria-controls="adminSidebar">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    </button>
+    <div class="topbar-titles">
+      <div class="topbar-title" id="topbar-title">Dashboard</div>
+      <div class="topbar-subtitle" id="topbar-sub">Sistem genel bakış</div>
+    </div>
+    <div class="topbar-right">
+      <div class="status-dot"><span class="dot green"></span>Bot Online</div>
+      <div class="status-dot"><span class="dot green"></span>Feed Aktif</div>
+      <div class="status-dot"><span class="dot yellow"></span>3 Token</div>
+    </div>
+  </div>
+
+  <!-- CONTENT -->
+  <div class="content">
+
+    <!-- ══════════ DASHBOARD ══════════ -->
+    <div class="page active" id="page-dashboard">
+
+      <!-- Stat Cards -->
+      <div class="stat-grid">
+        <div class="stat-card">
+          <div class="stat-icon green">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#00ff88" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+          </div>
+          <div class="stat-label">Aktif Token</div>
+          <div class="stat-value">3</div>
+          <div class="stat-change up">+1 son 24h</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon cyan">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#00e5ff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+          </div>
+          <div class="stat-label">24H Hacim</div>
+          <div class="stat-value">$7.69M</div>
+          <div class="stat-change up">+796.0%</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon yellow">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#f5a623" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          </div>
+          <div class="stat-label">Aktif Kanal</div>
+          <div class="stat-value">3</div>
+          <div class="stat-change neu">değişmedi</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon purple">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+          </div>
+          <div class="stat-label">Likidite</div>
+          <div class="stat-value">$273K</div>
+          <div class="stat-change up">Protected</div>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <!-- Servis Health -->
+        <div class="card">
+          <div class="card-title">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#00e5ff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+            Servis Durumu
+          </div>
+          <div class="health-grid">
+            <div class="health-item">
+              <div class="dot green"></div>
+              <div class="health-info">
+                <div class="health-name">Bot API</div>
+                <div class="health-detail">@SniperDexBot</div>
+              </div>
+              <span class="health-status online">Online</span>
+            </div>
+            <div class="health-item">
+              <div class="dot green"></div>
+              <div class="health-info">
+                <div class="health-name">Token Feed</div>
+                <div class="health-detail">Solana aktif</div>
+              </div>
+              <span class="health-status online">Aktif</span>
+            </div>
+            <div class="health-item">
+              <div class="dot green"></div>
+              <div class="health-info">
+                <div class="health-name">DexScreener</div>
+                <div class="health-detail">API bağlı</div>
+              </div>
+              <span class="health-status online">Online</span>
+            </div>
+            <div class="health-item">
+              <div class="dot yellow"></div>
+              <div class="health-info">
+                <div class="health-name">Rugcheck</div>
+                <div class="health-detail">Yavaş yanıt</div>
+              </div>
+              <span class="health-status warn">Yavaş</span>
+            </div>
+            <div class="health-item">
+              <div class="dot red"></div>
+              <div class="health-info">
+                <div class="health-name">TON Feed</div>
+                <div class="health-detail">Henüz aktif değil</div>
+              </div>
+              <span class="health-status offline">Pasif</span>
+            </div>
+            <div class="health-item">
+              <div class="dot red"></div>
+              <div class="health-info">
+                <div class="health-name">BSC Feed</div>
+                <div class="health-detail">Henüz aktif değil</div>
+              </div>
+              <span class="health-status offline">Pasif</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Son Aktivite -->
+        <div class="card">
+          <div class="card-title">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f5a623" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            Son Aktivite
+          </div>
+          <div class="activity-item">
+            <div class="activity-dot green"></div>
+            <div class="activity-text">WORLDCUP token eklendi — $2.57M mcap</div>
+            <div class="activity-time">2dk önce</div>
+          </div>
+          <div class="activity-item">
+            <div class="activity-dot cyan"></div>
+            <div class="activity-text">Bot kanalı senkronize edildi — 3 token</div>
+            <div class="activity-time">15dk önce</div>
+          </div>
+          <div class="activity-item">
+            <div class="activity-dot yellow"></div>
+            <div class="activity-text">Rugcheck gecikmesi tespit edildi</div>
+            <div class="activity-time">32dk önce</div>
+          </div>
+          <div class="activity-item">
+            <div class="activity-dot green"></div>
+            <div class="activity-text">MEMECOINS token eklendi — +421%</div>
+            <div class="activity-time">1sa önce</div>
+          </div>
+          <div class="activity-item">
+            <div class="activity-dot green"></div>
+            <div class="activity-text">PIGEON token eklendi — PumpSwap</div>
+            <div class="activity-time">3sa önce</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Token tablosu özet -->
+      <div class="card">
+        <div class="section-hdr">
+          <div class="card-title" style="margin:0">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#00ff88" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+            Canlı Feed
+          </div>
+          <span class="section-action" onclick="showPage('feed')">Tümünü gör →</span>
+        </div>
+        <div class="tbl-wrap">
+          <table class="tbl">
+            <thead>
+              <tr>
+                <th>#</th><th>TOKEN</th><th>DEX</th><th>MCAP</th><th>FİYAT</th><th>24H%</th><th>VOL</th><th>RİSK</th><th>DURUM</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td style="color:var(--muted)">1</td>
+                <td><div class="token-cell"><div class="token-avatar">P</div><div><div class="token-sym">PIGEON</div><div class="token-pair">/ SOL</div></div></div></td>
+                <td><span class="dex-badge">🟢 PumpSwap</span></td>
+                <td style="font-family:'JetBrains Mono',monospace;">$717K</td>
+                <td style="color:var(--cyan);font-family:'JetBrains Mono',monospace;">$0.000717</td>
+                <td style="color:var(--green);">+1.9%</td>
+                <td style="font-family:'JetBrains Mono',monospace;">$3.64M</td>
+                <td><span class="risk-pill low">LOW</span></td>
+                <td><span class="dot green" style="display:inline-block"></span></td>
+              </tr>
+              <tr>
+                <td style="color:var(--muted)">2</td>
+                <td><div class="token-cell"><div class="token-avatar">M</div><div><div class="token-sym">MEMECOINS</div><div class="token-pair">/ SOL</div></div></div></td>
+                <td><span class="dex-badge">🟢 PumpSwap</span></td>
+                <td style="font-family:'JetBrains Mono',monospace;">$185K</td>
+                <td style="color:var(--cyan);font-family:'JetBrains Mono',monospace;">$0.000185</td>
+                <td style="color:var(--green);">+421.0%</td>
+                <td style="font-family:'JetBrains Mono',monospace;">$3.51M</td>
+                <td><span class="risk-pill low">LOW</span></td>
+                <td><span class="dot green" style="display:inline-block"></span></td>
+              </tr>
+              <tr>
+                <td style="color:var(--muted)">3</td>
+                <td><div class="token-cell"><div class="token-avatar">W</div><div><div class="token-sym">WORLDCUP</div><div class="token-pair">/ SOL</div></div></div></td>
+                <td><span class="dex-badge">🟢 PumpSwap</span></td>
+                <td style="font-family:'JetBrains Mono',monospace;">$2.57M</td>
+                <td style="color:var(--cyan);font-family:'JetBrains Mono',monospace;">$0.002572</td>
+                <td style="color:var(--green);">+22.0%</td>
+                <td style="font-family:'JetBrains Mono',monospace;">$541K</td>
+                <td><span class="risk-pill low">LOW</span></td>
+                <td><span class="dot green" style="display:inline-block"></span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Hacim dağılımı -->
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+            Hacim Dağılımı
+          </div>
+          <div class="bar-row"><span class="bar-label">PIGEON</span><div class="bar-track"><div class="bar-fill" style="width:47%;background:var(--green)"></div></div><span class="bar-val">$3.6M</span></div>
+          <div class="bar-row"><span class="bar-label">MEMECOINS</span><div class="bar-track"><div class="bar-fill" style="width:46%;background:var(--cyan)"></div></div><span class="bar-val">$3.5M</span></div>
+          <div class="bar-row"><span class="bar-label">WORLDCUP</span><div class="bar-track"><div class="bar-fill" style="width:7%;background:var(--yellow)"></div></div><span class="bar-val">$541K</span></div>
+        </div>
+        <div class="card">
+          <div class="card-title">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#00e5ff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+            Hızlı Linkler
+          </div>
+          <div style="display:flex;flex-direction:column;gap:8px;">
+            <button class="btn btn-ghost btn-md" style="justify-content:flex-start;gap:8px;">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+              Mini App'i Aç
+            </button>
+            <button class="btn btn-ghost btn-md" style="justify-content:flex-start;gap:8px;">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+              Telegram Bot
+            </button>
+            <button class="btn btn-cyan btn-md" style="justify-content:flex-start;gap:8px;" onclick="showPage('channels')">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
+              Kanal Senkronize Et
+            </button>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /dashboard -->
+
+
+    <!-- ══════════ AKTİVİTE ══════════ -->
+    <div class="page" id="page-activity">
+      <div class="card">
+        <div class="card-title">Son Aktiviteler</div>
+        <div class="activity-item"><div class="activity-dot green"></div><div class="activity-text">WORLDCUP token eklendi — $2.57M mcap, +22%</div><div class="activity-time">2dk önce</div></div>
+        <div class="activity-item"><div class="activity-dot cyan"></div><div class="activity-text">Bot kanalı senkronize edildi — 3 token güncellendi</div><div class="activity-time">15dk önce</div></div>
+        <div class="activity-item"><div class="activity-dot yellow"></div><div class="activity-text">Rugcheck API yavaş yanıt verdi (>2s)</div><div class="activity-time">32dk önce</div></div>
+        <div class="activity-item"><div class="activity-dot green"></div><div class="activity-text">MEMECOINS token eklendi — PumpSwap, +421%</div><div class="activity-time">1sa önce</div></div>
+        <div class="activity-item"><div class="activity-dot green"></div><div class="activity-text">PIGEON token eklendi — LOW RISK, $717K mcap</div><div class="activity-time">3sa önce</div></div>
+        <div class="activity-item"><div class="activity-dot cyan"></div><div class="activity-text">Admin panel açıldı — giriş yapıldı</div><div class="activity-time">3sa önce</div></div>
+        <div class="activity-item"><div class="activity-dot red"></div><div class="activity-text">TON feed bağlantısı devre dışı</div><div class="activity-time">1gün önce</div></div>
+      </div>
+    </div>
+
+
+    <!-- ══════════ BOT & KANALLAR ══════════ -->
+    <div class="page" id="page-channels">
+      <div class="grid-2" style="margin-bottom:16px;">
+        <div class="stat-card">
+          <div class="stat-label">Toplam Kanal</div>
+          <div class="stat-value">3</div>
+          <div class="stat-change neu">2 aktif · 1 test</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Son Paylaşım</div>
+          <div class="stat-value" style="font-size:18px;">2dk önce</div>
+          <div class="stat-change up">WORLDCUP token</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="section-hdr">
+          <div class="card-title" style="margin:0">Kayıtlı Kanallar</div>
+          <button class="btn btn-primary btn-sm">+ Kanal Ekle</button>
+        </div>
+
+        <div class="channel-row">
+          <div class="channel-icon">📢</div>
+          <div class="channel-info">
+            <div class="channel-name">@SniperDexMain</div>
+            <div class="channel-meta">ID: -1001234567890 · Solana · 3 token · Son: 2dk</div>
+          </div>
+          <div class="channel-actions">
+            <span class="risk-pill low" style="font-size:9px;">AKTİF</span>
+            <label class="toggle"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+            <button class="btn btn-ghost btn-sm">Sync</button>
+            <button class="btn btn-danger btn-sm">Sil</button>
+          </div>
+        </div>
+
+        <div class="channel-row">
+          <div class="channel-icon">📣</div>
+          <div class="channel-info">
+            <div class="channel-name">@SniperAlerts</div>
+            <div class="channel-meta">ID: -1009876543210 · Solana · 1 token · Son: 1sa</div>
+          </div>
+          <div class="channel-actions">
+            <span class="risk-pill low" style="font-size:9px;">AKTİF</span>
+            <label class="toggle"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+            <button class="btn btn-ghost btn-sm">Sync</button>
+            <button class="btn btn-danger btn-sm">Sil</button>
+          </div>
+        </div>
+
+        <div class="channel-row">
+          <div class="channel-icon">🧪</div>
+          <div class="channel-info">
+            <div class="channel-name">@SniperTest</div>
+            <div class="channel-meta">ID: -1005555555555 · Test · 0 token · Son: 2gün</div>
+          </div>
+          <div class="channel-actions">
+            <span class="tag" style="font-size:9px;">TEST</span>
+            <label class="toggle"><input type="checkbox"><span class="toggle-slider"></span></label>
+            <button class="btn btn-ghost btn-sm">Sync</button>
+            <button class="btn btn-danger btn-sm">Sil</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Bot Ayarları</div>
+        <div class="grid-2">
+          <div class="input-group">
+            <div class="input-label">Bot Token</div>
+            <input class="input" type="password" value="7891234567:AAHxxxxxxxxxxxxxxxxxxxxxxxx" placeholder="Telegram Bot Token">
+          </div>
+          <div class="input-group">
+            <div class="input-label">Bot Username</div>
+            <input class="input" type="text" value="@SniperDexBot" placeholder="@username">
+          </div>
+          <div class="input-group">
+            <div class="input-label">Varsayılan Zincir</div>
+            <input class="input" type="text" value="solana" placeholder="solana / ton / bsc">
+          </div>
+          <div class="input-group">
+            <div class="input-label">Bot Dili</div>
+            <input class="input" type="text" value="tr" placeholder="tr / en / ru">
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:4px;">
+          <button class="btn btn-primary btn-md">Kaydet</button>
+          <button class="btn btn-ghost btn-md">Bot'u Yeniden Başlat</button>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- ══════════ TOKEN FEED ══════════ -->
+    <div class="page" id="page-feed">
+      <div class="card">
+        <div class="tbl-actions">
+          <div class="search-input-wrap">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input class="input search-input" placeholder="Token ara... (sembol veya mint)">
+          </div>
+          <button type="button" class="btn btn-primary btn-sm" id="btnAdminFeedAdd">+ Token Ekle</button>
+          <button class="btn btn-ghost btn-sm">Blacklist</button>
+          <button class="btn btn-ghost btn-sm">Export CSV</button>
+        </div>
+        <div class="tbl-wrap">
+          <table class="tbl">
+            <thead>
+              <tr>
+                <th>#</th><th>TOKEN</th><th>MİNT ADRESİ</th><th>DEX</th><th>MCAP</th><th>FİYAT</th><th>24H%</th><th>RİSK</th><th>PİN</th><th>DURUM</th><th>İŞLEM</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td style="color:var(--muted)">1</td>
+                <td><div class="token-cell"><div class="token-avatar">P</div><div><div class="token-sym">PIGEON</div><div class="token-pair">Pump.fun</div></div></div></td>
+                <td style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted)">7xKX...E9xD</td>
+                <td><span class="dex-badge">PumpSwap</span></td>
+                <td style="font-family:'JetBrains Mono',monospace;">$717K</td>
+                <td style="color:var(--cyan);font-family:'JetBrains Mono',monospace;">$0.000717</td>
+                <td style="color:var(--green);">+1.9%</td>
+                <td><span class="risk-pill low">LOW</span></td>
+                <td><label class="toggle"><input type="checkbox"><span class="toggle-slider"></span></label></td>
+                <td><span class="dot green" style="display:inline-block"></span></td>
+                <td><button class="btn btn-danger btn-sm">Kaldır</button></td>
+              </tr>
+              <tr>
+                <td style="color:var(--muted)">2</td>
+                <td><div class="token-cell"><div class="token-avatar">M</div><div><div class="token-sym">MEMECOINS</div><div class="token-pair">Pump.fun</div></div></div></td>
+                <td style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted)">9aLm...8k2P</td>
+                <td><span class="dex-badge">PumpSwap</span></td>
+                <td style="font-family:'JetBrains Mono',monospace;">$185K</td>
+                <td style="color:var(--cyan);font-family:'JetBrains Mono',monospace;">$0.000185</td>
+                <td style="color:var(--green);">+421%</td>
+                <td><span class="risk-pill low">LOW</span></td>
+                <td><label class="toggle"><input type="checkbox" checked><span class="toggle-slider"></span></label></td>
+                <td><span class="dot green" style="display:inline-block"></span></td>
+                <td><button class="btn btn-danger btn-sm">Kaldır</button></td>
+              </tr>
+              <tr>
+                <td style="color:var(--muted)">3</td>
+                <td><div class="token-cell"><div class="token-avatar">W</div><div><div class="token-sym">WORLDCUP</div><div class="token-pair">Pump.fun</div></div></div></td>
+                <td style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted)">Bc1q...3mZ8</td>
+                <td><span class="dex-badge">PumpSwap</span></td>
+                <td style="font-family:'JetBrains Mono',monospace;">$2.57M</td>
+                <td style="color:var(--cyan);font-family:'JetBrains Mono',monospace;">$0.002572</td>
+                <td style="color:var(--green);">+22%</td>
+                <td><span class="risk-pill low">LOW</span></td>
+                <td><label class="toggle"><input type="checkbox"><span class="toggle-slider"></span></label></td>
+                <td><span class="dot green" style="display:inline-block"></span></td>
+                <td><button class="btn btn-danger btn-sm">Kaldır</button></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+
+    
+<!-- TOKEN EKLE (tam sayfa) -->
+    <div class="page" id="page-add-token">
+      <nav class="add-token-crumb" aria-label="Breadcrumb">
+        <a href="#" class="add-token-crumb-link" data-goto="feed">Token Feed</a>
+        <span class="add-token-crumb-sep">/</span>
+        <span>Yeni Token Ekle</span>
+      </nav>
+
+      <div class="add-token-layout">
+        <div class="add-token-main">
+          <section class="card add-token-section">
+            <h3 class="add-token-section-title">Blockchain Ağı Seç</h3>
+            <div class="chain-pick-grid" role="group" aria-label="Blockchain">
+              <button type="button" class="chain-pick active" data-chain="solana" aria-pressed="true">
+                <span class="chain-pick-ico">◎</span>
+                <span class="chain-pick-name">Solana</span>
+              </button>
+              <button type="button" class="chain-pick disabled" data-chain="ton" disabled title="Yakında">
+                <span class="chain-pick-ico">💎</span>
+                <span class="chain-pick-name">TON</span>
+              </button>
+              <button type="button" class="chain-pick disabled" data-chain="bsc" disabled title="Yakında">
+                <span class="chain-pick-ico">⬡</span>
+                <span class="chain-pick-name">BSC</span>
+                <span class="chain-pick-sub">BNB Chain</span>
+              </button>
+              <button type="button" class="chain-pick disabled" data-chain="eth" disabled title="Yakında">
+                <span class="chain-pick-ico">◇</span>
+                <span class="chain-pick-name">Ethereum</span>
+                <span class="chain-pick-sub">ETH</span>
+              </button>
+            </div>
+          </section>
+
+          <section class="card add-token-section">
+            <h3 class="add-token-section-title">Token Bilgileri</h3>
+            <div class="grid-2">
+              <label class="input-group">
+                <div class="input-label">CONTRACT ADRESİ <span class="req">*</span></div>
+                <input class="input" type="text" id="addTokenContract" placeholder="Mint veya pump/dex linki" autocomplete="off" />
+              </label>
+              <label class="input-group">
+                <div class="input-label">TOKEN SEMBOLÜ</div>
+                <input class="input" type="text" id="addTokenSymbol" placeholder="ör: PIGEON" />
+              </label>
+              <label class="input-group">
+                <div class="input-label">TOKEN ADI</div>
+                <input class="input" type="text" id="addTokenName" placeholder="ör: Pigeon Finance" />
+              </label>
+              <label class="input-group">
+                <div class="input-label">BORSA / DEX</div>
+                <select class="input" id="addTokenDex">
+                  <option value="">Otomatik (DexScreener)</option>
+                  <option value="pumpfun">Pump.fun</option>
+                  <option value="raydium">Raydium</option>
+                  <option value="orca">Orca</option>
+                  <option value="meteora">Meteora</option>
+                </select>
+              </label>
+            </div>
+          </section>
+
+          <section class="card add-token-section">
+            <h3 class="add-token-section-title">Token Logosu</h3>
+            <div class="grid-2 add-token-logo-row">
+              <label class="input-group">
+                <div class="input-label">LOGO URL</div>
+                <input class="input" type="url" id="addTokenLogoUrl" placeholder="https://cdn... veya IPFS linki" />
+                <p class="input-hint">CDN, IPFS veya doğrudan görsel linki</p>
+              </label>
+              <div class="add-token-logo-preview-wrap">
+                <div class="input-label">ÖNİZLEME</div>
+                <div class="add-token-logo-preview" id="addTokenLogoPreview">
+                  <div class="add-token-logo-avatar" id="addTokenLogoAvatar">?</div>
+                  <div class="add-token-logo-meta">
+                    <div class="add-token-logo-sym" id="addTokenPreviewSym">SEMBOL</div>
+                    <div class="add-token-logo-name" id="addTokenPreviewName">Token Adı</div>
+                  </div>
+                </div>
+                <label class="btn btn-ghost btn-sm add-token-upload-btn">
+                  <input type="file" id="addTokenLogoFile" accept="image/*" hidden />
+                  Dosya Yükle
+                </label>
+              </div>
+            </div>
+          </section>
+
+          <section class="card add-token-section">
+            <h3 class="add-token-section-title">DexScreener &amp; Havuz Bilgileri</h3>
+            <label class="input-group">
+              <div class="input-label">DEXSCREENER LİNKİ</div>
+              <div class="input-with-btn">
+                <input class="input" type="url" id="addTokenDexUrl" placeholder="https://dexscreener.com/solana/..." />
+                <button type="button" class="btn btn-ghost btn-sm" id="addTokenDexOpen">Aç</button>
+              </div>
+              <p class="input-hint">Canlı grafik mini app içinde bu link üzerinden yüklenecek</p>
+            </label>
+            <label class="input-group">
+              <div class="input-label">HAVUZ / PAIR ADRESİ</div>
+              <input class="input" type="text" id="addTokenPool" placeholder="Pair veya pool adresi (isteğe bağlı)" />
+            </label>
+            <button type="button" class="btn btn-ghost btn-sm" id="addTokenFetchPreview" style="margin-top:4px">↻ Dex’ten önizleme al</button>
+          </section>
+        </div>
+
+        <aside class="add-token-side">
+          <section class="card add-token-section">
+            <h3 class="add-token-section-title">Token Özeti</h3>
+            <div class="add-token-summary" id="addTokenSummary">
+              <div class="add-token-summary-top">
+                <div class="add-token-logo-avatar lg" id="addTokenSummaryAvatar">?</div>
+                <div>
+                  <div class="add-token-summary-name" id="addTokenSummaryName">Token adı girilmedi</div>
+                  <span class="chain-badge">◎ Solana</span>
+                </div>
+              </div>
+              <dl class="add-token-summary-list">
+                <div><dt>Borsa</dt><dd id="addTokenSumDex">—</dd></div>
+                <div><dt>DexScreener</dt><dd id="addTokenSumDexUrl">—</dd></div>
+                <div><dt>Havuz Türü</dt><dd>AMM</dd></div>
+                <div><dt>Risk</dt><dd id="addTokenSumRisk">—</dd></div>
+              </dl>
+            </div>
+          </section>
+
+          <section class="card add-token-section">
+            <h3 class="add-token-section-title">Yayın Ayarları</h3>
+            <div class="publish-toggle-row">
+              <div><div class="publish-toggle-title">Hemen Yayınla</div><div class="publish-toggle-sub">Eklenir eklenmez feed'de görünür</div></div>
+              <label class="toggle"><input type="checkbox" id="addTokenPublishNow" checked /><span class="toggle-slider"></span></label>
+            </div>
+            <div class="publish-toggle-row">
+              <div><div class="publish-toggle-title">Kanal Bildirimi</div><div class="publish-toggle-sub">Telegram kanalına duyuru gönder (yakında)</div></div>
+              <label class="toggle"><input type="checkbox" id="addTokenNotify" disabled /><span class="toggle-slider"></span></label>
+            </div>
+            <div class="publish-toggle-row">
+              <div><div class="publish-toggle-title">Pinned Token</div><div class="publish-toggle-sub">Feed'in en üstünde sabitle (yakında)</div></div>
+              <label class="toggle"><input type="checkbox" id="addTokenPin" disabled /><span class="toggle-slider"></span></label>
+            </div>
+          </section>
+
+          <button type="button" class="btn btn-primary btn-md add-token-submit-btn" id="addTokenSubmit">✓ Token Ekle</button>
+          <button type="button" class="btn btn-ghost btn-md add-token-cancel-btn" id="addTokenCancel">İptal</button>
+          <p id="addTokenStatus" class="banner-admin-status" role="status"></p>
+
+          <div class="add-token-warn card">
+            <div class="add-token-warn-title">Dikkat</div>
+            <p>Contract adresi ve havuz bilgileri eklendikten sonra risk analizi otomatik çalışır. Yüksek riskli tokenler sarı uyarı ile işaretlenir.</p>
+          </div>
+        </aside>
+      </div>
+    </div>
+
+<!-- ══════════ TREND AYARLARI (mockup) ══════════ -->
+    <div class="page" id="page-trending">
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">Algoritma Ağırlıkları</div>
+          <div class="input-group"><div class="input-label">Hacim (VOL) Ağırlığı %</div><input class="input" type="number" id="trendWVolume" value="40" min="0" max="100" /></div>
+          <div class="input-group"><div class="input-label">İşlem Sayısı (TXN) %</div><input class="input" type="number" id="trendWTxns" value="30" min="0" max="100" /></div>
+          <div class="input-group"><div class="input-label">Holder Sayısı %</div><input class="input" type="number" id="trendWHolders" value="20" min="0" max="100" /></div>
+          <div class="input-group"><div class="input-label">Fiyat Değişimi %</div><input class="input" type="number" id="trendWPrice" value="10" min="0" max="100" /></div>
+          <button type="button" class="btn btn-primary btn-md trend-save-btn">Kaydet</button>
+        </div>
+        <div class="card">
+          <div class="card-title">Varsayılan Görünüm</div>
+          <div class="input-group"><div class="input-label">Varsayılan Timeframe</div><input class="input" type="text" id="trendTimeframe" value="24h" placeholder="5m / 1h / 6h / 24h" /></div>
+          <div class="input-group"><div class="input-label">Varsayılan DEX Filtresi</div><input class="input" type="text" id="trendDex" value="all" placeholder="all / pumpfun / raydium" /></div>
+          <div class="input-group"><div class="input-label">Varsayılan Sıralama</div><input class="input" type="text" id="trendSort" value="top" placeholder="top / gainers / new" /></div>
+          <div class="input-group"><div class="input-label">Sayfa başına token</div><input class="input" type="number" id="trendPageSize" value="20" min="5" max="100" /></div>
+          <button type="button" class="btn btn-primary btn-md trend-save-btn">Kaydet</button>
+        </div>
+      </div>
+      <p id="trendStatus" class="banner-admin-status" role="status" style="margin-top:12px"></p>
+    </div>
+
+<!-- ══════════ BANNER (Mini App) ══════════ -->
+    <div class="page" id="page-banner">
+      <div class="card" id="adminBannerRoot">
+        <div class="section-hdr" style="margin-bottom:12px">
+          <div class="card-title" style="margin:0">Mini App Banner</div>
+          <div style="display:flex;align-items:center;gap:10px">
+            <span style="font-size:11px;color:var(--muted)">Yayında</span>
+            <label class="toggle"><input type="checkbox" id="adminBannerEnabled" checked /><span class="toggle-slider"></span></label>
+          </div>
+        </div>
+        <p class="banner-admin-hint">Bilgisayar, tablet ve telefon için ayrı görsel. Yönetim yalnızca bu admin panelinden yapılır.</p>
+        <div class="banner-variant-tabs">
+          <button type="button" class="banner-variant-tab active" data-variant="desktop">Bilgisayar<span class="banner-tab-size">1200×144</span></button>
+          <button type="button" class="banner-variant-tab" data-variant="tablet">Tablet<span class="banner-tab-size">768×120</span></button>
+          <button type="button" class="banner-variant-tab" data-variant="mobile">Telefon<span class="banner-tab-size">390×96</span></button>
+        </div>
+        <div class="admin-banner-preview-wrap card" style="padding:0;overflow:hidden;margin-bottom:14px">
+          <img id="adminBannerPreview" class="admin-banner-preview-img" alt="" />
+        </div>
+        <label class="banner-studio-upload" id="adminBannerUploadLabel">📤 Bilgisayar görseli seç
+          <input type="file" id="adminBannerFile" accept="image/png,image/jpeg,image/webp,image/gif" />
+        </label>
+        <div class="banner-studio-row" style="margin-top:14px">
+          <span>Kırpma (yatay)</span>
+          <input type="range" id="adminBannerPos" min="0" max="100" value="50" />
+          <span class="banner-pos-val" id="adminBannerPosVal">50%</span>
+        </div>
+        <label class="input-group" style="margin-top:14px">
+          <div class="input-label">Tıklanınca açılacak link</div>
+          <input class="input" type="url" id="adminBannerLink" placeholder="https://" />
+        </label>
+        <p id="adminBannerStatus" class="banner-admin-status" role="status"></p>
+        <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
+          <button type="button" class="btn btn-primary btn-md" id="adminBannerSave">Kaydet</button>
+          <button type="button" class="btn btn-ghost btn-md" id="adminBannerReload">Yenile</button>
+        </div>
+      </div>
+    </div>
+
+<!-- ══════════ MİNİ APP AYARLARI ══════════ -->
+    <div class="page" id="page-miniapp">
+      <div class="card">
+        <div class="card-title">Mini App Bayrakları</div>
+        <div class="grid-2">
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);">
+            <div><div style="font-size:13px;color:var(--text);">Connect Wallet butonu</div><div style="font-size:10px;color:var(--muted);margin-top:2px;">Header'da cüzdan bağlantısı</div></div>
+            <label class="toggle"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);">
+            <div><div style="font-size:13px;color:var(--text);">AI Summary butonu</div><div style="font-size:10px;color:var(--muted);margin-top:2px;">Token detay sayfasında</div></div>
+            <label class="toggle"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);">
+            <div><div style="font-size:13px;color:var(--text);">Trending Band</div><div style="font-size:10px;color:var(--muted);margin-top:2px;">Üst kaydırmalı chip'ler</div></div>
+            <label class="toggle"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);">
+            <div><div style="font-size:13px;color:var(--text);">Promo Banner</div><div style="font-size:10px;color:var(--muted);margin-top:2px;">Ana sayfada reklam banner</div></div>
+            <label class="toggle"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;">
+            <div><div style="font-size:13px;color:var(--text);">Watchlist (disabled)</div><div style="font-size:10px;color:var(--muted);margin-top:2px;">Kullanıcı watchlist özelliği</div></div>
+            <label class="toggle"><input type="checkbox"><span class="toggle-slider"></span></label>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;">
+            <div><div style="font-size:13px;color:var(--text);">Scanner / Radar</div><div style="font-size:10px;color:var(--muted);margin-top:2px;">Mint analiz ekranı</div></div>
+            <label class="toggle"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Seed / Varsayılan Veri</div>
+        <div class="input-group"><div class="input-label">Boot mesajı</div><input class="input" type="text" value="Veriler yükleniyor..."></div>
+        <div class="input-group"><div class="input-label">Boş feed mesajı</div><input class="input" type="text" value="Henüz token eklenmedi."></div>
+        <button class="btn btn-primary btn-md">Kaydet</button>
+      </div>
+    </div>
+
+
+    <!-- ══════════ BAĞLANTILAR & API ══════════ -->
+    <div class="page" id="page-connections">
+      <div class="card">
+        <div class="card-title">API Uçları</div>
+        <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;overflow:hidden;">
+          <div class="env-row"><span class="env-key">WEB_APP_URL</span><span class="env-val">https://solana-chain-scanner-production.up.railway.app</span><button class="env-copy">Kopyala</button></div>
+          <div class="env-row"><span class="env-key">GET /api/feed</span><span class="env-val">?tab=trending|new&chain=solana&dex=all</span><button class="env-copy">Test</button></div>
+          <div class="env-row"><span class="env-key">GET /api/search</span><span class="env-val">?q=token_symbol_or_mint</span><button class="env-copy">Test</button></div>
+          <div class="env-row"><span class="env-key">GET /api/report/:id</span><span class="env-val">Token rapor detayı</span><button class="env-copy">Test</button></div>
+          <div class="env-row"><span class="env-key">GET /api/trades/:mint</span><span class="env-val">Canlı işlem akışı</span><button class="env-copy">Test</button></div>
+          <div class="env-row"><span class="env-key">GET /api/open/:mint</span><span class="env-val">Mint adresi ile açma</span><button class="env-copy">Test</button></div>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- ══════════ ORTAM DEĞİŞKENLERİ ══════════ -->
+    <div class="page" id="page-env">
+      <div class="card">
+        <div class="card-title">Ortam Değişkenleri <span class="tag" style="margin-left:6px;font-size:9px;">Salt Okunur</span></div>
+        <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;overflow:hidden;">
+          <div class="env-row"><span class="env-key">BOT_TOKEN</span><span class="env-val">7891234567:AAH••••••••••••••••••••••</span><button class="env-copy">👁</button></div>
+          <div class="env-row"><span class="env-key">ADMIN_USERNAME</span><span class="env-val">admin</span><button class="env-copy">👁</button></div>
+          <div class="env-row"><span class="env-key">ADMIN_PASSWORD</span><span class="env-val">••••••••••••</span><button class="env-copy">👁</button></div>
+          <div class="env-row"><span class="env-key">DEXSCREENER_API</span><span class="env-val">https://api.dexscreener.com/latest/dex</span><button class="env-copy">👁</button></div>
+          <div class="env-row"><span class="env-key">RUGCHECK_API</span><span class="env-val">https://api.rugcheck.xyz/v1</span><button class="env-copy">👁</button></div>
+          <div class="env-row"><span class="env-key">PORT</span><span class="env-val">3080</span><button class="env-copy">👁</button></div>
+          <div class="env-row"><span class="env-key">NODE_ENV</span><span class="env-val">production</span><button class="env-copy">👁</button></div>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- ══════════ AYARLAR (admin_06) ══════════ -->
+    <div class="page" id="page-settings">
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">Admin Hesabı</div>
+          <div class="input-group"><div class="input-label">KULLANICI ADI</div><input class="input" type="text" id="settingsUsername" autocomplete="username" /></div>
+          <div class="input-group"><div class="input-label">MEVCUT ŞİFRE</div><input class="input" type="password" id="settingsCurrentPass" autocomplete="current-password" /></div>
+          <div class="input-group"><div class="input-label">YENİ ŞİFRE</div><input class="input" type="password" id="settingsNewPass" autocomplete="new-password" /></div>
+          <p id="settingsPassStatus" class="banner-admin-status" role="status"></p>
+          <button type="button" class="btn btn-primary btn-md" id="settingsChangePass">Şifreyi Güncelle</button>
+        </div>
+        <div class="card">
+          <div class="card-title">Genel Ayarlar</div>
+          <div class="input-group"><div class="input-label">SİTE BAŞLIĞI</div><input class="input" type="text" id="settingsSiteTitle" /></div>
+          <div class="input-group"><div class="input-label">VARSAYILAN DİL</div><input class="input" type="text" id="settingsLang" placeholder="tr / en" /></div>
+          <div class="input-group"><div class="input-label">FEED YENİLEME (SN)</div><input class="input" type="number" id="settingsFeedRefresh" min="5" /></div>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+            <span style="font-size:12px;color:var(--muted);">Bakım Modu</span>
+            <label class="toggle"><input type="checkbox" id="settingsMaintenance" /><span class="toggle-slider"></span></label>
+          </div>
+          <p id="settingsStatus" class="banner-admin-status" role="status"></p>
+          <button type="button" class="btn btn-primary btn-md" id="settingsSave">Kaydet</button>
+        </div>
+      </div>
+    </div>
+
+<!-- ══════════ GÜVENLİK ══════════ -->
+    <div class="page" id="page-security">
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#00e5ff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            Şifre Değiştir
+          </div>
+          <div class="input-group"><div class="input-label">Mevcut Şifre</div><input class="input" type="password" placeholder="••••••••"></div>
+          <div class="input-group"><div class="input-label">Yeni Şifre</div><input class="input" type="password" placeholder="••••••••"></div>
+          <div class="input-group"><div class="input-label">Şifre Tekrar</div><input class="input" type="password" placeholder="••••••••"></div>
+          <div style="background:rgba(0,229,255,0.06);border:1px solid rgba(0,229,255,0.15);border-radius:8px;padding:10px 12px;margin-bottom:14px;font-size:11px;color:var(--muted);">
+            ℹ️ Minimum 8 karakter, en az 1 büyük harf ve 1 rakam içermeli.
+          </div>
+          <button class="btn btn-primary btn-md">Şifreyi Güncelle</button>
+        </div>
+        <div class="card">
+          <div class="card-title">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f5a623" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            Oturum & Erişim
+          </div>
+          <div class="input-group"><div class="input-label">Session Timeout (dk)</div><input class="input" type="number" value="60" placeholder="Dakika"></div>
+          <div class="sep"></div>
+          <div style="margin-bottom:10px;">
+            <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:8px;">IP Whitelist</div>
+            <div style="font-size:11px;color:var(--muted);margin-bottom:8px;">Boş bırakılırsa tüm IP'lere açık.</div>
+            <textarea class="input" style="height:80px;resize:none;font-family:'JetBrains Mono',monospace;font-size:11px;" placeholder="192.168.1.1&#10;10.0.0.0/24"></textarea>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+            <div><div style="font-size:12px;color:var(--text);">Giriş Log Kaydı</div><div style="font-size:10px;color:var(--muted);">Her girişi logla</div></div>
+            <label class="toggle"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+            <div><div style="font-size:12px;color:var(--text);">Brute Force Koruması</div><div style="font-size:10px;color:var(--muted);">5 hatalı giriş → geçici blok</div></div>
+            <label class="toggle"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+          </div>
+          <button class="btn btn-primary btn-md">Kaydet</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          Son Giriş Geçmişi
+        </div>
+        <div class="tbl-wrap">
+          <table class="tbl">
+            <thead><tr><th>TARİH</th><th>IP ADRESİ</th><th>TARAYICI</th><th>DURUM</th></tr></thead>
+            <tbody>
+              <tr><td style="font-family:'JetBrains Mono',monospace;font-size:11px;">20.05.2026 01:15</td><td style="font-family:'JetBrains Mono',monospace;">185.42.xx.xx</td><td style="color:var(--muted);">Chrome / Windows</td><td><span class="risk-pill low" style="font-size:9px;">BAŞARILI</span></td></tr>
+              <tr><td style="font-family:'JetBrains Mono',monospace;font-size:11px;">19.05.2026 23:42</td><td style="font-family:'JetBrains Mono',monospace;">185.42.xx.xx</td><td style="color:var(--muted);">Chrome / Windows</td><td><span class="risk-pill low" style="font-size:9px;">BAŞARILI</span></td></tr>
+              <tr><td style="font-family:'JetBrains Mono',monospace;font-size:11px;">19.05.2026 18:10</td><td style="font-family:'JetBrains Mono',monospace;">91.93.xx.xx</td><td style="color:var(--muted);">Firefox / Linux</td><td><span class="risk-pill high" style="font-size:9px;">BAŞARISIZ</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- ══════════ ZİNCİR YÖNETİMİ ══════════ -->
+    <div class="page" id="page-chains">
+      <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:16px;">
+
+        <!-- SOL -->
+        <div class="card" style="border-color:rgba(0,255,136,0.2);">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+            <div style="display:flex;align-items:center;gap:10px;">
+              <div style="width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,#9945ff,#14f195);display:flex;align-items:center;justify-content:center;font-size:16px;">◎</div>
+              <div><div style="font-size:14px;font-weight:700;color:var(--text);">Solana</div><div style="font-size:10px;color:var(--green);">AKTİF</div></div>
+            </div>
+            <label class="toggle"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+          </div>
+          <div class="input-group"><div class="input-label">Feed URL</div><input class="input" type="text" value="/api/feed?chain=solana"></div>
+          <div class="input-group"><div class="input-label">RPC Endpoint</div><input class="input" type="text" placeholder="https://api.mainnet-beta.solana.com"></div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;">
+            <span class="tag" style="color:var(--green);border-color:rgba(0,255,136,0.2);">Pump.fun</span>
+            <span class="tag" style="color:var(--green);border-color:rgba(0,255,136,0.2);">Raydium</span>
+            <span class="tag" style="color:var(--green);border-color:rgba(0,255,136,0.2);">Meteora</span>
+            <span class="tag" style="color:var(--green);border-color:rgba(0,255,136,0.2);">Orca</span>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;">
+            <span style="font-size:11px;color:var(--muted);">3 aktif token · $7.69M 24h vol</span>
+            <span class="dot green"></span>
+          </div>
+        </div>
+
+        <!-- TON -->
+        <div class="card">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+            <div style="display:flex;align-items:center;gap:10px;">
+              <div style="width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,#0098ea,#006bb3);display:flex;align-items:center;justify-content:center;font-size:16px;">💎</div>
+              <div><div style="font-size:14px;font-weight:700;color:var(--text);">TON</div><div style="font-size:10px;color:var(--muted);">Yakında</div></div>
+            </div>
+            <label class="toggle"><input type="checkbox"><span class="toggle-slider"></span></label>
+          </div>
+          <div class="input-group"><div class="input-label">Feed URL</div><input class="input" type="text" placeholder="/api/feed?chain=ton" disabled style="opacity:.5;"></div>
+          <div class="input-group"><div class="input-label">TON API Key</div><input class="input" type="password" placeholder="tonconsole.com API key" disabled style="opacity:.5;"></div>
+          <div style="background:rgba(245,166,35,0.08);border:1px solid rgba(245,166,35,0.2);border-radius:8px;padding:10px 12px;font-size:11px;color:var(--yellow);">
+            ⚠️ TON feed henüz aktif değil. Açmak için API key gerekli.
+          </div>
+        </div>
+
+        <!-- BSC -->
+        <div class="card">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+            <div style="display:flex;align-items:center;gap:10px;">
+              <div style="width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,#f0b90b,#d48a00);display:flex;align-items:center;justify-content:center;font-size:16px;">⬡</div>
+              <div><div style="font-size:14px;font-weight:700;color:var(--text);">BSC</div><div style="font-size:10px;color:var(--muted);">Yakında</div></div>
+            </div>
+            <label class="toggle"><input type="checkbox"><span class="toggle-slider"></span></label>
+          </div>
+          <div class="input-group"><div class="input-label">Feed URL</div><input class="input" type="text" placeholder="/api/feed?chain=bsc" disabled style="opacity:.5;"></div>
+          <div class="input-group"><div class="input-label">BSCScan API Key</div><input class="input" type="password" placeholder="bscscan.com API key" disabled style="opacity:.5;"></div>
+          <div style="background:rgba(245,166,35,0.08);border:1px solid rgba(245,166,35,0.2);border-radius:8px;padding:10px 12px;font-size:11px;color:var(--yellow);">
+            ⚠️ BSC feed henüz aktif değil.
+          </div>
+        </div>
+
+        <!-- ETH -->
+        <div class="card">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+            <div style="display:flex;align-items:center;gap:10px;">
+              <div style="width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,#627eea,#3c4fc5);display:flex;align-items:center;justify-content:center;font-size:16px;">Ξ</div>
+              <div><div style="font-size:14px;font-weight:700;color:var(--text);">Ethereum</div><div style="font-size:10px;color:var(--muted);">Yakında</div></div>
+            </div>
+            <label class="toggle"><input type="checkbox"><span class="toggle-slider"></span></label>
+          </div>
+          <div class="input-group"><div class="input-label">Feed URL</div><input class="input" type="text" placeholder="/api/feed?chain=eth" disabled style="opacity:.5;"></div>
+          <div class="input-group"><div class="input-label">Etherscan API Key</div><input class="input" type="password" placeholder="etherscan.io API key" disabled style="opacity:.5;"></div>
+          <div style="background:rgba(245,166,35,0.08);border:1px solid rgba(245,166,35,0.2);border-radius:8px;padding:10px 12px;font-size:11px;color:var(--yellow);">
+            ⚠️ ETH feed henüz aktif değil.
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+
+    <!-- ══════════ RİSK FİLTRELERİ ══════════ -->
+    <div class="page" id="page-risk">
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#00ff88" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            Risk Eşik Değerleri
+          </div>
+          <div style="margin-bottom:14px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+              <span style="font-size:12px;color:var(--green);font-weight:600;">LOW RISK</span>
+              <span style="font-size:11px;color:var(--muted);font-family:'JetBrains Mono',monospace;">0 — 30</span>
+            </div>
+            <div style="display:flex;gap:8px;">
+              <div style="flex:1;"><div class="input-label">Min</div><input class="input" type="number" value="0"></div>
+              <div style="flex:1;"><div class="input-label">Max</div><input class="input" type="number" value="30"></div>
+            </div>
+          </div>
+          <div style="margin-bottom:14px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+              <span style="font-size:12px;color:var(--yellow);font-weight:600;">MEDIUM RISK</span>
+              <span style="font-size:11px;color:var(--muted);font-family:'JetBrains Mono',monospace;">31 — 70</span>
+            </div>
+            <div style="display:flex;gap:8px;">
+              <div style="flex:1;"><div class="input-label">Min</div><input class="input" type="number" value="31"></div>
+              <div style="flex:1;"><div class="input-label">Max</div><input class="input" type="number" value="70"></div>
+            </div>
+          </div>
+          <div style="margin-bottom:16px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+              <span style="font-size:12px;color:var(--red);font-weight:600;">HIGH RISK</span>
+              <span style="font-size:11px;color:var(--muted);font-family:'JetBrains Mono',monospace;">71 — 100</span>
+            </div>
+            <div style="display:flex;gap:8px;">
+              <div style="flex:1;"><div class="input-label">Min</div><input class="input" type="number" value="71"></div>
+              <div style="flex:1;"><div class="input-label">Max</div><input class="input" type="number" value="100"></div>
+            </div>
+          </div>
+          <button class="btn btn-primary btn-md">Kaydet</button>
+        </div>
+
+        <div class="card">
+          <div class="card-title">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ff3b3b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>
+            Otomatik Filtreler
+          </div>
+          <div style="display:flex;flex-direction:column;gap:12px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;">
+              <div><div style="font-size:12px;color:var(--text);font-weight:500;">Honeypot Tespit → Feedden Çıkar</div><div style="font-size:10px;color:var(--muted);margin-top:2px;">Honeypot olan tokenler otomatik gizlenir</div></div>
+              <label class="toggle"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;">
+              <div><div style="font-size:12px;color:var(--text);font-weight:500;">Mint Revoked Zorunlu</div><div style="font-size:10px;color:var(--muted);margin-top:2px;">Mint revoke edilmemiş token gösterilmez</div></div>
+              <label class="toggle"><input type="checkbox"><span class="toggle-slider"></span></label>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;">
+              <div><div style="font-size:12px;color:var(--text);font-weight:500;">Freeze Revoked Zorunlu</div><div style="font-size:10px;color:var(--muted);margin-top:2px;">Freeze revoke edilmemiş token gösterilmez</div></div>
+              <label class="toggle"><input type="checkbox"><span class="toggle-slider"></span></label>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;">
+              <div><div style="font-size:12px;color:var(--text);font-weight:500;">HIGH RISK → Otomatik Gizle</div><div style="font-size:10px;color:var(--muted);margin-top:2px;">Risk skoru 71+ olanlar feedde gösterilmez</div></div>
+              <label class="toggle"><input type="checkbox"><span class="toggle-slider"></span></label>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;">
+              <div><div style="font-size:12px;color:var(--text);font-weight:500;">Rugcheck Skoru Minimum</div><div style="font-size:10px;color:var(--muted);margin-top:2px;">Bu skorun altındakiler gösterilmez</div></div>
+              <div style="display:flex;align-items:center;gap:8px;">
+                <input class="input" type="number" value="20" style="width:64px;text-align:center;">
+                <label class="toggle"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+              </div>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;">
+              <div><div style="font-size:12px;color:var(--text);font-weight:500;">Min. Likidite ($)</div><div style="font-size:10px;color:var(--muted);margin-top:2px;">Bu değerin altındaki tokenler gösterilmez</div></div>
+              <div style="display:flex;align-items:center;gap:8px;">
+                <input class="input" type="number" value="1000" style="width:80px;text-align:center;">
+                <label class="toggle"><input type="checkbox"><span class="toggle-slider"></span></label>
+              </div>
+            </div>
+          </div>
+          <div style="margin-top:14px;">
+            <button class="btn btn-primary btn-md">Kaydet</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- ══════════ ADMİN KULLANICI YÖNETİMİ ══════════ -->
+    <div class="page" id="page-admins">
+
+      <div class="card">
+        <div class="section-hdr">
+          <div class="card-title" style="margin:0">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#00e5ff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            Admin Kullanıcılar
+          </div>
+          <button class="btn btn-primary btn-sm" onclick="document.getElementById('add-admin-form').style.display='block'">+ Admin Ekle</button>
+        </div>
+
+        <!-- Admin ekleme formu -->
+        <div id="add-admin-form" style="display:none;background:var(--surface2);border:1px solid rgba(0,229,255,0.2);border-radius:10px;padding:16px;margin-bottom:16px;">
+          <div style="font-size:13px;font-weight:700;color:var(--cyan);margin-bottom:14px;">Yeni Admin Ekle</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:12px;">
+            <div class="input-group" style="margin:0;"><div class="input-label">Kullanıcı Adı</div><input class="input" type="text" placeholder="kullanici_adi"></div>
+            <div class="input-group" style="margin:0;"><div class="input-label">Şifre</div><input class="input" type="password" placeholder="••••••••"></div>
+            <div class="input-group" style="margin:0;"><div class="input-label">Yetki Seviyesi</div>
+              <select class="input" style="cursor:pointer;">
+                <option value="viewer">👁 Görüntüleyici</option>
+                <option value="moderator">🛡 Moderatör</option>
+                <option value="admin" selected>⚙️ Admin</option>
+                <option value="superadmin">👑 Super Admin</option>
+              </select>
+            </div>
+          </div>
+          <div style="display:flex;gap:8px;">
+            <button class="btn btn-primary btn-sm">Ekle</button>
+            <button class="btn btn-ghost btn-sm" onclick="document.getElementById('add-admin-form').style.display='none'">İptal</button>
+          </div>
+        </div>
+
+        <!-- Admin listesi -->
+        <div class="tbl-wrap">
+          <table class="tbl">
+            <thead>
+              <tr><th>KULLANICI</th><th>YETKİ</th><th>SON GİRİŞ</th><th>DURUM</th><th>İZİNLER</th><th>İŞLEM</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>
+                  <div style="display:flex;align-items:center;gap:10px;">
+                    <div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#7c3aed,#4f46e5);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;">A</div>
+                    <div><div style="font-size:13px;font-weight:600;">admin</div><div style="font-size:10px;color:var(--muted);">ID: #001</div></div>
+                  </div>
+                </td>
+                <td><span style="background:rgba(245,166,35,0.15);color:#f5a623;border:1px solid rgba(245,166,35,0.25);font-size:10px;font-weight:700;border-radius:20px;padding:3px 9px;">👑 SUPER ADMIN</span></td>
+                <td style="font-size:11px;font-family:'JetBrains Mono',monospace;color:var(--muted);">20.05.2026 01:15</td>
+                <td><span class="dot green" style="display:inline-block;"></span></td>
+                <td><div style="display:flex;gap:4px;flex-wrap:wrap;">
+                  <span class="tag" style="font-size:9px;color:var(--green);">Tümü</span>
+                </div></td>
+                <td><span style="font-size:11px;color:var(--muted);">Silinemez</span></td>
+              </tr>
+              <tr>
+                <td>
+                  <div style="display:flex;align-items:center;gap:10px;">
+                    <div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#0d9488,#0891b2);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;">M</div>
+                    <div><div style="font-size:13px;font-weight:600;">moderator1</div><div style="font-size:10px;color:var(--muted);">ID: #002</div></div>
+                  </div>
+                </td>
+                <td><span style="background:rgba(0,229,255,0.12);color:var(--cyan);border:1px solid rgba(0,229,255,0.2);font-size:10px;font-weight:700;border-radius:20px;padding:3px 9px;">🛡 MODERATÖR</span></td>
+                <td style="font-size:11px;font-family:'JetBrains Mono',monospace;color:var(--muted);">19.05.2026 18:30</td>
+                <td><span class="dot green" style="display:inline-block;"></span></td>
+                <td><div style="display:flex;gap:4px;flex-wrap:wrap;">
+                  <span class="tag" style="font-size:9px;">Feed</span>
+                  <span class="tag" style="font-size:9px;">Banner</span>
+                  <span class="tag" style="font-size:9px;">Kanallar</span>
+                </div></td>
+                <td style="display:flex;gap:6px;align-items:center;padding-top:11px;">
+                  <button class="btn btn-ghost btn-sm">Düzenle</button>
+                  <button class="btn btn-danger btn-sm">Sil</button>
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <div style="display:flex;align-items:center;gap:10px;">
+                    <div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#374151,#1f2937);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;">V</div>
+                    <div><div style="font-size:13px;font-weight:600;">viewer1</div><div style="font-size:10px;color:var(--muted);">ID: #003</div></div>
+                  </div>
+                </td>
+                <td><span style="background:rgba(255,255,255,0.06);color:var(--muted);border:1px solid var(--border);font-size:10px;font-weight:700;border-radius:20px;padding:3px 9px;">👁 GÖRÜNTÜLEYİCİ</span></td>
+                <td style="font-size:11px;font-family:'JetBrains Mono',monospace;color:var(--muted);">18.05.2026 09:00</td>
+                <td><span class="dot" style="display:inline-block;background:var(--muted2);"></span></td>
+                <td><div style="display:flex;gap:4px;flex-wrap:wrap;">
+                  <span class="tag" style="font-size:9px;">Dashboard</span>
+                  <span class="tag" style="font-size:9px;">Feed (Oku)</span>
+                </div></td>
+                <td style="display:flex;gap:6px;align-items:center;padding-top:11px;">
+                  <button class="btn btn-ghost btn-sm">Düzenle</button>
+                  <button class="btn btn-danger btn-sm">Sil</button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Yetki Matrisi -->
+      <div class="card">
+        <div class="card-title">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+          Yetki Matrisi
+        </div>
+        <div class="tbl-wrap">
+          <table class="tbl">
+            <thead>
+              <tr>
+                <th>SAYFA / İŞLEM</th>
+                <th style="text-align:center;">👁 Görüntüleyici</th>
+                <th style="text-align:center;">🛡 Moderatör</th>
+                <th style="text-align:center;">⚙️ Admin</th>
+                <th style="text-align:center;">👑 Super Admin</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td style="color:var(--muted);">Dashboard</td><td style="text-align:center;color:var(--green);">✓</td><td style="text-align:center;color:var(--green);">✓</td><td style="text-align:center;color:var(--green);">✓</td><td style="text-align:center;color:var(--green);">✓</td></tr>
+              <tr><td style="color:var(--muted);">Token Feed (Görüntüle)</td><td style="text-align:center;color:var(--green);">✓</td><td style="text-align:center;color:var(--green);">✓</td><td style="text-align:center;color:var(--green);">✓</td><td style="text-align:center;color:var(--green);">✓</td></tr>
+              <tr><td style="color:var(--muted);">Token Ekle / Kaldır</td><td style="text-align:center;color:var(--muted2);">—</td><td style="text-align:center;color:var(--green);">✓</td><td style="text-align:center;color:var(--green);">✓</td><td style="text-align:center;color:var(--green);">✓</td></tr>
+              <tr><td style="color:var(--muted);">Banner Yönetimi</td><td style="text-align:center;color:var(--muted2);">—</td><td style="text-align:center;color:var(--green);">✓</td><td style="text-align:center;color:var(--green);">✓</td><td style="text-align:center;color:var(--green);">✓</td></tr>
+              <tr><td style="color:var(--muted);">Bot & Kanallar</td><td style="text-align:center;color:var(--muted2);">—</td><td style="text-align:center;color:var(--green);">✓</td><td style="text-align:center;color:var(--green);">✓</td><td style="text-align:center;color:var(--green);">✓</td></tr>
+              <tr><td style="color:var(--muted);">Risk Filtreleri</td><td style="text-align:center;color:var(--muted2);">—</td><td style="text-align:center;color:var(--muted2);">—</td><td style="text-align:center;color:var(--green);">✓</td><td style="text-align:center;color:var(--green);">✓</td></tr>
+              <tr><td style="color:var(--muted);">Zincir Yönetimi</td><td style="text-align:center;color:var(--muted2);">—</td><td style="text-align:center;color:var(--muted2);">—</td><td style="text-align:center;color:var(--green);">✓</td><td style="text-align:center;color:var(--green);">✓</td></tr>
+              <tr><td style="color:var(--muted);">Ortam Değişkenleri</td><td style="text-align:center;color:var(--muted2);">—</td><td style="text-align:center;color:var(--muted2);">—</td><td style="text-align:center;color:var(--muted2);">—</td><td style="text-align:center;color:var(--green);">✓</td></tr>
+              <tr><td style="color:var(--muted);">Admin Ekle / Sil</td><td style="text-align:center;color:var(--muted2);">—</td><td style="text-align:center;color:var(--muted2);">—</td><td style="text-align:center;color:var(--muted2);">—</td><td style="text-align:center;color:var(--green);">✓</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+
+  <!-- ========== CANLI DESTEK ========== -->
+  <div class="page" id="page-support">
+    <div style="display:grid;grid-template-columns:1fr 340px;gap:16px;">
+
+      <!-- Sol: Konuşma Listesi + Chat -->
+      <div style="display:flex;flex-direction:column;gap:16px;">
+
+        <!-- Stats Bar -->
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;">
+          <div class="card" style="padding:14px 16px;">
+            <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;">Toplam Ticket</div>
+            <div style="font-size:22px;font-weight:700;font-family:'JetBrains Mono',monospace;color:var(--text);">247</div>
+            <div style="font-size:10px;color:var(--green);margin-top:2px;">+12 bugün</div>
+          </div>
+          <div class="card" style="padding:14px 16px;">
+            <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;">Bekleyenler</div>
+            <div style="font-size:22px;font-weight:700;font-family:'JetBrains Mono',monospace;color:var(--yellow);">18</div>
+            <div style="font-size:10px;color:var(--yellow);margin-top:2px;">Yanıt bekliyor</div>
+          </div>
+          <div class="card" style="padding:14px 16px;">
+            <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;">Aktif Chat</div>
+            <div style="font-size:22px;font-weight:700;font-family:'JetBrains Mono',monospace;color:var(--cyan);">5</div>
+            <div style="font-size:10px;color:var(--cyan);margin-top:2px;">Şu an canlı</div>
+          </div>
+          <div class="card" style="padding:14px 16px;">
+            <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;">Ort. Yanıt</div>
+            <div style="font-size:22px;font-weight:700;font-family:'JetBrains Mono',monospace;color:var(--text);">4.2<span style="font-size:12px;color:var(--muted);">dk</span></div>
+            <div style="font-size:10px;color:var(--green);margin-top:2px;">İyi seviye</div>
+          </div>
+        </div>
+
+        <!-- Konuşmalar Listesi -->
+        <div class="card" style="padding:0;overflow:hidden;">
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--border);">
+            <div class="card-title" style="margin:0;">💬 Konuşmalar</div>
+            <div style="display:flex;gap:8px;">
+              <button class="btn btn-ghost btn-sm" style="background:rgba(0,255,136,.08);color:var(--green);border-color:rgba(0,255,136,.2);">Tümü</button>
+              <button class="btn btn-ghost btn-sm">Bekleyen</button>
+              <button class="btn btn-ghost btn-sm">Aktif</button>
+              <button class="btn btn-ghost btn-sm">Kapalı</button>
+            </div>
+          </div>
+          <!-- Filtre + Arama -->
+          <div style="padding:10px 16px;border-bottom:1px solid var(--border);">
+            <input type="text" placeholder="Kullanıcı adı veya mesaj ara..." style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);font-size:12px;outline:none;box-sizing:border-box;" onfocus="this.style.borderColor='var(--cyan)'" onblur="this.style.borderColor='var(--border)'">
+          </div>
+          <!-- Ticket Satırları -->
+          <div id="ticket-list">
+            <!-- Ticket 1 - Aktif/Seçili -->
+            <div class="ticket-row" onclick="selectTicket(this,'T-1028')" style="display:flex;align-items:flex-start;gap:12px;padding:12px 16px;cursor:pointer;background:rgba(0,229,255,.05);border-left:2px solid var(--cyan);">
+              <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#00e5ff22,#00e5ff44);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:var(--cyan);flex-shrink:0;">K</div>
+              <div style="flex:1;min-width:0;">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                  <span style="font-size:12px;font-weight:600;">kriptohunter99</span>
+                  <span style="font-size:10px;color:var(--muted);">14:32</span>
+                </div>
+                <div style="font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px;">Token tarama çalışmıyor, hata alıyorum</div>
+                <div style="display:flex;gap:6px;margin-top:5px;">
+                  <span style="font-size:9px;background:rgba(0,229,255,.12);color:var(--cyan);border-radius:4px;padding:2px 6px;">Teknik</span>
+                  <span style="font-size:9px;background:rgba(0,255,136,.12);color:var(--green);border-radius:4px;padding:2px 6px;">● Aktif</span>
+                </div>
+              </div>
+            </div>
+            <!-- Ticket 2 -->
+            <div class="ticket-row" onclick="selectTicket(this,'T-1027')" style="display:flex;align-items:flex-start;gap:12px;padding:12px 16px;cursor:pointer;border-bottom:1px solid var(--border);">
+              <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#f5a62322,#f5a62344);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:var(--yellow);flex-shrink:0;">D</div>
+              <div style="flex:1;min-width:0;">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                  <span style="font-size:12px;font-weight:600;">defi_wolf</span>
+                  <span style="font-size:10px;color:var(--muted);">13:18</span>
+                </div>
+                <div style="font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px;">Premium abonelik nasıl iptal edilir?</div>
+                <div style="display:flex;gap:6px;margin-top:5px;">
+                  <span style="font-size:9px;background:rgba(245,166,35,.12);color:var(--yellow);border-radius:4px;padding:2px 6px;">⏳ Bekliyor</span>
+                  <span style="font-size:9px;background:rgba(255,255,255,.05);color:var(--muted);border-radius:4px;padding:2px 6px;">Hesap</span>
+                </div>
+              </div>
+            </div>
+            <!-- Ticket 3 -->
+            <div class="ticket-row" onclick="selectTicket(this,'T-1026')" style="display:flex;align-items:flex-start;gap:12px;padding:12px 16px;cursor:pointer;border-bottom:1px solid var(--border);">
+              <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#7c3aed22,#7c3aed44);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#a78bfa;flex-shrink:0;">S</div>
+              <div style="flex:1;min-width:0;">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                  <span style="font-size:12px;font-weight:600;">solana_degen</span>
+                  <span style="font-size:10px;color:var(--muted);">11:55</span>
+                </div>
+                <div style="font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px;">Risk skoru neden her zaman yüksek çıkıyor?</div>
+                <div style="display:flex;gap:6px;margin-top:5px;">
+                  <span style="font-size:9px;background:rgba(0,255,136,.12);color:var(--green);border-radius:4px;padding:2px 6px;">● Aktif</span>
+                  <span style="font-size:9px;background:rgba(255,255,255,.05);color:var(--muted);border-radius:4px;padding:2px 6px;">Genel</span>
+                </div>
+              </div>
+            </div>
+            <!-- Ticket 4 -->
+            <div class="ticket-row" onclick="selectTicket(this,'T-1025')" style="display:flex;align-items:flex-start;gap:12px;padding:12px 16px;cursor:pointer;border-bottom:1px solid var(--border);">
+              <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#374151,#1f2937);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#9ca3af;flex-shrink:0;">M</div>
+              <div style="flex:1;min-width:0;">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                  <span style="font-size:12px;font-weight:600;">moon_trader</span>
+                  <span style="font-size:10px;color:var(--muted);">09:40</span>
+                </div>
+                <div style="font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px;">Teşekkürler, sorun çözüldü 🙏</div>
+                <div style="display:flex;gap:6px;margin-top:5px;">
+                  <span style="font-size:9px;background:rgba(255,255,255,.05);color:var(--muted2);border-radius:4px;padding:2px 6px;">✓ Çözüldü</span>
+                </div>
+              </div>
+            </div>
+            <!-- Ticket 5 -->
+            <div class="ticket-row" onclick="selectTicket(this,'T-1024')" style="display:flex;align-items:flex-start;gap:12px;padding:12px 16px;cursor:pointer;">
+              <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#ff3b3b22,#ff3b3b44);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:var(--red);flex-shrink:0;">B</div>
+              <div style="flex:1;min-width:0;">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                  <span style="font-size:12px;font-weight:600;">btc_maxi_tr</span>
+                  <span style="font-size:10px;color:var(--muted);">Dün</span>
+                </div>
+                <div style="font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px;">Bot cevap vermiyor, para iade istiyorum!</div>
+                <div style="display:flex;gap:6px;margin-top:5px;">
+                  <span style="font-size:9px;background:rgba(255,59,59,.12);color:var(--red);border-radius:4px;padding:2px 6px;">🔥 Acil</span>
+                  <span style="font-size:9px;background:rgba(255,255,255,.05);color:var(--muted);border-radius:4px;padding:2px 6px;">Şikayet</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Chat Alanı -->
+        <div class="card" style="padding:0;overflow:hidden;">
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--border);">
+            <div style="display:flex;align-items:center;gap:10px;">
+              <div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#00e5ff22,#00e5ff44);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--cyan);">K</div>
+              <div>
+                <div style="font-size:12px;font-weight:600;">kriptohunter99</div>
+                <div style="font-size:10px;color:var(--green);">● Çevrimiçi · T-1028</div>
+              </div>
+            </div>
+            <div style="display:flex;gap:8px;">
+              <button class="btn btn-ghost btn-sm">Ata ↗</button>
+              <button class="btn btn-ghost btn-sm" style="color:var(--green);">✓ Çözüldü</button>
+              <button class="btn btn-danger btn-sm">Kapat</button>
+            </div>
+          </div>
+          <!-- Mesajlar -->
+          <div style="padding:16px;display:flex;flex-direction:column;gap:12px;min-height:220px;">
+            <!-- Kullanıcı mesajı -->
+            <div style="display:flex;gap:8px;align-items:flex-start;">
+              <div style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#00e5ff22,#00e5ff44);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:var(--cyan);flex-shrink:0;">K</div>
+              <div>
+                <div style="background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:0 10px 10px 10px;padding:8px 12px;font-size:12px;max-width:460px;">Merhaba, /scan komutunu kullandığımda &quot;API Error&quot; hatası alıyorum. 30 dakikadır devam ediyor.</div>
+                <div style="font-size:10px;color:var(--muted);margin-top:4px;">14:28</div>
+              </div>
+            </div>
+            <!-- Admin mesajı -->
+            <div style="display:flex;gap:8px;align-items:flex-start;flex-direction:row-reverse;">
+              <div style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#00ff8822,#00ff8844);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:var(--green);flex-shrink:0;">A</div>
+              <div style="text-align:right;">
+                <div style="background:rgba(0,255,136,.08);border:1px solid rgba(0,255,136,.2);border-radius:10px 0 10px 10px;padding:8px 12px;font-size:12px;max-width:460px;text-align:left;">Merhaba! Sorununuzu anlıyorum. RPC node geçici olarak yeniden başlatıldı, birkaç dakika içinde düzelecek. Manuel olarak /start komutunu tekrar deneyin.</div>
+                <div style="font-size:10px;color:var(--muted);margin-top:4px;">14:31 · admin</div>
+              </div>
+            </div>
+            <!-- Kullanıcı tekrar -->
+            <div style="display:flex;gap:8px;align-items:flex-start;">
+              <div style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#00e5ff22,#00e5ff44);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:var(--cyan);flex-shrink:0;">K</div>
+              <div>
+                <div style="background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:0 10px 10px 10px;padding:8px 12px;font-size:12px;max-width:460px;">Denedim ama hala aynı hata. Ekran görüntüsü göndereyim mi?</div>
+                <div style="font-size:10px;color:var(--muted);margin-top:4px;">14:32</div>
+              </div>
+            </div>
+          </div>
+          <!-- Mesaj gönder kutusu -->
+          <div style="padding:12px 16px;border-top:1px solid var(--border);display:flex;gap:8px;align-items:flex-end;">
+            <div style="flex:1;">
+              <div style="display:flex;gap:6px;margin-bottom:6px;">
+                <button class="btn btn-ghost btn-sm" style="font-size:10px;">📎 Dosya</button>
+                <button class="btn btn-ghost btn-sm" style="font-size:10px;">⚡ Hızlı Yanıt</button>
+                <button class="btn btn-ghost btn-sm" style="font-size:10px;">🤖 AI Öner</button>
+              </div>
+              <textarea placeholder="Mesaj yaz... (Enter ile gönder)" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);font-size:12px;resize:none;height:56px;outline:none;box-sizing:border-box;font-family:inherit;" onfocus="this.style.borderColor='var(--cyan)'" onblur="this.style.borderColor='var(--border)'"></textarea>
+            </div>
+            <button class="btn btn-cyan btn-md" style="height:40px;padding:0 16px;">Gönder ↗</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sağ Panel: Kullanıcı Detayı + Hızlı Araçlar -->
+      <div style="display:flex;flex-direction:column;gap:16px;">
+
+        <!-- Kullanıcı Bilgisi -->
+        <div class="card">
+          <div class="card-title">Kullanıcı Bilgisi</div>
+          <div style="text-align:center;padding:12px 0;">
+            <div style="width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,#00e5ff33,#00e5ff55);display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700;color:var(--cyan);margin:0 auto 8px;">K</div>
+            <div style="font-size:14px;font-weight:700;">kriptohunter99</div>
+            <div style="font-size:11px;color:var(--muted);margin-top:2px;">@kriptohunter99</div>
+            <div style="font-size:10px;color:var(--green);margin-top:4px;">● Çevrimiçi</div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:8px;margin-top:8px;">
+            <div style="display:flex;justify-content:space-between;font-size:11px;">
+              <span style="color:var(--muted);">User ID</span>
+              <span style="font-family:'JetBrains Mono',monospace;color:var(--cyan);">@U-88821</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:11px;">
+              <span style="color:var(--muted);">Üyelik</span>
+              <span>Premium ⭐</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:11px;">
+              <span style="color:var(--muted);">Kayıt tarihi</span>
+              <span>12.03.2026</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:11px;">
+              <span style="color:var(--muted);">Toplam ticket</span>
+              <span>4</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:11px;">
+              <span style="color:var(--muted);">Ülke</span>
+              <span>🇹🇷 Türkiye</span>
+            </div>
+          </div>
+          <div style="display:flex;gap:6px;margin-top:12px;">
+            <button class="btn btn-ghost btn-sm" style="flex:1;">Profil</button>
+            <button class="btn btn-ghost btn-sm" style="flex:1;color:var(--red);">Engelle</button>
+          </div>
+        </div>
+
+        <!-- Ticket Bilgisi -->
+        <div class="card">
+          <div class="card-title">Ticket T-1028</div>
+          <div style="display:flex;flex-direction:column;gap:8px;">
+            <div style="display:flex;justify-content:space-between;font-size:11px;">
+              <span style="color:var(--muted);">Durum</span>
+              <span style="color:var(--green);">● Aktif</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:11px;">
+              <span style="color:var(--muted);">Kategori</span>
+              <span>Teknik</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:11px;">
+              <span style="color:var(--muted);">Öncelik</span>
+              <span style="color:var(--yellow);">Orta</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:11px;">
+              <span style="color:var(--muted);">Atanan</span>
+              <span>admin</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:11px;">
+              <span style="color:var(--muted);">Açılış</span>
+              <span>20.05.2026 14:28</span>
+            </div>
+          </div>
+          <div style="margin-top:10px;">
+            <label style="font-size:10px;color:var(--muted);display:block;margin-bottom:4px;">Kategori Değiştir</label>
+            <select style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:6px 8px;color:var(--text);font-size:11px;outline:none;">
+              <option>Teknik</option>
+              <option>Hesap</option>
+              <option>Ödeme</option>
+              <option>Genel</option>
+              <option>Şikayet</option>
+            </select>
+          </div>
+          <div style="margin-top:8px;">
+            <label style="font-size:10px;color:var(--muted);display:block;margin-bottom:4px;">Öncelik</label>
+            <select style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:6px 8px;color:var(--text);font-size:11px;outline:none;">
+              <option>Düşük</option>
+              <option selected>Orta</option>
+              <option>Yüksek</option>
+              <option>Acil 🔥</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Hızlı Yanıtlar -->
+        <div class="card">
+          <div class="card-title">⚡ Hızlı Yanıtlar</div>
+          <div style="display:flex;flex-direction:column;gap:6px;">
+            <button class="btn btn-ghost btn-sm" style="text-align:left;justify-content:flex-start;font-size:10px;height:auto;padding:8px 10px;line-height:1.4;white-space:normal;">Merhaba! Size nasıl yardımcı olabilirim?</button>
+            <button class="btn btn-ghost btn-sm" style="text-align:left;justify-content:flex-start;font-size:10px;height:auto;padding:8px 10px;line-height:1.4;white-space:normal;">Sorununuz teknik ekibimize iletildi, kısa sürede çözüm sağlanacak.</button>
+            <button class="btn btn-ghost btn-sm" style="text-align:left;justify-content:flex-start;font-size:10px;height:auto;padding:8px 10px;line-height:1.4;white-space:normal;">/start komutunu çalıştırın ve tekrar deneyin.</button>
+            <button class="btn btn-ghost btn-sm" style="text-align:left;justify-content:flex-start;font-size:10px;height:auto;padding:8px 10px;line-height:1.4;white-space:normal;">Sorun çözüldü olarak işaretlendi. İyi kullanımlar!</button>
+            <button class="btn btn-ghost btn-sm" style="text-align:left;justify-content:flex-start;font-size:10px;height:auto;padding:8px 10px;line-height:1.4;white-space:normal;color:var(--cyan);">+ Yeni hızlı yanıt ekle</button>
+          </div>
+        </div>
+
+        <!-- Notlar -->
+        <div class="card">
+          <div class="card-title">📝 İç Notlar</div>
+          <textarea placeholder="Bu ticket için dahili not ekle (kullanıcı göremez)..." style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:8px 10px;color:var(--text);font-size:11px;resize:none;height:72px;outline:none;box-sizing:border-box;font-family:inherit;" onfocus="this.style.borderColor='var(--yellow)'" onblur="this.style.borderColor='var(--border)'"></textarea>
+          <button class="btn btn-ghost btn-sm" style="margin-top:6px;width:100%;">Not Kaydet</button>
+        </div>
+      </div>
+    </div>
+  </div><!-- /page-support -->
+
+
+  </div><!-- /content -->
+</div><!-- /main -->
+</div><!-- /layout -->
+
+<script>
+const pages = {
+  dashboard:   { title: 'Dashboard',              sub: 'Sistem genel bakış' },
+  activity:    { title: 'Aktivite',               sub: 'Son sistem olayları' },
+  channels:    { title: 'Bot & Kanallar',          sub: 'Telegram bot ve kanal yönetimi' },
+  feed:        { title: 'Token Feed',             sub: 'Feedteki tokenler' },
+  'add-token': { title: '+ Token Ekle',           sub: 'Yeni token feed listesine ekle' },
+  trending:    { title: 'Trend Ayarları',          sub: 'Algoritma ve görünüm ayarları' },
+  banner:      { title: 'Mini App Banner',        sub: 'Bilgisayar · tablet · telefon görselleri' },
+  miniapp:     { title: 'Mini App Ayarları',      sub: 'Özellik bayrakları ve seed verisi' },
+  connections: { title: 'Bağlantılar & API',      sub: 'Endpoint ve bağlantı yönetimi' },
+  env:         { title: 'Ortam Değişkenleri',     sub: 'Sistem çevre değişkenleri' },
+  settings:    { title: 'Ayarlar',                sub: 'Admin hesabı ve genel ayarlar' },
+  security:    { title: '🔐 Güvenlik',              sub: 'Şifre, oturum ve erişim güvenliği' },
+  chains:      { title: '⛓️ Zincir Yönetimi',       sub: 'Blockchain ağ konfigürasyonları' },
+  risk:        { title: '🛡️ Risk Filtreleri',        sub: 'Otomatik risk eşik ve filtre ayarları' },
+  admins:      { title: '👥 Admin Kullanıcılar',     sub: 'Yönetici hesapları ve yetki matrisi' },
+  support:     { title: '💬 Canlı Destek',           sub: 'Kullanıcı mesajları ve destek talepleri' },
+};
+
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n => {
+    if (n.getAttribute('onclick') && n.getAttribute('onclick').includes("'" + id + "'")) {
+      n.classList.add('active');
+    }
+  });
+  document.getElementById('topbar-title').textContent = pages[id]?.title || id;
+  document.getElementById('topbar-sub').textContent   = pages[id]?.sub   || '';
+}
+</script>
+<script src="admin-nav.js?v=3"></script>
+<script src="admin-live.js?v=5"></script>
+<script src="admin-banner.js?v=2"></script>
+<script src="admin-settings.js?v=2"></script>
+<script src="admin-trending.js?v=4"></script>
+<script src="admin-feed.js?v=4"></script>
+</body>
+</html>

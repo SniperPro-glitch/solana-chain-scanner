@@ -1,0 +1,208 @@
+/* Canlı Destek — taşma / responsive düzeltmeleri */
+
+:root {
+  --blue: #3b82f6;
+}
+
+@keyframes spulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(0.85); }
+}
+
+.layout.layout-support-view {
+  overflow-x: hidden;
+}
+
+.layout.layout-support-view .main {
+  overflow: hidden;
+  min-width: 0;
+}
+
+.content.content--support {
+  padding: 0 !important;
+  overflow: hidden !important;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+}
+
+#page-support.page.active {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+  width: 100%;
+  max-width: 100%;
+}
+
+#supportAdminRoot {
+  display: grid;
+  grid-template-columns: minmax(0, 260px) minmax(0, 1fr) minmax(0, 240px);
+  gap: 0;
+  width: 100%;
+  max-width: 100%;
+  height: 100% !important;
+  margin: 0 !important;
+  overflow: hidden;
+  box-sizing: border-box;
+  min-height: 0;
+}
+
+.sup-col-tickets,
+.sup-col-chat,
+.sup-col-detail {
+  min-width: 0;
+  overflow: hidden;
+}
+
+.sup-col-tickets {
+  background: var(--bg2);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+}
+
+.sup-col-chat {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: var(--bg);
+}
+
+.sup-col-detail {
+  background: var(--bg2);
+  border-left: 1px solid var(--border);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+#supBackToList {
+  display: none;
+  flex-shrink: 0;
+  margin-right: 4px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+#supportAdminRoot .sup-chat-head-inner {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+  flex: 1;
+}
+
+#supMessages .sup-bubble-max {
+  max-width: min(420px, 100%);
+  word-break: break-word;
+}
+
+#supUserKv .sup-kv-val,
+#supUserActivity .sup-kv-val {
+  max-width: 58%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+#supportAdminStatus {
+  position: absolute;
+  bottom: 8px;
+  right: 12px;
+  z-index: 5;
+  font-size: 11px;
+  margin: 0;
+  pointer-events: none;
+  max-width: 40%;
+  text-align: right;
+}
+
+/* Ticket list */
+.sup-ticket-item {
+  padding: 12px;
+  border-radius: 10px;
+  cursor: pointer;
+  margin-bottom: 4px;
+  border: 1px solid transparent;
+  background: var(--surface);
+  transition: background 0.15s, border-color 0.15s;
+  position: relative;
+}
+.sup-ticket-item:hover { background: var(--surface2); }
+.sup-ticket-item.active {
+  border-color: rgba(0, 255, 136, 0.2);
+  background: var(--surface2);
+}
+.sup-ticket-item.active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 55%;
+  background: var(--green);
+  border-radius: 0 2px 2px 0;
+}
+
+#supportAdminStatus.err { color: var(--red); }
+
+/* Orta genişlik: sağ panel alta */
+@media (max-width: 1280px) {
+  #supportAdminRoot {
+    grid-template-columns: minmax(0, 240px) minmax(0, 1fr);
+  }
+  .sup-col-detail {
+    display: none;
+  }
+  #supportAdminRoot.sup-detail-open .sup-col-detail {
+    display: flex;
+    position: absolute;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: min(280px, 88vw);
+    z-index: 20;
+    box-shadow: -8px 0 32px rgba(0, 0, 0, 0.45);
+  }
+}
+
+/* Dar ekran: ticket seçilince liste gizlenir */
+@media (max-width: 960px) {
+  #supportAdminRoot {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  #supportAdminRoot:not(.sup-ticket-picked) .sup-col-chat,
+  #supportAdminRoot:not(.sup-ticket-picked) .sup-col-detail {
+    display: none;
+  }
+  #supportAdminRoot.sup-ticket-picked .sup-col-tickets {
+    display: none;
+  }
+  #supportAdminRoot.sup-ticket-picked #supBackToList {
+    display: inline-flex;
+    align-items: center;
+  }
+}
+
+@media (max-width: 600px) {
+  #supportAdminRoot {
+    grid-template-columns: 1fr;
+  }
+  .sup-col-detail {
+    width: 100% !important;
+  }
+}

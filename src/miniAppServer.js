@@ -191,7 +191,7 @@ function createMiniAppServer() {
         res.writeHead(204, {
           'Access-Control-Allow-Origin': '*',
           'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-          'Access-Control-Allow-Headers': 'Content-Type, X-Crop-Key',
+          'Access-Control-Allow-Headers': 'Content-Type, X-Crop-Key, Authorization, X-Admin-Token, X-Admin-Action-Token',
         });
         res.end();
         return;
@@ -199,24 +199,31 @@ function createMiniAppServer() {
 
       if (url.pathname === '/api/promo-banner') {
         const promoBannerStore = require('./promoBannerStore');
+        const { getPromoBanner } = require('./miniAppPromo');
         if (req.method === 'GET') {
-          const cfg = promoBannerStore.loadConfig();
-          if (!cfg) {
-            sendJson(res, 200, { enabled: false, posX: 50, link: null, imageUrl: null });
-            return;
-          }
-          sendJson(res, 200, cfg);
+          sendJson(res, 200, getPromoBanner());
           return;
         }
         if (req.method === 'POST') {
-          if (!promoBannerStore.isPublishAuthorized(req)) {
-            sendJson(res, 403, { error: 'forbidden' });
+          const { verifyAdmin } = require('./adminPanel');
+          const auth = verifyAdmin(req);
+          if (!auth.ok) {
+            sendJson(res, 403, {
+              error: 'use_admin_panel',
+              message: 'Banner yalnızca /admin/ panelinden yönetilir.',
+            });
+            return;
+          }
+          const { assertActionAuthForRoute } = require('./adminActionAuth');
+          const actionGate = assertActionAuthForRoute(req, url, auth);
+          if (!actionGate.ok) {
+            sendJson(res, 403, actionGate);
             return;
           }
           const raw = await readBody(req);
           const payload = JSON.parse(raw.toString('utf8') || '{}');
           const saved = promoBannerStore.saveConfig(payload);
-          console.log('[miniApp] promo-banner kaydedildi:', saved.imageUrl);
+          console.log('[miniApp] promo-banner kaydedildi (admin)');
           sendJson(res, 200, { ok: true, saved });
           return;
         }
@@ -300,9 +307,11 @@ function createMiniAppServer() {
       }
 
       if (req.method === 'GET' && url.pathname === '/api/config') {
+        const supportStore = require('./supportStore');
         sendJson(res, 200, {
           webAppBase: getWebAppBaseUrl(),
           botApiBase: getBotApiBaseUrl(),
+          support: supportStore.loadConfig(),
         });
         return;
       }
@@ -395,6 +404,44 @@ function createMiniAppServer() {
           const code = e.code === 'not_found' ? 404 : 500;
           sendJson(res, code, { error: e.code || 'analyze_failed', message: e.message });
         }
+        return;
+      }
+
+      const { handleMiniAppAdminAccess } = require('./miniAppAdminAccess');
+      if (handleMiniAppAdminAccess(req, res, url, sendJson)) return;
+
+      const { handlePublicSupportApi } = require('./supportApi');
+      if (url.pathname.startsWith('/api/support')) {
+        const handled = await handlePublicSupportApi(req, res, url, sendJson);
+        if (handled) return;
+      }
+
+      const { handleAdminApi, ADMIN_PUBLIC_DIR } = require('./adminPanel');
+      if (url.pathname.startsWith('/api/admin')) {
+        const handled = await handleAdminApi(req, res, url, {
+          sendJson,
+          getWebAppBaseUrl,
+          getBotApiBaseUrl,
+        });
+        if (handled) return;
+      }
+
+      if (url.pathname === '/admin') {
+        res.writeHead(302, { Location: '/admin/' });
+        res.end();
+        return;
+      }
+      if (url.pathname.startsWith('/admin/')) {
+        let rel = url.pathname.replace(/^\/admin\/?/, '') || 'index.html';
+        if (rel === '/' || rel === '') rel = 'index.html';
+        const safe = path.normalize(rel).replace(/^(\.\.[/\\])+/, '').replace(/^[/\\]+/, '');
+        const filePath = path.join(ADMIN_PUBLIC_DIR, safe);
+        if (!filePath.startsWith(ADMIN_PUBLIC_DIR)) {
+          res.writeHead(403);
+          res.end('Forbidden');
+          return;
+        }
+        serveStatic(res, filePath);
         return;
       }
 

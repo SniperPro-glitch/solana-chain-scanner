@@ -1,0 +1,22 @@
+    <!-- ══════════ TREND AYARLARI (mockup) ══════════ -->
+    <div class="page" id="page-trending">
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">Algoritma Ağırlıkları</div>
+          <div class="input-group"><div class="input-label">Hacim (VOL) Ağırlığı %</div><input class="input" type="number" id="trendWVolume" value="40" min="0" max="100" /></div>
+          <div class="input-group"><div class="input-label">İşlem Sayısı (TXN) %</div><input class="input" type="number" id="trendWTxns" value="30" min="0" max="100" /></div>
+          <div class="input-group"><div class="input-label">Holder Sayısı %</div><input class="input" type="number" id="trendWHolders" value="20" min="0" max="100" /></div>
+          <div class="input-group"><div class="input-label">Fiyat Değişimi %</div><input class="input" type="number" id="trendWPrice" value="10" min="0" max="100" /></div>
+          <button type="button" class="btn btn-primary btn-md trend-save-btn">Kaydet</button>
+        </div>
+        <div class="card">
+          <div class="card-title">Varsayılan Görünüm</div>
+          <div class="input-group"><div class="input-label">Varsayılan Timeframe</div><input class="input" type="text" id="trendTimeframe" value="24h" placeholder="5m / 1h / 6h / 24h" /></div>
+          <div class="input-group"><div class="input-label">Varsayılan DEX Filtresi</div><input class="input" type="text" id="trendDex" value="all" placeholder="all / pumpfun / raydium" /></div>
+          <div class="input-group"><div class="input-label">Varsayılan Sıralama</div><input class="input" type="text" id="trendSort" value="top" placeholder="top / gainers / new" /></div>
+          <div class="input-group"><div class="input-label">Sayfa başına token</div><input class="input" type="number" id="trendPageSize" value="20" min="5" max="100" /></div>
+          <button type="button" class="btn btn-primary btn-md trend-save-btn">Kaydet</button>
+        </div>
+      </div>
+      <p id="trendStatus" class="banner-admin-status" role="status" style="margin-top:12px"></p>
+    </div>

@@ -1,0 +1,237 @@
+    <!-- ══════════ TREND AYARLARI (trend cursor) ══════════ -->
+    <div class="page" id="page-trending">
+<div style="display:flex;flex-direction:column;gap:16px;">
+
+        <!-- SOL SUTUN -->
+        <div style="display:flex;flex-direction:column;gap:16px;">
+
+          <!-- Aktif Trendler Tablosu -->
+          <div class="card" style="padding:0;overflow:hidden;">
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--border);">
+              <div class="card-title" style="margin:0;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#00ff88" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
+                Aktif Trend Listesi
+              </div>
+              <div style="display:flex;gap:8px;align-items:center;">
+                <div style="display:flex;gap:4px;">
+                  <button onclick="setTF(this,'5m')" class="tf-btn" style="background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:6px;padding:4px 10px;color:var(--muted);font-size:10px;cursor:pointer;">5m</button>
+                  <button onclick="setTF(this,'1h')" class="tf-btn" style="background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:6px;padding:4px 10px;color:var(--muted);font-size:10px;cursor:pointer;">1h</button>
+                  <button onclick="setTF(this,'6h')" class="tf-btn" style="background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:6px;padding:4px 10px;color:var(--muted);font-size:10px;cursor:pointer;">6h</button>
+                  <button onclick="setTF(this,'24h')" class="tf-btn" style="background:rgba(0,255,136,.1);border:1px solid rgba(0,255,136,.3);border-radius:6px;padding:4px 10px;color:var(--green);font-size:10px;cursor:pointer;font-weight:700;">24h</button>
+                </div>
+                <select id="trendChainFilter" style="background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:4px 8px;color:var(--text);font-size:10px;outline:none;">
+                  <option>Tüm Ağlar</option>
+                  <option>Solana</option>
+                  <option>TON</option>
+                  <option>BSC</option>
+                  <option>ETH</option>
+                </select>
+                <button type="button" id="trendBtnManualAdd" class="btn btn-primary btn-sm">+ Manuel Ekle</button>
+              </div>
+            </div>
+            <div class="tbl-wrap">
+              <table class="tbl">
+                <thead>
+                  <tr>
+                    <th style="width:36px;">#</th>
+                    <th>TOKEN</th>
+                    <th>AĞ</th>
+                    <th>FİYAT</th>
+                    <th>24H%</th>
+                    <th>HACİM</th>
+                    <th>TXN</th>
+                    <th>RİSK</th>
+                    <th>KAYNAK</th>
+                    <th>DURUM</th>
+                    <th>İŞLEM</th>
+                  </tr>
+                </thead>
+                <tbody id="trendTableBody"><tr><td colspan="11" style="color:var(--muted);text-align:center;padding:24px;">Yükleniyor…</td></tr></tbody>
+              </table>
+            </div>
+          </div>
+
+
+        <!-- ALT: Algoritma + Görünüm + Yenileme -->
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;">
+
+          <!-- Algoritma Ağırlıkları -->
+          <div class="card">
+            <div class="card-title">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#00e5ff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              Algoritma Ağırlıkları
+            </div>
+            <div style="display:flex;flex-direction:column;gap:14px;margin-top:8px;">
+              <div>
+                <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:5px;"><span>Hacim (VOL)</span><span style="color:var(--green);font-weight:700;font-family:'JetBrains Mono',monospace;" id="w-vol">40%</span></div>
+                <input type="range" min="0" max="100" value="40" style="width:100%;accent-color:var(--green);box-sizing:border-box;" oninput="document.getElementById('w-vol').textContent=this.value+'%'">
+              </div>
+              <div>
+                <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:5px;"><span>İşlem Sayısı (TXN)</span><span style="color:var(--cyan);font-weight:700;font-family:'JetBrains Mono',monospace;" id="w-txn">30%</span></div>
+                <input type="range" min="0" max="100" value="30" style="width:100%;accent-color:var(--cyan);box-sizing:border-box;" oninput="document.getElementById('w-txn').textContent=this.value+'%'">
+              </div>
+              <div>
+                <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:5px;"><span>Holder Sayısı</span><span style="color:var(--yellow);font-weight:700;font-family:'JetBrains Mono',monospace;" id="w-holder">20%</span></div>
+                <input type="range" min="0" max="100" value="20" style="width:100%;accent-color:var(--yellow);box-sizing:border-box;" oninput="document.getElementById('w-holder').textContent=this.value+'%'">
+              </div>
+              <div>
+                <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:5px;"><span>Fiyat Değişimi</span><span style="color:#a78bfa;font-weight:700;font-family:'JetBrains Mono',monospace;" id="w-price">10%</span></div>
+                <input type="range" min="0" max="100" value="10" style="width:100%;accent-color:#a78bfa;box-sizing:border-box;" oninput="document.getElementById('w-price').textContent=this.value+'%'">
+              </div>
+              <div style="background:rgba(255,255,255,.04);border-radius:8px;padding:8px 12px;font-size:10px;color:var(--muted);">Toplam: <span style="color:var(--green);font-weight:700;">100%</span> olmalı</div>
+              <button style="width:100%;background:linear-gradient(135deg,var(--cyan),#0099cc);border:none;border-radius:8px;padding:9px;color:#05080f;font-size:12px;font-weight:700;cursor:pointer;">Kaydet</button>
+            </div>
+          </div>
+
+          <!-- Görünüm & Filtre -->
+          <div class="card">
+            <div class="card-title">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+              Görünüm & Filtre
+            </div>
+            <div style="display:flex;flex-direction:column;gap:10px;margin-top:8px;">
+              <div>
+                <label style="font-size:10px;color:var(--muted);display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:.05em;">Varsayılan Timeframe</label>
+                <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:5px;">
+                  <button class="tf-btn2" style="background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:6px;padding:6px 4px;color:var(--muted);font-size:11px;cursor:pointer;">5m</button>
+                  <button class="tf-btn2" style="background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:6px;padding:6px 4px;color:var(--muted);font-size:11px;cursor:pointer;">1h</button>
+                  <button class="tf-btn2" style="background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:6px;padding:6px 4px;color:var(--muted);font-size:11px;cursor:pointer;">6h</button>
+                  <button class="tf-btn2" style="background:rgba(0,255,136,.1);border:1px solid rgba(0,255,136,.3);border-radius:6px;padding:6px 4px;color:var(--green);font-size:11px;cursor:pointer;font-weight:600;">24h</button>
+                </div>
+              </div>
+              <div>
+                <label style="font-size:10px;color:var(--muted);display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:.05em;">Sayfa Başına Token</label>
+                <select style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);font-size:12px;outline:none;">
+                  <option>10</option><option selected>20</option><option>50</option><option>100</option>
+                </select>
+              </div>
+              <div>
+                <label style="font-size:10px;color:var(--muted);display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:.05em;">Varsayılan Sıralama</label>
+                <select style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);font-size:12px;outline:none;">
+                  <option>🔥 En Popüler</option><option>📈 Kazananlar</option><option>🆕 Yeni Eklenen</option><option>💰 En Yüksek Hacim</option>
+                </select>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:center;padding-top:4px;">
+                <div><div style="font-size:12px;font-weight:600;">High Risk Gizle</div><div style="font-size:10px;color:var(--muted);">Risk 71+ gösterilmesin</div></div>
+                <div style="width:36px;height:20px;border-radius:10px;background:var(--green);cursor:pointer;position:relative;"><div style="position:absolute;top:3px;right:3px;width:14px;height:14px;border-radius:50%;background:#fff;"></div></div>
+              </div>
+              <button style="width:100%;background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:8px;padding:9px;color:var(--text);font-size:12px;font-weight:600;cursor:pointer;">Kaydet</button>
+            </div>
+          </div>
+
+          <!-- Otomatik Yenileme -->
+          <div class="card">
+            <div class="card-title">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3"/></svg>
+              Otomatik Yenileme
+            </div>
+            <div style="display:flex;flex-direction:column;gap:10px;margin-top:8px;">
+              <div style="display:flex;justify-content:space-between;align-items:center;">
+                <div><div style="font-size:12px;font-weight:600;">Canlı Güncelleme</div><div style="font-size:10px;color:var(--muted);">Trend listesi otomatik yenilensin</div></div>
+                <div style="width:36px;height:20px;border-radius:10px;background:var(--green);cursor:pointer;position:relative;"><div style="position:absolute;top:3px;right:3px;width:14px;height:14px;border-radius:50%;background:#fff;"></div></div>
+              </div>
+              <div>
+                <label style="font-size:10px;color:var(--muted);display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:.05em;">Güncelleme Aralığı</label>
+                <select style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);font-size:12px;outline:none;">
+                  <option>30 saniye</option><option selected>60 saniye</option><option>2 dakika</option><option>5 dakika</option>
+                </select>
+              </div>
+              <div>
+                <label style="font-size:10px;color:var(--muted);display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:.05em;">Min. Hacim Eşiği (USD)</label>
+                <input type="number" value="10000" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);font-size:12px;outline:none;box-sizing:border-box;" onfocus="this.style.borderColor='var(--cyan)'" onblur="this.style.borderColor='var(--border)'">
+                <div style="font-size:10px;color:var(--muted);margin-top:4px;">Bu haciMin altındaki tokenler otomatik listeden çıkar</div>
+              </div>
+              <button style="width:100%;background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:8px;padding:9px;color:var(--text);font-size:12px;font-weight:600;cursor:pointer;margin-top:4px;">Kaydet</button>
+            </div>
+          </div>
+
+        </div><!-- /alt kartlar -->
+
+
+        </div><!-- /sol -->
+
+
+
+      </div><!-- /grid -->
+
+<!-- ========== TREND EKLE MODAL ========== -->
+<div id="trend-modal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.75);backdrop-filter:blur(4px);align-items:center;justify-content:center;">
+  <div style="background:var(--surface);border:1px solid rgba(0,255,136,.2);border-radius:16px;width:540px;max-width:95vw;max-height:90vh;display:flex;flex-direction:column;box-shadow:0 24px 64px rgba(0,0,0,.6);">
+
+    <!-- Modal Başlık -->
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:18px 20px;border-bottom:1px solid var(--border);">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div style="width:32px;height:32px;border-radius:8px;background:rgba(0,255,136,.1);display:flex;align-items:center;justify-content:center;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
+        </div>
+        <div>
+          <div style="font-size:14px;font-weight:700;">Trend'e Token Ekle</div>
+          <div style="font-size:10px;color:var(--muted);">Token seç, sıralamayı belirle</div>
+        </div>
+      </div>
+      <button style="width:28px;height:28px;border-radius:6px;background:rgba(255,255,255,.06);border:1px solid var(--border);color:var(--muted);cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;">×</button>
+    </div>
+
+    <!-- Arama Kutusu -->
+    <div style="padding:14px 20px;border-bottom:1px solid var(--border);">
+      <div style="position:relative;">
+        <svg style="position:absolute;left:11px;top:50%;transform:translateY(-50%);" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input id="trend-search" type="text" placeholder="Sembol veya contract adresi ara..."
+          style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:9px 12px 9px 34px;color:var(--text);font-size:12px;outline:none;box-sizing:border-box;">
+      </div>
+      <div style="display:flex;gap:6px;margin-top:10px;">
+        <button class="tnet-btn" style="background:rgba(0,255,136,.1);border:1px solid rgba(0,255,136,.3);border-radius:6px;padding:4px 11px;color:var(--green);font-size:10px;cursor:pointer;font-weight:700;">Tümü</button>
+        <button class="tnet-btn" style="background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:6px;padding:4px 11px;color:var(--muted);font-size:10px;cursor:pointer;">◎ SOL</button>
+        <button class="tnet-btn" style="background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:6px;padding:4px 11px;color:var(--muted);font-size:10px;cursor:pointer;">💎 TON</button>
+        <button class="tnet-btn" style="background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:6px;padding:4px 11px;color:var(--muted);font-size:10px;cursor:pointer;">🟡 BSC</button>
+        <button class="tnet-btn" style="background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:6px;padding:4px 11px;color:var(--muted);font-size:10px;cursor:pointer;">⟠ ETH</button>
+      </div>
+    </div>
+
+    <!-- Token Listesi -->
+    <div id="trend-token-list" style="overflow-y:auto;flex:1;padding:10px 12px;display:flex;flex-direction:column;gap:4px;max-height:320px;">
+      <!-- JS ile doldurulacak -->
+    </div>
+
+    <!-- Seçili Token + Sıralama -->
+    <div id="trend-selected-area" style="padding:14px 20px;border-top:1px solid var(--border);display:none;flex-direction:column;gap:12px;">
+      <div style="display:flex;align-items:center;gap:10px;background:rgba(0,255,136,.06);border:1px solid rgba(0,255,136,.15);border-radius:10px;padding:10px 14px;">
+        <div id="trend-sel-avatar" style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#1a2035,#0b101d);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:var(--green);flex-shrink:0;">?</div>
+        <div style="flex:1;">
+          <div id="trend-sel-sym" style="font-size:13px;font-weight:700;">—</div>
+          <div id="trend-sel-sub" style="display:none;">—</div>
+        </div>
+        <button style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:18px;padding:0 4px;">×</button>
+      </div>
+      <!-- Sıralama -->
+      <div>
+        <label style="font-size:10px;color:var(--muted);display:block;margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em;">Sıralama Pozisyonu</label>
+        <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:6px;" id="trend-pos-grid">
+          <button style="background:rgba(0,255,136,.1);border:2px solid var(--green);border-radius:8px;padding:8px 4px;color:var(--green);font-size:11px;cursor:pointer;font-weight:700;">📌</button>
+          <button style="background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:8px;padding:8px 4px;color:var(--text);font-size:11px;cursor:pointer;">1</button>
+          <button style="background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:8px;padding:8px 4px;color:var(--text);font-size:11px;cursor:pointer;">2</button>
+          <button style="background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:8px;padding:8px 4px;color:var(--text);font-size:11px;cursor:pointer;">3</button>
+          <button style="background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:8px;padding:8px 4px;color:var(--text);font-size:11px;cursor:pointer;">4</button>
+          <button style="background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:8px;padding:8px 4px;color:var(--text);font-size:11px;cursor:pointer;">5</button>
+          <button style="background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:8px;padding:8px 4px;color:var(--text);font-size:11px;cursor:pointer;">6</button>
+          <button style="background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:8px;padding:8px 4px;color:var(--text);font-size:11px;cursor:pointer;">7</button>
+          <button style="background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:8px;padding:8px 4px;color:var(--text);font-size:11px;cursor:pointer;">8</button>
+          <button style="background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:8px;padding:8px 4px;color:var(--text);font-size:11px;cursor:pointer;">9</button>
+          <button style="background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:8px;padding:8px 4px;color:var(--text);font-size:11px;cursor:pointer;">10</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Alt Butonlar -->
+    <div style="display:flex;gap:10px;padding:14px 20px;border-top:1px solid var(--border);">
+      <button style="flex:1;background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:9px;padding:10px;color:var(--muted);font-size:12px;cursor:pointer;">İptal</button>
+      <button id="trend-add-btn" disabled style="flex:2;background:linear-gradient(135deg,#1a3a2a,#0d2018);border:1px solid rgba(0,255,136,.2);border-radius:9px;padding:10px;color:rgba(0,255,136,.4);font-size:13px;font-weight:700;cursor:not-allowed;transition:all .2s;">
+        Trend'e Ekle
+      </button>
+    </div>
+  </div>
+</div>
+
+</body>
+      <p id="trendStatus" class="banner-admin-status" role="status" style="margin:8px 0 0"></p>
+    </div>

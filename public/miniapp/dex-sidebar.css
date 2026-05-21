@@ -243,6 +243,29 @@
   color: #00e5ff;
 }
 
+.dex-sidebar-admin {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: calc(100% - 8px);
+  margin: 0 4px 10px;
+  padding: 10px 12px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #e8c547;
+  border: 1px solid rgba(201, 162, 39, 0.45);
+  border-radius: 10px;
+  background: rgba(201, 162, 39, 0.1);
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.dex-sidebar-admin:hover {
+  background: rgba(201, 162, 39, 0.18);
+  color: #ffe08a;
+}
+
 .dex-sidebar-section-title {
   padding: 14px 16px 6px;
   font-size: 10px;

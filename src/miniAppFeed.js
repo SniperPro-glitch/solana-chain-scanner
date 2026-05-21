@@ -90,6 +90,9 @@ function tokenToFeedItem(token, audit, rank, reportId = null) {
     dexLabel: plat.label,
     dexShort: plat.short,
     dexAppUrl: reportId ? require('./miniAppServer').buildWebAppUrl(reportId) : null,
+    dexUrl: token.dexScreener?.url || null,
+    dexPageUrl: token.dexScreener?.url || null,
+    poolAddress: token.poolAddress || null,
     priceUsd: token.priceUsd,
     priceUsdFmt: fmtPriceUsd(token.priceUsd),
     change24h: token.priceChange24h,
@@ -172,7 +175,15 @@ async function buildFeedFromBotShares(tab = 'trending', limit = 24, dexFilter = 
 
   let ranked = items;
   if (tab === 'trending') {
-    ranked = rankFeedByVolume(items);
+    const { loadConfig } = require('./trendConfigStore');
+    const trendCfg = loadConfig();
+    let trendItems = items;
+    if (trendCfg.ticker?.minVolumeUsd > 0) {
+      trendItems = trendItems.filter(
+        (it) => (Number(it.volume24h) || 0) >= trendCfg.ticker.minVolumeUsd,
+      );
+    }
+    ranked = rankFeedByVolume(trendItems, trendCfg.weights);
   } else {
     ranked = items
       .sort((a, b) => (b.postedAt || 0) - (a.postedAt || 0))
@@ -207,7 +218,12 @@ async function buildFeedFromBotShares(tab = 'trending', limit = 24, dexFilter = 
     updatedAt: Date.now(),
     botCount: await botFeedStore.feedCountAsync(),
     promo: getPromoBanner(),
-    trendingTicker: buildTrendingTicker(finalItems, 14),
+    trendingTicker: (() => {
+      const { loadConfig } = require('./trendConfigStore');
+      const tc = loadConfig();
+      if (!tc.ticker?.enabled) return [];
+      return buildTrendingTicker(finalItems, tc.ticker.limit, tc.ticker.minVolumeUsd);
+    })(),
     dexFilter: dexFilter || 'all',
     dexPlatforms: listPlatformsForUi(),
     dexCounts: dexCountsFinal,

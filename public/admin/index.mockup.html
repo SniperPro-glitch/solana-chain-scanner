@@ -1,0 +1,1819 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SNIPER Admin Panel</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ═══════════════════════════════════════════
+   RESET & BASE
+═══════════════════════════════════════════ */
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --bg:        #05080f;
+  --bg2:       #080c16;
+  --surface:   #0b101d;
+  --surface2:  #0f1525;
+  --border:    rgba(255,255,255,0.07);
+  --border2:   rgba(255,255,255,0.12);
+  --text:      #eef2ff;
+  --muted:     #758096;
+  --muted2:    #4a5568;
+  --green:     #00ff88;
+  --cyan:      #00e5ff;
+  --yellow:    #f5a623;
+  --red:       #ff3b3b;
+  --purple:    #7c3aed;
+  --sidebar-w: 240px;
+}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;font-size:14px;overflow:hidden;}
+
+/* ═══════════════════════════════════════════
+   LAYOUT
+═══════════════════════════════════════════ */
+.layout{display:flex;height:100vh;overflow:hidden;}
+
+/* ═══════════════════════════════════════════
+   SIDEBAR
+═══════════════════════════════════════════ */
+.sidebar{
+  width:var(--sidebar-w);
+  flex-shrink:0;
+  background:var(--bg2);
+  border-right:1px solid var(--border);
+  display:flex;flex-direction:column;
+  overflow:hidden;
+}
+.sidebar-brand{
+  padding:20px 18px 16px;
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:10px;
+}
+.brand-logo{
+  width:34px;height:34px;border-radius:8px;
+  background:linear-gradient(135deg,#00ff88,#00b8cc);
+  display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;
+}
+.brand-logo svg{width:18px;height:18px;color:#000;}
+.brand-text .t1{font-size:14px;font-weight:800;color:#fff;letter-spacing:.5px;}
+.brand-text .t2{font-size:10px;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;margin-top:1px;}
+
+.sidebar-nav{flex:1;overflow-y:auto;padding:10px 0;}
+.sidebar-nav::-webkit-scrollbar{width:0;}
+
+.nav-section{margin-bottom:4px;}
+.nav-section-label{
+  font-size:10px;font-weight:600;
+  color:var(--muted2);text-transform:uppercase;letter-spacing:1.5px;
+  padding:10px 18px 4px;
+}
+.nav-item{
+  display:flex;align-items:center;gap:10px;
+  padding:9px 18px;
+  cursor:pointer;
+  border-radius:0;
+  transition:background .15s;
+  position:relative;
+  text-decoration:none;
+  color:var(--muted);
+  font-size:13px;font-weight:500;
+}
+.nav-item:hover{background:rgba(255,255,255,0.04);color:var(--text);}
+.nav-item.active{
+  background:rgba(0,255,136,0.08);
+  color:var(--green);
+  border-right:2px solid var(--green);
+}
+.nav-item.active .nav-icon{color:var(--green);}
+.nav-icon{width:16px;height:16px;flex-shrink:0;}
+.nav-badge{
+  margin-left:auto;
+  background:var(--green);color:#000;
+  font-size:10px;font-weight:700;
+  border-radius:10px;padding:1px 6px;
+}
+.nav-badge.red{background:var(--red);color:#fff;}
+.nav-badge.yellow{background:var(--yellow);color:#000;}
+
+.sidebar-footer{
+  padding:14px 18px;
+  border-top:1px solid var(--border);
+}
+.admin-user{display:flex;align-items:center;gap:10px;}
+.admin-avatar{
+  width:30px;height:30px;border-radius:50%;
+  background:linear-gradient(135deg,var(--purple),#4f46e5);
+  display:flex;align-items:center;justify-content:center;
+  font-size:12px;font-weight:700;color:#fff;flex-shrink:0;
+}
+.admin-name{font-size:12px;font-weight:600;color:var(--text);}
+.admin-role{font-size:10px;color:var(--muted);}
+.logout-btn{
+  margin-left:auto;
+  background:transparent;border:none;cursor:pointer;
+  color:var(--muted);padding:4px;
+}
+.logout-btn:hover{color:var(--red);}
+
+/* ═══════════════════════════════════════════
+   MAIN
+═══════════════════════════════════════════ */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;}
+
+.topbar{
+  height:56px;flex-shrink:0;
+  background:var(--bg2);
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:center;
+  padding:0 24px;
+  gap:16px;
+}
+.topbar-title{font-size:16px;font-weight:700;color:var(--text);}
+.topbar-subtitle{font-size:12px;color:var(--muted);margin-top:1px;}
+.topbar-right{margin-left:auto;display:flex;align-items:center;gap:10px;}
+.status-dot{
+  display:flex;align-items:center;gap:6px;
+  font-size:12px;color:var(--muted);
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:20px;padding:4px 10px;
+}
+.dot{width:7px;height:7px;border-radius:50%;}
+.dot.green{background:var(--green);box-shadow:0 0 6px var(--green);}
+.dot.red{background:var(--red);}
+.dot.yellow{background:var(--yellow);}
+
+.content{flex:1;overflow-y:auto;padding:24px;}
+.content::-webkit-scrollbar{width:4px;}
+.content::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px;}
+
+/* ═══════════════════════════════════════════
+   PAGES
+═══════════════════════════════════════════ */
+.page{display:none;}
+.page.active{display:block;}
+
+/* ═══════════════════════════════════════════
+   COMPONENTS
+═══════════════════════════════════════════ */
+
+/* Stat Cards */
+.stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px;}
+.stat-card{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:12px;
+  padding:16px 18px;
+}
+.stat-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px;}
+.stat-value{font-size:24px;font-weight:700;color:var(--text);font-family:'JetBrains Mono',monospace;}
+.stat-change{font-size:12px;font-weight:600;margin-top:4px;}
+.stat-change.up{color:var(--green);}
+.stat-change.down{color:var(--red);}
+.stat-change.neu{color:var(--muted);}
+.stat-icon{
+  width:36px;height:36px;border-radius:10px;
+  display:flex;align-items:center;justify-content:center;
+  margin-bottom:10px;
+}
+.stat-icon.green{background:rgba(0,255,136,0.1);}
+.stat-icon.cyan{background:rgba(0,229,255,0.1);}
+.stat-icon.yellow{background:rgba(245,166,35,0.1);}
+.stat-icon.red{background:rgba(255,59,59,0.1);}
+.stat-icon.purple{background:rgba(124,58,237,0.1);}
+
+/* Section header */
+.section-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+.section-title{font-size:13px;font-weight:700;color:var(--text);text-transform:uppercase;letter-spacing:.8px;}
+.section-action{font-size:12px;color:var(--cyan);cursor:pointer;font-weight:500;}
+
+/* Card */
+.card{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:12px;
+  padding:18px;
+  margin-bottom:16px;
+}
+.card-title{font-size:13px;font-weight:700;color:var(--text);margin-bottom:14px;display:flex;align-items:center;gap:8px;}
+
+/* Health bars */
+.health-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.health-item{
+  background:var(--surface2);
+  border:1px solid var(--border);
+  border-radius:10px;
+  padding:12px 14px;
+  display:flex;align-items:center;gap:12px;
+}
+.health-info{flex:1;}
+.health-name{font-size:12px;font-weight:600;color:var(--text);}
+.health-detail{font-size:10px;color:var(--muted);margin-top:2px;font-family:'JetBrains Mono',monospace;}
+.health-status{
+  font-size:10px;font-weight:700;
+  border-radius:20px;padding:3px 8px;
+}
+.health-status.online{background:rgba(0,255,136,0.12);color:var(--green);}
+.health-status.offline{background:rgba(255,59,59,0.12);color:var(--red);}
+.health-status.warn{background:rgba(245,166,35,0.12);color:var(--yellow);}
+
+/* Table */
+.tbl{width:100%;border-collapse:collapse;}
+.tbl th{
+  font-size:10px;font-weight:600;color:var(--muted);
+  text-transform:uppercase;letter-spacing:.8px;
+  padding:8px 12px;border-bottom:1px solid var(--border);
+  text-align:left;white-space:nowrap;
+}
+.tbl td{
+  padding:11px 12px;
+  border-bottom:1px solid rgba(255,255,255,0.04);
+  font-size:12px;color:var(--text);
+  vertical-align:middle;
+}
+.tbl tr:last-child td{border-bottom:none;}
+.tbl tr:hover td{background:rgba(255,255,255,0.02);}
+
+/* Token row */
+.token-cell{display:flex;align-items:center;gap:10px;}
+.token-avatar{
+  width:32px;height:32px;border-radius:50%;
+  background:linear-gradient(135deg,#1a3a2a,#0d2a1a);
+  display:flex;align-items:center;justify-content:center;
+  font-size:11px;font-weight:700;color:var(--green);
+  flex-shrink:0;border:1px solid rgba(0,255,136,0.15);
+}
+.token-sym{font-size:13px;font-weight:700;color:var(--text);}
+.token-pair{font-size:10px;color:var(--muted);}
+
+/* Risk pill */
+.risk-pill{
+  display:inline-flex;align-items:center;
+  font-size:10px;font-weight:700;
+  border-radius:20px;padding:3px 9px;
+  white-space:nowrap;
+}
+.risk-pill.low{background:rgba(0,255,136,0.12);color:var(--green);border:1px solid rgba(0,255,136,0.2);}
+.risk-pill.med{background:rgba(245,166,35,0.12);color:var(--yellow);border:1px solid rgba(245,166,35,0.2);}
+.risk-pill.high{background:rgba(255,59,59,0.12);color:var(--red);border:1px solid rgba(255,59,59,0.2);}
+
+/* DEX badge */
+.dex-badge{
+  display:inline-flex;align-items:center;gap:4px;
+  font-size:9px;font-weight:600;color:var(--muted);
+  background:var(--surface2);border:1px solid var(--border);
+  border-radius:4px;padding:2px 6px;
+}
+
+/* Toggle */
+.toggle{position:relative;width:36px;height:20px;flex-shrink:0;}
+.toggle input{opacity:0;width:0;height:0;}
+.toggle-slider{
+  position:absolute;inset:0;
+  background:#1a2235;border:1px solid var(--border2);
+  border-radius:20px;cursor:pointer;transition:.25s;
+}
+.toggle-slider:before{
+  content:'';position:absolute;
+  width:14px;height:14px;left:2px;top:2px;
+  background:var(--muted2);border-radius:50%;transition:.25s;
+}
+.toggle input:checked + .toggle-slider{background:rgba(0,255,136,0.2);border-color:var(--green);}
+.toggle input:checked + .toggle-slider:before{background:var(--green);transform:translateX(16px);}
+
+/* Button */
+.btn{
+  display:inline-flex;align-items:center;gap:6px;
+  border:none;border-radius:8px;cursor:pointer;
+  font-family:'Inter',sans-serif;font-weight:600;
+  transition:.15s;white-space:nowrap;
+}
+.btn-sm{font-size:11px;padding:6px 12px;}
+.btn-md{font-size:12px;padding:8px 16px;}
+.btn-primary{background:var(--green);color:#000;}
+.btn-primary:hover{background:#00e07a;}
+.btn-ghost{background:var(--surface2);color:var(--text);border:1px solid var(--border);}
+.btn-ghost:hover{border-color:var(--border2);background:rgba(255,255,255,0.05);}
+.btn-danger{background:rgba(255,59,59,0.15);color:var(--red);border:1px solid rgba(255,59,59,0.2);}
+.btn-cyan{background:rgba(0,229,255,0.12);color:var(--cyan);border:1px solid rgba(0,229,255,0.2);}
+
+/* Input */
+.input{
+  background:var(--surface2);
+  border:1px solid var(--border);
+  border-radius:8px;
+  color:var(--text);
+  font-family:'Inter',sans-serif;
+  font-size:13px;
+  padding:9px 12px;
+  outline:none;
+  width:100%;transition:.15s;
+}
+.input:focus{border-color:rgba(0,229,255,0.4);}
+.input::placeholder{color:var(--muted2);}
+
+.input-group{margin-bottom:14px;}
+.input-label{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px;}
+
+/* Channel row */
+.channel-row{
+  display:flex;align-items:center;gap:12px;
+  padding:12px 14px;
+  background:var(--surface2);
+  border:1px solid var(--border);
+  border-radius:10px;
+  margin-bottom:8px;
+}
+.channel-icon{
+  width:36px;height:36px;border-radius:10px;
+  background:linear-gradient(135deg,#1a2a4a,#0d1a30);
+  display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;font-size:16px;
+}
+.channel-info{flex:1;min-width:0;}
+.channel-name{font-size:13px;font-weight:600;color:var(--text);}
+.channel-meta{font-size:10px;color:var(--muted);margin-top:2px;font-family:'JetBrains Mono',monospace;}
+.channel-actions{display:flex;align-items:center;gap:8px;}
+
+/* Banner preview */
+.banner-preview{
+  width:100%;
+  aspect-ratio:780/144;
+  background:linear-gradient(135deg,#0a1628,#0d2040);
+  border:2px dashed var(--border2);
+  border-radius:10px;
+  display:flex;align-items:center;justify-content:center;
+  flex-direction:column;gap:8px;
+  cursor:pointer;
+  transition:.15s;
+  position:relative;overflow:hidden;
+}
+.banner-preview:hover{border-color:rgba(0,229,255,0.3);}
+.banner-preview-text{font-size:12px;color:var(--muted);}
+.banner-active{
+  background:linear-gradient(135deg,#050d20,#0a1830);
+  border:2px solid rgba(0,255,136,0.2);
+}
+.banner-ad-badge{
+  position:absolute;top:8px;right:8px;
+  background:rgba(245,166,35,0.9);color:#000;
+  font-size:9px;font-weight:700;
+  border-radius:3px;padding:2px 5px;
+}
+
+/* Env var row */
+.env-row{
+  display:flex;align-items:center;gap:10px;
+  padding:10px 14px;
+  background:var(--surface2);
+  border-bottom:1px solid rgba(255,255,255,0.04);
+}
+.env-row:first-child{border-radius:10px 10px 0 0;}
+.env-row:last-child{border-bottom:none;border-radius:0 0 10px 10px;}
+.env-key{
+  font-family:'JetBrains Mono',monospace;
+  font-size:12px;color:var(--cyan);
+  width:220px;flex-shrink:0;
+}
+.env-val{
+  font-family:'JetBrains Mono',monospace;
+  font-size:12px;color:var(--muted);
+  flex:1;letter-spacing:.5px;
+}
+.env-copy{
+  background:transparent;border:none;cursor:pointer;
+  color:var(--muted);padding:4px;font-size:11px;
+}
+.env-copy:hover{color:var(--cyan);}
+
+/* Activity feed */
+.activity-item{
+  display:flex;align-items:flex-start;gap:12px;
+  padding:10px 0;
+  border-bottom:1px solid rgba(255,255,255,0.04);
+}
+.activity-item:last-child{border-bottom:none;}
+.activity-dot{
+  width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:4px;
+}
+.activity-dot.green{background:var(--green);}
+.activity-dot.yellow{background:var(--yellow);}
+.activity-dot.red{background:var(--red);}
+.activity-dot.cyan{background:var(--cyan);}
+.activity-text{font-size:12px;color:var(--text);line-height:1.5;}
+.activity-time{font-size:10px;color:var(--muted);margin-left:auto;flex-shrink:0;}
+
+/* 2-col layout */
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;}
+
+/* Mini chart bar */
+.bar-row{display:flex;align-items:center;gap:8px;margin-bottom:7px;}
+.bar-label{font-size:11px;color:var(--muted);width:80px;flex-shrink:0;}
+.bar-track{flex:1;height:6px;background:rgba(255,255,255,0.06);border-radius:3px;overflow:hidden;}
+.bar-fill{height:6px;border-radius:3px;}
+.bar-val{font-size:11px;font-weight:600;color:var(--text);width:40px;text-align:right;flex-shrink:0;font-family:'JetBrains Mono',monospace;}
+
+/* Tag */
+.tag{
+  display:inline-flex;align-items:center;
+  font-size:10px;font-weight:600;
+  border-radius:5px;padding:2px 7px;
+  background:var(--surface2);color:var(--muted);border:1px solid var(--border);
+}
+
+/* Separator */
+.sep{height:1px;background:var(--border);margin:16px 0;}
+
+/* Scrollable table wrap */
+.tbl-wrap{overflow-x:auto;}
+.tbl-wrap::-webkit-scrollbar{height:3px;}
+.tbl-wrap::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px;}
+
+/* Feed actions */
+.tbl-actions{display:flex;align-items:center;gap:8px;margin-bottom:14px;}
+.search-input-wrap{position:relative;flex:1;max-width:300px;}
+.search-input-wrap svg{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--muted);width:14px;height:14px;}
+.search-input{padding-left:32px !important;}
+
+</style>
+</head>
+<body>
+<div class="layout">
+
+<!-- ═══════════════════ SIDEBAR ═══════════════════ -->
+<aside class="sidebar">
+  <div class="sidebar-brand">
+    <div class="brand-logo">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/>
+        <line x1="12" y1="2" x2="12" y2="5"/><line x1="12" y1="19" x2="12" y2="22"/>
+        <line x1="2" y1="12" x2="5" y2="12"/><line x1="19" y1="12" x2="22" y2="12"/>
+      </svg>
+    </div>
+    <div class="brand-text">
+      <div class="t1">SNIPER</div>
+      <div class="t2">Admin Panel</div>
+    </div>
+  </div>
+
+  <nav class="sidebar-nav">
+    <div class="nav-section">
+      <div class="nav-section-label">Genel</div>
+      <a class="nav-item active" onclick="showPage('dashboard')">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+        Dashboard
+      </a>
+      <a class="nav-item" onclick="showPage('activity')">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        Aktivite
+        <span class="nav-badge">12</span>
+      </a>
+    </div>
+
+    <div class="nav-section">
+      <div class="nav-section-label">Bot & Feed</div>
+      <a class="nav-item" onclick="showPage('channels')">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        Bot & Kanallar
+        <span class="nav-badge">3</span>
+      </a>
+      <a class="nav-item" onclick="showPage('feed')">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+        Token Feed
+      </a>
+      <a class="nav-item" onclick="showPage('trending')">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+        Trend Ayarları
+      </a>
+    </div>
+
+    <div class="nav-section">
+      <div class="nav-section-label">Mini App</div>
+      <a class="nav-item" onclick="showPage('banner')">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+        Banner Stüdyosu
+      </a>
+      <a class="nav-item" onclick="showPage('miniapp')">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+        Mini App Ayarları
+      </a>
+    </div>
+
+    <div class="nav-section">
+      <div class="nav-section-label">Ayarlar</div>
+      <a class="nav-item" onclick="showPage('security')">
+        <svg class="nav-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        Güvenlik
+      </a>
+      <a class="nav-item" onclick="showPage('chains')">
+        <svg class="nav-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+        Zincir Yönetimi
+      </a>
+      <a class="nav-item" onclick="showPage('risk')">
+        <svg class="nav-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        Risk Filtreleri
+      </a>
+      <a class="nav-item" onclick="showPage('admins')">
+        <svg class="nav-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        Admin Kullanıcılar
+      </a>
+      <a class="nav-item" onclick="showPage('support')">
+        <svg class="nav-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        Canlı Destek
+      </a>
+    </div>
+    <div class="nav-section">
+      <div class="nav-section-label">Sistem</div>
+      <a class="nav-item" onclick="showPage('connections')">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+        Bağlantılar & API
+      </a>
+      <a class="nav-item" onclick="showPage('env')">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+        Ortam Değişkenleri
+      </a>
+      <a class="nav-item" onclick="showPage('settings')" style="display:none;">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        Ayarlar
+      </a>
+    </div>
+  </nav>
+
+  <div class="sidebar-footer">
+    <div class="admin-user">
+      <div class="admin-avatar">A</div>
+      <div>
+        <div class="admin-name">admin</div>
+        <div class="admin-role">Super Admin</div>
+      </div>
+      <button class="logout-btn" title="Çıkış">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      </button>
+    </div>
+  </div>
+</aside>
+
+<!-- ═══════════════════ MAIN ═══════════════════ -->
+<div class="main">
+
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <div>
+      <div class="topbar-title" id="topbar-title">Dashboard</div>
+      <div class="topbar-subtitle" id="topbar-sub">Sistem genel bakış</div>
+    </div>
+    <div class="topbar-right">
+      <div class="status-dot"><span class="dot green"></span>Bot Online</div>
+      <div class="status-dot"><span class="dot green"></span>Feed Aktif</div>
+      <div class="status-dot"><span class="dot yellow"></span>3 Token</div>
+    </div>
+  </div>
+
+  <!-- CONTENT -->
+  <div class="content">
+
+    <!-- ══════════ DASHBOARD ══════════ -->
+    <div class="page active" id="page-dashboard">
+
+      <!-- Stat Cards -->
+      <div class="stat-grid">
+        <div class="stat-card">
+          <div class="stat-icon green">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#00ff88" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+          </div>
+          <div class="stat-label">Aktif Token</div>
+          <div class="stat-value">3</div>
+          <div class="stat-change up">+1 son 24h</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon cyan">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#00e5ff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+          </div>
+          <div class="stat-label">24H Hacim</div>
+          <div class="stat-value">$7.69M</div>
+          <div class="stat-change up">+796.0%</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon yellow">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#f5a623" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          </div>
+          <div class="stat-label">Aktif Kanal</div>
+          <div class="stat-value">3</div>
+          <div class="stat-change neu">değişmedi</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon purple">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+          </div>
+          <div class="stat-label">Likidite</div>
+          <div class="stat-value">$273K</div>
+          <div class="stat-change up">Protected</div>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <!-- Servis Health -->
+        <div class="card">
+          <div class="card-title">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#00e5ff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+            Servis Durumu
+          </div>
+          <div class="health-grid">
+            <div class="health-item">
+              <div class="dot green"></div>
+              <div class="health-info">
+                <div class="health-name">Bot API</div>
+                <div class="health-detail">@SniperDexBot</div>
+              </div>
+              <span class="health-status online">Online</span>
+            </div>
+            <div class="health-item">
+              <div class="dot green"></div>
+              <div class="health-info">
+                <div class="health-name">Token Feed</div>
+                <div class="health-detail">Solana aktif</div>
+              </div>
+              <span class="health-status online">Aktif</span>
+            </div>
+            <div class="health-item">
+              <div class="dot green"></div>
+              <div class="health-info">
+                <div class="health-name">DexScreener</div>
+                <div class="health-detail">API bağlı</div>
+              </div>
+              <span class="health-status online">Online</span>
+            </div>
+            <div class="health-item">
+              <div class="dot yellow"></div>
+              <div class="health-info">
+                <div class="health-name">Rugcheck</div>
+                <div class="health-detail">Yavaş yanıt</div>
+              </div>
+              <span class="health-status warn">Yavaş</span>
+            </div>
+            <div class="health-item">
+              <div class="dot red"></div>
+              <div class="health-info">
+                <div class="health-name">TON Feed</div>
+                <div class="health-detail">Henüz aktif değil</div>
+              </div>
+              <span class="health-status offline">Pasif</span>
+            </div>
+            <div class="health-item">
+              <div class="dot red"></div>
+              <div class="health-info">
+                <div class="health-name">BSC Feed</div>
+                <div class="health-detail">Henüz aktif değil</div>
+              </div>
+              <span class="health-status offline">Pasif</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Son Aktivite -->
+        <div class="card">
+          <div class="card-title">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f5a623" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            Son Aktivite
+          </div>
+          <div class="activity-item">
+            <div class="activity-dot green"></div>
+            <div class="activity-text">WORLDCUP token eklendi — $2.57M mcap</div>
+            <div class="activity-time">2dk önce</div>
+          </div>
+          <div class="activity-item">
+            <div class="activity-dot cyan"></div>
+            <div class="activity-text">Bot kanalı senkronize edildi — 3 token</div>
+            <div class="activity-time">15dk önce</div>
+          </div>
+          <div class="activity-item">
+            <div class="activity-dot yellow"></div>
+            <div class="activity-text">Rugcheck gecikmesi tespit edildi</div>
+            <div class="activity-time">32dk önce</div>
+          </div>
+          <div class="activity-item">
+            <div class="activity-dot green"></div>
+            <div class="activity-text">MEMECOINS token eklendi — +421%</div>
+            <div class="activity-time">1sa önce</div>
+          </div>
+          <div class="activity-item">
+            <div class="activity-dot green"></div>
+            <div class="activity-text">PIGEON token eklendi — PumpSwap</div>
+            <div class="activity-time">3sa önce</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Token tablosu özet -->
+      <div class="card">
+        <div class="section-hdr">
+          <div class="card-title" style="margin:0">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#00ff88" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+            Canlı Feed
+          </div>
+          <span class="section-action" onclick="showPage('feed')">Tümünü gör →</span>
+        </div>
+        <div class="tbl-wrap">
+          <table class="tbl">
+            <thead>
+              <tr>
+                <th>#</th><th>TOKEN</th><th>DEX</th><th>MCAP</th><th>FİYAT</th><th>24H%</th><th>VOL</th><th>RİSK</th><th>DURUM</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td style="color:var(--muted)">1</td>
+                <td><div class="token-cell"><div class="token-avatar">P</div><div><div class="token-sym">PIGEON</div><div class="token-pair">/ SOL</div></div></div></td>
+                <td><span class="dex-badge">🟢 PumpSwap</span></td>
+                <td style="font-family:'JetBrains Mono',monospace;">$717K</td>
+                <td style="color:var(--cyan);font-family:'JetBrains Mono',monospace;">$0.000717</td>
+                <td style="color:var(--green);">+1.9%</td>
+                <td style="font-family:'JetBrains Mono',monospace;">$3.64M</td>
+                <td><span class="risk-pill low">LOW</span></td>
+                <td><span class="dot green" style="display:inline-block"></span></td>
+              </tr>
+              <tr>
+                <td style="color:var(--muted)">2</td>
+                <td><div class="token-cell"><div class="token-avatar">M</div><div><div class="token-sym">MEMECOINS</div><div class="token-pair">/ SOL</div></div></div></td>
+                <td><span class="dex-badge">🟢 PumpSwap</span></td>
+                <td style="font-family:'JetBrains Mono',monospace;">$185K</td>
+                <td style="color:var(--cyan);font-family:'JetBrains Mono',monospace;">$0.000185</td>
+                <td style="color:var(--green);">+421.0%</td>
+                <td style="font-family:'JetBrains Mono',monospace;">$3.51M</td>
+                <td><span class="risk-pill low">LOW</span></td>
+                <td><span class="dot green" style="display:inline-block"></span></td>
+              </tr>
+              <tr>
+                <td style="color:var(--muted)">3</td>
+                <td><div class="token-cell"><div class="token-avatar">W</div><div><div class="token-sym">WORLDCUP</div><div class="token-pair">/ SOL</div></div></div></td>
+                <td><span class="dex-badge">🟢 PumpSwap</span></td>
+                <td style="font-family:'JetBrains Mono',monospace;">$2.57M</td>
+                <td style="color:var(--cyan);font-family:'JetBrains Mono',monospace;">$0.002572</td>
+                <td style="color:var(--green);">+22.0%</td>
+                <td style="font-family:'JetBrains Mono',monospace;">$541K</td>
+                <td><span class="risk-pill low">LOW</span></td>
+                <td><span class="dot green" style="display:inline-block"></span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Hacim dağılımı -->
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+            Hacim Dağılımı
+          </div>
+          <div class="bar-row"><span class="bar-label">PIGEON</span><div class="bar-track"><div class="bar-fill" style="width:47%;background:var(--green)"></div></div><span class="bar-val">$3.6M</span></div>
+          <div class="bar-row"><span class="bar-label">MEMECOINS</span><div class="bar-track"><div class="bar-fill" style="width:46%;background:var(--cyan)"></div></div><span class="bar-val">$3.5M</span></div>
+          <div class="bar-row"><span class="bar-label">WORLDCUP</span><div class="bar-track"><div class="bar-fill" style="width:7%;background:var(--yellow)"></div></div><span class="bar-val">$541K</span></div>
+        </div>
+        <div class="card">
+          <div class="card-title">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#00e5ff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+            Hızlı Linkler
+          </div>
+          <div style="display:flex;flex-direction:column;gap:8px;">
+            <button class="btn btn-ghost btn-md" style="justify-content:flex-start;gap:8px;">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+              Mini App'i Aç
+            </button>
+            <button class="btn btn-ghost btn-md" style="justify-content:flex-start;gap:8px;">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+              Telegram Bot
+            </button>
+            <button class="btn btn-cyan btn-md" style="justify-content:flex-start;gap:8px;" onclick="showPage('channels')">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
+              Kanal Senkronize Et
+            </button>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /dashboard -->
+
+
+    <!-- ══════════ AKTİVİTE ══════════ -->
+    <div class="page" id="page-activity">
+      <div class="card">
+        <div class="card-title">Son Aktiviteler</div>
+        <div class="activity-item"><div class="activity-dot green"></div><div class="activity-text">WORLDCUP token eklendi — $2.57M mcap, +22%</div><div class="activity-time">2dk önce</div></div>
+        <div class="activity-item"><div class="activity-dot cyan"></div><div class="activity-text">Bot kanalı senkronize edildi — 3 token güncellendi</div><div class="activity-time">15dk önce</div></div>
+        <div class="activity-item"><div class="activity-dot yellow"></div><div class="activity-text">Rugcheck API yavaş yanıt verdi (>2s)</div><div class="activity-time">32dk önce</div></div>
+        <div class="activity-item"><div class="activity-dot green"></div><div class="activity-text">MEMECOINS token eklendi — PumpSwap, +421%</div><div class="activity-time">1sa önce</div></div>
+        <div class="activity-item"><div class="activity-dot green"></div><div class="activity-text">PIGEON token eklendi — LOW RISK, $717K mcap</div><div class="activity-time">3sa önce</div></div>
+        <div class="activity-item"><div class="activity-dot cyan"></div><div class="activity-text">Admin panel açıldı — giriş yapıldı</div><div class="activity-time">3sa önce</div></div>
+        <div class="activity-item"><div class="activity-dot red"></div><div class="activity-text">TON feed bağlantısı devre dışı</div><div class="activity-time">1gün önce</div></div>
+      </div>
+    </div>
+
+
+    <!-- ══════════ BOT & KANALLAR ══════════ -->
+    <div class="page" id="page-channels">
+      <div class="grid-2" style="margin-bottom:16px;">
+        <div class="stat-card">
+          <div class="stat-label">Toplam Kanal</div>
+          <div class="stat-value">3</div>
+          <div class="stat-change neu">2 aktif · 1 test</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Son Paylaşım</div>
+          <div class="stat-value" style="font-size:18px;">2dk önce</div>
+          <div class="stat-change up">WORLDCUP token</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="section-hdr">
+          <div class="card-title" style="margin:0">Kayıtlı Kanallar</div>
+          <button class="btn btn-primary btn-sm">+ Kanal Ekle</button>
+        </div>
+
+        <div class="channel-row">
+          <div class="channel-icon">📢</div>
+          <div class="channel-info">
+            <div class="channel-name">@SniperDexMain</div>
+            <div class="channel-meta">ID: -1001234567890 · Solana · 3 token · Son: 2dk</div>
+          </div>
+          <div class="channel-actions">
+            <span class="risk-pill low" style="font-size:9px;">AKTİF</span>
+            <label class="toggle"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+            <button class="btn btn-ghost btn-sm">Sync</button>
+            <button class="btn btn-danger btn-sm">Sil</button>
+          </div>
+        </div>
+
+        <div class="channel-row">
+          <div class="channel-icon">📣</div>
+          <div class="channel-info">
+            <div class="channel-name">@SniperAlerts</div>
+            <div class="channel-meta">ID: -1009876543210 · Solana · 1 token · Son: 1sa</div>
+          </div>
+          <div class="channel-actions">
+            <span class="risk-pill low" style="font-size:9px;">AKTİF</span>
+            <label class="toggle"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+            <button class="btn btn-ghost btn-sm">Sync</button>
+            <button class="btn btn-danger btn-sm">Sil</button>
+          </div>
+        </div>
+
+        <div class="channel-row">
+          <div class="channel-icon">🧪</div>
+          <div class="channel-info">
+            <div class="channel-name">@SniperTest</div>
+            <div class="channel-meta">ID: -1005555555555 · Test · 0 token · Son: 2gün</div>
+          </div>
+          <div class="channel-actions">
+            <span class="tag" style="font-size:9px;">TEST</span>
+            <label class="toggle"><input type="checkbox"><span class="toggle-slider"></span></label>
+            <button class="btn btn-ghost btn-sm">Sync</button>
+            <button class="btn btn-danger btn-sm">Sil</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Bot Ayarları</div>
+        <div class="grid-2">
+          <div class="input-group">
+            <div class="input-label">Bot Token</div>
+            <input class="input" type="password" value="7891234567:AAHxxxxxxxxxxxxxxxxxxxxxxxx" placeholder="Telegram Bot Token">
+          </div>
+          <div class="input-group">
+            <div class="input-label">Bot Username</div>
+            <input class="input" type="text" value="@SniperDexBot" placeholder="@username">
+          </div>
+          <div class="input-group">
+            <div class="input-label">Varsayılan Zincir</div>
+            <input class="input" type="text" value="solana" placeholder="solana / ton / bsc">
+          </div>
+          <div class="input-group">
+            <div class="input-label">Bot Dili</div>
+            <input class="input" type="text" value="tr" placeholder="tr / en / ru">
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:4px;">
+          <button class="btn btn-primary btn-md">Kaydet</button>
+          <button class="btn btn-ghost btn-md">Bot'u Yeniden Başlat</button>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- ══════════ TOKEN FEED ══════════ -->
+    <div class="page" id="page-feed">
+      <div class="card">
+        <div class="tbl-actions">
+          <div class="search-input-wrap">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input class="input search-input" placeholder="Token ara... (sembol veya mint)">
+          </div>
+          <button class="btn btn-primary btn-sm">+ Token Ekle</button>
+          <button class="btn btn-ghost btn-sm">Blacklist</button>
+          <button class="btn btn-ghost btn-sm">Export CSV</button>
+        </div>
+        <div class="tbl-wrap">
+          <table class="tbl">
+            <thead>
+              <tr>
+                <th>#</th><th>TOKEN</th><th>MİNT ADRESİ</th><th>DEX</th><th>MCAP</th><th>FİYAT</th><th>24H%</th><th>RİSK</th><th>PİN</th><th>DURUM</th><th>İŞLEM</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td style="color:var(--muted)">1</td>
+                <td><div class="token-cell"><div class="token-avatar">P</div><div><div class="token-sym">PIGEON</div><div class="token-pair">Pump.fun</div></div></div></td>
+                <td style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted)">7xKX...E9xD</td>
+                <td><span class="dex-badge">PumpSwap</span></td>
+                <td style="font-family:'JetBrains Mono',monospace;">$717K</td>
+                <td style="color:var(--cyan);font-family:'JetBrains Mono',monospace;">$0.000717</td>
+                <td style="color:var(--green);">+1.9%</td>
+                <td><span class="risk-pill low">LOW</span></td>
+                <td><label class="toggle"><input type="checkbox"><span class="toggle-slider"></span></label></td>
+                <td><span class="dot green" style="display:inline-block"></span></td>
+                <td><button class="btn btn-danger btn-sm">Kaldır</button></td>
+              </tr>
+              <tr>
+                <td style="color:var(--muted)">2</td>
+                <td><div class="token-cell"><div class="token-avatar">M</div><div><div class="token-sym">MEMECOINS</div><div class="token-pair">Pump.fun</div></div></div></td>
+                <td style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted)">9aLm...8k2P</td>
+                <td><span class="dex-badge">PumpSwap</span></td>
+                <td style="font-family:'JetBrains Mono',monospace;">$185K</td>
+                <td style="color:var(--cyan);font-family:'JetBrains Mono',monospace;">$0.000185</td>
+                <td style="color:var(--green);">+421%</td>
+                <td><span class="risk-pill low">LOW</span></td>
+                <td><label class="toggle"><input type="checkbox" checked><span class="toggle-slider"></span></label></td>
+                <td><span class="dot green" style="display:inline-block"></span></td>
+                <td><button class="btn btn-danger btn-sm">Kaldır</button></td>
+              </tr>
+              <tr>
+                <td style="color:var(--muted)">3</td>
+                <td><div class="token-cell"><div class="token-avatar">W</div><div><div class="token-sym">WORLDCUP</div><div class="token-pair">Pump.fun</div></div></div></td>
+                <td style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted)">Bc1q...3mZ8</td>
+                <td><span class="dex-badge">PumpSwap</span></td>
+                <td style="font-family:'JetBrains Mono',monospace;">$2.57M</td>
+                <td style="color:var(--cyan);font-family:'JetBrains Mono',monospace;">$0.002572</td>
+                <td style="color:var(--green);">+22%</td>
+                <td><span class="risk-pill low">LOW</span></td>
+                <td><label class="toggle"><input type="checkbox"><span class="toggle-slider"></span></label></td>
+                <td><span class="dot green" style="display:inline-block"></span></td>
+                <td><button class="btn btn-danger btn-sm">Kaldır</button></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- ══════════ TREND AYARLARI ══════════ -->
+    <div class="page" id="page-trending">
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">Algoritma Ağırlıkları</div>
+          <div class="input-group"><div class="input-label">Hacim (VOL) Ağırlığı %</div><input class="input" type="number" value="40"></div>
+          <div class="input-group"><div class="input-label">İşlem Sayısı (TXN) %</div><input class="input" type="number" value="30"></div>
+          <div class="input-group"><div class="input-label">Holder Sayısı %</div><input class="input" type="number" value="20"></div>
+          <div class="input-group"><div class="input-label">Fiyat Değişimi %</div><input class="input" type="number" value="10"></div>
+          <button class="btn btn-primary btn-md">Kaydet</button>
+        </div>
+        <div class="card">
+          <div class="card-title">Varsayılan Görünüm</div>
+          <div class="input-group"><div class="input-label">Varsayılan Timeframe</div><input class="input" type="text" value="24h" placeholder="5m / 1h / 6h / 24h"></div>
+          <div class="input-group"><div class="input-label">Varsayılan DEX Filtresi</div><input class="input" type="text" value="all" placeholder="all / pumpfun / raydium"></div>
+          <div class="input-group"><div class="input-label">Varsayılan Sıralama</div><input class="input" type="text" value="top" placeholder="top / gainers / new"></div>
+          <div class="input-group"><div class="input-label">Sayfa başına token</div><input class="input" type="number" value="20"></div>
+          <button class="btn btn-primary btn-md">Kaydet</button>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- ══════════ BANNER STÜDYOSU ══════════ -->
+    <div class="page" id="page-banner">
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">Aktif Banner</div>
+          <div class="banner-preview banner-active">
+            <div style="font-size:28px;font-weight:900;color:#00e5ff;letter-spacing:1px;text-shadow:0 0 20px rgba(0,229,255,0.5)">AI POWERED.</div>
+            <div style="font-size:18px;font-weight:700;color:#fff;">MARKET SCANNER</div>
+            <div class="banner-ad-badge">AD</div>
+          </div>
+          <div style="margin-top:12px;display:flex;gap:8px;">
+            <button class="btn btn-ghost btn-sm">Değiştir</button>
+            <button class="btn btn-danger btn-sm">Kaldır</button>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">Yeni Banner Yükle</div>
+          <div class="banner-preview" style="cursor:pointer;">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            <div class="banner-preview-text">780 × 144 PNG / GIF</div>
+            <div style="font-size:10px;color:var(--muted2);">Tıklayın veya sürükleyin</div>
+          </div>
+          <div class="sep"></div>
+          <div class="input-group"><div class="input-label">Banner Linki</div><input class="input" type="url" placeholder="https://"></div>
+          <div class="input-group"><div class="input-label">Banner Başlığı</div><input class="input" type="text" placeholder="Reklam açıklaması"></div>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+            <span style="font-size:12px;color:var(--muted);">AD badge göster</span>
+            <label class="toggle"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+          </div>
+          <button class="btn btn-primary btn-md" style="width:100%">Yükle & Yayınla</button>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- ══════════ MİNİ APP AYARLARI ══════════ -->
+    <div class="page" id="page-miniapp">
+      <div class="card">
+        <div class="card-title">Mini App Bayrakları</div>
+        <div class="grid-2">
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);">
+            <div><div style="font-size:13px;color:var(--text);">Connect Wallet butonu</div><div style="font-size:10px;color:var(--muted);margin-top:2px;">Header'da cüzdan bağlantısı</div></div>
+            <label class="toggle"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);">
+            <div><div style="font-size:13px;color:var(--text);">AI Summary butonu</div><div style="font-size:10px;color:var(--muted);margin-top:2px;">Token detay sayfasında</div></div>
+            <label class="toggle"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);">
+            <div><div style="font-size:13px;color:var(--text);">Trending Band</div><div style="font-size:10px;color:var(--muted);margin-top:2px;">Üst kaydırmalı chip'ler</div></div>
+            <label class="toggle"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);">
+            <div><div style="font-size:13px;color:var(--text);">Promo Banner</div><div style="font-size:10px;color:var(--muted);margin-top:2px;">Ana sayfada reklam banner</div></div>
+            <label class="toggle"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;">
+            <div><div style="font-size:13px;color:var(--text);">Watchlist (disabled)</div><div style="font-size:10px;color:var(--muted);margin-top:2px;">Kullanıcı watchlist özelliği</div></div>
+            <label class="toggle"><input type="checkbox"><span class="toggle-slider"></span></label>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;">
+            <div><div style="font-size:13px;color:var(--text);">Scanner / Radar</div><div style="font-size:10px;color:var(--muted);margin-top:2px;">Mint analiz ekranı</div></div>
+            <label class="toggle"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Seed / Varsayılan Veri</div>
+        <div class="input-group"><div class="input-label">Boot mesajı</div><input class="input" type="text" value="Veriler yükleniyor..."></div>
+        <div class="input-group"><div class="input-label">Boş feed mesajı</div><input class="input" type="text" value="Henüz token eklenmedi."></div>
+        <button class="btn btn-primary btn-md">Kaydet</button>
+      </div>
+    </div>
+
+
+    <!-- ══════════ BAĞLANTILAR & API ══════════ -->
+    <div class="page" id="page-connections">
+      <div class="card">
+        <div class="card-title">API Uçları</div>
+        <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;overflow:hidden;">
+          <div class="env-row"><span class="env-key">WEB_APP_URL</span><span class="env-val">https://solana-chain-scanner-production.up.railway.app</span><button class="env-copy">Kopyala</button></div>
+          <div class="env-row"><span class="env-key">GET /api/feed</span><span class="env-val">?tab=trending|new&chain=solana&dex=all</span><button class="env-copy">Test</button></div>
+          <div class="env-row"><span class="env-key">GET /api/search</span><span class="env-val">?q=token_symbol_or_mint</span><button class="env-copy">Test</button></div>
+          <div class="env-row"><span class="env-key">GET /api/report/:id</span><span class="env-val">Token rapor detayı</span><button class="env-copy">Test</button></div>
+          <div class="env-row"><span class="env-key">GET /api/trades/:mint</span><span class="env-val">Canlı işlem akışı</span><button class="env-copy">Test</button></div>
+          <div class="env-row"><span class="env-key">GET /api/open/:mint</span><span class="env-val">Mint adresi ile açma</span><button class="env-copy">Test</button></div>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- ══════════ ORTAM DEĞİŞKENLERİ ══════════ -->
+    <div class="page" id="page-env">
+      <div class="card">
+        <div class="card-title">Ortam Değişkenleri <span class="tag" style="margin-left:6px;font-size:9px;">Salt Okunur</span></div>
+        <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;overflow:hidden;">
+          <div class="env-row"><span class="env-key">BOT_TOKEN</span><span class="env-val">7891234567:AAH••••••••••••••••••••••</span><button class="env-copy">👁</button></div>
+          <div class="env-row"><span class="env-key">ADMIN_USERNAME</span><span class="env-val">admin</span><button class="env-copy">👁</button></div>
+          <div class="env-row"><span class="env-key">ADMIN_PASSWORD</span><span class="env-val">••••••••••••</span><button class="env-copy">👁</button></div>
+          <div class="env-row"><span class="env-key">DEXSCREENER_API</span><span class="env-val">https://api.dexscreener.com/latest/dex</span><button class="env-copy">👁</button></div>
+          <div class="env-row"><span class="env-key">RUGCHECK_API</span><span class="env-val">https://api.rugcheck.xyz/v1</span><button class="env-copy">👁</button></div>
+          <div class="env-row"><span class="env-key">PORT</span><span class="env-val">3080</span><button class="env-copy">👁</button></div>
+          <div class="env-row"><span class="env-key">NODE_ENV</span><span class="env-val">production</span><button class="env-copy">👁</button></div>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- ══════════ AYARLAR (Genel) ══════════ -->
+    <div class="page" id="page-settings">
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">Genel Ayarlar</div>
+          <div class="input-group"><div class="input-label">Site Başlığı</div><input class="input" type="text" value="SNIPER DEX SCANNER"></div>
+          <div class="input-group"><div class="input-label">Varsayılan Dil</div><input class="input" type="text" value="tr" placeholder="tr / en"></div>
+          <div class="input-group"><div class="input-label">Feed Yenileme (sn)</div><input class="input" type="number" value="30"></div>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+            <span style="font-size:12px;color:var(--muted);">Bakım Modu</span>
+            <label class="toggle"><input type="checkbox"><span class="toggle-slider"></span></label>
+          </div>
+          <button class="btn btn-primary btn-md">Kaydet</button>
+        </div>
+        <div class="card">
+          <div class="card-title">Footer & Marka</div>
+          <div class="input-group"><div class="input-label">Footer Metni</div><input class="input" type="text" value="© 2025 SNIPER DEX SCANNER"></div>
+          <div class="input-group"><div class="input-label">Destek Linki</div><input class="input" type="url" placeholder="https://t.me/support"></div>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+            <span style="font-size:12px;color:var(--muted);">Duyuru Bandı</span>
+            <label class="toggle"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+          </div>
+          <button class="btn btn-primary btn-md">Kaydet</button>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- ══════════ GÜVENLİK ══════════ -->
+    <div class="page" id="page-security">
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#00e5ff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            Şifre Değiştir
+          </div>
+          <div class="input-group"><div class="input-label">Mevcut Şifre</div><input class="input" type="password" placeholder="••••••••"></div>
+          <div class="input-group"><div class="input-label">Yeni Şifre</div><input class="input" type="password" placeholder="••••••••"></div>
+          <div class="input-group"><div class="input-label">Şifre Tekrar</div><input class="input" type="password" placeholder="••••••••"></div>
+          <div style="background:rgba(0,229,255,0.06);border:1px solid rgba(0,229,255,0.15);border-radius:8px;padding:10px 12px;margin-bottom:14px;font-size:11px;color:var(--muted);">
+            ℹ️ Minimum 8 karakter, en az 1 büyük harf ve 1 rakam içermeli.
+          </div>
+          <button class="btn btn-primary btn-md">Şifreyi Güncelle</button>
+        </div>
+        <div class="card">
+          <div class="card-title">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f5a623" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            Oturum & Erişim
+          </div>
+          <div class="input-group"><div class="input-label">Session Timeout (dk)</div><input class="input" type="number" value="60" placeholder="Dakika"></div>
+          <div class="sep"></div>
+          <div style="margin-bottom:10px;">
+            <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:8px;">IP Whitelist</div>
+            <div style="font-size:11px;color:var(--muted);margin-bottom:8px;">Boş bırakılırsa tüm IP'lere açık.</div>
+            <textarea class="input" style="height:80px;resize:none;font-family:'JetBrains Mono',monospace;font-size:11px;" placeholder="192.168.1.1&#10;10.0.0.0/24"></textarea>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+            <div><div style="font-size:12px;color:var(--text);">Giriş Log Kaydı</div><div style="font-size:10px;color:var(--muted);">Her girişi logla</div></div>
+            <label class="toggle"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+            <div><div style="font-size:12px;color:var(--text);">Brute Force Koruması</div><div style="font-size:10px;color:var(--muted);">5 hatalı giriş → geçici blok</div></div>
+            <label class="toggle"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+          </div>
+          <button class="btn btn-primary btn-md">Kaydet</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          Son Giriş Geçmişi
+        </div>
+        <div class="tbl-wrap">
+          <table class="tbl">
+            <thead><tr><th>TARİH</th><th>IP ADRESİ</th><th>TARAYICI</th><th>DURUM</th></tr></thead>
+            <tbody>
+              <tr><td style="font-family:'JetBrains Mono',monospace;font-size:11px;">20.05.2026 01:15</td><td style="font-family:'JetBrains Mono',monospace;">185.42.xx.xx</td><td style="color:var(--muted);">Chrome / Windows</td><td><span class="risk-pill low" style="font-size:9px;">BAŞARILI</span></td></tr>
+              <tr><td style="font-family:'JetBrains Mono',monospace;font-size:11px;">19.05.2026 23:42</td><td style="font-family:'JetBrains Mono',monospace;">185.42.xx.xx</td><td style="color:var(--muted);">Chrome / Windows</td><td><span class="risk-pill low" style="font-size:9px;">BAŞARILI</span></td></tr>
+              <tr><td style="font-family:'JetBrains Mono',monospace;font-size:11px;">19.05.2026 18:10</td><td style="font-family:'JetBrains Mono',monospace;">91.93.xx.xx</td><td style="color:var(--muted);">Firefox / Linux</td><td><span class="risk-pill high" style="font-size:9px;">BAŞARISIZ</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- ══════════ ZİNCİR YÖNETİMİ ══════════ -->
+    <div class="page" id="page-chains">
+      <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:16px;">
+
+        <!-- SOL -->
+        <div class="card" style="border-color:rgba(0,255,136,0.2);">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+            <div style="display:flex;align-items:center;gap:10px;">
+              <div style="width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,#9945ff,#14f195);display:flex;align-items:center;justify-content:center;font-size:16px;">◎</div>
+              <div><div style="font-size:14px;font-weight:700;color:var(--text);">Solana</div><div style="font-size:10px;color:var(--green);">AKTİF</div></div>
+            </div>
+            <label class="toggle"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+          </div>
+          <div class="input-group"><div class="input-label">Feed URL</div><input class="input" type="text" value="/api/feed?chain=solana"></div>
+          <div class="input-group"><div class="input-label">RPC Endpoint</div><input class="input" type="text" placeholder="https://api.mainnet-beta.solana.com"></div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;">
+            <span class="tag" style="color:var(--green);border-color:rgba(0,255,136,0.2);">Pump.fun</span>
+            <span class="tag" style="color:var(--green);border-color:rgba(0,255,136,0.2);">Raydium</span>
+            <span class="tag" style="color:var(--green);border-color:rgba(0,255,136,0.2);">Meteora</span>
+            <span class="tag" style="color:var(--green);border-color:rgba(0,255,136,0.2);">Orca</span>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;">
+            <span style="font-size:11px;color:var(--muted);">3 aktif token · $7.69M 24h vol</span>
+            <span class="dot green"></span>
+          </div>
+        </div>
+
+        <!-- TON -->
+        <div class="card">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+            <div style="display:flex;align-items:center;gap:10px;">
+              <div style="width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,#0098ea,#006bb3);display:flex;align-items:center;justify-content:center;font-size:16px;">💎</div>
+              <div><div style="font-size:14px;font-weight:700;color:var(--text);">TON</div><div style="font-size:10px;color:var(--muted);">Yakında</div></div>
+            </div>
+            <label class="toggle"><input type="checkbox"><span class="toggle-slider"></span></label>
+          </div>
+          <div class="input-group"><div class="input-label">Feed URL</div><input class="input" type="text" placeholder="/api/feed?chain=ton" disabled style="opacity:.5;"></div>
+          <div class="input-group"><div class="input-label">TON API Key</div><input class="input" type="password" placeholder="tonconsole.com API key" disabled style="opacity:.5;"></div>
+          <div style="background:rgba(245,166,35,0.08);border:1px solid rgba(245,166,35,0.2);border-radius:8px;padding:10px 12px;font-size:11px;color:var(--yellow);">
+            ⚠️ TON feed henüz aktif değil. Açmak için API key gerekli.
+          </div>
+        </div>
+
+        <!-- BSC -->
+        <div class="card">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+            <div style="display:flex;align-items:center;gap:10px;">
+              <div style="width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,#f0b90b,#d48a00);display:flex;align-items:center;justify-content:center;font-size:16px;">⬡</div>
+              <div><div style="font-size:14px;font-weight:700;color:var(--text);">BSC</div><div style="font-size:10px;color:var(--muted);">Yakında</div></div>
+            </div>
+            <label class="toggle"><input type="checkbox"><span class="toggle-slider"></span></label>
+          </div>
+          <div class="input-group"><div class="input-label">Feed URL</div><input class="input" type="text" placeholder="/api/feed?chain=bsc" disabled style="opacity:.5;"></div>
+          <div class="input-group"><div class="input-label">BSCScan API Key</div><input class="input" type="password" placeholder="bscscan.com API key" disabled style="opacity:.5;"></div>
+          <div style="background:rgba(245,166,35,0.08);border:1px solid rgba(245,166,35,0.2);border-radius:8px;padding:10px 12px;font-size:11px;color:var(--yellow);">
+            ⚠️ BSC feed henüz aktif değil.
+          </div>
+        </div>
+
+        <!-- ETH -->
+        <div class="card">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+            <div style="display:flex;align-items:center;gap:10px;">
+              <div style="width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,#627eea,#3c4fc5);display:flex;align-items:center;justify-content:center;font-size:16px;">Ξ</div>
+              <div><div style="font-size:14px;font-weight:700;color:var(--text);">Ethereum</div><div style="font-size:10px;color:var(--muted);">Yakında</div></div>
+            </div>
+            <label class="toggle"><input type="checkbox"><span class="toggle-slider"></span></label>
+          </div>
+          <div class="input-group"><div class="input-label">Feed URL</div><input class="input" type="text" placeholder="/api/feed?chain=eth" disabled style="opacity:.5;"></div>
+          <div class="input-group"><div class="input-label">Etherscan API Key</div><input class="input" type="password" placeholder="etherscan.io API key" disabled style="opacity:.5;"></div>
+          <div style="background:rgba(245,166,35,0.08);border:1px solid rgba(245,166,35,0.2);border-radius:8px;padding:10px 12px;font-size:11px;color:var(--yellow);">
+            ⚠️ ETH feed henüz aktif değil.
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+
+    <!-- ══════════ RİSK FİLTRELERİ ══════════ -->
+    <div class="page" id="page-risk">
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#00ff88" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            Risk Eşik Değerleri
+          </div>
+          <div style="margin-bottom:14px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+              <span style="font-size:12px;color:var(--green);font-weight:600;">LOW RISK</span>
+              <span style="font-size:11px;color:var(--muted);font-family:'JetBrains Mono',monospace;">0 — 30</span>
+            </div>
+            <div style="display:flex;gap:8px;">
+              <div style="flex:1;"><div class="input-label">Min</div><input class="input" type="number" value="0"></div>
+              <div style="flex:1;"><div class="input-label">Max</div><input class="input" type="number" value="30"></div>
+            </div>
+          </div>
+          <div style="margin-bottom:14px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+              <span style="font-size:12px;color:var(--yellow);font-weight:600;">MEDIUM RISK</span>
+              <span style="font-size:11px;color:var(--muted);font-family:'JetBrains Mono',monospace;">31 — 70</span>
+            </div>
+            <div style="display:flex;gap:8px;">
+              <div style="flex:1;"><div class="input-label">Min</div><input class="input" type="number" value="31"></div>
+              <div style="flex:1;"><div class="input-label">Max</div><input class="input" type="number" value="70"></div>
+            </div>
+          </div>
+          <div style="margin-bottom:16px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+              <span style="font-size:12px;color:var(--red);font-weight:600;">HIGH RISK</span>
+              <span style="font-size:11px;color:var(--muted);font-family:'JetBrains Mono',monospace;">71 — 100</span>
+            </div>
+            <div style="display:flex;gap:8px;">
+              <div style="flex:1;"><div class="input-label">Min</div><input class="input" type="number" value="71"></div>
+              <div style="flex:1;"><div class="input-label">Max</div><input class="input" type="number" value="100"></div>
+            </div>
+          </div>
+          <button class="btn btn-primary btn-md">Kaydet</button>
+        </div>
+
+        <div class="card">
+          <div class="card-title">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ff3b3b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>
+            Otomatik Filtreler
+          </div>
+          <div style="display:flex;flex-direction:column;gap:12px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;">
+              <div><div style="font-size:12px;color:var(--text);font-weight:500;">Honeypot Tespit → Feedden Çıkar</div><div style="font-size:10px;color:var(--muted);margin-top:2px;">Honeypot olan tokenler otomatik gizlenir</div></div>
+              <label class="toggle"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;">
+              <div><div style="font-size:12px;color:var(--text);font-weight:500;">Mint Revoked Zorunlu</div><div style="font-size:10px;color:var(--muted);margin-top:2px;">Mint revoke edilmemiş token gösterilmez</div></div>
+              <label class="toggle"><input type="checkbox"><span class="toggle-slider"></span></label>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;">
+              <div><div style="font-size:12px;color:var(--text);font-weight:500;">Freeze Revoked Zorunlu</div><div style="font-size:10px;color:var(--muted);margin-top:2px;">Freeze revoke edilmemiş token gösterilmez</div></div>
+              <label class="toggle"><input type="checkbox"><span class="toggle-slider"></span></label>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;">
+              <div><div style="font-size:12px;color:var(--text);font-weight:500;">HIGH RISK → Otomatik Gizle</div><div style="font-size:10px;color:var(--muted);margin-top:2px;">Risk skoru 71+ olanlar feedde gösterilmez</div></div>
+              <label class="toggle"><input type="checkbox"><span class="toggle-slider"></span></label>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;">
+              <div><div style="font-size:12px;color:var(--text);font-weight:500;">Rugcheck Skoru Minimum</div><div style="font-size:10px;color:var(--muted);margin-top:2px;">Bu skorun altındakiler gösterilmez</div></div>
+              <div style="display:flex;align-items:center;gap:8px;">
+                <input class="input" type="number" value="20" style="width:64px;text-align:center;">
+                <label class="toggle"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+              </div>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;">
+              <div><div style="font-size:12px;color:var(--text);font-weight:500;">Min. Likidite ($)</div><div style="font-size:10px;color:var(--muted);margin-top:2px;">Bu değerin altındaki tokenler gösterilmez</div></div>
+              <div style="display:flex;align-items:center;gap:8px;">
+                <input class="input" type="number" value="1000" style="width:80px;text-align:center;">
+                <label class="toggle"><input type="checkbox"><span class="toggle-slider"></span></label>
+              </div>
+            </div>
+          </div>
+          <div style="margin-top:14px;">
+            <button class="btn btn-primary btn-md">Kaydet</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- ══════════ ADMİN KULLANICI YÖNETİMİ ══════════ -->
+    <div class="page" id="page-admins">
+
+      <div class="card">
+        <div class="section-hdr">
+          <div class="card-title" style="margin:0">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#00e5ff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            Admin Kullanıcılar
+          </div>
+          <button class="btn btn-primary btn-sm" onclick="document.getElementById('add-admin-form').style.display='block'">+ Admin Ekle</button>
+        </div>
+
+        <!-- Admin ekleme formu -->
+        <div id="add-admin-form" style="display:none;background:var(--surface2);border:1px solid rgba(0,229,255,0.2);border-radius:10px;padding:16px;margin-bottom:16px;">
+          <div style="font-size:13px;font-weight:700;color:var(--cyan);margin-bottom:14px;">Yeni Admin Ekle</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:12px;">
+            <div class="input-group" style="margin:0;"><div class="input-label">Kullanıcı Adı</div><input class="input" type="text" placeholder="kullanici_adi"></div>
+            <div class="input-group" style="margin:0;"><div class="input-label">Şifre</div><input class="input" type="password" placeholder="••••••••"></div>
+            <div class="input-group" style="margin:0;"><div class="input-label">Yetki Seviyesi</div>
+              <select class="input" style="cursor:pointer;">
+                <option value="viewer">👁 Görüntüleyici</option>
+                <option value="moderator">🛡 Moderatör</option>
+                <option value="admin" selected>⚙️ Admin</option>
+                <option value="superadmin">👑 Super Admin</option>
+              </select>
+            </div>
+          </div>
+          <div style="display:flex;gap:8px;">
+            <button class="btn btn-primary btn-sm">Ekle</button>
+            <button class="btn btn-ghost btn-sm" onclick="document.getElementById('add-admin-form').style.display='none'">İptal</button>
+          </div>
+        </div>
+
+        <!-- Admin listesi -->
+        <div class="tbl-wrap">
+          <table class="tbl">
+            <thead>
+              <tr><th>KULLANICI</th><th>YETKİ</th><th>SON GİRİŞ</th><th>DURUM</th><th>İZİNLER</th><th>İŞLEM</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>
+                  <div style="display:flex;align-items:center;gap:10px;">
+                    <div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#7c3aed,#4f46e5);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;">A</div>
+                    <div><div style="font-size:13px;font-weight:600;">admin</div><div style="font-size:10px;color:var(--muted);">ID: #001</div></div>
+                  </div>
+                </td>
+                <td><span style="background:rgba(245,166,35,0.15);color:#f5a623;border:1px solid rgba(245,166,35,0.25);font-size:10px;font-weight:700;border-radius:20px;padding:3px 9px;">👑 SUPER ADMIN</span></td>
+                <td style="font-size:11px;font-family:'JetBrains Mono',monospace;color:var(--muted);">20.05.2026 01:15</td>
+                <td><span class="dot green" style="display:inline-block;"></span></td>
+                <td><div style="display:flex;gap:4px;flex-wrap:wrap;">
+                  <span class="tag" style="font-size:9px;color:var(--green);">Tümü</span>
+                </div></td>
+                <td><span style="font-size:11px;color:var(--muted);">Silinemez</span></td>
+              </tr>
+              <tr>
+                <td>
+                  <div style="display:flex;align-items:center;gap:10px;">
+                    <div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#0d9488,#0891b2);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;">M</div>
+                    <div><div style="font-size:13px;font-weight:600;">moderator1</div><div style="font-size:10px;color:var(--muted);">ID: #002</div></div>
+                  </div>
+                </td>
+                <td><span style="background:rgba(0,229,255,0.12);color:var(--cyan);border:1px solid rgba(0,229,255,0.2);font-size:10px;font-weight:700;border-radius:20px;padding:3px 9px;">🛡 MODERATÖR</span></td>
+                <td style="font-size:11px;font-family:'JetBrains Mono',monospace;color:var(--muted);">19.05.2026 18:30</td>
+                <td><span class="dot green" style="display:inline-block;"></span></td>
+                <td><div style="display:flex;gap:4px;flex-wrap:wrap;">
+                  <span class="tag" style="font-size:9px;">Feed</span>
+                  <span class="tag" style="font-size:9px;">Banner</span>
+                  <span class="tag" style="font-size:9px;">Kanallar</span>
+                </div></td>
+                <td style="display:flex;gap:6px;align-items:center;padding-top:11px;">
+                  <button class="btn btn-ghost btn-sm">Düzenle</button>
+                  <button class="btn btn-danger btn-sm">Sil</button>
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <div style="display:flex;align-items:center;gap:10px;">
+                    <div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#374151,#1f2937);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;">V</div>
+                    <div><div style="font-size:13px;font-weight:600;">viewer1</div><div style="font-size:10px;color:var(--muted);">ID: #003</div></div>
+                  </div>
+                </td>
+                <td><span style="background:rgba(255,255,255,0.06);color:var(--muted);border:1px solid var(--border);font-size:10px;font-weight:700;border-radius:20px;padding:3px 9px;">👁 GÖRÜNTÜLEYİCİ</span></td>
+                <td style="font-size:11px;font-family:'JetBrains Mono',monospace;color:var(--muted);">18.05.2026 09:00</td>
+                <td><span class="dot" style="display:inline-block;background:var(--muted2);"></span></td>
+                <td><div style="display:flex;gap:4px;flex-wrap:wrap;">
+                  <span class="tag" style="font-size:9px;">Dashboard</span>
+                  <span class="tag" style="font-size:9px;">Feed (Oku)</span>
+                </div></td>
+                <td style="display:flex;gap:6px;align-items:center;padding-top:11px;">
+                  <button class="btn btn-ghost btn-sm">Düzenle</button>
+                  <button class="btn btn-danger btn-sm">Sil</button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Yetki Matrisi -->
+      <div class="card">
+        <div class="card-title">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+          Yetki Matrisi
+        </div>
+        <div class="tbl-wrap">
+          <table class="tbl">
+            <thead>
+              <tr>
+                <th>SAYFA / İŞLEM</th>
+                <th style="text-align:center;">👁 Görüntüleyici</th>
+                <th style="text-align:center;">🛡 Moderatör</th>
+                <th style="text-align:center;">⚙️ Admin</th>
+                <th style="text-align:center;">👑 Super Admin</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td style="color:var(--muted);">Dashboard</td><td style="text-align:center;color:var(--green);">✓</td><td style="text-align:center;color:var(--green);">✓</td><td style="text-align:center;color:var(--green);">✓</td><td style="text-align:center;color:var(--green);">✓</td></tr>
+              <tr><td style="color:var(--muted);">Token Feed (Görüntüle)</td><td style="text-align:center;color:var(--green);">✓</td><td style="text-align:center;color:var(--green);">✓</td><td style="text-align:center;color:var(--green);">✓</td><td style="text-align:center;color:var(--green);">✓</td></tr>
+              <tr><td style="color:var(--muted);">Token Ekle / Kaldır</td><td style="text-align:center;color:var(--muted2);">—</td><td style="text-align:center;color:var(--green);">✓</td><td style="text-align:center;color:var(--green);">✓</td><td style="text-align:center;color:var(--green);">✓</td></tr>
+              <tr><td style="color:var(--muted);">Banner Yönetimi</td><td style="text-align:center;color:var(--muted2);">—</td><td style="text-align:center;color:var(--green);">✓</td><td style="text-align:center;color:var(--green);">✓</td><td style="text-align:center;color:var(--green);">✓</td></tr>
+              <tr><td style="color:var(--muted);">Bot & Kanallar</td><td style="text-align:center;color:var(--muted2);">—</td><td style="text-align:center;color:var(--green);">✓</td><td style="text-align:center;color:var(--green);">✓</td><td style="text-align:center;color:var(--green);">✓</td></tr>
+              <tr><td style="color:var(--muted);">Risk Filtreleri</td><td style="text-align:center;color:var(--muted2);">—</td><td style="text-align:center;color:var(--muted2);">—</td><td style="text-align:center;color:var(--green);">✓</td><td style="text-align:center;color:var(--green);">✓</td></tr>
+              <tr><td style="color:var(--muted);">Zincir Yönetimi</td><td style="text-align:center;color:var(--muted2);">—</td><td style="text-align:center;color:var(--muted2);">—</td><td style="text-align:center;color:var(--green);">✓</td><td style="text-align:center;color:var(--green);">✓</td></tr>
+              <tr><td style="color:var(--muted);">Ortam Değişkenleri</td><td style="text-align:center;color:var(--muted2);">—</td><td style="text-align:center;color:var(--muted2);">—</td><td style="text-align:center;color:var(--muted2);">—</td><td style="text-align:center;color:var(--green);">✓</td></tr>
+              <tr><td style="color:var(--muted);">Admin Ekle / Sil</td><td style="text-align:center;color:var(--muted2);">—</td><td style="text-align:center;color:var(--muted2);">—</td><td style="text-align:center;color:var(--muted2);">—</td><td style="text-align:center;color:var(--green);">✓</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+
+  <!-- ========== CANLI DESTEK ========== -->
+  <div class="page" id="page-support">
+    <div style="display:grid;grid-template-columns:1fr 340px;gap:16px;">
+
+      <!-- Sol: Konuşma Listesi + Chat -->
+      <div style="display:flex;flex-direction:column;gap:16px;">
+
+        <!-- Stats Bar -->
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;">
+          <div class="card" style="padding:14px 16px;">
+            <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;">Toplam Ticket</div>
+            <div style="font-size:22px;font-weight:700;font-family:'JetBrains Mono',monospace;color:var(--text);">247</div>
+            <div style="font-size:10px;color:var(--green);margin-top:2px;">+12 bugün</div>
+          </div>
+          <div class="card" style="padding:14px 16px;">
+            <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;">Bekleyenler</div>
+            <div style="font-size:22px;font-weight:700;font-family:'JetBrains Mono',monospace;color:var(--yellow);">18</div>
+            <div style="font-size:10px;color:var(--yellow);margin-top:2px;">Yanıt bekliyor</div>
+          </div>
+          <div class="card" style="padding:14px 16px;">
+            <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;">Aktif Chat</div>
+            <div style="font-size:22px;font-weight:700;font-family:'JetBrains Mono',monospace;color:var(--cyan);">5</div>
+            <div style="font-size:10px;color:var(--cyan);margin-top:2px;">Şu an canlı</div>
+          </div>
+          <div class="card" style="padding:14px 16px;">
+            <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;">Ort. Yanıt</div>
+            <div style="font-size:22px;font-weight:700;font-family:'JetBrains Mono',monospace;color:var(--text);">4.2<span style="font-size:12px;color:var(--muted);">dk</span></div>
+            <div style="font-size:10px;color:var(--green);margin-top:2px;">İyi seviye</div>
+          </div>
+        </div>
+
+        <!-- Konuşmalar Listesi -->
+        <div class="card" style="padding:0;overflow:hidden;">
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--border);">
+            <div class="card-title" style="margin:0;">💬 Konuşmalar</div>
+            <div style="display:flex;gap:8px;">
+              <button class="btn btn-ghost btn-sm" style="background:rgba(0,255,136,.08);color:var(--green);border-color:rgba(0,255,136,.2);">Tümü</button>
+              <button class="btn btn-ghost btn-sm">Bekleyen</button>
+              <button class="btn btn-ghost btn-sm">Aktif</button>
+              <button class="btn btn-ghost btn-sm">Kapalı</button>
+            </div>
+          </div>
+          <!-- Filtre + Arama -->
+          <div style="padding:10px 16px;border-bottom:1px solid var(--border);">
+            <input type="text" placeholder="Kullanıcı adı veya mesaj ara..." style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);font-size:12px;outline:none;box-sizing:border-box;" onfocus="this.style.borderColor='var(--cyan)'" onblur="this.style.borderColor='var(--border)'">
+          </div>
+          <!-- Ticket Satırları -->
+          <div id="ticket-list">
+            <!-- Ticket 1 - Aktif/Seçili -->
+            <div class="ticket-row" onclick="selectTicket(this,'T-1028')" style="display:flex;align-items:flex-start;gap:12px;padding:12px 16px;cursor:pointer;background:rgba(0,229,255,.05);border-left:2px solid var(--cyan);">
+              <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#00e5ff22,#00e5ff44);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:var(--cyan);flex-shrink:0;">K</div>
+              <div style="flex:1;min-width:0;">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                  <span style="font-size:12px;font-weight:600;">kriptohunter99</span>
+                  <span style="font-size:10px;color:var(--muted);">14:32</span>
+                </div>
+                <div style="font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px;">Token tarama çalışmıyor, hata alıyorum</div>
+                <div style="display:flex;gap:6px;margin-top:5px;">
+                  <span style="font-size:9px;background:rgba(0,229,255,.12);color:var(--cyan);border-radius:4px;padding:2px 6px;">Teknik</span>
+                  <span style="font-size:9px;background:rgba(0,255,136,.12);color:var(--green);border-radius:4px;padding:2px 6px;">● Aktif</span>
+                </div>
+              </div>
+            </div>
+            <!-- Ticket 2 -->
+            <div class="ticket-row" onclick="selectTicket(this,'T-1027')" style="display:flex;align-items:flex-start;gap:12px;padding:12px 16px;cursor:pointer;border-bottom:1px solid var(--border);">
+              <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#f5a62322,#f5a62344);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:var(--yellow);flex-shrink:0;">D</div>
+              <div style="flex:1;min-width:0;">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                  <span style="font-size:12px;font-weight:600;">defi_wolf</span>
+                  <span style="font-size:10px;color:var(--muted);">13:18</span>
+                </div>
+                <div style="font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px;">Premium abonelik nasıl iptal edilir?</div>
+                <div style="display:flex;gap:6px;margin-top:5px;">
+                  <span style="font-size:9px;background:rgba(245,166,35,.12);color:var(--yellow);border-radius:4px;padding:2px 6px;">⏳ Bekliyor</span>
+                  <span style="font-size:9px;background:rgba(255,255,255,.05);color:var(--muted);border-radius:4px;padding:2px 6px;">Hesap</span>
+                </div>
+              </div>
+            </div>
+            <!-- Ticket 3 -->
+            <div class="ticket-row" onclick="selectTicket(this,'T-1026')" style="display:flex;align-items:flex-start;gap:12px;padding:12px 16px;cursor:pointer;border-bottom:1px solid var(--border);">
+              <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#7c3aed22,#7c3aed44);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#a78bfa;flex-shrink:0;">S</div>
+              <div style="flex:1;min-width:0;">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                  <span style="font-size:12px;font-weight:600;">solana_degen</span>
+                  <span style="font-size:10px;color:var(--muted);">11:55</span>
+                </div>
+                <div style="font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px;">Risk skoru neden her zaman yüksek çıkıyor?</div>
+                <div style="display:flex;gap:6px;margin-top:5px;">
+                  <span style="font-size:9px;background:rgba(0,255,136,.12);color:var(--green);border-radius:4px;padding:2px 6px;">● Aktif</span>
+                  <span style="font-size:9px;background:rgba(255,255,255,.05);color:var(--muted);border-radius:4px;padding:2px 6px;">Genel</span>
+                </div>
+              </div>
+            </div>
+            <!-- Ticket 4 -->
+            <div class="ticket-row" onclick="selectTicket(this,'T-1025')" style="display:flex;align-items:flex-start;gap:12px;padding:12px 16px;cursor:pointer;border-bottom:1px solid var(--border);">
+              <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#374151,#1f2937);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#9ca3af;flex-shrink:0;">M</div>
+              <div style="flex:1;min-width:0;">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                  <span style="font-size:12px;font-weight:600;">moon_trader</span>
+                  <span style="font-size:10px;color:var(--muted);">09:40</span>
+                </div>
+                <div style="font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px;">Teşekkürler, sorun çözüldü 🙏</div>
+                <div style="display:flex;gap:6px;margin-top:5px;">
+                  <span style="font-size:9px;background:rgba(255,255,255,.05);color:var(--muted2);border-radius:4px;padding:2px 6px;">✓ Çözüldü</span>
+                </div>
+              </div>
+            </div>
+            <!-- Ticket 5 -->
+            <div class="ticket-row" onclick="selectTicket(this,'T-1024')" style="display:flex;align-items:flex-start;gap:12px;padding:12px 16px;cursor:pointer;">
+              <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#ff3b3b22,#ff3b3b44);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:var(--red);flex-shrink:0;">B</div>
+              <div style="flex:1;min-width:0;">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                  <span style="font-size:12px;font-weight:600;">btc_maxi_tr</span>
+                  <span style="font-size:10px;color:var(--muted);">Dün</span>
+                </div>
+                <div style="font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px;">Bot cevap vermiyor, para iade istiyorum!</div>
+                <div style="display:flex;gap:6px;margin-top:5px;">
+                  <span style="font-size:9px;background:rgba(255,59,59,.12);color:var(--red);border-radius:4px;padding:2px 6px;">🔥 Acil</span>
+                  <span style="font-size:9px;background:rgba(255,255,255,.05);color:var(--muted);border-radius:4px;padding:2px 6px;">Şikayet</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Chat Alanı -->
+        <div class="card" style="padding:0;overflow:hidden;">
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--border);">
+            <div style="display:flex;align-items:center;gap:10px;">
+              <div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#00e5ff22,#00e5ff44);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--cyan);">K</div>
+              <div>
+                <div style="font-size:12px;font-weight:600;">kriptohunter99</div>
+                <div style="font-size:10px;color:var(--green);">● Çevrimiçi · T-1028</div>
+              </div>
+            </div>
+            <div style="display:flex;gap:8px;">
+              <button class="btn btn-ghost btn-sm">Ata ↗</button>
+              <button class="btn btn-ghost btn-sm" style="color:var(--green);">✓ Çözüldü</button>
+              <button class="btn btn-danger btn-sm">Kapat</button>
+            </div>
+          </div>
+          <!-- Mesajlar -->
+          <div style="padding:16px;display:flex;flex-direction:column;gap:12px;min-height:220px;">
+            <!-- Kullanıcı mesajı -->
+            <div style="display:flex;gap:8px;align-items:flex-start;">
+              <div style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#00e5ff22,#00e5ff44);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:var(--cyan);flex-shrink:0;">K</div>
+              <div>
+                <div style="background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:0 10px 10px 10px;padding:8px 12px;font-size:12px;max-width:460px;">Merhaba, /scan komutunu kullandığımda &quot;API Error&quot; hatası alıyorum. 30 dakikadır devam ediyor.</div>
+                <div style="font-size:10px;color:var(--muted);margin-top:4px;">14:28</div>
+              </div>
+            </div>
+            <!-- Admin mesajı -->
+            <div style="display:flex;gap:8px;align-items:flex-start;flex-direction:row-reverse;">
+              <div style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#00ff8822,#00ff8844);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:var(--green);flex-shrink:0;">A</div>
+              <div style="text-align:right;">
+                <div style="background:rgba(0,255,136,.08);border:1px solid rgba(0,255,136,.2);border-radius:10px 0 10px 10px;padding:8px 12px;font-size:12px;max-width:460px;text-align:left;">Merhaba! Sorununuzu anlıyorum. RPC node geçici olarak yeniden başlatıldı, birkaç dakika içinde düzelecek. Manuel olarak /start komutunu tekrar deneyin.</div>
+                <div style="font-size:10px;color:var(--muted);margin-top:4px;">14:31 · admin</div>
+              </div>
+            </div>
+            <!-- Kullanıcı tekrar -->
+            <div style="display:flex;gap:8px;align-items:flex-start;">
+              <div style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#00e5ff22,#00e5ff44);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:var(--cyan);flex-shrink:0;">K</div>
+              <div>
+                <div style="background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:0 10px 10px 10px;padding:8px 12px;font-size:12px;max-width:460px;">Denedim ama hala aynı hata. Ekran görüntüsü göndereyim mi?</div>
+                <div style="font-size:10px;color:var(--muted);margin-top:4px;">14:32</div>
+              </div>
+            </div>
+          </div>
+          <!-- Mesaj gönder kutusu -->
+          <div style="padding:12px 16px;border-top:1px solid var(--border);display:flex;gap:8px;align-items:flex-end;">
+            <div style="flex:1;">
+              <div style="display:flex;gap:6px;margin-bottom:6px;">
+                <button class="btn btn-ghost btn-sm" style="font-size:10px;">📎 Dosya</button>
+                <button class="btn btn-ghost btn-sm" style="font-size:10px;">⚡ Hızlı Yanıt</button>
+                <button class="btn btn-ghost btn-sm" style="font-size:10px;">🤖 AI Öner</button>
+              </div>
+              <textarea placeholder="Mesaj yaz... (Enter ile gönder)" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);font-size:12px;resize:none;height:56px;outline:none;box-sizing:border-box;font-family:inherit;" onfocus="this.style.borderColor='var(--cyan)'" onblur="this.style.borderColor='var(--border)'"></textarea>
+            </div>
+            <button class="btn btn-cyan btn-md" style="height:40px;padding:0 16px;">Gönder ↗</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sağ Panel: Kullanıcı Detayı + Hızlı Araçlar -->
+      <div style="display:flex;flex-direction:column;gap:16px;">
+
+        <!-- Kullanıcı Bilgisi -->
+        <div class="card">
+          <div class="card-title">Kullanıcı Bilgisi</div>
+          <div style="text-align:center;padding:12px 0;">
+            <div style="width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,#00e5ff33,#00e5ff55);display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700;color:var(--cyan);margin:0 auto 8px;">K</div>
+            <div style="font-size:14px;font-weight:700;">kriptohunter99</div>
+            <div style="font-size:11px;color:var(--muted);margin-top:2px;">@kriptohunter99</div>
+            <div style="font-size:10px;color:var(--green);margin-top:4px;">● Çevrimiçi</div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:8px;margin-top:8px;">
+            <div style="display:flex;justify-content:space-between;font-size:11px;">
+              <span style="color:var(--muted);">User ID</span>
+              <span style="font-family:'JetBrains Mono',monospace;color:var(--cyan);">@U-88821</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:11px;">
+              <span style="color:var(--muted);">Üyelik</span>
+              <span>Premium ⭐</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:11px;">
+              <span style="color:var(--muted);">Kayıt tarihi</span>
+              <span>12.03.2026</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:11px;">
+              <span style="color:var(--muted);">Toplam ticket</span>
+              <span>4</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:11px;">
+              <span style="color:var(--muted);">Ülke</span>
+              <span>🇹🇷 Türkiye</span>
+            </div>
+          </div>
+          <div style="display:flex;gap:6px;margin-top:12px;">
+            <button class="btn btn-ghost btn-sm" style="flex:1;">Profil</button>
+            <button class="btn btn-ghost btn-sm" style="flex:1;color:var(--red);">Engelle</button>
+          </div>
+        </div>
+
+        <!-- Ticket Bilgisi -->
+        <div class="card">
+          <div class="card-title">Ticket T-1028</div>
+          <div style="display:flex;flex-direction:column;gap:8px;">
+            <div style="display:flex;justify-content:space-between;font-size:11px;">
+              <span style="color:var(--muted);">Durum</span>
+              <span style="color:var(--green);">● Aktif</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:11px;">
+              <span style="color:var(--muted);">Kategori</span>
+              <span>Teknik</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:11px;">
+              <span style="color:var(--muted);">Öncelik</span>
+              <span style="color:var(--yellow);">Orta</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:11px;">
+              <span style="color:var(--muted);">Atanan</span>
+              <span>admin</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:11px;">
+              <span style="color:var(--muted);">Açılış</span>
+              <span>20.05.2026 14:28</span>
+            </div>
+          </div>
+          <div style="margin-top:10px;">
+            <label style="font-size:10px;color:var(--muted);display:block;margin-bottom:4px;">Kategori Değiştir</label>
+            <select style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:6px 8px;color:var(--text);font-size:11px;outline:none;">
+              <option>Teknik</option>
+              <option>Hesap</option>
+              <option>Ödeme</option>
+              <option>Genel</option>
+              <option>Şikayet</option>
+            </select>
+          </div>
+          <div style="margin-top:8px;">
+            <label style="font-size:10px;color:var(--muted);display:block;margin-bottom:4px;">Öncelik</label>
+            <select style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:6px 8px;color:var(--text);font-size:11px;outline:none;">
+              <option>Düşük</option>
+              <option selected>Orta</option>
+              <option>Yüksek</option>
+              <option>Acil 🔥</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Hızlı Yanıtlar -->
+        <div class="card">
+          <div class="card-title">⚡ Hızlı Yanıtlar</div>
+          <div style="display:flex;flex-direction:column;gap:6px;">
+            <button class="btn btn-ghost btn-sm" style="text-align:left;justify-content:flex-start;font-size:10px;height:auto;padding:8px 10px;line-height:1.4;white-space:normal;">Merhaba! Size nasıl yardımcı olabilirim?</button>
+            <button class="btn btn-ghost btn-sm" style="text-align:left;justify-content:flex-start;font-size:10px;height:auto;padding:8px 10px;line-height:1.4;white-space:normal;">Sorununuz teknik ekibimize iletildi, kısa sürede çözüm sağlanacak.</button>
+            <button class="btn btn-ghost btn-sm" style="text-align:left;justify-content:flex-start;font-size:10px;height:auto;padding:8px 10px;line-height:1.4;white-space:normal;">/start komutunu çalıştırın ve tekrar deneyin.</button>
+            <button class="btn btn-ghost btn-sm" style="text-align:left;justify-content:flex-start;font-size:10px;height:auto;padding:8px 10px;line-height:1.4;white-space:normal;">Sorun çözüldü olarak işaretlendi. İyi kullanımlar!</button>
+            <button class="btn btn-ghost btn-sm" style="text-align:left;justify-content:flex-start;font-size:10px;height:auto;padding:8px 10px;line-height:1.4;white-space:normal;color:var(--cyan);">+ Yeni hızlı yanıt ekle</button>
+          </div>
+        </div>
+
+        <!-- Notlar -->
+        <div class="card">
+          <div class="card-title">📝 İç Notlar</div>
+          <textarea placeholder="Bu ticket için dahili not ekle (kullanıcı göremez)..." style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:8px 10px;color:var(--text);font-size:11px;resize:none;height:72px;outline:none;box-sizing:border-box;font-family:inherit;" onfocus="this.style.borderColor='var(--yellow)'" onblur="this.style.borderColor='var(--border)'"></textarea>
+          <button class="btn btn-ghost btn-sm" style="margin-top:6px;width:100%;">Not Kaydet</button>
+        </div>
+      </div>
+    </div>
+  </div><!-- /page-support -->
+
+
+  </div><!-- /content -->
+</div><!-- /main -->
+</div><!-- /layout -->
+
+<script>
+const pages = {
+  dashboard:   { title: 'Dashboard',              sub: 'Sistem genel bakış' },
+  activity:    { title: 'Aktivite',               sub: 'Son sistem olayları' },
+  channels:    { title: 'Bot & Kanallar',          sub: 'Telegram bot ve kanal yönetimi' },
+  feed:        { title: 'Token Feed',             sub: 'Feedteki tokenler' },
+  trending:    { title: 'Trend Ayarları',          sub: 'Algoritma ve görünüm ayarları' },
+  banner:      { title: 'Banner Stüdyosu',        sub: 'Promo banner yönetimi' },
+  miniapp:     { title: 'Mini App Ayarları',      sub: 'Özellik bayrakları ve seed verisi' },
+  connections: { title: 'Bağlantılar & API',      sub: 'Endpoint ve bağlantı yönetimi' },
+  env:         { title: 'Ortam Değişkenleri',     sub: 'Sistem çevre değişkenleri' },
+  settings:    { title: 'Ayarlar',                sub: 'Admin hesabı ve genel ayarlar' },
+  security:    { title: '🔐 Güvenlik',              sub: 'Şifre, oturum ve erişim güvenliği' },
+  chains:      { title: '⛓️ Zincir Yönetimi',       sub: 'Blockchain ağ konfigürasyonları' },
+  risk:        { title: '🛡️ Risk Filtreleri',        sub: 'Otomatik risk eşik ve filtre ayarları' },
+  admins:      { title: '👥 Admin Kullanıcılar',     sub: 'Yönetici hesapları ve yetki matrisi' },
+  support:     { title: '💬 Canlı Destek',           sub: 'Kullanıcı mesajları ve destek talepleri' },
+};
+
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n => {
+    if (n.getAttribute('onclick') && n.getAttribute('onclick').includes("'" + id + "'")) {
+      n.classList.add('active');
+    }
+  });
+  document.getElementById('topbar-title').textContent = pages[id]?.title || id;
+  document.getElementById('topbar-sub').textContent   = pages[id]?.sub   || '';
+}
+</script>
+</body>
+</html>

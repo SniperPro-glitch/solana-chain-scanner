@@ -1,0 +1,124 @@
+  <!-- ========== CANLI DESTEK (SUPPORT masaüstü — birebir) ========== -->
+  <div class="page" id="page-support">
+    <p id="supportAdminStatus" role="status" style="position:fixed;bottom:12px;right:24px;z-index:9000;font-size:11px;color:var(--muted);margin:0;pointer-events:none;"></p>
+    <div id="supportAdminRoot" style="display:grid;grid-template-columns:300px 1fr 280px;gap:0;height:calc(100vh - 56px);margin:-24px;overflow:hidden;">
+
+      <!-- LEFT -->
+      <div style="background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;">
+        <div style="padding:16px;border-bottom:1px solid var(--border);flex-shrink:0;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+            <div style="font-size:15px;font-weight:700;color:var(--text);display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+              💬 Live Chats
+              <span style="background:rgba(0,255,136,0.12);border:1px solid rgba(0,255,136,0.25);color:var(--green);font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;display:inline-flex;align-items:center;gap:4px;">
+                <span style="width:6px;height:6px;border-radius:50%;background:var(--green);display:inline-block;animation:spulse 1.5s infinite;"></span>
+                <span id="supActiveCount">0</span> Aktif
+              </span>
+            </div>
+            <div style="display:flex;gap:6px;">
+              <button type="button" style="width:30px;height:30px;border-radius:8px;background:var(--surface);border:1px solid var(--border);color:var(--muted);cursor:pointer;font-size:12px;" title="Hızlı yanıt">⚡</button>
+              <button type="button" id="supBtnConfig" style="width:30px;height:30px;border-radius:8px;background:var(--surface);border:1px solid var(--border);color:var(--muted);cursor:pointer;font-size:12px;" title="Destek açık/kapalı">⚙️</button>
+            </div>
+          </div>
+          <div style="position:relative;">
+            <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--muted2);font-size:12px;">🔍</span>
+            <input type="text" id="supSearch" placeholder="Kullanıcı veya mesaj ara..." style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px 12px 8px 32px;color:var(--text);font-size:12px;font-family:'Inter',sans-serif;outline:none;">
+          </div>
+        </div>
+        <div id="supTabs" style="display:flex;border-bottom:1px solid var(--border);flex-shrink:0;">
+          <button type="button" class="sup-tab-btn active" data-tab="open" style="flex:1;text-align:center;padding:9px 4px;font-size:11px;font-weight:600;color:var(--green);border:none;border-bottom:2px solid var(--green);background:transparent;cursor:pointer;font-family:inherit;">Açık <span id="supCountOpen" style="background:rgba(0,255,136,0.15);color:var(--green);border-radius:10px;padding:1px 6px;font-size:10px;margin-left:4px;">0</span></button>
+          <button type="button" class="sup-tab-btn" data-tab="waiting" style="flex:1;text-align:center;padding:9px 4px;font-size:11px;font-weight:600;color:var(--muted);border:none;border-bottom:2px solid transparent;background:transparent;cursor:pointer;font-family:inherit;">Bekleyen <span id="supCountWaiting" style="background:var(--surface2);border-radius:10px;padding:1px 6px;font-size:10px;margin-left:4px;">0</span></button>
+          <button type="button" class="sup-tab-btn" data-tab="resolved" style="flex:1;text-align:center;padding:9px 4px;font-size:11px;font-weight:600;color:var(--muted);border:none;border-bottom:2px solid transparent;background:transparent;cursor:pointer;font-family:inherit;">Çözüldü <span id="supCountResolved" style="background:var(--surface2);border-radius:10px;padding:1px 6px;font-size:10px;margin-left:4px;">0</span></button>
+        </div>
+        <div id="support-ticket-list" style="overflow-y:auto;flex:1;padding:8px;min-height:0;"></div>
+      </div>
+
+      <!-- CENTER -->
+      <div style="display:flex;flex-direction:column;overflow:hidden;min-height:0;">
+        <div style="padding:14px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:14px;background:var(--bg2);flex-shrink:0;">
+          <div id="supChatAvatar" style="width:40px;height:40px;border-radius:50%;background:rgba(0,255,136,0.12);color:var(--green);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:800;flex-shrink:0;position:relative;">—
+            <span style="position:absolute;bottom:0;right:0;width:10px;height:10px;border-radius:50%;background:var(--green);border:2px solid var(--bg2);"></span>
+          </div>
+          <div style="flex:1;min-width:0;">
+            <div id="supChatTitle" style="font-size:14px;font-weight:700;color:var(--text);display:flex;align-items:center;gap:8px;flex-wrap:wrap;">Konuşma seçin</div>
+            <div id="supChatSub" style="font-size:11px;color:var(--muted);margin-top:1px;">Soldan bir ticket seçin</div>
+          </div>
+          <div style="display:flex;gap:8px;flex-shrink:0;">
+            <button type="button" style="width:34px;height:34px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--muted);cursor:pointer;font-size:13px;">👤</button>
+            <button type="button" style="width:34px;height:34px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--muted);cursor:pointer;font-size:13px;">📋</button>
+            <button type="button" style="width:34px;height:34px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--muted);cursor:pointer;font-size:13px;">📝</button>
+            <button type="button" style="width:34px;height:34px;border-radius:8px;border:1px solid rgba(255,59,59,0.2);background:rgba(255,59,59,0.06);color:var(--red);cursor:pointer;font-size:13px;">🚫</button>
+          </div>
+        </div>
+        <div id="supAiBox" style="margin:12px 20px;background:linear-gradient(135deg,rgba(124,58,237,0.12),rgba(0,229,255,0.06));border:1px solid rgba(124,58,237,0.25);border-radius:10px;padding:10px 14px;display:none;align-items:flex-start;gap:10px;flex-shrink:0;">
+          <div style="width:28px;height:28px;border-radius:8px;background:rgba(124,58,237,0.2);display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;">🤖</div>
+          <div style="flex:1;">
+            <div style="font-size:10px;font-weight:700;color:var(--purple);letter-spacing:.6px;text-transform:uppercase;margin-bottom:3px;">AI Asistan Özeti</div>
+            <div id="supAiSummary" style="font-size:11px;color:var(--muted);line-height:1.5;">—</div>
+          </div>
+        </div>
+        <div id="supMessages" style="flex:1;overflow-y:auto;padding:16px 20px;display:flex;flex-direction:column;gap:12px;min-height:0;"></div>
+        <div style="border-top:1px solid var(--border);background:var(--bg2);flex-shrink:0;">
+          <div id="supComposeTabs" style="display:flex;border-bottom:1px solid var(--border);">
+            <button type="button" class="sup-compose-tab active" data-compose="reply" style="padding:9px 16px;font-size:11px;font-weight:600;color:var(--green);border:none;border-bottom:2px solid var(--green);background:transparent;cursor:pointer;font-family:inherit;">Yanıtla</button>
+            <button type="button" class="sup-compose-tab" data-compose="note" style="padding:9px 16px;font-size:11px;font-weight:600;color:var(--muted);border:none;border-bottom:2px solid transparent;background:transparent;cursor:pointer;font-family:inherit;">İç Not</button>
+            <button type="button" class="sup-compose-tab" data-compose="macro" style="padding:9px 16px;font-size:11px;font-weight:600;color:var(--muted);border:none;border-bottom:2px solid transparent;background:transparent;cursor:pointer;font-family:inherit;">Makro</button>
+          </div>
+          <div style="padding:10px 16px;">
+            <textarea id="supReplyInput" placeholder="Mesajınızı yazın..." rows="3" style="width:100%;background:transparent;border:none;outline:none;color:var(--text);font-size:12px;font-family:'Inter',sans-serif;resize:none;line-height:1.6;"></textarea>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:0 16px 12px;">
+            <div style="display:flex;gap:6px;">
+              <button type="button" style="width:28px;height:28px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;font-size:13px;">📎</button>
+              <button type="button" style="width:28px;height:28px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;font-size:13px;">⚡</button>
+              <button type="button" style="width:28px;height:28px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;font-size:13px;">😊</button>
+              <button type="button" style="width:28px;height:28px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;font-size:13px;">📋</button>
+            </div>
+            <button type="button" id="supSendBtn" style="display:flex;align-items:center;gap:8px;background:var(--green);color:#000;border:none;border-radius:8px;padding:8px 18px;font-size:12px;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;">Gönder ➤</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT -->
+      <div style="background:var(--bg2);border-left:1px solid var(--border);overflow-y:auto;display:flex;flex-direction:column;min-height:0;">
+        <div style="padding:20px 16px;border-bottom:1px solid var(--border);text-align:center;">
+          <div id="supPanelAvatar" style="width:56px;height:56px;border-radius:50%;background:rgba(0,255,136,0.1);color:var(--green);display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:800;margin:0 auto 10px;border:2px solid rgba(0,255,136,0.25);">—</div>
+          <div id="supPanelName" style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:4px;">—</div>
+          <div id="supPanelTg" style="font-size:11px;color:var(--muted);">—</div>
+          <div id="supPanelTags" style="display:flex;justify-content:center;gap:5px;margin-top:8px;flex-wrap:wrap;"></div>
+        </div>
+        <div style="padding:14px 16px;border-bottom:1px solid var(--border);">
+          <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;margin-bottom:10px;">👤 Kullanıcı Bilgileri</div>
+          <div id="supUserKv"></div>
+        </div>
+        <div style="padding:14px 16px;border-bottom:1px solid var(--border);">
+          <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;margin-bottom:10px;">📋 Ticket Detayları</div>
+          <div style="margin-bottom:8px;"><div style="font-size:10px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">Kategori</div>
+            <select id="supSelCategory" style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:7px;padding:6px 10px;color:var(--text);font-family:'Inter',sans-serif;font-size:11px;outline:none;">
+              <option value="general">Genel</option><option value="technical">Teknik</option><option value="token">Token Data Issue</option><option value="payment">Premium</option><option value="report">Şikayet</option>
+            </select></div>
+          <div style="margin-bottom:8px;"><div style="font-size:10px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">Öncelik</div>
+            <select id="supSelPriority" style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:7px;padding:6px 10px;color:var(--text);font-family:'Inter',sans-serif;font-size:11px;outline:none;">
+              <option value="high">🔴 Yüksek</option><option value="normal">🟡 Orta</option><option value="low">🟢 Düşük</option>
+            </select></div>
+          <div style="margin-bottom:8px;"><div style="font-size:10px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">Durum</div>
+            <select id="supSelStatus" style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:7px;padding:6px 10px;color:var(--text);font-family:'Inter',sans-serif;font-size:11px;outline:none;">
+              <option value="open">🟢 Açık</option><option value="waiting">⏳ Bekliyor</option><option value="active">💬 Aktif</option><option value="resolved">✅ Çözüldü</option><option value="closed">✕ Kapalı</option>
+            </select></div>
+          <div style="display:flex;justify-content:space-between;padding:5px 0;"><span style="font-size:11px;color:var(--muted);">Oluşturulma</span><span id="supTicketCreated" style="font-size:11px;font-weight:600;color:var(--text);font-family:'JetBrains Mono',monospace;">—</span></div>
+        </div>
+        <div style="padding:14px 16px;border-bottom:1px solid var(--border);">
+          <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;margin-bottom:10px;">📊 Kullanıcı Aktivitesi</div>
+          <div id="supUserActivity"></div>
+        </div>
+        <div style="padding:14px 16px;">
+          <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;margin-bottom:10px;">⚡ Hızlı Aksiyonlar</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+            <button type="button" data-action="resolve" style="padding:8px 10px;border-radius:8px;border:1px solid rgba(0,255,136,0.2);background:rgba(0,255,136,0.06);cursor:pointer;font-family:'Inter',sans-serif;font-size:11px;font-weight:600;color:var(--green);">✅ Çözüldü</button>
+            <button type="button" data-action="takeover" style="padding:8px 10px;border-radius:8px;border:1px solid rgba(245,166,35,0.2);background:rgba(245,166,35,0.06);cursor:pointer;font-family:'Inter',sans-serif;font-size:11px;font-weight:600;color:var(--yellow);">🔄 Devral</button>
+            <button type="button" data-action="transfer" style="padding:8px 10px;border-radius:8px;border:1px solid rgba(0,229,255,0.2);background:rgba(0,229,255,0.06);cursor:pointer;font-family:'Inter',sans-serif;font-size:11px;font-weight:600;color:var(--cyan);">↗ Transfer</button>
+            <button type="button" data-action="close" style="padding:8px 10px;border-radius:8px;border:1px solid rgba(255,59,59,0.2);background:rgba(255,59,59,0.06);cursor:pointer;font-family:'Inter',sans-serif;font-size:11px;font-weight:600;color:var(--red);">✕ Kapat</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div><!-- /page-support -->
