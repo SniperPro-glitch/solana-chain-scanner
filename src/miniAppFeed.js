@@ -19,6 +19,10 @@ const { buildLogoCandidates } = require('./tokenLogo');
 const { fmtUsd, fmtPriceUsd } = require('./formatUsd');
 const { buildSeedFeedItems, mergeFeedItems, seedEnabled } = require('./miniAppSeed');
 
+/** New Pairs sekmesi — yalnızca bu süre içinde listelenenler (sonra listeden düşer). */
+const NEW_PAIRS_MAX_AGE_MS = 48 * 60 * 60 * 1000;
+const NEW_PAIRS_MAX_AGE_HOURS = 48;
+
 function cardLevelFromAudit(audit) {
   if (audit?.isCritical) return 'critical';
   if (audit?.risk?.code === 'HIGH') return 'red';
@@ -135,7 +139,13 @@ function tokenSnapshotUsable(token) {
 }
 
 async function buildFeedFromBotShares(tab = 'trending', limit = 24, dexFilter = 'all') {
-  const entries = await botFeedStore.listRecentAsync(limit, tab);
+  const isNewTab = tab === 'new';
+  const fetchLimit = isNewTab ? 400 : limit;
+  const now = Date.now();
+  let entries = await botFeedStore.listRecentAsync(fetchLimit, tab);
+  if (isNewTab) {
+    entries = entries.filter((e) => now - (e.postedAt || 0) < NEW_PAIRS_MAX_AGE_MS);
+  }
   const tokens = await Promise.all(
     entries.map(async (entry) => {
       const snap = entry.token;
@@ -198,7 +208,7 @@ async function buildFeedFromBotShares(tab = 'trending', limit = 24, dexFilter = 
 
   let finalItems = ranked;
   let feedSource = 'bot_channel';
-  if (seedEnabled() && finalItems.length < limit) {
+  if (!isNewTab && seedEnabled() && finalItems.length < limit) {
     const seedItems = await buildSeedFeedItems(tokenToFeedItem, quickAudit);
     if (seedItems.length) {
       finalItems = mergeFeedItems(seedItems, finalItems, limit);
@@ -206,8 +216,9 @@ async function buildFeedFromBotShares(tab = 'trending', limit = 24, dexFilter = 
     }
   }
 
-  const now = Date.now();
-  const newPairs = entries.filter((e) => now - (e.postedAt || 0) < 2 * 60 * 60 * 1000).length;
+  const newPairs = isNewTab
+    ? finalItems.length
+    : entries.filter((e) => now - (e.postedAt || 0) < NEW_PAIRS_MAX_AGE_MS).length;
   const volFromTokens = finalItems.reduce((s, it) => s + (it.volume24h || 0), 0);
   const dexCountsFinal = countByPlatform(finalItems, (it) => it.dexPlatform);
 
@@ -236,9 +247,13 @@ async function buildFeedFromBotShares(tab = 'trending', limit = 24, dexFilter = 
     },
     items: finalItems,
     empty: finalItems.length === 0,
+    emptyKind: isNewTab && finalItems.length === 0 ? 'new_pairs_empty' : 'generic',
     emptyMessage: finalItems.length === 0
-      ? 'Henüz kanal paylaşımı yok. Bot kanala admin ekleyin, /settings ile Solana seçin, SOLANA_SCAN_ENABLED=1 yapın.'
+      ? (isNewTab
+        ? null
+        : 'Henüz kanal paylaşımı yok. Bot kanala admin ekleyin, /settings ile Solana seçin, SOLANA_SCAN_ENABLED=1 yapın.')
       : null,
+    newPairsWindowHours: NEW_PAIRS_MAX_AGE_HOURS,
     devSeed: feedSource === 'dev_seed',
   };
 }
@@ -278,4 +293,6 @@ module.exports = {
   buildFeedFromBotShares,
   analyzeMintAndSave,
   tokenToFeedItem,
+  NEW_PAIRS_MAX_AGE_MS,
+  NEW_PAIRS_MAX_AGE_HOURS,
 };

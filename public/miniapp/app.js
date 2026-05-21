@@ -71,6 +71,8 @@
   let openingMint = false;
   let feedItemsFull = [];
   let feedEmptyMessage = '';
+  let feedEmptyKind = '';
+  const NEW_PAIRS_MAX_AGE_MS = 48 * 60 * 60 * 1000;
   let feedListMode = 'top';
   let feedTimeframe = '24h';
   const FEED_TF_META = {
@@ -327,6 +329,7 @@
       setFeedTab('new');
       showScannerHome();
       syncFeedToolbarUi();
+      updateFeedListTitle();
       void loadHomeFeed('new', 'new', { force: true });
       return;
     }
@@ -634,7 +637,11 @@
       el.classList.add('hidden');
       return;
     }
-    const title = feedTab === 'trending' ? 'Trading List' : feedTab === 'new' ? 'New Pairs List' : '';
+    const title = feedTab === 'trending'
+      ? 'Trading List'
+      : feedTab === 'new'
+        ? 'New Pairs · son 48 saat'
+        : '';
     if (title) {
       el.textContent = title;
       el.classList.remove('hidden');
@@ -703,12 +710,19 @@
     return item[meta.volFmtKey] || item.volume24hFmt || '—';
   }
 
+  function isWithinNewPairsWindow(item) {
+    const posted = item?.postedAt;
+    if (!posted) return false;
+    return Date.now() - posted < NEW_PAIRS_MAX_AGE_MS;
+  }
+
   function prepareFeedListItems(items) {
     let list = Array.isArray(items) ? [...items] : [];
     if (feedListMode === 'gainers') {
       list = list.filter((it) => (getFeedChange(it) ?? -1) > 0);
       list.sort((a, b) => (getFeedChange(b) ?? 0) - (getFeedChange(a) ?? 0));
-    } else if (feedListMode === 'new') {
+    } else if (feedListMode === 'new' || feedTab === 'new') {
+      list = list.filter(isWithinNewPairsWindow);
       list.sort((a, b) => (b.postedAt || 0) - (a.postedAt || 0));
     } else {
       const volKey = feedTfMeta(feedTimeframe).volKey;
@@ -1036,6 +1050,16 @@
     renderTrendingBand(body?.trendingTicker, body?.sortMode);
   }
 
+  function renderNewPairsEmptyState() {
+    return `<div class="feed-empty-pro" role="status">
+      <span class="feed-empty-pro-glow" aria-hidden="true"></span>
+      <span class="feed-empty-pro-icon" aria-hidden="true">✦</span>
+      <strong class="feed-empty-pro-title">YENİ LİSTELEME HENÜZ YOK</strong>
+      <p class="feed-empty-pro-lead">Son <b>48 saat</b> içinde kanala eklenen yeni çift bulunmuyor. İlk listeleme geldiğinde burada görünecek; 48 saat sonra listeden otomatik kalkar.</p>
+      <span class="feed-empty-pro-tag">NEW PAIRS · 48H WINDOW</span>
+    </div>`;
+  }
+
   function renderTokenList(items, opts = {}) {
     const list = $('homeTokenList');
     if (!list) return;
@@ -1043,6 +1067,10 @@
     const lastRow = searching ? '' : renderLastReportRow();
     const rows = (items || []).map((it) => renderFeedRow(it)).join('');
     if (!rows) {
+      if (!searching && (feedTab === 'new' || feedEmptyKind === 'new_pairs_empty')) {
+        list.innerHTML = renderNewPairsEmptyState();
+        return;
+      }
       const emptyMsg =
         opts.emptyMessage ||
         (searching
@@ -1083,53 +1111,33 @@
     const bar = $('feedMetaBar');
     const txt = $('feedMetaText');
     if (!bar || !txt) return;
-    if (!body || body.empty) {
+    if (!body) {
+      bar.classList.add('hidden');
+      return;
+    }
+    const chainKey = body.chain || activeChain || 'solana';
+    const c = CHAIN_UI[chainKey] || { label: chainKey, src: 'DexScreener' };
+    if (body.tab === 'new' || feedTab === 'new') {
+      const n = body.items?.length ?? 0;
+      if (body.empty) {
+        txt.textContent = `◎ ${c.label} · New Pairs · son 48 saat · liste boş`;
+      } else {
+        txt.textContent = `◎ ${c.label} · New Pairs · son 48 saat · ${n} çift`;
+      }
+      delete txt.dataset.lockChain;
+      bar.classList.remove('hidden');
+      return;
+    }
+    if (body.empty) {
       bar.classList.add('hidden');
       return;
     }
     const n = body.botCount ?? body.items?.length ?? 0;
     const vol = body.stats?.volume24hFmt || '—';
-    const chainKey = body.chain || activeChain || 'solana';
-    const c = CHAIN_UI[chainKey] || { label: chainKey, src: 'DexScreener' };
     const src = body.source === 'bot_channel' ? 'Bot + arama' : c.src;
     txt.textContent = `◎ ${c.label} · ${src} · ${n} token · ${vol} 24h`;
     delete txt.dataset.lockChain;
     bar.classList.remove('hidden');
-  }
-
-  function updateQuickCards(stats, items) {
-    const qc = $('quickCards');
-    if (!qc) return;
-    const trending = (stats?.count || items.length);
-    const cards = [
-      { icon: '🔥', title: 'Live Trending', val: trending.toLocaleString('en-US'), accent: 'accent-pink', tag: 'LIVE', tagCls: 'live', action: 'trending' },
-      { icon: '✦', title: 'New Pairs', val: String(stats?.newPairs ?? items.length), accent: 'accent-green', tag: 'NEW', tagCls: 'new', action: 'new' },
-      {
-        icon: `<img class="scanner-ico-img qc-scanner-ico" src="${SCANNER_ICON}" alt="" width="26" height="26" loading="lazy" decoding="async" />`,
-        title: 'Liquidity Scanner',
-        val: stats?.liquidityFmt || '$243.6M',
-        accent: 'accent-cyan',
-        tag: '',
-        action: 'scan',
-      },
-      { icon: '🐋', title: 'Whale Buys', val: String(Math.min(99, Math.max(1, items.length))), accent: 'accent-purple', tag: '', action: null },
-      { icon: '🛡', title: 'AI Risk Check', val: 'Protected', accent: 'accent-gold', tag: '', action: null },
-    ];
-    qc.innerHTML = cards.map((c) => {
-      const tag = c.tag ? `<span class="qc-tag ${c.tagCls}">${c.tag}</span>` : '';
-      return `<article class="quick-card ${c.accent}${c.action ? ' quick-card-tap' : ''}" data-action="${c.action || ''}">
-        <div class="qc-head"><span class="qc-icon-wrap">${c.icon}</span>${tag}</div>
-        <div class="qc-title">${c.title}</div>
-        <div class="qc-val">${c.val}</div>
-      </article>`;
-    }).join('');
-    qc.querySelectorAll('.quick-card-tap').forEach((card) => {
-      card.addEventListener('click', () => {
-        const a = card.dataset.action;
-        if (a === 'trending' || a === 'new') fetchFeed(a);
-        else if (a === 'scan' && typeof globalThis.onBottomNav === 'function') globalThis.onBottomNav('scan');
-      });
-    });
   }
 
   function setDexFilter(dex) {
@@ -1175,27 +1183,34 @@
   function ingestFeedResponse(body, q) {
     const items = body?.items?.length ? body.items : [];
     feedEmptyMessage = body?.emptyMessage || '';
-    if (body?.empty && body.emptyMessage && !items.length) {
-      applyMarketStats({ count: 0, volume24hFmt: '—', liquidityFmt: '—', newPairs: 0, activeNow: 0 }, []);
-      updateQuickCards({ count: 0, newPairs: 0, liquidityFmt: '—' }, []);
+    feedEmptyKind = body?.emptyKind || '';
+    if (body?.empty && !items.length) {
+      applyMarketStats(
+        body.stats || { count: 0, volume24hFmt: '—', liquidityFmt: '—', newPairs: 0, activeNow: 0 },
+        items,
+      );
       applyHomeExtras(body);
       updateFeedMetaBar(body);
       feedItemsFull = [];
       applySearchFilter();
-      if (!q) showToast(body.emptyMessage.slice(0, 80));
+      if (!q && body.emptyMessage && feedEmptyKind !== 'new_pairs_empty') {
+        showToast(body.emptyMessage.slice(0, 80));
+      }
       return body;
     }
     updateDexChipCounts(body.dexCounts);
     if (body.dexFilter) setDexFilter(body.dexFilter);
     applyMarketStats(body.stats || PLACEHOLDER_STATS, items);
-    updateQuickCards(body.stats || PLACEHOLDER_STATS, items);
     applyHomeExtras(body);
     updateFeedMetaBar(body);
     feedItemsFull = items;
-    if (items.length) feedEmptyMessage = '';
+    if (items.length) {
+      feedEmptyMessage = '';
+      feedEmptyKind = '';
+    }
     if (body.chain) activeChain = body.chain;
     applySearchFilter();
-    if (body.empty && body.emptyMessage) {
+    if (body.empty && body.emptyMessage && feedEmptyKind !== 'new_pairs_empty') {
       showToast('Liste boş — /post ile kanala paylaşın');
     }
     return body;
@@ -1254,7 +1269,6 @@
       } catch (e) {
         console.error('[feed]', e);
         applyMarketStats(PLACEHOLDER_STATS, []);
-        updateQuickCards(PLACEHOLDER_STATS, []);
         void loadPromoBanner();
         updateFeedMetaBar(null);
         feedItemsFull = [];
