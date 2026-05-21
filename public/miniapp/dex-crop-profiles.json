@@ -1,7 +1,7 @@
+rop-profiles-restored
 {
   "version": 1,
-  "updatedAt": "2026-05-21T21:00:00.000Z",
-  "layoutNote": "DexScreener embed May 2026 — trades iframeTop +120px (eski -590 footer gösteriyordu)",
+  "updatedAt": "2026-05-18T17:53:40.308Z",
   "profiles": {
     "web": {
       "chart": {
@@ -23,7 +23,7 @@
       "trades": {
         "viewH": 302,
         "iframeH": 845,
-        "iframeTop": -470,
+        "iframeTop": -590,
         "shiftDown": 0,
         "left": 1,
         "width": 98,
@@ -57,7 +57,7 @@
       "trades": {
         "viewH": 302,
         "iframeH": 845,
-        "iframeTop": -470,
+        "iframeTop": -590,
         "shiftDown": 0,
         "left": 1,
         "width": 98,
@@ -91,7 +91,7 @@
       "trades": {
         "viewH": 174,
         "iframeH": 990,
-        "iframeTop": -700,
+        "iframeTop": -820,
         "shiftDown": 195,
         "left": 0,
         "width": 100,
@@ -125,7 +125,7 @@
       "trades": {
         "viewH": 268,
         "iframeH": 980,
-        "iframeTop": -635,
+        "iframeTop": -755,
         "shiftDown": 166,
         "left": 0,
         "width": 100,
@@ -159,7 +159,7 @@
       "trades": {
         "viewH": 302,
         "iframeH": 845,
-        "iframeTop": -470,
+        "iframeTop": -590,
         "shiftDown": 0,
         "left": 1,
         "width": 98,
@@ -174,4 +174,3 @@
       }
     }
   }
-}
