@@ -1,0 +1,3 @@
+Git test — bu dosyayı silmek serbest.
+Oluşturulma: 2026-05-19
+Amaç: GitHub push/pull kontrolü.
