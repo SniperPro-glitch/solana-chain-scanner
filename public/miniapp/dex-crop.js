@@ -148,6 +148,9 @@
   }
 
   function detectProfile() {
+    if (global.SniperCropProfile?.detect) return global.SniperCropProfile.detect();
+    const forced = profileFromUrl();
+    if (forced) return forced;
     if (global.SniperHost?.isWebBrowser?.()) return 'web';
     if (!isTelegram()) return 'web';
     const w = window.innerWidth || 390;
@@ -155,6 +158,12 @@
     if (w >= 426) return 'app13pm';
     if (w >= 400) return 'app11';
     return 'app13';
+  }
+
+  function syncProfileDataset() {
+    const id = detectProfile();
+    document.documentElement.dataset.dexCropProfile = id;
+    return id;
   }
 
   function normalizeBlock(patch) {
@@ -359,48 +368,25 @@
   }
 
   function apply(settings) {
-    const s = settings || load();
-    const root = document.documentElement;
+    let profileId = document.documentElement.dataset.dexCropProfile;
+    if (!PROFILE_META[profileId]) {
+      profileId = detectProfile();
+      document.documentElement.dataset.dexCropProfile = profileId;
+    }
+    const s = settings || loadForProfile(profileId);
     const c = s.chart;
     const t = s.trades;
-    const brandCrop = Number(c.brandCrop) || CHART_BRAND_CROP;
-    const chartDown = Number(c.shiftDown) || 0;
     const tapeDown = Number(s.tape?.shiftDown) || 0;
-    const tradesDown = Number(t.shiftDown) || 0;
-
-    root.style.setProperty('--chart-embed-h', `${c.stageH}px`);
-    root.style.setProperty('--chart-embed-top', `${c.top}px`);
-    root.style.setProperty('--chart-shift-down', `${chartDown}px`);
-    root.style.setProperty('--chart-embed-left', `${c.left}%`);
-    root.style.setProperty('--chart-embed-width', `${c.width}%`);
-    root.style.setProperty('--chart-embed-extra', `${c.heightExtra}px`);
-    root.style.setProperty('--chart-brand-crop', `${brandCrop}px`);
-    root.style.setProperty('--chart-clip-left', `${c.clipLeft || 0}px`);
-    root.style.setProperty('--chart-clip-right', `${c.clipRight || 0}px`);
-
-    root.style.setProperty('--dex-trades-view-h', `${t.viewH}px`);
-    root.style.setProperty('--dex-iframe-h', `${t.iframeH}px`);
-    root.style.setProperty('--dex-iframe-top', `${t.iframeTop}px`);
-    root.style.setProperty('--dex-trades-shift-down', `${tradesDown}px`);
-    root.style.setProperty('--tape-shift-down', `${tapeDown}px`);
-    root.style.setProperty('--dex-iframe-left', `${t.left}%`);
-    root.style.setProperty('--dex-iframe-width', `${t.width}%`);
-    root.style.setProperty('--dex-mask-top-h', `${t.maskTop}px`);
-    root.style.setProperty('--dex-mask-foot-h', `${t.maskFoot}px`);
-    root.style.setProperty('--dex-trades-clip-left', `${t.clipLeft || 0}px`);
-    root.style.setProperty('--dex-trades-clip-right', `${t.clipRight || 0}px`);
 
     const tapeEl = document.getElementById('tradesTape');
-    if (tapeEl) {
-      tapeEl.style.marginTop = `${tapeDown}px`;
-    }
+    if (tapeEl) tapeEl.style.marginTop = `${tapeDown}px`;
 
     const stage = document.querySelector('.chart-terminal--dex-embed .chart-stage');
     const chartIframe = document.querySelector('iframe.dex-embed-chart');
     if (stage) {
-      stage.style.height = `${c.stageH}px`;
-      stage.style.minHeight = `${c.stageH}px`;
-      stage.style.maxHeight = `${c.stageH}px`;
+      stage.style.height = '';
+      stage.style.minHeight = '';
+      stage.style.maxHeight = '';
       applyClip(stage, c.clipLeft, c.clipRight, c.clipTop, c.clipBottom);
     }
     if (chartIframe) chartIframe.removeAttribute('style');
@@ -411,9 +397,9 @@
     const maskFoot = wrap?.querySelector('.dex-mask-foot');
 
     if (wrap) {
-      wrap.style.height = `${t.viewH}px`;
-      wrap.style.minHeight = `${t.viewH}px`;
-      wrap.style.maxHeight = `${t.viewH}px`;
+      wrap.style.height = '';
+      wrap.style.minHeight = '';
+      wrap.style.maxHeight = '';
       applyClip(wrap, t.clipLeft, t.clipRight, t.clipTop, t.clipBottom);
       const maskTopOn = t.maskTopOn !== false;
       const maskFootOn = t.maskFootOn !== false;
@@ -424,7 +410,6 @@
       wrap.classList.toggle('dex-mask-foot-off', !maskFootOn || maskFootPx <= 0);
     }
     if (tradesIframe) tradesIframe.removeAttribute('style');
-    document.documentElement.dataset.dexCropProfile = detectProfile();
     applyMaskEl(maskTop, t.maskTopOn !== false, t.maskTop);
     applyMaskEl(maskFoot, t.maskFootOn !== false, t.maskFoot);
   }
@@ -802,6 +787,7 @@
     addCalibrateButton();
     window.addEventListener('resize', () => {
       if (!document.getElementById('dexCropPanel')?.classList.contains('hidden')) return;
+      if (global.SniperCropProfile?.apply) global.SniperCropProfile.apply();
       apply(load());
     });
     if (isCalibrateMode()) {
@@ -827,6 +813,7 @@
     PROFILE_ORDER,
     DEFAULT_BLOCK,
     detectProfile,
+    syncProfileDataset,
     ensureProfilesReady,
     loadStore,
     loadForProfile,

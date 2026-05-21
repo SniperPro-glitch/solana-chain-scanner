@@ -10,8 +10,10 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script src="host-detect.js?v=1"></script>
+  <script src="profile-bootstrap.js?v=1"></script>
   <script src="telegram-viewport.js?v=5"></script>
-  <link rel="stylesheet" href="styles.css?v=47" />
+  <link rel="stylesheet" href="styles.css?v=49" />
+  <link rel="stylesheet" href="dex-crop-profiles.css?v=2" />
   <link rel="stylesheet" href="dex-scanner.css?v=120" />
   <link rel="stylesheet" href="new-pairs.css?v=120" />
   <link rel="stylesheet" href="dex-scanner-radar.css?v=2" />
@@ -482,39 +484,14 @@
   </div>
 
   <script src="wallet.js?v=1"></script>
-  <script src="dex-crop-baked.js?v=6"></script>
-  <script>
-    (function () {
-      if (!document.documentElement.classList.contains('web-browser')) return;
-      var b = globalThis.__DEX_CROP_BAKED__;
-      var p = b && b.profiles && b.profiles.web;
-      if (!p || !p.trades) return;
-      var r = document.documentElement;
-      var t = p.trades;
-      var c = p.chart;
-      r.style.setProperty('--dex-trades-view-h', t.viewH + 'px');
-      r.style.setProperty('--dex-iframe-h', t.iframeH + 'px');
-      r.style.setProperty('--dex-iframe-top', t.iframeTop + 'px');
-      r.style.setProperty('--dex-trades-shift-down', (t.shiftDown || 0) + 'px');
-      r.style.setProperty('--dex-iframe-left', t.left + '%');
-      r.style.setProperty('--dex-iframe-width', t.width + '%');
-      r.style.setProperty('--dex-mask-top-h', (t.maskTop || 0) + 'px');
-      r.style.setProperty('--dex-mask-foot-h', (t.maskFoot || 0) + 'px');
-      r.style.setProperty('--chart-embed-h', c.stageH + 'px');
-      r.style.setProperty('--chart-embed-top', c.top + 'px');
-      r.style.setProperty('--chart-embed-left', c.left + '%');
-      r.style.setProperty('--chart-embed-width', c.width + '%');
-      r.style.setProperty('--chart-brand-crop', (c.brandCrop || 39) + 'px');
-      r.dataset.dexCropProfile = 'web';
-    })();
-  </script>
-  <script src="dex-crop.js?v=25"></script>
+  <script src="dex-crop-baked.js?v=7"></script>
+  <script src="dex-crop.js?v=27"></script>
   <script src="feed-badges.js?v=1"></script>
 <script src="dex-sidebar.js?v=7"></script>
   <script src="search-overlay.js?v=5"></script>
   <script src="support.js?v=3"></script>
   <script src="sidebar-account.js?v=4"></script>
-  <script src="app.js?v=128"></script>
+  <script src="app.js?v=130"></script>
   <script src="boot-feed.js?v=3"></script>
 </body>
 </html>

@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="tr" class="web-browser">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+  <script src="host-detect.js?v=1"></script>
+  <script src="profile-bootstrap.js?v=1"></script>
+  <link rel="stylesheet" href="styles.css?v=49" />
+  <link rel="stylesheet" href="dex-crop-profiles.css?v=2" />
+  <style>
+    body { background: #0a0e1a; color: #9ca3af; font: 12px monospace; padding: 12px; }
+    h1 { font-size: 14px; color: #fff; }
+    .ok { color: #22c55e; } .bad { color: #ef4444; }
+    .panel { margin: 16px 0; border: 1px solid #1e293b; padding: 8px; }
+  </style>
+</head>
+<body>
+  <h1>DEX crop verify</h1>
+  <p>Profil: <b id="prof">—</b></p>
+  <div id="out"></div>
+  <div class="panel">
+    <div class="dex-trades-embed-wrap" id="dexTradesWrap">
+      <iframe id="dexTradesEmbed" class="dex-trades-embed" src="about:blank" title="test"></iframe>
+      <div class="dex-mask dex-mask-top"></div>
+      <div class="dex-mask dex-mask-foot"></div>
+    </div>
+  </div>
+  <script src="dex-crop-baked.js?v=7"></script>
+  <script src="dex-crop.js?v=26"></script>
+  <script>
+    const PROFILES = ['web', 'app11', 'app13', 'app13pm', 'app16'];
+    const baked = globalThis.__DEX_CROP_BAKED__?.profiles || {};
+    const out = document.getElementById('out');
+    const iframe = document.getElementById('dexTradesEmbed');
+    const wrap = document.getElementById('dexTradesWrap');
+
+    function runOne(id) {
+      document.documentElement.dataset.dexCropProfile = id;
+      document.getElementById('prof').textContent = id;
+      SniperDexCrop.apply(SniperDexCrop.loadForProfile(id));
+      void document.documentElement.offsetHeight;
+      const t = baked[id]?.trades || {};
+      const cs = getComputedStyle(document.documentElement);
+      const wrapCs = getComputedStyle(wrap);
+      const ifCs = getComputedStyle(iframe);
+      const expectTop = (Number(t.iframeTop) || 0) + (Number(t.shiftDown) || 0);
+      const rows = [
+        ['--dex-trades-view-h', cs.getPropertyValue('--dex-trades-view-h').trim(), `${t.viewH}px`],
+        ['wrap height', wrapCs.height, `${t.viewH}px`],
+        ['--dex-iframe-top', cs.getPropertyValue('--dex-iframe-top').trim(), `${t.iframeTop}px`],
+        ['--dex-trades-shift-down', cs.getPropertyValue('--dex-trades-shift-down').trim(), `${t.shiftDown || 0}px`],
+        ['iframe top', ifCs.top, `${expectTop}px`],
+        ['iframe height', ifCs.height, `${t.iframeH}px`],
+      ];
+      let html = `<h2>${id}</h2><ul>`;
+      let pass = true;
+      for (const [k, got, want] of rows) {
+        const ok = got === want;
+        if (!ok) pass = false;
+        html += `<li class="${ok ? 'ok' : 'bad'}">${k}: ${got} ${ok ? '✓' : '≠ ' + want}</li>`;
+      }
+      html += '</ul>';
+      return { pass, html };
+    }
+
+    let all = '';
+    let okAll = true;
+    for (const id of PROFILES) {
+      const r = runOne(id);
+      all += r.html;
+      if (!r.pass) okAll = false;
+    }
+    out.innerHTML = all + `<p class="${okAll ? 'ok' : 'bad'}">${okAll ? 'TÜM PROFİLLER OK' : 'HATA VAR'}</p>`;
+  </script>
+</body>
+</html>

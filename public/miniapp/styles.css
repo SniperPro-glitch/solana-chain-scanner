@@ -802,14 +802,7 @@ html.detail-mode body {
 /* DexScreener canlı işlemler — iframe kırpma (Transactions paneli) */
 .dex-trades-embed-wrap {
   position: relative;
-  /* dex-crop-profiles.json → web (kayıtlı oturtma) */
-  --dex-trades-view-h: 302px;
-  --dex-iframe-h: 845px;
-  --dex-iframe-top: -590px;
-  --dex-iframe-left: 1%;
-  --dex-iframe-width: 98%;
-  --dex-mask-top-h: 0px;
-  --dex-mask-foot-h: 0px;
+  /* Ölçüler: html[data-dex-crop-profile] → dex-crop-profiles.css */
   height: var(--dex-trades-view-h);
   min-height: var(--dex-trades-view-h);
   max-height: var(--dex-trades-view-h);

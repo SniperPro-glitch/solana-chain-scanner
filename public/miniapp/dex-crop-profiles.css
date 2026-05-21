@@ -1,0 +1,156 @@
+/* Otomatik — scripts/sync-dex-crop-baked.js — kayıtlı 5 cihaz profili */
+html[data-dex-crop-profile="web"] {
+  --chart-embed-h: 330px;
+  --chart-embed-top: 40px;
+  --chart-shift-down: 0px;
+  --chart-embed-left: 1%;
+  --chart-embed-width: 104%;
+  --chart-embed-extra: 0px;
+  --chart-brand-crop: 39px;
+  --tape-shift-down: 0px;
+  --dex-trades-view-h: 302px;
+  --dex-iframe-h: 845px;
+  --dex-iframe-top: -590px;
+  --dex-trades-shift-down: 0px;
+  --dex-iframe-left: 1%;
+  --dex-iframe-width: 98%;
+  --dex-mask-top-h: 0px;
+  --dex-mask-foot-h: 0px;
+}
+
+html[data-dex-crop-profile="web"] .chart-terminal--dex-embed .chart-stage {
+  height: 330px !important;
+  min-height: 330px !important;
+  max-height: 330px !important;
+}
+
+html[data-dex-crop-profile="web"] .dex-trades-embed-wrap {
+  height: 302px !important;
+  min-height: 302px !important;
+  max-height: 302px !important;
+}
+
+html[data-dex-crop-profile="app11"] {
+  --chart-embed-h: 330px;
+  --chart-embed-top: 20px;
+  --chart-shift-down: 0px;
+  --chart-embed-left: 1%;
+  --chart-embed-width: 98%;
+  --chart-embed-extra: 14px;
+  --chart-brand-crop: 40px;
+  --tape-shift-down: 0px;
+  --dex-trades-view-h: 302px;
+  --dex-iframe-h: 845px;
+  --dex-iframe-top: -590px;
+  --dex-trades-shift-down: 0px;
+  --dex-iframe-left: 1%;
+  --dex-iframe-width: 98%;
+  --dex-mask-top-h: 0px;
+  --dex-mask-foot-h: 0px;
+}
+
+html[data-dex-crop-profile="app11"] .chart-terminal--dex-embed .chart-stage {
+  height: 330px !important;
+  min-height: 330px !important;
+  max-height: 330px !important;
+}
+
+html[data-dex-crop-profile="app11"] .dex-trades-embed-wrap {
+  height: 302px !important;
+  min-height: 302px !important;
+  max-height: 302px !important;
+}
+
+html[data-dex-crop-profile="app13"] {
+  --chart-embed-h: 314px;
+  --chart-embed-top: -15px;
+  --chart-shift-down: 55px;
+  --chart-embed-left: -1%;
+  --chart-embed-width: 102%;
+  --chart-embed-extra: 0px;
+  --chart-brand-crop: 0px;
+  --tape-shift-down: 0px;
+  --dex-trades-view-h: 174px;
+  --dex-iframe-h: 990px;
+  --dex-iframe-top: -820px;
+  --dex-trades-shift-down: 195px;
+  --dex-iframe-left: 0%;
+  --dex-iframe-width: 100%;
+  --dex-mask-top-h: 8px;
+  --dex-mask-foot-h: 24px;
+}
+
+html[data-dex-crop-profile="app13"] .chart-terminal--dex-embed .chart-stage {
+  height: 314px !important;
+  min-height: 314px !important;
+  max-height: 314px !important;
+}
+
+html[data-dex-crop-profile="app13"] .dex-trades-embed-wrap {
+  height: 174px !important;
+  min-height: 174px !important;
+  max-height: 174px !important;
+}
+
+html[data-dex-crop-profile="app13pm"] {
+  --chart-embed-h: 344px;
+  --chart-embed-top: 40px;
+  --chart-shift-down: 0px;
+  --chart-embed-left: -1%;
+  --chart-embed-width: 108%;
+  --chart-embed-extra: 36px;
+  --chart-brand-crop: 39px;
+  --tape-shift-down: 0px;
+  --dex-trades-view-h: 268px;
+  --dex-iframe-h: 980px;
+  --dex-iframe-top: -755px;
+  --dex-trades-shift-down: 166px;
+  --dex-iframe-left: 0%;
+  --dex-iframe-width: 100%;
+  --dex-mask-top-h: 0px;
+  --dex-mask-foot-h: 0px;
+}
+
+html[data-dex-crop-profile="app13pm"] .chart-terminal--dex-embed .chart-stage {
+  height: 344px !important;
+  min-height: 344px !important;
+  max-height: 344px !important;
+}
+
+html[data-dex-crop-profile="app13pm"] .dex-trades-embed-wrap {
+  height: 268px !important;
+  min-height: 268px !important;
+  max-height: 268px !important;
+}
+
+html[data-dex-crop-profile="app16"] {
+  --chart-embed-h: 328px;
+  --chart-embed-top: 37px;
+  --chart-shift-down: 0px;
+  --chart-embed-left: 1%;
+  --chart-embed-width: 98%;
+  --chart-embed-extra: 0px;
+  --chart-brand-crop: 36px;
+  --tape-shift-down: 0px;
+  --dex-trades-view-h: 302px;
+  --dex-iframe-h: 845px;
+  --dex-iframe-top: -590px;
+  --dex-trades-shift-down: 0px;
+  --dex-iframe-left: 1%;
+  --dex-iframe-width: 98%;
+  --dex-mask-top-h: 0px;
+  --dex-mask-foot-h: 0px;
+}
+
+html[data-dex-crop-profile="app16"] .chart-terminal--dex-embed .chart-stage {
+  height: 328px !important;
+  min-height: 328px !important;
+  max-height: 328px !important;
+}
+
+html[data-dex-crop-profile="app16"] .dex-trades-embed-wrap {
+  height: 302px !important;
+  min-height: 302px !important;
+  max-height: 302px !important;
+}
+
