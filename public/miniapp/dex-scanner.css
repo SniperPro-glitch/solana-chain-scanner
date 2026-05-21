@@ -1337,7 +1337,7 @@ html.scanner-mode .search-box {
 }
 
 .token-thead,
-.token-row {
+.token-row:not(.np-row) {
   display: grid;
   grid-template-columns: var(--tbl-cols);
   gap: 4px 5px;
@@ -1394,7 +1394,7 @@ html.scanner-mode .search-box {
   max-width: 100%;
 }
 
-.token-row {
+.token-row:not(.np-row) {
   padding: 10px 0;
   margin-bottom: 6px;
   border-radius: var(--radius);
@@ -1404,7 +1404,7 @@ html.scanner-mode .search-box {
   transition: border-color 0.15s, box-shadow 0.15s;
 }
 
-.token-row:active {
+.token-row:not(.np-row):active {
   border-color: rgba(0, 229, 255, 0.35);
   box-shadow: 0 0 12px rgba(0, 229, 255, 0.1);
 }
@@ -1894,7 +1894,7 @@ html.scanner-mode .search-box {
     font-size: 9px;
   }
 
-  .token-list .token-row {
+  .token-list .token-row:not(.np-row) {
     display: grid;
     grid-template-columns: 18px minmax(0, 1fr) auto;
     grid-template-rows: auto auto auto;
@@ -1903,27 +1903,27 @@ html.scanner-mode .search-box {
     align-items: start;
   }
 
-  .token-list .token-row > .tr-rank {
+  .token-list .token-row:not(.np-row) > .tr-rank {
     grid-column: 1;
     grid-row: 1 / 4;
     align-self: center;
   }
 
-  .token-list .token-row > .tr-token {
+  .token-list .token-row:not(.np-row) > .tr-token {
     grid-column: 2;
     grid-row: 1 / 4;
     align-self: center;
     min-width: 0;
   }
 
-  .token-list .token-row > .tr-mcap,
-  .token-list .token-row > .tr-age,
-  .token-list .token-row > .tr-vol,
-  .token-list .token-row > .tr-liq {
+  .token-list .token-row:not(.np-row) > .tr-mcap,
+  .token-list .token-row:not(.np-row) > .tr-age,
+  .token-list .token-row:not(.np-row) > .tr-vol,
+  .token-list .token-row:not(.np-row) > .tr-liq {
     display: none !important;
   }
 
-  .token-list .token-row > .tr-price {
+  .token-list .token-row:not(.np-row) > .tr-price {
     grid-column: 3;
     grid-row: 1;
     justify-self: end;
@@ -1932,7 +1932,7 @@ html.scanner-mode .search-box {
     padding-top: 2px;
   }
 
-  .token-list .token-row > .tr-pct {
+  .token-list .token-row:not(.np-row) > .tr-pct {
     grid-column: 3;
     grid-row: 2;
     justify-self: end;
@@ -1940,7 +1940,7 @@ html.scanner-mode .search-box {
     line-height: 1.2;
   }
 
-  .token-list .token-row > .tr-risk-col {
+  .token-list .token-row:not(.np-row) > .tr-risk-col {
     grid-column: 3;
     grid-row: 3;
     justify-self: end;
@@ -1949,21 +1949,8 @@ html.scanner-mode .search-box {
     gap: 2px;
   }
 
-  .token-list .token-row .tr-spark {
+  .token-list .token-row:not(.np-row) .tr-spark {
     display: none;
-  }
-
-  .token-list .token-row.np-row {
-    display: flex !important;
-    grid-template-columns: none !important;
-    grid-template-rows: none !important;
-  }
-
-  .token-list .token-row.np-row > .tr-rank,
-  .token-list .token-row.np-row > .tr-price,
-  .token-list .token-row.np-row > .tr-pct,
-  .token-list .token-row.np-row > .tr-risk-col {
-    display: revert !important;
   }
 
   .token-list .token-row .risk-badge {
@@ -2144,62 +2131,52 @@ html.scanner-mode .search-box {
   display: none;
 }
 
-/* New Pairs kartları — opak zemin (şeffaf rgba değil) */
+/* New Pairs — dolu kart (trending grid’den ayrı) */
+.home-feed-panel.is-new-pairs .token-list .np-row,
 .token-list .np-row {
   position: relative;
-  display: flex !important;
+  display: flex;
   flex-direction: column;
-  grid-template-columns: none !important;
-  grid-template-rows: none !important;
-  gap: 8px;
-  padding: 10px 10px 8px;
-  margin-bottom: 6px;
+  gap: 0;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0 0 8px;
   cursor: pointer;
-  background: #0c1118;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 10px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.45);
-  isolation: isolate;
-}
-
-.token-list .np-row > * {
-  position: relative;
-  z-index: 1;
+  overflow: hidden;
+  background-color: #161f2c;
+  border: 2px solid #2a3548;
+  border-radius: 12px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.55);
 }
 
 .token-list .np-row.risk-low {
-  background: linear-gradient(165deg, #0f1814 0%, #0c1118 55%, #0b1016 100%);
-  border-color: rgba(0, 255, 136, 0.5);
-  box-shadow:
-    0 0 0 1px rgba(0, 255, 136, 0.15),
-    0 4px 14px rgba(0, 0, 0, 0.5);
+  background-color: #142218;
+  border-color: #00ff88;
 }
 
 .token-list .np-row.risk-mid {
-  background: linear-gradient(165deg, #181308 0%, #0f0d0a 55%, #0c1118 100%);
-  border-color: rgba(245, 166, 35, 0.5);
-  box-shadow:
-    0 0 0 1px rgba(245, 166, 35, 0.12),
-    0 4px 14px rgba(0, 0, 0, 0.5);
+  background-color: #1c1608;
+  border-color: #f5a623;
 }
 
 .token-list .np-row.risk-high {
-  background: linear-gradient(165deg, #1a0c0c 0%, #120909 55%, #0c1118 100%);
-  border-color: rgba(255, 59, 59, 0.55);
-  box-shadow:
-    0 0 0 1px rgba(255, 59, 59, 0.15),
-    0 4px 14px rgba(0, 0, 0, 0.5);
+  background-color: #1e1010;
+  border-color: #ff3b3b;
 }
 
 .token-list .np-row:active {
-  filter: brightness(1.06);
+  filter: brightness(1.08);
 }
 
 .np-top {
   display: flex;
   align-items: flex-start;
   gap: 8px;
-  padding-right: 36px;
+  padding: 10px 10px 8px;
+  padding-right: 44px;
+  background: inherit;
 }
 
 .np-token {
@@ -2249,11 +2226,11 @@ html.scanner-mode .search-box {
 .np-stats {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 6px;
-  padding: 6px 8px;
-  border-radius: 6px;
-  background: #070a10;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  gap: 0;
+  padding: 8px 6px;
+  background: rgba(0, 0, 0, 0.28);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 .np-stat {
@@ -2287,9 +2264,8 @@ html.scanner-mode .search-box {
   gap: 6px;
   flex-wrap: wrap;
   font-size: 9px;
-  padding-top: 6px;
-  margin-top: 2px;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 8px 10px 10px;
+  background: inherit;
 }
 
 .np-act-buy { color: var(--green); font-weight: 700; }
