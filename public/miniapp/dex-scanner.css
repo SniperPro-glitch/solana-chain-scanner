@@ -1953,6 +1953,19 @@ html.scanner-mode .search-box {
     display: none;
   }
 
+  .token-list .token-row.np-row {
+    display: flex !important;
+    grid-template-columns: none !important;
+    grid-template-rows: none !important;
+  }
+
+  .token-list .token-row.np-row > .tr-rank,
+  .token-list .token-row.np-row > .tr-price,
+  .token-list .token-row.np-row > .tr-pct,
+  .token-list .token-row.np-row > .tr-risk-col {
+    display: revert !important;
+  }
+
   .token-list .token-row .risk-badge {
     font-size: 6px;
     padding: 2px 5px;
@@ -2113,11 +2126,6 @@ html.scanner-mode .search-box {
   pointer-events: none;
 }
 
-.token-list .np-row {
-  position: relative;
-  padding-top: 12px;
-}
-
 .tr-badge-hot {
   display: inline-flex;
   align-items: center;
@@ -2132,88 +2140,91 @@ html.scanner-mode .search-box {
   line-height: 1;
 }
 
-.token-table-inner.token-table-np {
-  --tbl-cols: minmax(0, 1.45fr) 34px minmax(54px, max-content) minmax(50px, max-content) minmax(50px, max-content) 36px;
+.token-table-inner.token-table-np .token-thead-np {
+  display: none;
 }
 
-.token-thead-np {
-  grid-template-columns: var(--tbl-cols);
-  padding: 0 0 6px;
-}
-
+/* New Pairs kartları — opak zemin (şeffaf rgba değil) */
 .token-list .np-row {
-  display: flex;
+  position: relative;
+  display: flex !important;
   flex-direction: column;
-  gap: 6px;
-  padding: 8px 10px;
-  margin-bottom: 5px;
+  grid-template-columns: none !important;
+  grid-template-rows: none !important;
+  gap: 8px;
+  padding: 10px 10px 8px;
+  margin-bottom: 6px;
   cursor: pointer;
+  background: #0c1118;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.45);
+  isolation: isolate;
+}
+
+.token-list .np-row > * {
+  position: relative;
+  z-index: 1;
 }
 
 .token-list .np-row.risk-low {
-  border-color: rgba(0, 255, 136, 0.42);
-  background: rgba(0, 255, 136, 0.06);
-  box-shadow: inset 0 0 20px rgba(0, 255, 136, 0.03);
+  background: linear-gradient(165deg, #0f1814 0%, #0c1118 55%, #0b1016 100%);
+  border-color: rgba(0, 255, 136, 0.5);
+  box-shadow:
+    0 0 0 1px rgba(0, 255, 136, 0.15),
+    0 4px 14px rgba(0, 0, 0, 0.5);
 }
 
 .token-list .np-row.risk-mid {
-  border-color: rgba(245, 166, 35, 0.42);
-  background: rgba(245, 166, 35, 0.05);
+  background: linear-gradient(165deg, #181308 0%, #0f0d0a 55%, #0c1118 100%);
+  border-color: rgba(245, 166, 35, 0.5);
+  box-shadow:
+    0 0 0 1px rgba(245, 166, 35, 0.12),
+    0 4px 14px rgba(0, 0, 0, 0.5);
 }
 
 .token-list .np-row.risk-high {
-  border-color: rgba(255, 59, 59, 0.48);
-  background: rgba(255, 59, 59, 0.06);
+  background: linear-gradient(165deg, #1a0c0c 0%, #120909 55%, #0c1118 100%);
+  border-color: rgba(255, 59, 59, 0.55);
+  box-shadow:
+    0 0 0 1px rgba(255, 59, 59, 0.15),
+    0 4px 14px rgba(0, 0, 0, 0.5);
 }
 
-.np-main {
-  display: grid;
-  grid-template-columns: var(--tbl-cols);
-  gap: 4px 5px;
-  align-items: center;
-  width: 100%;
+.token-list .np-row:active {
+  filter: brightness(1.06);
+}
+
+.np-top {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding-right: 36px;
+}
+
+.np-token {
+  flex: 1;
+  min-width: 0;
 }
 
 .np-token .tr-avatar-wrap,
 .np-token .tr-avatar,
 .np-token .tr-img {
-  width: 28px;
-  height: 28px;
-  font-size: 10px;
+  width: 32px;
+  height: 32px;
+  font-size: 11px;
 }
 
 .np-token .tr-name {
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 800;
+  line-height: 1.2;
 }
 
 .np-pair {
   font-size: 9px;
   color: var(--muted);
-}
-
-.np-dex .tr-dex-badge {
-  font-size: 8px;
-  padding: 2px 5px;
-}
-
-.np-dex .tr-dex-badge-txt {
-  display: inline;
-  max-width: 52px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.np-main .tr-age,
-.np-main .tr-mcap,
-.np-main .tr-liq,
-.np-main .tr-vol {
-  font-size: 9px;
-  text-align: right;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  min-width: 0;
+  margin-top: 2px;
 }
 
 .np-pair .tr-dex-badge {
@@ -2221,10 +2232,53 @@ html.scanner-mode .search-box {
   margin-left: 2px;
 }
 
+.np-age {
+  flex-shrink: 0;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--cyan, #7dd3fc);
+  padding-top: 2px;
+}
+
 .np-risk {
-  justify-self: center;
+  flex-shrink: 0;
   font-size: 8px;
   padding: 3px 6px;
+}
+
+.np-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  background: #070a10;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.np-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+}
+
+.np-stat-lbl {
+  font-size: 7px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
+
+.np-stat-val {
+  font-size: 10px;
+  font-weight: 700;
+  color: #e8f4fc;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
 }
 
 .np-foot {
@@ -2233,8 +2287,9 @@ html.scanner-mode .search-box {
   gap: 6px;
   flex-wrap: wrap;
   font-size: 9px;
-  padding-top: 2px;
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  padding-top: 6px;
+  margin-top: 2px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .np-act-buy { color: var(--green); font-weight: 700; }
@@ -2252,11 +2307,11 @@ html.scanner-mode .search-box {
     max-width: 118px;
   }
 
-  .token-table-inner.token-table-np {
-    --tbl-cols: minmax(0, 1.2fr) 30px minmax(48px, max-content) minmax(44px, max-content) minmax(44px, max-content) 32px;
+  .np-top {
+    padding-right: 32px;
   }
 
-  .np-pair .tr-dex-badge-txt {
-    max-width: 44px;
+  .np-stat-val {
+    font-size: 9px;
   }
 }

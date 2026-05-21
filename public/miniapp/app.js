@@ -241,9 +241,7 @@
   function feedBadgeHtml(item, opts = {}) {
     const onNewTab = !!opts.newTab || feedTab === 'new';
     const parts = [];
-    if (onNewTab) {
-      parts.push('<span class="tr-badge tr-badge-new">NEW</span>');
-    } else if (isWithinNewPairsWindow(item, NEW_PAIRS_MAX_AGE_MS)) {
+    if (!onNewTab && isWithinNewPairsWindow(item, NEW_PAIRS_MAX_AGE_MS)) {
       parts.push('<span class="tr-badge tr-badge-new">NEW</span>');
     }
     if (isHotToken(item)) {
@@ -320,13 +318,15 @@
         : '<span class="np-act-muted">Aktivite bekleniyor</span>';
     return `<article class="token-row np-row risk-${rc}" data-mint="${escHtml(item.mint)}" data-dex="${escHtml(dexKey)}" data-chain="${escHtml(chainKey)}"${reportAttr}${dexUrlAttr}>
       <span class="np-ribbon-new" aria-hidden="true">NEW</span>
-      <div class="np-main">
+      <div class="np-top">
         <div class="tr-token np-token">${avatar}<div class="tr-meta"><div class="tr-name">${escHtml(item.symbol)}${badges}</div><div class="tr-sub np-pair">${escHtml(chainKey.toUpperCase())} · ${dexSubBadgeHtml(dexKey, dexLabel)}</div></div></div>
-        <span class="tr-age">${escHtml(item.ageFmt || '—')}</span>
-        <span class="tr-mcap" title="${escHtml(item.marketCapUsdFmt || '')}">${escHtml(item.marketCapUsdFmt || '—')}</span>
-        <span class="tr-liq" title="${escHtml(item.liquidityUsdFmt || '')}">${escHtml(item.liquidityUsdFmt || '—')}</span>
-        <span class="tr-vol" title="${escHtml(item.volume24hFmt || '')}">${escHtml(item.volume24hFmt || '—')}</span>
+        <span class="np-age">${escHtml(item.ageFmt || '—')}</span>
         <span class="np-risk risk-badge ${rc}">${escHtml(riskTxt)}</span>
+      </div>
+      <div class="np-stats">
+        <div class="np-stat"><span class="np-stat-lbl">MCAP</span><span class="np-stat-val">${escHtml(item.marketCapUsdFmt || '—')}</span></div>
+        <div class="np-stat"><span class="np-stat-lbl">LIQ</span><span class="np-stat-val">${escHtml(item.liquidityUsdFmt || '—')}</span></div>
+        <div class="np-stat"><span class="np-stat-lbl">VOL</span><span class="np-stat-val">${escHtml(item.volume24hFmt || '—')}</span></div>
       </div>
       <div class="np-foot">${act}</div>
     </article>`;
