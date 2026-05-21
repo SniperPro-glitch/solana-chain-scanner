@@ -915,18 +915,12 @@ html.detail-mode body {
   position: relative;
 }
 
+/* Grafik iframe — ölçüler dex-crop.js apply() ile !important atanır */
 .chart-terminal--dex-embed .dex-embed-chart {
   position: absolute;
-  top: calc(var(--chart-embed-top, 40px) - var(--chart-brand-crop, 39px) + var(--chart-shift-down, 0px));
-  left: var(--chart-embed-left, 1%);
-  width: var(--chart-embed-width, 104%) !important;
-  max-width: none !important;
-  height: calc(var(--chart-embed-h, 330px) + var(--chart-embed-extra, 0px) + var(--chart-brand-crop, 39px)) !important;
-  min-height: 0 !important;
-  margin: 0 !important;
   border: 0;
   display: block;
-  transform: none;
+  pointer-events: auto;
 }
 
 .trade-row.trade-placeholder {

@@ -96,6 +96,8 @@ function dexScreenerTradesEmbedUrl(poolOrMint) {
     info: '0',
     tabs: '0',
     chartLeftToolbar: '0',
+    chartTheme: 'dark',
+    interval: '15',
   });
   return `https://dexscreener.com/solana/${encodeURIComponent(ref)}?${q.toString()}`;
 }

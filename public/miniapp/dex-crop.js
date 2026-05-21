@@ -354,6 +354,73 @@
     el.style.clipPath = `inset(${tp}px ${r}px ${bt}px ${l}px)`;
   }
 
+  function setImp(el, prop, value) {
+    if (!el) return;
+    el.style.setProperty(prop, value, 'important');
+  }
+
+  function showCropDebug(profileId, t) {
+    try {
+      const q = new URLSearchParams(location.search);
+      if (q.get('debugcrop') !== '1') return;
+    } catch {
+      return;
+    }
+    let el = document.getElementById('dexCropDebug');
+    if (!el) {
+      el = document.createElement('div');
+      el.id = 'dexCropDebug';
+      el.setAttribute('aria-live', 'polite');
+      Object.assign(el.style, {
+        position: 'fixed',
+        left: '6px',
+        right: '6px',
+        bottom: '72px',
+        zIndex: '99999',
+        padding: '6px 8px',
+        font: '10px/1.35 monospace',
+        color: '#a5f3fc',
+        background: 'rgba(0,0,0,.88)',
+        border: '1px solid rgba(0,229,255,.35)',
+        borderRadius: '6px',
+        pointerEvents: 'none',
+        whiteSpace: 'pre-wrap',
+      });
+      document.body.appendChild(el);
+    }
+    const wrap = document.getElementById('dexTradesWrap');
+    const iframe = document.getElementById('dexTradesEmbed');
+    const w = wrap ? getComputedStyle(wrap).height : '—';
+    const top = iframe ? getComputedStyle(iframe).top : '—';
+    const h = iframe ? getComputedStyle(iframe).height : '—';
+    el.textContent = [
+      `profil=${profileId} w=${document.documentElement.dataset.dexCropW || '?'}`,
+      `beklenen viewH=${t.viewH} top=${t.iframeTop + (t.shiftDown || 0)} h=${t.iframeH}`,
+      `gerçek wrap=${w} iframe top=${top} h=${h}`,
+      `rev=dex-crop-v35`,
+    ].join('\n');
+  }
+
+  function bindCropObservers() {
+    if (global.__sniperCropObs) return;
+    global.__sniperCropObs = true;
+    const reapply = () => {
+      if (document.getElementById('dexCropPanel')?.classList.contains('hidden') === false) return;
+      apply();
+    };
+    window.addEventListener('resize', reapply);
+    const tg = global.Telegram?.WebApp;
+    if (tg && typeof tg.onEvent === 'function') {
+      tg.onEvent('viewportChanged', reapply);
+    }
+    for (const id of ['dexTradesWrap', 'dexTradesEmbed']) {
+      const node = document.getElementById(id);
+      if (!node || typeof ResizeObserver === 'undefined') continue;
+      const ro = new ResizeObserver(reapply);
+      ro.observe(node);
+    }
+  }
+
   function applyMaskEl(el, enabled, heightPx) {
     if (!el) return;
     if (enabled === false) {
@@ -407,18 +474,23 @@
     const stage = document.querySelector('.chart-terminal--dex-embed .chart-stage');
     const chartIframe = document.querySelector('iframe.dex-embed-chart');
     if (stage) {
-      stage.style.height = `${c.stageH}px`;
-      stage.style.minHeight = `${c.stageH}px`;
-      stage.style.maxHeight = `${c.stageH}px`;
+      setImp(stage, 'height', `${c.stageH}px`);
+      setImp(stage, 'min-height', `${c.stageH}px`);
+      setImp(stage, 'max-height', `${c.stageH}px`);
       applyClip(stage, c.clipLeft, c.clipRight, c.clipTop, c.clipBottom);
     }
     if (chartIframe) {
-      chartIframe.style.position = 'absolute';
-      chartIframe.style.top = `${c.top - brandCrop + chartDown}px`;
-      chartIframe.style.left = `${c.left}%`;
-      chartIframe.style.width = `${c.width}%`;
-      chartIframe.style.height = `${c.stageH + c.heightExtra + brandCrop}px`;
-      chartIframe.style.maxWidth = 'none';
+      const chartTop = `${c.top - brandCrop + chartDown}px`;
+      const chartH = `${c.stageH + c.heightExtra + brandCrop}px`;
+      setImp(chartIframe, 'position', 'absolute');
+      setImp(chartIframe, 'top', chartTop);
+      setImp(chartIframe, 'left', `${c.left}%`);
+      setImp(chartIframe, 'width', `${c.width}%`);
+      setImp(chartIframe, 'height', chartH);
+      setImp(chartIframe, 'max-width', 'none');
+      setImp(chartIframe, 'margin', '0');
+      setImp(chartIframe, 'border', '0');
+      setImp(chartIframe, 'display', 'block');
     }
 
     const wrap = document.getElementById('dexTradesWrap');
@@ -427,9 +499,10 @@
     const maskFoot = wrap?.querySelector('.dex-mask-foot');
 
     if (wrap) {
-      wrap.style.height = `${t.viewH}px`;
-      wrap.style.minHeight = `${t.viewH}px`;
-      wrap.style.maxHeight = `${t.viewH}px`;
+      setImp(wrap, 'height', `${t.viewH}px`);
+      setImp(wrap, 'min-height', `${t.viewH}px`);
+      setImp(wrap, 'max-height', `${t.viewH}px`);
+      setImp(wrap, 'overflow', 'hidden');
       applyClip(wrap, t.clipLeft, t.clipRight, t.clipTop, t.clipBottom);
       const maskTopOn = t.maskTopOn !== false;
       const maskFootOn = t.maskFootOn !== false;
@@ -439,21 +512,21 @@
     }
     if (tradesIframe) {
       const topPx = t.iframeTop + tradesDown;
-      tradesIframe.style.cssText = [
-        'position:absolute',
-        `top:${topPx}px`,
-        `left:${t.left}%`,
-        `width:${t.width}%`,
-        `height:${t.iframeH}px`,
-        'max-width:none',
-        'border:0',
-        'display:block',
-        'margin:0',
-        'pointer-events:auto',
-      ].join(';');
+      setImp(tradesIframe, 'position', 'absolute');
+      setImp(tradesIframe, 'top', `${topPx}px`);
+      setImp(tradesIframe, 'left', `${t.left}%`);
+      setImp(tradesIframe, 'width', `${t.width}%`);
+      setImp(tradesIframe, 'height', `${t.iframeH}px`);
+      setImp(tradesIframe, 'max-width', 'none');
+      setImp(tradesIframe, 'border', '0');
+      setImp(tradesIframe, 'display', 'block');
+      setImp(tradesIframe, 'margin', '0');
+      setImp(tradesIframe, 'pointer-events', 'auto');
+      setImp(tradesIframe, 'transform', 'none');
     }
     applyMaskEl(maskTop, t.maskTopOn !== false, t.maskTop);
     applyMaskEl(maskFoot, t.maskFootOn !== false, t.maskFoot);
+    showCropDebug(profileId, t);
   }
 
   function isCalibrateMode() {
@@ -816,6 +889,7 @@
     if (global.SniperCropProfile?.apply) global.SniperCropProfile.apply();
     await ensureProfilesReady();
     apply();
+    bindCropObservers();
     addCalibrateButton();
     window.addEventListener('resize', () => {
       if (!document.getElementById('dexCropPanel')?.classList.contains('hidden')) return;

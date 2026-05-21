@@ -1989,7 +1989,7 @@
     if (!tape || !wrap) return;
 
     tape.classList.remove('hidden');
-    const url = dexTradesEmbedUrl(chartPoolRef(m));
+    const url = m?.dexTradesEmbedUrl || dexTradesEmbedUrl(chartPoolRef(m));
 
     if (!iframe) return;
     if (!url) {
@@ -2001,8 +2001,6 @@
       return;
     }
 
-    applyDexCrop();
-    scheduleDexTradesCrop();
     if (!tradesResizeHandler) {
       tradesResizeHandler = () => scheduleDexTradesCrop();
       window.addEventListener('resize', tradesResizeHandler);
@@ -2013,7 +2011,10 @@
       fallback.classList.remove('hidden');
     }
     iframe.classList.remove('hidden');
+    applyDexCrop();
+    scheduleDexTradesCrop();
     iframe.onload = () => {
+      applyDexCrop();
       scheduleDexTradesCrop();
       if (fallback) fallback.classList.add('hidden');
       if (meta) meta.textContent = 'canlı';
