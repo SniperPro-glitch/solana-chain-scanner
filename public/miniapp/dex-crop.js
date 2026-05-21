@@ -403,24 +403,34 @@
     ].join('\n');
   }
 
+  function isDetailVisible() {
+    if (isCalibrateMode()) return true;
+    const vd = document.getElementById('view-detail');
+    return !!(vd && !vd.classList.contains('hidden'));
+  }
+
+  /** Ana sayfada kırpma çalışmasın — kasma önlenir. */
+  function shouldRunCropApply() {
+    if (isCalibrateMode()) return true;
+    if (!isDetailVisible()) return false;
+    return !!(
+      document.querySelector('.chart-terminal--dex-embed .chart-stage')
+      || document.getElementById('dexTradesEmbed')?.getAttribute('src')
+    );
+  }
+
+  let resizeDebounce = null;
+
   function bindCropObservers() {
     if (global.__sniperCropObs) return;
     global.__sniperCropObs = true;
     const reapply = () => {
       if (document.getElementById('dexCropPanel')?.classList.contains('hidden') === false) return;
-      apply();
+      if (!shouldRunCropApply()) return;
+      clearTimeout(resizeDebounce);
+      resizeDebounce = setTimeout(() => apply(), 220);
     };
     window.addEventListener('resize', reapply);
-    const tg = global.Telegram?.WebApp;
-    if (tg && typeof tg.onEvent === 'function') {
-      tg.onEvent('viewportChanged', reapply);
-    }
-    for (const id of ['dexTradesWrap', 'dexTradesEmbed']) {
-      const node = document.getElementById(id);
-      if (!node || typeof ResizeObserver === 'undefined') continue;
-      const ro = new ResizeObserver(reapply);
-      ro.observe(node);
-    }
   }
 
   function applyMaskEl(el, enabled, heightPx) {
@@ -435,6 +445,7 @@
   }
 
   function apply(settings) {
+    if (!shouldRunCropApply()) return;
     const profileId = activeProfileId();
     document.documentElement.dataset.dexCropProfile = profileId;
     const s = settings || loadForProfile(profileId);
@@ -949,13 +960,8 @@
   async function init() {
     if (global.SniperCropProfile?.apply) global.SniperCropProfile.apply();
     await ensureProfilesReady();
-    apply();
     bindCropObservers();
     addCalibrateButton();
-    window.addEventListener('resize', () => {
-      if (!document.getElementById('dexCropPanel')?.classList.contains('hidden')) return;
-      apply();
-    });
     if (isCalibrateMode()) {
       enableCalibrateSession();
       setTimeout(() => {
@@ -970,7 +976,11 @@
       new MutationObserver(() => {
         if (!vd.classList.contains('hidden')) {
           addCalibrateButton();
-          apply();
+          if (typeof global.__scheduleDexTradesCrop === 'function') {
+            global.__scheduleDexTradesCrop();
+          } else if (shouldRunCropApply()) {
+            apply();
+          }
         }
       }).observe(vd, { attributes: true, attributeFilter: ['class'] });
     }

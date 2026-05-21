@@ -456,7 +456,6 @@
     $('view-detail')?.classList.remove('hidden');
     ensureDetailSpacer();
     refreshTgViewport();
-    if (globalThis.SniperCropProfile?.apply) globalThis.SniperCropProfile.apply();
     scheduleDexTradesCrop();
   }
 
@@ -1938,6 +1937,9 @@
     }
   }
 
+  let cropBurstGen = 0;
+  let cropBurstTimers = [];
+
   function applyDexCrop() {
     if (!globalThis.SniperDexCrop) return;
     const run = () => SniperDexCrop.apply();
@@ -1949,10 +1951,23 @@
     run();
   }
 
+  /** Tek burst — üst üste 6× apply yok; grafik için 0 / 400 / 1100 / 2200 ms. */
   function scheduleDexTradesCrop() {
-    applyDexCrop();
-    [150, 500, 1200, 2500].forEach((ms) => setTimeout(applyDexCrop, ms));
+    if (!globalThis.SniperDexCrop) return;
+    const gen = ++cropBurstGen;
+    cropBurstTimers.forEach((t) => clearTimeout(t));
+    cropBurstTimers = [];
+    const run = () => {
+      if (gen !== cropBurstGen) return;
+      applyDexCrop();
+    };
+    run();
+    [400, 1100, 2200].forEach((ms) => {
+      cropBurstTimers.push(setTimeout(run, ms));
+    });
   }
+
+  globalThis.__scheduleDexTradesCrop = scheduleDexTradesCrop;
 
   function chartPoolRef(m) {
     const market = m || appData?.market || {};
@@ -2004,7 +2019,11 @@
     }
 
     if (!tradesResizeHandler) {
-      tradesResizeHandler = () => scheduleDexTradesCrop();
+      let resizeCropT = null;
+      tradesResizeHandler = () => {
+        clearTimeout(resizeCropT);
+        resizeCropT = setTimeout(scheduleDexTradesCrop, 280);
+      };
       window.addEventListener('resize', tradesResizeHandler);
     }
 
@@ -2013,10 +2032,8 @@
       fallback.classList.remove('hidden');
     }
     iframe.classList.remove('hidden');
-    applyDexCrop();
     scheduleDexTradesCrop();
     iframe.onload = () => {
-      applyDexCrop();
       scheduleDexTradesCrop();
       if (fallback) fallback.classList.add('hidden');
       if (meta) meta.textContent = 'canlı';
@@ -2064,16 +2081,12 @@
       container.innerHTML = `<iframe class="dex-embed-chart" src="${escHtml(embed)}" title="DexScreener canlı grafik" loading="eager" allow="fullscreen" referrerpolicy="no-referrer-when-downgrade"></iframe>`;
       const chartIfr = container.querySelector('iframe.dex-embed-chart');
       if (chartIfr) {
-        chartIfr.addEventListener('load', () => {
-          applyDexCrop();
-          scheduleDexTradesCrop();
-        });
+        chartIfr.addEventListener('load', () => scheduleDexTradesCrop());
       }
       if (note) {
         note.textContent = `${(tf || '15m').toUpperCase()} · DexScreener`;
         note.classList.remove('hidden');
       }
-      applyDexCrop();
       scheduleDexTradesCrop();
       return true;
     }
