@@ -304,9 +304,10 @@
     const chainKey = item.chain || 'solana';
     const pin = avatarCornerHtml(dexKey, chainKey);
     const dexLabel = item.dexLabel || item.dexShort || dexKey;
+    const sym2 = escHtml((item.symbol || '?').slice(0, 2));
     const avatar = item.imageUrl
-      ? `<span class="tr-avatar-wrap np-avatar"><img class="tr-img" src="${escHtml(item.imageUrl)}" alt="" loading="lazy" data-fb="${escHtml((item.imageFallbacks || []).join('|'))}" />${pin}</span>`
-      : `<span class="tr-avatar-wrap np-avatar"><span class="tr-avatar">${escHtml((item.symbol || '?').slice(0, 2))}</span>${pin}</span>`;
+      ? `<div class="np-avatar"><img class="np-img" src="${escHtml(item.imageUrl)}" alt="" loading="lazy" data-fb="${escHtml((item.imageFallbacks || []).join('|'))}" />${pin}</div>`
+      : `<div class="np-avatar"><span class="np-avatar-fallback">${sym2}</span>${pin}</div>`;
     const badges = feedBadgeHtml(item, { newTab: true });
     const reportAttr = item.reportId ? ` data-report="${escHtml(item.reportId)}"` : '';
     const dexUrlAttr = item.dexPageUrl ? ` data-dex-url="${escHtml(item.dexPageUrl)}"` : '';
@@ -316,18 +317,24 @@
       buys5 + sells5 > 0
         ? `<span class="np-act-buy">${buys5} alım</span><span class="np-act-sep">·</span><span class="np-act-sell">${sells5} satım</span><span class="np-act-w">5dk</span>`
         : '<span class="np-act-muted">Aktivite bekleniyor</span>';
-    return `<article class="token-row np-row risk-${rc}" data-mint="${escHtml(item.mint)}" data-dex="${escHtml(dexKey)}" data-chain="${escHtml(chainKey)}"${reportAttr}${dexUrlAttr}>
-      <span class="np-ribbon-new" aria-hidden="true">NEW</span>
-      <div class="np-top">
-        <div class="tr-token np-token">${avatar}<div class="tr-meta"><div class="tr-name">${escHtml(item.symbol)}${badges}</div><div class="tr-sub np-pair">${escHtml(chainKey.toUpperCase())} · ${dexSubBadgeHtml(dexKey, dexLabel)}</div></div></div>
-        <span class="np-age">${escHtml(item.ageFmt || '—')}</span>
-        <span class="np-risk risk-badge ${rc}">${escHtml(riskTxt)}</span>
+    return `<article class="np-card risk-${rc}" data-mint="${escHtml(item.mint)}" data-dex="${escHtml(dexKey)}" data-chain="${escHtml(chainKey)}"${reportAttr}${dexUrlAttr}>
+      <span class="np-ribbon" aria-hidden="true">NEW</span>
+      <div class="np-head">
+        ${avatar}
+        <div class="np-main">
+          <div class="np-symbol-row">${escHtml(item.symbol)}${badges}</div>
+          <div class="np-chain-row">${escHtml(chainKey.toUpperCase())} · ${dexSubBadgeHtml(dexKey, dexLabel)}</div>
+        </div>
+        <div class="np-meta-col">
+          <span class="np-age">${escHtml(item.ageFmt || '—')}</span>
+          <span class="np-risk risk-badge ${rc}">${escHtml(riskTxt)}</span>
+        </div>
       </div>
-      <div class="np-stats">
-        <div class="np-stat"><span class="np-stat-lbl">MCAP</span><span class="np-stat-val">${escHtml(item.marketCapUsdFmt || '—')}</span></div>
-        <div class="np-stat"><span class="np-stat-lbl">LIQ</span><span class="np-stat-val">${escHtml(item.liquidityUsdFmt || '—')}</span></div>
-        <div class="np-stat"><span class="np-stat-lbl">VOL</span><span class="np-stat-val">${escHtml(item.volume24hFmt || '—')}</span></div>
-      </div>
+      <dl class="np-metrics">
+        <div class="np-metric"><dt>MCAP</dt><dd>${escHtml(item.marketCapUsdFmt || '—')}</dd></div>
+        <div class="np-metric"><dt>LIQ</dt><dd>${escHtml(item.liquidityUsdFmt || '—')}</dd></div>
+        <div class="np-metric"><dt>VOL</dt><dd>${escHtml(item.volume24hFmt || '—')}</dd></div>
+      </dl>
       <div class="np-foot">${act}</div>
     </article>`;
   }
@@ -556,9 +563,10 @@
     $('newPairsPanel')?.classList.toggle('hidden', !isNp);
     $('feedToolbar')?.classList.toggle('hidden', isNp);
     $('tokenTheadMain')?.classList.toggle('hidden', isNp);
-    $('tokenTheadNp')?.classList.toggle('hidden', !isNp);
-    $('tokenTheadNp')?.setAttribute('aria-hidden', isNp ? 'false' : 'true');
-    $('tokenTableInner')?.classList.toggle('token-table-np', isNp);
+    $('tokenTheadMain')?.setAttribute('aria-hidden', isNp ? 'true' : 'false');
+    $('tokenTableScroll')?.classList.toggle('mode-new-pairs', isNp);
+    $('tokenTableInner')?.classList.toggle('mode-new-pairs', isNp);
+    $('homeTokenList')?.classList.toggle('np-list', isNp);
     updateNewPairsLiveBar();
     syncNewPairsAgeUi();
   }
@@ -1107,7 +1115,7 @@
 
 
   function bindFeedRowLogos(root) {
-    root?.querySelectorAll('img.tr-img[data-fb]').forEach((img) => {
+    root?.querySelectorAll('img.tr-img[data-fb], img.np-img[data-fb]').forEach((img) => {
       const extra = (img.getAttribute('data-fb') || '').split('|').filter(Boolean);
       const urls = [img.getAttribute('src'), ...extra].filter(Boolean);
       let idx = 0;
@@ -1115,10 +1123,13 @@
         idx += 1;
         if (idx < urls.length) img.src = urls[idx];
         else {
-          const sym = img.closest('.token-row')?.querySelector('.tr-name')?.textContent?.trim().slice(0, 2) || '?';
-          const wrap = img.closest('.tr-avatar-wrap');
+          const host = img.closest('.token-row, .np-card');
+          const sym =
+            host?.querySelector('.tr-name, .np-symbol-row')?.textContent?.trim().slice(0, 2) || '?';
+          const wrap = img.closest('.tr-avatar-wrap, .np-avatar');
           if (wrap) {
-            wrap.innerHTML = `<span class="tr-avatar">${escHtml(sym)}</span><span class="tr-chain-dot">◎</span>`;
+            const fbCls = wrap.classList.contains('np-avatar') ? 'np-avatar-fallback' : 'tr-avatar';
+            wrap.innerHTML = `<span class="${fbCls}">${escHtml(sym)}</span><span class="tr-chain-dot">◎</span>`;
           }
         }
       };
@@ -1300,6 +1311,8 @@
     const searching = !!opts.searching || !!(searchQuery || '').trim();
     const lastRow = searching ? '' : renderLastReportRow();
     const useNp = feedTab === 'new' && !searching;
+    list.classList.toggle('np-list', useNp);
+    list.classList.toggle('token-list', true);
     const rows = (items || []).map((it) => (useNp ? renderNewPairsRow(it) : renderFeedRow(it))).join('');
     if (!rows) {
       if (!searching && (feedTab === 'new' || feedEmptyKind === 'new_pairs_empty')) {
@@ -1616,7 +1629,7 @@
     });
 
     $('homeTokenList')?.addEventListener('click', (ev) => {
-      const row = ev.target.closest('.token-row');
+      const row = ev.target.closest('.token-row, .np-card');
       if (!row) return;
       const rid = row.dataset.report;
       if (rid) {

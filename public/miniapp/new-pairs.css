@@ -1,0 +1,265 @@
+/* New Pairs — trending tablo/grid ile sıfır paylaşım (son yüklenen stil) */
+
+.home-feed-panel.is-new-pairs .token-thead,
+.home-feed-panel.is-new-pairs #tokenTheadMain,
+.mode-new-pairs .token-thead {
+  display: none !important;
+}
+
+.home-feed-panel.is-new-pairs .token-table-scroll,
+.mode-new-pairs.token-table-scroll {
+  overflow-x: hidden;
+  margin: 0;
+}
+
+.home-feed-panel.is-new-pairs .token-table-inner,
+.mode-new-pairs .token-table-inner {
+  --tbl-cols: none;
+  padding: 0 12px 8px;
+}
+
+.np-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  max-width: 100%;
+  padding: 0 !important;
+  margin: 0;
+  list-style: none;
+}
+
+.np-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  cursor: pointer;
+  overflow: hidden;
+  border-radius: 12px;
+  border: 2px solid #2a3548;
+  background: #161f2c;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.55);
+  /* trending .token-row grid asla uygulanmasın */
+  grid-template-columns: unset !important;
+  grid-template-rows: unset !important;
+}
+
+.np-card.risk-low {
+  background: #142218;
+  border-color: #00ff88;
+}
+
+.np-card.risk-mid {
+  background: #1c1608;
+  border-color: #f5a623;
+}
+
+.np-card.risk-high {
+  background: #1e1010;
+  border-color: #ff3b3b;
+}
+
+.np-card:active {
+  filter: brightness(1.08);
+}
+
+.np-ribbon {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 2;
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  color: #fff;
+  background: linear-gradient(135deg, #38bdf8 0%, #0ea5e9 100%);
+  border: 1px solid rgba(125, 211, 252, 0.6);
+  padding: 3px 7px;
+  border-radius: 4px;
+  pointer-events: none;
+}
+
+.np-head {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: start;
+  padding: 10px 52px 8px 10px;
+}
+
+.np-avatar {
+  position: relative;
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+}
+
+.np-img,
+.np-avatar-fallback {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: block;
+  object-fit: cover;
+  border: 2px solid rgba(255, 255, 255, 0.12);
+}
+
+.np-avatar-fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--cyan, #7dd3fc);
+  background: rgba(0, 0, 0, 0.35);
+}
+
+.np-avatar .tr-chain-ico,
+.np-avatar .tr-chain-dot {
+  position: absolute;
+  right: -2px;
+  bottom: -2px;
+}
+
+.np-main {
+  min-width: 0;
+}
+
+.np-symbol-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1.2;
+  color: var(--text, #e8f4fc);
+}
+
+.np-chain-row {
+  margin-top: 3px;
+  font-size: 9px;
+  color: var(--muted, #8b9cb3);
+  line-height: 1.3;
+}
+
+.np-chain-row .tr-dex-badge {
+  vertical-align: middle;
+  margin-left: 2px;
+}
+
+.np-meta-col {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.np-age {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--cyan, #7dd3fc);
+  white-space: nowrap;
+}
+
+.np-risk {
+  font-size: 8px;
+  padding: 3px 6px;
+  white-space: nowrap;
+}
+
+.np-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+  margin: 0;
+  padding: 8px 10px;
+  background: rgba(0, 0, 0, 0.28);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.np-metric {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+  margin: 0;
+}
+
+.np-metric dt {
+  margin: 0;
+  font-size: 7px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--muted, #8b9cb3);
+  text-transform: uppercase;
+}
+
+.np-metric dd {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 700;
+  color: #e8f4fc;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.np-foot {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 8px 10px 10px;
+  font-size: 9px;
+}
+
+.np-act-buy { color: var(--green, #00ff88); font-weight: 700; }
+.np-act-sell { color: #ff6b6b; font-weight: 700; }
+.np-act-sep { color: var(--muted, #8b9cb3); }
+.np-act-w { color: var(--muted, #8b9cb3); font-size: 8px; }
+.np-act-muted { color: var(--muted, #8b9cb3); }
+
+/* Tablet — tek sütun (kartlar okunaklı) */
+@media (min-width: 641px) and (max-width: 1024px) {
+  .home-feed-panel.is-new-pairs .token-table-inner,
+  .mode-new-pairs .token-table-inner {
+    max-width: 640px;
+    margin: 0 auto;
+  }
+}
+
+/* Desktop — 2 sütun */
+@media (min-width: 1025px) {
+  .home-feed-panel.is-new-pairs .token-table-inner,
+  .mode-new-pairs .token-table-inner {
+    max-width: 960px;
+    margin: 0 auto;
+  }
+
+  .np-list {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+}
+
+@media (max-width: 360px) {
+  .np-head {
+    padding-right: 44px;
+    gap: 8px;
+  }
+
+  .np-metric dd {
+    font-size: 10px;
+  }
+}

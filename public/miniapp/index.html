@@ -18,7 +18,8 @@
     }
   </script>
   <link rel="stylesheet" href="styles.css?v=45" />
-  <link rel="stylesheet" href="dex-scanner.css?v=113" />
+  <link rel="stylesheet" href="dex-scanner.css?v=116" />
+  <link rel="stylesheet" href="new-pairs.css?v=116" />
   <link rel="stylesheet" href="dex-scanner-radar.css?v=2" />
   <link rel="stylesheet" href="dex-sidebar.css?v=5" />
   <link rel="stylesheet" href="search-overlay.css?v=2" />
@@ -237,13 +238,10 @@
       </div>
     </section>
 
-    <div class="token-table-scroll">
-      <div class="token-table-inner">
-        <div class="token-thead" id="tokenTheadMain">
+    <div class="token-table-scroll" id="tokenTableScroll">
+      <div class="token-table-inner" id="tokenTableInner">
+        <div class="token-thead" id="tokenTheadMain" aria-hidden="false">
           <span>#</span><span>TOKEN</span><span>MCAP</span><span>PRICE</span><span>AGE</span><span class="th-chg">24H %</span><span class="th-vol">VOL</span><span class="th-liq">LIQ</span><span>RISK</span>
-        </div>
-        <div class="token-thead token-thead-np hidden" id="tokenTheadNp" aria-hidden="true">
-          <span>TOKEN</span><span>AGE</span><span>MCAP</span><span>LIQ</span><span>VOL</span><span>RISK</span>
         </div>
         <div class="feed-loading hidden" id="feedLoading">Bot paylaşımları yükleniyor…</div>
         <div class="token-list" id="homeTokenList"></div>
@@ -497,7 +495,7 @@
   <script src="search-overlay.js?v=5"></script>
   <script src="support.js?v=3"></script>
   <script src="sidebar-account.js?v=4"></script>
-  <script src="app.js?v=113"></script>
+  <script src="app.js?v=116"></script>
   <script src="boot-feed.js?v=3"></script>
 </body>
 </html>
