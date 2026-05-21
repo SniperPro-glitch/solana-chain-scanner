@@ -1,6 +1,6 @@
 ﻿/**
- * DexScreener k─▒rpma ÔÇö 5 profil: Web, iPhone 11, 13, 13 Pro Max, 16 Pro Max
- * ?kalibre=1 veya "K─▒rpma" butonu
+ * DexScreener kirpma — 5 profil: Web, iPhone 11, 13, 13 Pro Max, 16 Pro Max
+ * ?kalibre=1 veya "Kirpma" butonu
  */
 (function (global) {
   const STORAGE_KEY = 'sniperDexCropV4';
@@ -11,7 +11,7 @@
   const D = 'di' + 'v';
 
   const PROFILE_META = {
-    web: { label: 'Web', hint: 'Taray─▒c─▒ / masa├╝st├╝' },
+    web: { label: 'Web', hint: 'Tarayici / masaustu' },
     app11: { label: '11', hint: 'iPhone 11 / XR (~414px)' },
     app13: { label: '13', hint: 'iPhone 13 / 14 / 15 (~390px)' },
     app13pm: { label: '13 PM', hint: 'iPhone 13 Pro Max (~428px)' },
@@ -694,7 +694,7 @@
     const det = document.getElementById('cropDetectLabel');
     if (det) {
       const auto = detectProfile();
-      det.textContent = `Otomatik: ${PROFILE_META[auto]?.label || auto} (${window.innerWidth}├ù${window.innerHeight})`;
+      det.textContent = `Otomatik: ${PROFILE_META[auto]?.label || auto} (${window.innerWidth}x${window.innerHeight})`;
     }
   }
 
@@ -715,7 +715,7 @@
     syncSlidersFromCurrent();
     apply(current);
     refreshPreview();
-    toast(`${PROFILE_META[sourceId].label} ÔåÆ ${PROFILE_META[editingProfile].label} kopyaland─▒ (Kaydet)`);
+    toast(`${PROFILE_META[sourceId].label} -> ${PROFILE_META[editingProfile].label} kopyalandi (Kaydet)`);
   }
 
   function openPanel() {
@@ -770,9 +770,9 @@
     panelEl.id = 'dexCropPanel';
     panelEl.className = 'dex-crop-panel hidden';
     panelEl.innerHTML = [
-      '<header class="dex-crop-head"><strong>K─▒rpma ÔÇö 5 ekran</strong>',
-      '<button type="button" class="crop-close" id="cropCloseBtn" aria-label="Kapat">Ô£ò</button></header>',
-      '<p class="crop-intro">Link sadece paneli a├ğar. <b>Profili kaydet</b> = ├Âl├ğ├╝ler kal─▒r + herkese sunucuya gider.</p>',
+      '<header class="dex-crop-head"><strong>K\u0131rpma \u2014 5 ekran</strong>',
+      '<button type="button" class="crop-close" id="cropCloseBtn" aria-label="Kapat">\u00d7</button></header>',
+      '<p class="crop-intro"><b>Bu profili kaydet</b> = \u00f6l\u00e7\u00fcler kal\u0131r + sunucuya gider. <b>Sunucuya sabitle</b> = 5 cihaz + baked.js.</p>',
       '<p class="crop-detect" id="cropDetectLabel"></p>',
       '<div class="crop-profile-tabs" role="tablist">',
       ...PROFILE_ORDER.map(
@@ -782,48 +782,48 @@
       `</${D}>`,
       '<p class="crop-profile-hint" id="cropProfileHint"></p>',
       '<section class="crop-section"><h3>Grafik (Dex embed)</h3>',
-      sliderRow('Kutu y├╝ksekli─şi', 'cropChartStageH', 240, 480, 2, c.stageH, 'px'),
-      sliderRow('├£st kayd─▒r', 'cropChartTop', -180, 40, 1, c.top, 'px ÔÇö negatif = yukar─▒'),
-      sliderRow('A┼şa─ş─▒ kayd─▒r', 'cropChartDown', 0, 200, 1, c.shiftDown, 'px ÔÇö grafik i├ğeri─şi a┼şa─ş─▒'),
-      sliderRow('Sol kayd─▒r (%)', 'cropChartLeft', -16, 12, 1, c.left, 'grafik konumu'),
-      sliderRow('Geni┼şlik (%)', 'cropChartWidth', 88, 120, 1, c.width, 'daralt / geni┼şlet'),
-      sliderRow('Sol kenar k─▒rp', 'cropChartClipL', 0, 80, 1, c.clipLeft, 'px'),
-      sliderRow('Sa─ş kenar k─▒rp', 'cropChartClipR', 0, 80, 1, c.clipRight, 'px'),
-      sliderRow('Yukar─▒ daralt', 'cropChartClipT', 0, 100, 1, c.clipTop, 'px ÔÇö panel ├╝stten kes'),
-      sliderRow('A┼şa─ş─▒ daralt', 'cropChartClipB', 0, 100, 1, c.clipBottom, 'px ÔÇö panel alttan kes'),
-      sliderRow('├£st marka k─▒rp', 'cropChartBrand', 0, 64, 1, c.brandCrop, 'dexscreener ┼şeridi'),
-      sliderRow('Ekstra y├╝kseklik', 'cropChartExtra', 0, 48, 1, c.heightExtra, 'px'),
+      sliderRow('Kutu y\u00fcksekli\u011fi', 'cropChartStageH', 240, 480, 2, c.stageH, 'px'),
+      sliderRow('\u00dcst kayd\u0131r', 'cropChartTop', -180, 40, 1, c.top, 'px \u2014 negatif = yukar\u0131'),
+      sliderRow('A\u015fa\u011f\u0131 kayd\u0131r', 'cropChartDown', 0, 200, 1, c.shiftDown, 'px \u2014 grafik i\u00e7eri\u011fi'),
+      sliderRow('Sol kayd\u0131r (%)', 'cropChartLeft', -16, 12, 1, c.left, 'grafik konumu'),
+      sliderRow('Geni\u015flik (%)', 'cropChartWidth', 88, 120, 1, c.width, 'daralt / geni\u015flet'),
+      sliderRow('Sol kenar k\u0131rp', 'cropChartClipL', 0, 80, 1, c.clipLeft, 'px'),
+      sliderRow('Sa\u011f kenar k\u0131rp', 'cropChartClipR', 0, 80, 1, c.clipRight, 'px'),
+      sliderRow('Yukar\u0131 daralt', 'cropChartClipT', 0, 100, 1, c.clipTop, 'px \u2014 \u00fcstten kes'),
+      sliderRow('A\u015fa\u011f\u0131 daralt', 'cropChartClipB', 0, 100, 1, c.clipBottom, 'px \u2014 alttan kes'),
+      sliderRow('\u00dcst marka k\u0131rp', 'cropChartBrand', 0, 64, 1, c.brandCrop, 'DexScreener \u015feridi'),
+      sliderRow('Ekstra y\u00fckseklik', 'cropChartExtra', 0, 48, 1, c.heightExtra, 'px'),
       '</section>',
-      '<section class="crop-section crop-section--tape"><h3>Al─▒m / sat─▒m panosu</h3>',
-      '<p class="crop-section-note">LIVE kutusu i├ği ÔÇö t├╝m telefonlarda ayn─▒ kayd─▒r─▒c─▒lar.</p>',
-      sliderRow('G├Âr├╝n├╝r y├╝kseklik', 'cropTradesViewH', 160, 380, 2, t.viewH, 'px ÔÇö kutu y├╝ksekli─şi'),
-      sliderRow('Iframe y├╝kseklik', 'cropTradesIframeH', 700, 1200, 5, t.iframeH, 'px'),
-      sliderRow('Iframe üst', 'cropTradesTop', -1400, -200, 5, t.iframeTop, 'negatif = işlem tablosu yukarı'),
-      sliderRow('A┼şa─ş─▒ kayd─▒r', 'cropTradesDown', 0, 250, 1, t.shiftDown, 'px ÔÇö tablo i├ğeri─şi a┼şa─ş─▒'),
-      sliderRow('Sol kayd─▒r (%)', 'cropTradesLeft', -16, 12, 1, t.left, ''),
-      sliderRow('Geni┼şlik (%)', 'cropTradesWidth', 88, 120, 1, t.width, ''),
-      sliderRow('Sol kenar k─▒rp', 'cropTradesClipL', 0, 80, 1, t.clipLeft, 'px'),
-      sliderRow('Sa─ş kenar k─▒rp', 'cropTradesClipR', 0, 80, 1, t.clipRight, 'px'),
-      sliderRow('Yukar─▒ daralt', 'cropTradesClipT', 0, 100, 1, t.clipTop, 'px ÔÇö panel ├╝stten kes'),
-      sliderRow('A┼şa─ş─▒ daralt', 'cropTradesClipB', 0, 100, 1, t.clipBottom, 'px ÔÇö panel alttan kes'),
-      toggleRow('├£st maske a├ğ─▒k', 'cropTradesMaskTopOn', t.maskTopOn !== false),
-      sliderRow('├£st maske kal─▒nl─▒k', 'cropTradesMaskTop', 0, 80, 1, t.maskTop, 'px (kapal─▒ysa yok say─▒l─▒r)'),
-      toggleRow('Alt maske a├ğ─▒k', 'cropTradesMaskFootOn', t.maskFootOn !== false),
-      sliderRow('Alt maske kal─▒nl─▒k', 'cropTradesMaskFoot', 0, 60, 1, t.maskFoot, 'px (kapal─▒ysa yok say─▒l─▒r)'),
+      '<section class="crop-section crop-section--tape"><h3>Al\u0131m / sat\u0131m panosu</h3>',
+      '<p class="crop-section-note">LIVE kutusu \u2014 i\u015flem tablosu hizas\u0131.</p>',
+      sliderRow('G\u00f6r\u00fcn\u00fcr y\u00fckseklik', 'cropTradesViewH', 160, 380, 2, t.viewH, 'px \u2014 kutu'),
+      sliderRow('Iframe y\u00fckseklik', 'cropTradesIframeH', 700, 1200, 5, t.iframeH, 'px'),
+      sliderRow('Iframe \u00fcst', 'cropTradesTop', -1400, -200, 5, t.iframeTop, 'negatif = tablo yukar\u0131'),
+      sliderRow('A\u015fa\u011f\u0131 kayd\u0131r', 'cropTradesDown', 0, 250, 1, t.shiftDown, 'px \u2014 tablo i\u00e7eri\u011fi'),
+      sliderRow('Sol kayd\u0131r (%)', 'cropTradesLeft', -16, 12, 1, t.left, ''),
+      sliderRow('Geni\u015flik (%)', 'cropTradesWidth', 88, 120, 1, t.width, ''),
+      sliderRow('Sol kenar k\u0131rp', 'cropTradesClipL', 0, 80, 1, t.clipLeft, 'px'),
+      sliderRow('Sa\u011f kenar k\u0131rp', 'cropTradesClipR', 0, 80, 1, t.clipRight, 'px'),
+      sliderRow('Yukar\u0131 daralt', 'cropTradesClipT', 0, 100, 1, t.clipTop, 'px'),
+      sliderRow('A\u015fa\u011f\u0131 daralt', 'cropTradesClipB', 0, 100, 1, t.clipBottom, 'px'),
+      toggleRow('\u00dcst maske a\u00e7\u0131k', 'cropTradesMaskTopOn', t.maskTopOn !== false),
+      sliderRow('\u00dcst maske kal\u0131nl\u0131k', 'cropTradesMaskTop', 0, 80, 1, t.maskTop, 'px'),
+      toggleRow('Alt maske a\u00e7\u0131k', 'cropTradesMaskFootOn', t.maskFootOn !== false),
+      sliderRow('Alt maske kal\u0131nl\u0131k', 'cropTradesMaskFoot', 0, 60, 1, t.maskFoot, 'px'),
       '</section>',
-      '<section class="crop-section crop-section--dex"><h3>Kutu sayfada (iste─şe ba─şl─▒)</h3>',
-      '<p class="crop-section-note">T├╝m LIVE kutusunu grafik alt─▒nda yukar─▒/a┼şa─ş─▒ kayd─▒r─▒r.</p>',
-      sliderRow('Kutu a┼şa─ş─▒ kayd─▒r', 'cropTapeDown', 0, 200, 1, tp.shiftDown, 'px'),
+      '<section class="crop-section crop-section--dex"><h3>Kutu sayfada (iste\u011fe ba\u011fl\u0131)</h3>',
+      '<p class="crop-section-note">T\u00fcm LIVE kutusunu grafik alt\u0131nda kayd\u0131r\u0131r.</p>',
+      sliderRow('Kutu a\u015fa\u011f\u0131 kayd\u0131r', 'cropTapeDown', 0, 200, 1, tp.shiftDown, 'px'),
       '</section>',
       `<${D} class="crop-actions">`,
       '<button type="button" class="crop-btn crop-btn-save" id="cropSaveBtn">Bu profili kaydet</button>',
-      '<button type="button" class="crop-btn crop-btn-publish" id="cropPublishBtn">Sunucuya sabitle (5 profil + baked)</button>',
-      '<button type="button" class="crop-btn crop-btn-copy" id="cropCopyWebBtn">Web ÔåÆ</button>',
-      '<button type="button" class="crop-btn crop-btn-copy" id="cropCopy13pmBtn">13 PM ÔåÆ</button>',
-      '<button type="button" class="crop-btn crop-btn-copy" id="cropCopy16pmBtn">16 PM ÔåÆ</button>',
-      '<button type="button" class="crop-btn" id="cropCopyBtn">T├╝m JSON</button>',
-      '<button type="button" class="crop-btn crop-btn-muted" id="cropResetProfBtn">Profil s─▒f─▒r</button>',
-      '<button type="button" class="crop-btn crop-btn-muted" id="cropResetAllBtn">Hepsi s─▒f─▒r</button>',
+      '<button type="button" class="crop-btn crop-btn-publish" id="cropPublishBtn">Sunucuya sabitle (5 profil)</button>',
+      '<button type="button" class="crop-btn crop-btn-copy" id="cropCopyWebBtn">Web \u2192</button>',
+      '<button type="button" class="crop-btn crop-btn-copy" id="cropCopy13pmBtn">13 PM \u2192</button>',
+      '<button type="button" class="crop-btn crop-btn-copy" id="cropCopy16pmBtn">16 PM \u2192</button>',
+      '<button type="button" class="crop-btn" id="cropCopyBtn">T\u00fcm JSON</button>',
+      '<button type="button" class="crop-btn crop-btn-muted" id="cropResetProfBtn">Profil s\u0131f\u0131rla</button>',
+      '<button type="button" class="crop-btn crop-btn-muted" id="cropResetAllBtn">Hepsini s\u0131f\u0131rla</button>',
       `</${D}>`,
       '<pre class="crop-json" id="cropJsonPreview"></pre>',
     ].join('');
@@ -871,7 +871,7 @@
       syncSlidersFromCurrent();
       apply(current);
       refreshPreview();
-      toast('Bu profil s─▒f─▒rland─▒');
+      toast('Bu profil sifirlandi');
     });
     document.getElementById('cropResetAllBtn')?.addEventListener('click', () => {
       current = reset();
@@ -880,7 +880,7 @@
       syncSlidersFromCurrent();
       updateProfileTabs();
       refreshPreview();
-      toast('5 profil s─▒f─▒rland─▒');
+      toast('5 profil sifirlandi');
     });
     document.getElementById('cropCopyBtn')?.addEventListener('click', async () => {
       const store = loadStore();
@@ -888,7 +888,7 @@
       const text = JSON.stringify(store, null, 2);
       try {
         await navigator.clipboard.writeText(text);
-        toast('5 profil JSON kopyaland─▒');
+        toast('5 profil JSON kopyalandi');
       } catch {
         toast('Alttaki JSON\'u kopyala');
       }
@@ -921,7 +921,7 @@
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.className = 'btn-crop-cal';
-    btn.textContent = 'Kırpma';
+    btn.textContent = 'K\u0131rpma';
     btn.title = 'Dex embed hizalama — kaydet';
     btn.addEventListener('click', (e) => {
       e.preventDefault();
