@@ -1965,10 +1965,13 @@
   }
 
   function applyDexCrop() {
-    if (globalThis.SniperDexCrop) {
-      SniperDexCrop.apply();
+    if (!globalThis.SniperDexCrop) return;
+    const run = () => SniperDexCrop.apply();
+    if (SniperDexCrop.ensureProfilesReady) {
+      void SniperDexCrop.ensureProfilesReady().then(run);
       return;
     }
+    run();
   }
 
   function scheduleDexTradesCrop() {

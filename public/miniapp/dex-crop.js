@@ -6,6 +6,7 @@
   const STORAGE_KEY = 'sniperDexCropV4';
   const LEGACY_KEYS = ['sniperDexCropV3', 'sniperDexCropV2', 'sniperDexCropV1'];
   let serverBaked = null;
+  let profilesReady = null;
   const CHART_BRAND_CROP = 40;
   const D = 'di' + 'v';
 
@@ -775,9 +776,23 @@
     head.appendChild(btn);
   }
 
+  function ensureProfilesReady() {
+    if (!profilesReady) {
+      profilesReady = (async () => {
+        await fetchServerBaked();
+        absorbLocalStorageToBaked();
+      })();
+    }
+    return profilesReady;
+  }
+
+  async function applyAsync(settings) {
+    await ensureProfilesReady();
+    apply(settings);
+  }
+
   async function init() {
-    await fetchServerBaked();
-    absorbLocalStorageToBaked();
+    await ensureProfilesReady();
     apply(load());
     addCalibrateButton();
     window.addEventListener('resize', () => {
@@ -807,6 +822,7 @@
     PROFILE_ORDER,
     DEFAULT_BLOCK,
     detectProfile,
+    ensureProfilesReady,
     loadStore,
     loadForProfile,
     load,
@@ -814,6 +830,7 @@
     resetProfile,
     reset,
     apply,
+    applyAsync,
     openPanel,
     closePanel,
     copyProfileFrom,
