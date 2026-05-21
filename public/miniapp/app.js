@@ -228,26 +228,73 @@
     return Date.now() - listed < maxMs;
   }
 
+  /** DEX listeleme ≤48s — NEW rozeti (Trending + New Pairs). */
+  function showNewListingBadge(item) {
+    return isWithinNewPairsWindow(item, NEW_PAIRS_MAX_AGE_MS);
+  }
+
+  /** Ani satış / düşüş (kriptoda genelde DUMP). */
+  function isDumpToken(item) {
+    const ch5 = Number(item.change5m);
+    const ch1 = Number(item.change1h);
+    const buys5 = Number(item.buys5m) || 0;
+    const sells5 = Number(item.sells5m) || 0;
+    const tx5 = buys5 + sells5;
+    if (Number.isFinite(ch5) && ch5 <= -12) return true;
+    if (Number.isFinite(ch1) && ch1 <= -18) return true;
+    if (Number.isFinite(ch5) && ch5 <= -6 && sells5 >= buys5 * 1.15 && tx5 >= 5) return true;
+    return false;
+  }
+
+  /** Kısa vadede güçlü yükseliş — ATH / pump proxy (DexScreener ATH alanı yok). */
+  function isAthPumpToken(item) {
+    const ch5 = Number(item.change5m);
+    const ch1 = Number(item.change1h);
+    if (Number.isFinite(ch5) && ch5 >= 22) return true;
+    if (Number.isFinite(ch1) && ch1 >= 45) return true;
+    if (Number.isFinite(ch5) && ch5 >= 14 && Number(item.change1h) >= 20) return true;
+    return false;
+  }
+
+  /** Hızlı alım-satım veya kısa vadeli pump. */
   function isHotToken(item) {
-    const tx5 = (Number(item.buys5m) || 0) + (Number(item.sells5m) || 0);
-    const tx1 = (Number(item.buys1h) || 0) + (Number(item.sells1h) || 0);
+    if (isDumpToken(item)) return false;
+    const buys5 = Number(item.buys5m) || 0;
+    const sells5 = Number(item.sells5m) || 0;
+    const tx5 = buys5 + sells5;
+    const tx1 = (Number(item.buys1h) || 0) + (Number(item.sells1h) || 0;
     const vol5 = Number(item.volume5m) || 0;
-    if (tx5 >= 12) return true;
-    if (vol5 >= 8000) return true;
+    const ch5 = Number(item.change5m);
+    const ch1 = Number(item.change1h);
+
+    if (isAthPumpToken(item)) return true;
+    if (tx5 >= 12 || vol5 >= 8000) return true;
+    if (Number.isFinite(ch5) && ch5 >= 8 && buys5 >= sells5 && tx5 >= 6) return true;
+    if (Number.isFinite(ch1) && ch1 >= 15 && buys5 >= sells5 * 1.1 && tx5 >= 4) return true;
     if (tx5 >= 6 && tx1 > 0 && tx5 / tx1 >= 0.35) return true;
     return false;
   }
 
-  function feedBadgeHtml(item, opts = {}) {
-    const onNewTab = !!opts.newTab || feedTab === 'new';
+  function feedBadgeHtml(item) {
     const parts = [];
-    if (onNewTab || isWithinNewPairsWindow(item, NEW_PAIRS_MAX_AGE_MS)) {
-      parts.push('<span class="tr-badge tr-badge-new">NEW</span>');
+    if (showNewListingBadge(item)) {
+      parts.push('<span class="tr-badge tr-badge-new" title="Son 48 saat içinde listelendi">NEW</span>');
     }
-    if (isHotToken(item)) {
+    if (isDumpToken(item)) {
       parts.push(
-        '<span class="tr-badge tr-badge-hot"><span class="tr-badge-hot-ico" aria-hidden="true">🔥</span>HOT</span>',
+        '<span class="tr-badge tr-badge-dump" title="Ani düşüş / satış baskısı">📉 DUMP</span>',
       );
+    } else {
+      if (isAthPumpToken(item)) {
+        parts.push(
+          '<span class="tr-badge tr-badge-ath" title="Kısa vadede güçlü yükseliş (ATH bölgesi)">ATH</span>',
+        );
+      }
+      if (isHotToken(item)) {
+        parts.push(
+          '<span class="tr-badge tr-badge-hot" title="Yoğun işlem / hızlı alım"><span class="tr-badge-hot-ico" aria-hidden="true">🔥</span>HOT</span>',
+        );
+      }
     }
     return parts.length ? `<span class="tr-badges">${parts.join('')}</span>` : '';
   }
@@ -267,7 +314,7 @@
       : `<span class="tr-avatar-wrap"><span class="tr-avatar">${escHtml((item.symbol || '?').slice(0, 2))}</span>${pin}</span>`;
     const reportAttr = item.reportId ? ` data-report="${escHtml(item.reportId)}"` : '';
     const dexBadge = dexSubBadgeHtml(dexKey, item.dexLabel || item.dexShort);
-    const badges = feedBadgeHtml(item, feedTab === 'new' ? { newTab: true } : {});
+    const badges = feedBadgeHtml(item);
     const subParts = [
       dexBadge,
       item.marketCapUsdFmt && item.marketCapUsdFmt !== '—'
