@@ -90,7 +90,7 @@ function seedCropFromPublicOnBoot() {
   const out = {
     version: pub.version || 1,
     updatedAt: pub.updatedAt || new Date().toISOString(),
-    note: 'seed from public/miniapp/dex-crop-profiles.json on boot',
+    note: pub.note || 'seed from public/miniapp/dex-crop-profiles.json on boot',
     profiles: pub.profiles,
   };
   writeJsonFile(DATA_FILE, out);
@@ -100,7 +100,15 @@ function seedCropFromPublicOnBoot() {
 }
 
 function isPublishAuthorized(req) {
+  const lock = ['1', 'true', 'on', 'yes'].includes(
+    String(process.env.CROP_LOCK_PROFILES || process.env.CROP_LOCK || '').trim().toLowerCase(),
+  );
   const key = String(process.env.CROP_PUBLISH_KEY || process.env.MINI_APP_CROP_KEY || '').trim();
+  if (lock) {
+    if (!key) return false;
+    const got = String(req.headers['x-crop-key'] || req.headers['x-crop-publish-key'] || '').trim();
+    return got === key;
+  }
   if (!key) return true;
   const got = String(req.headers['x-crop-key'] || req.headers['x-crop-publish-key'] || '').trim();
   return got === key;

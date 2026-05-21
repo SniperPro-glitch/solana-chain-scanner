@@ -2,6 +2,7 @@
 globalThis.__DEX_CROP_BAKED__={
   "version": 1,
   "updatedAt": "2026-05-18T17:53:40.308Z",
+  "note": "LOCKED 2026-05-19 — 5 cihaz onaylandi (web,app11,app13,app13pm,app16). Kaynak: git af22b3c. Deploy boot seed volume ezmez.",
   "profiles": {
     "web": {
       "chart": {
