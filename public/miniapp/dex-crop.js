@@ -949,7 +949,12 @@
   async function init() {
     if (global.SniperCropProfile?.apply) global.SniperCropProfile.apply();
     await ensureProfilesReady();
-    apply();
+    const runApply = () => apply();
+    if (typeof requestAnimationFrame === 'function') {
+      requestAnimationFrame(() => requestAnimationFrame(runApply));
+    } else {
+      setTimeout(runApply, 0);
+    }
     bindCropObservers();
     addCalibrateButton();
     window.addEventListener('resize', () => {

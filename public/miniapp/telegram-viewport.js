@@ -50,6 +50,7 @@
     root.classList.toggle('tg-expanded', !fullscreen);
   }
 
+  let viewportTimer = null;
   function applyViewport() {
     tg.ready();
 
@@ -68,10 +69,8 @@
     if (typeof tg.expand === 'function') tg.expand();
 
     applySafeArea();
-    setTimeout(applySafeArea, 100);
-    setTimeout(applySafeArea, 400);
-    if (window.SniperCropProfile?.apply) window.SniperCropProfile.apply();
-    if (window.SniperDexCrop?.apply) window.SniperDexCrop.apply();
+    clearTimeout(viewportTimer);
+    viewportTimer = setTimeout(applySafeArea, 180);
   }
 
   document.documentElement.classList.add('tg-mini-app');
