@@ -820,16 +820,16 @@ html.detail-mode body {
 
 .dex-trades-embed {
   position: absolute;
-  top: var(--dex-iframe-top, -820px);
-  left: var(--dex-iframe-left, -3%);
-  width: var(--dex-iframe-width, 106%) !important;
-  height: var(--dex-iframe-h, 980px) !important;
+  top: calc(var(--dex-iframe-top, -590px) + var(--dex-trades-shift-down, 0px));
+  left: var(--dex-iframe-left, 1%);
+  width: var(--dex-iframe-width, 98%) !important;
+  height: var(--dex-iframe-h, 845px) !important;
   max-width: none;
   border: 0;
   display: block;
   margin: 0;
   pointer-events: auto;
-  transform: translateZ(0);
+  transform: none;
 }
 
 .dex-mask {
@@ -861,7 +861,7 @@ html.detail-mode body {
   top: 0;
   left: 0;
   right: 0;
-  height: 3px;
+  height: var(--dex-mask-top-h, 0px);
   background: #0a0e1a;
   z-index: 5;
 }
@@ -897,6 +897,38 @@ html.detail-mode body {
   display: none !important;
 }
 
+/* Web — kayıtlı profil CSS değişkenleri (dex-crop-profiles.json → web) */
+html.web-browser .dex-trades-embed-wrap {
+  height: var(--dex-trades-view-h, 302px) !important;
+  min-height: var(--dex-trades-view-h, 302px) !important;
+  max-height: var(--dex-trades-view-h, 302px) !important;
+  overflow: hidden !important;
+  flex-shrink: 0;
+}
+
+html.web-browser .dex-trades-embed-wrap .dex-trades-embed {
+  top: calc(var(--dex-iframe-top, -590px) + var(--dex-trades-shift-down, 0px)) !important;
+  left: var(--dex-iframe-left, 1%) !important;
+  width: var(--dex-iframe-width, 98%) !important;
+  height: var(--dex-iframe-h, 845px) !important;
+  margin: 0 !important;
+  transform: none !important;
+}
+
+html.web-browser .dex-trades-embed-wrap.dex-mask-top-off::after {
+  display: none !important;
+}
+
+html.web-browser .dex-trades-embed-wrap .dex-mask-top {
+  height: 0 !important;
+  min-height: 0 !important;
+}
+
+html.web-browser .dex-trades-embed-wrap .dex-mask-foot {
+  height: 0 !important;
+  min-height: 0 !important;
+}
+
 .chart-terminal--dex-embed .chart-toolbar,
 .chart-terminal--dex-embed .ohlc-bar,
 .chart-terminal--dex-embed .chart-type-group,
@@ -924,7 +956,7 @@ html.detail-mode body {
 
 .chart-terminal--dex-embed .dex-embed-chart {
   position: absolute;
-  top: calc(var(--chart-embed-top, 40px) - var(--chart-brand-crop, 39px));
+  top: calc(var(--chart-embed-top, 40px) - var(--chart-brand-crop, 39px) + var(--chart-shift-down, 0px));
   left: var(--chart-embed-left, 1%);
   width: var(--chart-embed-width, 104%) !important;
   max-width: none !important;

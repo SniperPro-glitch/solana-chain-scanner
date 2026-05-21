@@ -1386,13 +1386,15 @@
     const src =
       body.source === 'dev_seed'
         ? 'Örnek'
-        : body.source === 'dex_live_hybrid'
-          ? 'Bot + canlı DEX'
-          : body.source === 'dexscreener_live'
-            ? 'Canlı DEX'
-            : body.source === 'bot_channel'
-              ? 'Bot kanal'
-              : c.src;
+        : body.source === 'bot_channel_live'
+          ? 'Bot · canlı fiyat'
+          : body.source === 'dex_live_hybrid'
+            ? 'Bot + canlı DEX'
+            : body.source === 'dexscreener_live'
+              ? 'Canlı DEX'
+              : body.source === 'bot_channel'
+                ? 'Bot kanal'
+                : c.src;
     const live = body.liveRefresh ? ' · anlık' : '';
     txt.textContent = `◎ ${c.label} · ${src} · ${n} token · ${vol} 24h${live}${demo}`;
     delete txt.dataset.lockChain;
@@ -1936,7 +1938,10 @@
 
   function applyDexCrop() {
     if (!globalThis.SniperDexCrop) return;
-    const run = () => SniperDexCrop.apply();
+    const run = () => {
+      SniperDexCrop.apply();
+      requestAnimationFrame(() => SniperDexCrop.apply());
+    };
     if (SniperDexCrop.ensureProfilesReady) {
       void SniperDexCrop.ensureProfilesReady().then(run);
       return;
@@ -1949,8 +1954,20 @@
     [400, 1200, 2500].forEach((ms) => setTimeout(applyDexCrop, ms));
   }
 
+  function chartPoolRef(m) {
+    const market = m || appData?.market || {};
+    return (
+      market.poolAddress
+      || market.chart?.pairRef
+      || appData?.poolAddress
+      || market.address
+      || appData?.address
+      || ''
+    ).trim();
+  }
+
   function dexTradesEmbedUrl(poolOrMint) {
-    const ref = String(poolOrMint || '').trim();
+    const ref = String(poolOrMint || chartPoolRef(appData?.market) || '').trim();
     if (!ref) return null;
     const q = new URLSearchParams({
       embed: '1',
@@ -1973,8 +1990,7 @@
     if (!wrap) return;
 
     wrap.classList.remove('hidden');
-    const poolRef = m?.poolAddress || m?.address || appData?.address;
-    const url = dexTradesEmbedUrl(poolRef);
+    const url = dexTradesEmbedUrl(chartPoolRef(m));
 
     if (!iframe) return;
     if (!url) {
@@ -2038,19 +2054,24 @@
   }
 
   function showDexEmbedChart(container, m, note, tf) {
-    const poolRef = m?.poolAddress || m?.address;
-    const embed = dexEmbedUrlFor(poolRef, tf);
+    const embed = m?.chart?.dexScreenerEmbedUrl || dexEmbedUrlFor(chartPoolRef(m), tf);
     const page = m?.chart?.dexScreenerPageUrl || m?.dexScreenerUrl;
     if (embed) {
       setChartEmbedMode(true);
       container.innerHTML = `<iframe class="dex-embed-chart" src="${escHtml(embed)}" title="DexScreener canlı grafik" loading="eager" allow="fullscreen" referrerpolicy="no-referrer-when-downgrade"></iframe>`;
       const chartIfr = container.querySelector('iframe.dex-embed-chart');
-      if (chartIfr) chartIfr.addEventListener('load', () => applyDexCrop());
+      if (chartIfr) {
+        chartIfr.addEventListener('load', () => {
+          applyDexCrop();
+          scheduleDexTradesCrop();
+        });
+      }
       if (note) {
         note.textContent = `${(tf || '15m').toUpperCase()} · DexScreener`;
         note.classList.remove('hidden');
       }
       applyDexCrop();
+      scheduleDexTradesCrop();
       return true;
     }
     setChartEmbedMode(false);
@@ -2141,8 +2162,8 @@
   }
 
   function preferDexEmbedChart(m) {
-    const poolRef = m?.poolAddress || m?.address;
-    return !!dexEmbedUrlFor(poolRef, currentTf);
+    const poolRef = chartPoolRef(m);
+    return !!(m?.chart?.dexScreenerEmbedUrl || dexEmbedUrlFor(poolRef, currentTf));
   }
 
   async function renderChart(m) {
@@ -2150,7 +2171,6 @@
     const note = $('chartNote');
     if (!container) return;
 
-    const candles = m?.chart?.candles || [];
     const tf = m?.chart?.timeframe || currentTf;
     const stats = m?.chart?.stats;
 
@@ -2161,132 +2181,22 @@
     container.innerHTML = '';
     if (note) note.classList.remove('hidden');
 
-    if (preferDexEmbedChart(m)) {
-      if (showDexEmbedChart(container, m, note, tf)) {
-        const last = candles[candles.length - 1];
-        if (last) updateOhlc(last);
-        return;
-      }
+    if (showDexEmbedChart(container, m, note, tf)) {
+      const candles = m?.chart?.candles || [];
+      const last = candles[candles.length - 1];
+      if (last) updateOhlc(last);
+      return;
     }
 
     if (note) {
-      note.textContent = candles.length
-        ? `${tf.toUpperCase()} · Canlı mum · GeckoTerminal`
-        : 'DexScreener embed yüklenemedi';
+      note.textContent = 'DexScreener grafik — pool/mint bekleniyor';
+      note.classList.remove('hidden');
     }
-
-    const hasLib = await loadChartLibrary();
-    if (!hasLib) {
-      showDexEmbedChart(container, m, note, tf);
-      return;
-    }
-    const seriesData = buildChartData(candles);
-    if (!seriesData.length) {
-      showDexEmbedChart(container, m, note, tf);
-      return;
-    }
-
-    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
-
-    const last = candles[candles.length - 1];
-    updateOhlc(last);
-
-    const w = Math.max(container.clientWidth || 0, 320);
-    try {
-    chartApi = LightweightCharts.createChart(container, {
-      width: w,
-      height: Math.min(380, Math.max(300, Math.floor(window.innerHeight * 0.38))),
-      layout: {
-        background: { color: 'transparent' },
-        textColor: '#6b7788',
-        fontFamily: 'Inter, sans-serif',
-        fontSize: 11,
-      },
-      grid: {
-        vertLines: { color: 'rgba(255,255,255,0.035)' },
-        horzLines: { color: 'rgba(255,255,255,0.035)' },
-      },
-      rightPriceScale: {
-        borderVisible: false,
-        scaleMargins: { top: 0.06, bottom: 0.2 },
-      },
-      timeScale: {
-        borderVisible: false,
-        timeVisible: true,
-        secondsVisible: tf === '1m' || tf === '5m',
-        rightOffset: 6,
-        barSpacing: 7,
-      },
-      crosshair: {
-        mode: LightweightCharts.CrosshairMode.Normal,
-        vertLine: { width: 1, color: 'rgba(59,130,246,0.45)', style: 2 },
-        horzLine: { width: 1, color: 'rgba(59,130,246,0.35)', style: 2 },
-      },
-    });
-
-    candleSeries = chartApi.addCandlestickSeries({
-      upColor: '#22c55e',
-      downColor: '#ef4444',
-      borderUpColor: '#16a34a',
-      borderDownColor: '#dc2626',
-      wickUpColor: '#22c55e',
-      wickDownColor: '#ef4444',
-      visible: chartType !== 'line',
-    });
-
-    lineSeries = chartApi.addLineSeries({
-      color: '#3b82f6',
-      lineWidth: 2,
-      crosshairMarkerVisible: true,
-      priceLineVisible: false,
-      visible: chartType === 'line',
-    });
-
-    volumeSeries = chartApi.addHistogramSeries({
-      priceFormat: { type: 'volume' },
-      priceScaleId: '',
-    });
-    volumeSeries.priceScale().applyOptions({
-      scaleMargins: { top: 0.8, bottom: 0 },
-    });
-
-    const volData = seriesData.map((d, i) => {
-      const raw = candles.find((c) => c.time === d.time) || candles[i] || {};
-      return {
-        time: d.time,
-        value: Number(raw.volume) || 0,
-        color: d.close >= d.open ? 'rgba(34,197,94,0.4)' : 'rgba(239,68,68,0.4)',
-      };
-    });
-
-    candleSeries.setData(chartType === 'line' ? [] : seriesData);
-    lineSeries.setData(seriesData.map((d) => ({ time: d.time, value: d.close })));
-    volumeSeries.setData(volData);
-    chartApi.timeScale().fitContent();
-
-    chartApi.subscribeCrosshairMove((param) => {
-      if (!param.time || !param.seriesData) return;
-      const cd = param.seriesData.get(candleSeries);
-      if (cd) {
-        updateOhlc(cd);
-        return;
-      }
-      const ld = param.seriesData.get(lineSeries);
-      if (ld) {
-        updateOhlc({ open: ld.value, high: ld.value, low: ld.value, close: ld.value, volume: 0 });
-      }
-    });
-
-    resizeHandler = () => {
-      if (chartApi) chartApi.applyOptions({ width: container.clientWidth || w });
-    };
-    window.addEventListener('resize', resizeHandler);
-    } catch (e) {
-      console.warn('chart render', e);
-      destroyChart();
-      container.innerHTML = '';
-      showDexEmbedChart(container, m, note, tf);
-    }
+    const page = m?.chart?.dexScreenerPageUrl || m?.dexScreenerUrl;
+    const link = page
+      ? `<a class="dex-chart-link" href="${escHtml(page)}" target="_blank" rel="noopener">DexScreener’da aç</a>`
+      : '';
+    container.innerHTML = `<div class="empty-chart">Grafik için DexScreener gerekli. ${link}</div>`;
   }
 
   function setChartType(type) {
@@ -2470,12 +2380,11 @@
         if (!tf || tf === currentTf || !reportId) return;
 
         const m = appData?.market;
-        const poolRef = m?.poolAddress || m?.address;
-        if (preferDexEmbedChart(m) && poolRef) {
+        if (preferDexEmbedChart(m)) {
           currentTf = tf;
           const container = $('priceChart');
           const iframe = container?.querySelector('iframe.dex-embed-chart');
-          const url = dexEmbedUrlFor(poolRef, tf);
+          const url = m?.chart?.dexScreenerEmbedUrl || dexEmbedUrlFor(chartPoolRef(m), tf);
           if (iframe && url) {
             iframe.src = url;
             const note = $('chartNote');

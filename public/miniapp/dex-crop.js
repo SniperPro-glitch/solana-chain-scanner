@@ -39,14 +39,14 @@
       shiftDown: 0,
     },
     trades: {
-      viewH: 268,
-      iframeH: 980,
-      iframeTop: -820,
+      viewH: 302,
+      iframeH: 845,
+      iframeTop: -590,
       shiftDown: 0,
-      left: -3,
-      width: 106,
-      maskTop: 8,
-      maskFoot: 24,
+      left: 1,
+      width: 98,
+      maskTop: 0,
+      maskFoot: 0,
       maskTopOn: true,
       maskFootOn: true,
       clipLeft: 0,
@@ -77,9 +77,10 @@
     );
   }
 
-  /** Koddaki ölçüler + sunucudaki güncel profiller birleşir (boş sunucu varsayılanı ezmez). */
+  /** Üretim: dex-crop-baked.js (kayıtlı 5 profil). Kalibre modunda sunucu ile birleşir. */
   function getBakedSource() {
     const file = globalThis.__DEX_CROP_BAKED__;
+    if (!isCalibrateMode()) return file?.profiles ? file : serverBaked;
     const server = serverBaked;
     if (!file?.profiles) return server || null;
     if (!server?.profiles) return file;
@@ -114,6 +115,7 @@
   }
 
   async function fetchServerBaked() {
+    if (!isCalibrateMode()) return null;
     try {
       const r = await fetch(`/api/crop-profiles?v=${Date.now()}`, { cache: 'no-store' });
       if (r.ok) {
@@ -141,10 +143,12 @@
   }
 
   function isTelegram() {
+    if (global.SniperHost) return global.SniperHost.isTelegram();
     return !!global.Telegram?.WebApp?.initData || document.documentElement.classList.contains('tg-mini-app');
   }
 
   function detectProfile() {
+    if (global.SniperHost?.isWebBrowser?.()) return 'web';
     if (!isTelegram()) return 'web';
     const w = window.innerWidth || 390;
     if (w >= 429) return 'app16';
@@ -195,10 +199,11 @@
     }
   }
 
-  /** Önce kod/sunucu varsayılanı; senin kaydettiğin profil varsa localStorage kazanır. */
+  /** Üretim: sunucu + dex-crop-baked.js. localStorage yalnızca ?kalibre=1 iken (eski ölçü kaymayı önler). */
   function loadStore() {
     migrateLegacy();
     const store = defaultStore();
+    if (!isCalibrateMode()) return store;
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (!raw) return store;
@@ -398,14 +403,7 @@
       stage.style.maxHeight = `${c.stageH}px`;
       applyClip(stage, c.clipLeft, c.clipRight, c.clipTop, c.clipBottom);
     }
-    if (chartIframe) {
-      chartIframe.style.position = 'absolute';
-      chartIframe.style.top = `${c.top - brandCrop + chartDown}px`;
-      chartIframe.style.left = `${c.left}%`;
-      chartIframe.style.width = `${c.width}%`;
-      chartIframe.style.height = `${c.stageH + c.heightExtra + brandCrop}px`;
-      chartIframe.style.maxWidth = 'none';
-    }
+    if (chartIframe) chartIframe.removeAttribute('style');
 
     const wrap = document.getElementById('dexTradesWrap');
     const tradesIframe = document.getElementById('dexTradesEmbed');
@@ -419,18 +417,14 @@
       applyClip(wrap, t.clipLeft, t.clipRight, t.clipTop, t.clipBottom);
       const maskTopOn = t.maskTopOn !== false;
       const maskFootOn = t.maskFootOn !== false;
+      const maskTopPx = Math.max(0, Number(t.maskTop) || 0);
+      const maskFootPx = Math.max(0, Number(t.maskFoot) || 0);
       wrap.classList.toggle('dex-masks-off', !maskTopOn && !maskFootOn);
-      wrap.classList.toggle('dex-mask-top-off', !maskTopOn);
-      wrap.classList.toggle('dex-mask-foot-off', !maskFootOn);
+      wrap.classList.toggle('dex-mask-top-off', !maskTopOn || maskTopPx <= 0);
+      wrap.classList.toggle('dex-mask-foot-off', !maskFootOn || maskFootPx <= 0);
     }
-    if (tradesIframe) {
-      tradesIframe.style.position = 'absolute';
-      tradesIframe.style.top = `${t.iframeTop + tradesDown}px`;
-      tradesIframe.style.left = `${t.left}%`;
-      tradesIframe.style.width = `${t.width}%`;
-      tradesIframe.style.height = `${t.iframeH}px`;
-      tradesIframe.style.maxWidth = 'none';
-    }
+    if (tradesIframe) tradesIframe.removeAttribute('style');
+    document.documentElement.dataset.dexCropProfile = detectProfile();
     applyMaskEl(maskTop, t.maskTopOn !== false, t.maskTop);
     applyMaskEl(maskFoot, t.maskFootOn !== false, t.maskFoot);
   }
@@ -776,11 +770,21 @@
     head.appendChild(btn);
   }
 
+  /** Sayfa açılışında kayıtlı profil (baked.js) — fetch/LS beklemeden. */
+  function applyBakedSnapshot() {
+    const baked = globalThis.__DEX_CROP_BAKED__;
+    if (!baked?.profiles) return;
+    const id = detectProfile();
+    const block = baked.profiles[id] || baked.profiles.web;
+    if (!block) return;
+    apply(normalizeBlock(block));
+  }
+
   function ensureProfilesReady() {
     if (!profilesReady) {
       profilesReady = (async () => {
         await fetchServerBaked();
-        absorbLocalStorageToBaked();
+        if (isCalibrateMode()) absorbLocalStorageToBaked();
       })();
     }
     return profilesReady;
@@ -792,6 +796,7 @@
   }
 
   async function init() {
+    applyBakedSnapshot();
     await ensureProfilesReady();
     apply(load());
     addCalibrateButton();
@@ -836,6 +841,8 @@
     copyProfileFrom,
     isCalibrateMode,
   };
+
+  applyBakedSnapshot();
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => init());
   else init();

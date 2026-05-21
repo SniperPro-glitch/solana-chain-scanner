@@ -1,4 +1,4 @@
-/** 5 profil */
+/** Otomatik — scripts/sync-dex-crop-baked.js · 2026-05-18T17:53:40.308Z */
 globalThis.__DEX_CROP_BAKED__={
   "version": 1,
   "updatedAt": "2026-05-18T17:53:40.308Z",

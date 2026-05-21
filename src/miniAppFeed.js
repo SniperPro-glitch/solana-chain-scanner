@@ -18,7 +18,6 @@ const { buildLogoCandidates } = require('./tokenLogo');
 
 const { fmtUsd, fmtPriceUsd } = require('./formatUsd');
 const { classifyMomentumBadge } = require('./feedBadges');
-const { discoverDexPairs, discoverNewDexPairs, normalizeDexPair } = require('./chains/dexscreenerPair');
 
 /** New Pairs sekmesi — DEX çift oluşturma zamanına göre (kanala eklenme değil). */
 const NEW_PAIRS_MAX_AGE_MS = 48 * 60 * 60 * 1000;
@@ -185,33 +184,13 @@ async function buildFeedFromBotShares(tab = 'trending', limit = 24, dexFilter = 
   const now = Date.now();
   const entries = await botFeedStore.listRecentAsync(fetchLimit, tab);
 
-  let dexPairs = [];
-  try {
-    dexPairs = isNewTab
-      ? await discoverNewDexPairs('solana', Math.min(80, limit * 3))
-      : await discoverDexPairs('solana', Math.min(50, limit * 2));
-  } catch (e) {
-    console.warn('[miniApp] dex discover:', e.message);
-  }
-
-  const mints = new Set();
-  for (const e of entries) {
-    if (e.token?.tokenAddress) mints.add(e.token.tokenAddress);
-  }
-  for (const p of dexPairs) {
-    const t = normalizeDexPair(p, 'solana');
-    if (t?.tokenAddress) mints.add(t.tokenAddress);
-  }
-
-  const liveMap = await adapter.fetchLivePairsForMints([...mints]);
-  const botMintSet = new Set();
+  const mints = entries.map((e) => e.token?.tokenAddress).filter(Boolean);
+  const liveMap = await adapter.fetchLivePairsForMints(mints);
   let items = [];
   let rank = 1;
 
   for (let i = 0; i < entries.length; i++) {
     const entry = entries[i];
-    const mint = entry.token?.tokenAddress;
-    if (mint) botMintSet.add(mint);
     const token = tokenForFeed(entry, liveMap, entry.token);
     if (!token?.tokenAddress) continue;
 
@@ -235,33 +214,6 @@ async function buildFeedFromBotShares(tab = 'trending', limit = 24, dexFilter = 
     item.liveAt = now;
     items.push(item);
     rank += 1;
-  }
-
-  const dexOnlyCap = Math.max(limit, 12);
-  const dexSorted = [...dexPairs]
-    .map((p) => normalizeDexPair(p, 'solana'))
-    .filter((t) => t?.tokenAddress && !botMintSet.has(t.tokenAddress))
-    .sort((a, b) => (Number(b.volume24h) || 0) - (Number(a.volume24h) || 0));
-
-  for (const base of dexSorted) {
-    if (items.length >= fetchLimit) break;
-    const token = tokenForFeed(null, liveMap, base);
-    if (!token?.tokenAddress) continue;
-    const listedAt = getPairListedAtMs(token);
-    if (isNewTab && !isWithinNewPairsWindowMs(listedAt, now)) continue;
-    if (!isNewTab && isWithinNewPairsWindowMs(listedAt, now)) continue;
-
-    const audit = quickAudit(token);
-    const item = tokenToFeedItem(token, audit, rank, null);
-    item.postedAt = listedAt;
-    item.listedAt = listedAt;
-    item.ageFmt = ageFmtForToken(token, listedAt);
-    item.txns24hFmt = item.txns24h > 0 ? String(item.txns24h) : '—';
-    item.fromBot = false;
-    item.liveAt = now;
-    items.push(item);
-    rank += 1;
-    if (items.filter((it) => !it.fromBot).length >= dexOnlyCap) break;
   }
 
   // ≤48s DEX listelemesi yalnızca New Pairs sekmesinde; Trending/Home'da gösterme.
@@ -313,9 +265,7 @@ async function buildFeedFromBotShares(tab = 'trending', limit = 24, dexFilter = 
   }
 
   const finalItems = ranked;
-  const hasBot = finalItems.some((it) => it.fromBot);
-  const hasDex = finalItems.some((it) => !it.fromBot);
-  const feedSource = hasBot && hasDex ? 'dex_live_hybrid' : hasDex ? 'dexscreener_live' : 'bot_channel';
+  const feedSource = 'bot_channel_live';
 
   let newPairs = 0;
   if (isNewTab) {
