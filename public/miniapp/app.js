@@ -456,6 +456,8 @@
     $('view-detail')?.classList.remove('hidden');
     ensureDetailSpacer();
     refreshTgViewport();
+    if (globalThis.SniperCropProfile?.apply) globalThis.SniperCropProfile.apply();
+    scheduleDexTradesCrop();
   }
 
   function isSolanaMint(s) {
@@ -1949,8 +1951,7 @@
 
   function scheduleDexTradesCrop() {
     applyDexCrop();
-    setTimeout(applyDexCrop, 120);
-    setTimeout(applyDexCrop, 700);
+    [150, 500, 1200, 2500].forEach((ms) => setTimeout(applyDexCrop, ms));
   }
 
   function chartPoolRef(m) {
