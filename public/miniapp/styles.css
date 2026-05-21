@@ -854,7 +854,7 @@ html.detail-mode body {
   top: 0;
   left: 0;
   right: 0;
-  height: var(--dex-mask-top-h, 0px);
+  height: 3px;
   background: #0a0e1a;
   z-index: 5;
 }
@@ -888,38 +888,6 @@ html.detail-mode body {
 
 .dex-trades-fallback.hidden {
   display: none !important;
-}
-
-/* Web — kayıtlı profil CSS değişkenleri (dex-crop-profiles.json → web) */
-html.web-browser .dex-trades-embed-wrap {
-  height: var(--dex-trades-view-h, 302px) !important;
-  min-height: var(--dex-trades-view-h, 302px) !important;
-  max-height: var(--dex-trades-view-h, 302px) !important;
-  overflow: hidden !important;
-  flex-shrink: 0;
-}
-
-html.web-browser .dex-trades-embed-wrap .dex-trades-embed {
-  top: calc(var(--dex-iframe-top, -590px) + var(--dex-trades-shift-down, 0px)) !important;
-  left: var(--dex-iframe-left, 1%) !important;
-  width: var(--dex-iframe-width, 98%) !important;
-  height: var(--dex-iframe-h, 845px) !important;
-  margin: 0 !important;
-  transform: none !important;
-}
-
-html.web-browser .dex-trades-embed-wrap.dex-mask-top-off::after {
-  display: none !important;
-}
-
-html.web-browser .dex-trades-embed-wrap .dex-mask-top {
-  height: 0 !important;
-  min-height: 0 !important;
-}
-
-html.web-browser .dex-trades-embed-wrap .dex-mask-foot {
-  height: 0 !important;
-  min-height: 0 !important;
 }
 
 .chart-terminal--dex-embed .chart-toolbar,

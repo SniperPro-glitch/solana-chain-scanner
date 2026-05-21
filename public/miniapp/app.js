@@ -1938,10 +1938,8 @@
 
   function applyDexCrop() {
     if (!globalThis.SniperDexCrop) return;
-    const run = () => {
-      SniperDexCrop.apply();
-      requestAnimationFrame(() => SniperDexCrop.apply());
-    };
+    const run = () => SniperDexCrop.apply();
+    if (SniperCropProfile?.apply) SniperCropProfile.apply();
     if (SniperDexCrop.ensureProfilesReady) {
       void SniperDexCrop.ensureProfilesReady().then(run);
       return;
