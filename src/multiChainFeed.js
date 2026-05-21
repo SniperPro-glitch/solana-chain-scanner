@@ -88,25 +88,13 @@ async function buildDexChainNewPairsFeed(chainKey, limit = 48) {
   items.sort((a, b) => (b.listedAt || 0) - (a.listedAt || 0));
   items = items.slice(0, limit).map((it, i) => ({ ...it, rank: i + 1 }));
 
-  if (!items.length && chainKey === 'solana') {
-    const { buildNewPairsSeedItems, newPairsPreviewEnabled } = require('./miniAppSeed');
-    if (newPairsPreviewEnabled()) {
-      items = await buildNewPairsSeedItems(
-        (t, a, r) => miniAppFeed.tokenToFeedItem(t, a, r, null),
-        (t) => solana.auditToken(t),
-        Math.min(6, limit),
-      );
-    }
-  }
-
   const vol = items.reduce((s, it) => s + (it.volume24h || 0), 0);
   const label = { ton: 'TON', bsc: 'BSC', eth: 'Ethereum', solana: 'Solana' }[chainKey] || chainKey;
-  const isPreview = items.some((it) => it.preview);
 
   return {
     tab: 'new',
     chain: chainKey,
-    source: isPreview ? 'dev_seed' : 'dexscreener',
+    source: 'dexscreener',
     sortMode: 'listedAt_desc',
     updatedAt: Date.now(),
     promo: getPromoBanner(),
@@ -125,8 +113,8 @@ async function buildDexChainNewPairsFeed(chainKey, limit = 48) {
     empty: items.length === 0,
     emptyKind: items.length === 0 ? 'new_pairs_empty' : undefined,
     emptyMessage: items.length === 0 ? null : null,
-    previewDemo: isPreview,
-    devSeed: isPreview,
+    previewDemo: false,
+    devSeed: false,
     newPairsWindowHours: miniAppFeed.NEW_PAIRS_MAX_AGE_HOURS,
     emptyHint:
       items.length === 0
@@ -161,23 +149,11 @@ async function buildAllChainsNewPairsFeed(limit = 48) {
     .slice(0, limit)
     .map((it, i) => ({ ...it, rank: i + 1 }));
 
-  if (!merged.length) {
-    const { buildNewPairsSeedItems, newPairsPreviewEnabled } = require('./miniAppSeed');
-    if (newPairsPreviewEnabled()) {
-      merged = await buildNewPairsSeedItems(
-        (t, a, r) => miniAppFeed.tokenToFeedItem(t, a, r, null),
-        (t) => solana.auditToken(t),
-        Math.min(6, limit),
-      );
-    }
-  }
-
   const vol = merged.reduce((s, it) => s + (it.volume24h || 0), 0);
-  const isPreview = merged.some((it) => it.preview);
   return {
     tab: 'new',
     chain: 'all',
-    source: isPreview ? 'dev_seed' : 'multi_chain',
+    source: 'multi_chain',
     sortMode: 'listedAt_desc',
     updatedAt: Date.now(),
     promo: getPromoBanner(),
@@ -196,8 +172,8 @@ async function buildAllChainsNewPairsFeed(limit = 48) {
     empty: merged.length === 0,
     emptyKind: merged.length === 0 ? 'new_pairs_empty' : undefined,
     emptyMessage: null,
-    previewDemo: isPreview,
-    devSeed: isPreview,
+    previewDemo: false,
+    devSeed: false,
     newPairsWindowHours: miniAppFeed.NEW_PAIRS_MAX_AGE_HOURS,
   };
 }

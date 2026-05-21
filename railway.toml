@@ -13,5 +13,6 @@ WEB_APP_URL = "https://solana-chain-scanner-production.up.railway.app"
 DATA_DIR = "/app/data"
 MINI_APP_ENABLED = "1"
 MINI_APP_SEED = "0"
+MINI_APP_NEW_PAIRS_PREVIEW = "0"
 # Postgres: Dashboard → Postgres → Connect → solana-chain-scanner
 # veya Variables: DATABASE_URL = ${{ Postgres.DATABASE_URL }}

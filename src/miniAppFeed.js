@@ -17,15 +17,6 @@ const { buildMarketFromToken } = require('./marketData');
 const { buildLogoCandidates } = require('./tokenLogo');
 
 const { fmtUsd, fmtPriceUsd } = require('./formatUsd');
-const {
-  buildSeedFeedItems,
-  buildNewPairsSeedItems,
-  buildStaticNewPairsDemoItems,
-  appendNewPairsPreview,
-  mergeFeedItems,
-  newPairsPreviewEnabled,
-  seedEnabled,
-} = require('./miniAppSeed');
 
 /** New Pairs sekmesi — DEX çift oluşturma zamanına göre (kanala eklenme değil). */
 const NEW_PAIRS_MAX_AGE_MS = 48 * 60 * 60 * 1000;
@@ -240,27 +231,8 @@ async function buildFeedFromBotShares(tab = 'trending', limit = 24, dexFilter = 
     ranked = ranked.map((it, i) => ({ ...it, rank: i + 1 }));
   }
 
-  let finalItems = ranked;
-  let feedSource = 'bot_channel';
-  if (isNewTab && newPairsPreviewEnabled()) {
-    const preview = await buildNewPairsSeedItems(tokenToFeedItem, quickAudit, 6);
-    const hadLive = finalItems.length > 0;
-    finalItems = appendNewPairsPreview(
-      finalItems.filter((it) => it.listedAt && isWithinNewPairsWindowMs(it.listedAt, now)),
-      preview.filter((it) => it.listedAt && isWithinNewPairsWindowMs(it.listedAt, now)),
-      limit,
-    );
-    if (!hadLive && finalItems.length) feedSource = 'dev_seed';
-  } else if (!isNewTab && finalItems.length === 0 && newPairsPreviewEnabled()) {
-    finalItems = buildStaticNewPairsDemoItems(Math.min(6, limit));
-    feedSource = 'dev_seed';
-  } else if (!isNewTab && seedEnabled() && finalItems.length < limit) {
-    const seedItems = await buildSeedFeedItems(tokenToFeedItem, quickAudit);
-    if (seedItems.length) {
-      finalItems = mergeFeedItems(seedItems, finalItems, limit);
-      if (ranked.length === 0) feedSource = 'dev_seed';
-    }
-  }
+  const finalItems = ranked;
+  const feedSource = 'bot_channel';
 
   let newPairs = 0;
   for (let i = 0; i < entries.length; i++) {
@@ -297,14 +269,14 @@ async function buildFeedFromBotShares(tab = 'trending', limit = 24, dexFilter = 
     items: finalItems,
     empty: finalItems.length === 0,
     emptyKind: isNewTab && finalItems.length === 0 ? 'new_pairs_empty' : 'generic',
-    previewDemo: finalItems.some((it) => it.preview),
+    previewDemo: false,
     emptyMessage: finalItems.length === 0
       ? (isNewTab
         ? null
         : 'Henüz kanal paylaşımı yok. Bot kanala admin ekleyin, /settings ile Solana seçin, SOLANA_SCAN_ENABLED=1 yapın.')
       : null,
     newPairsWindowHours: NEW_PAIRS_MAX_AGE_HOURS,
-    devSeed: feedSource === 'dev_seed',
+    devSeed: false,
   };
 }
 

@@ -92,17 +92,20 @@ const STATIC_NEW_PAIRS_DEMO = [
   },
 ];
 
-function seedEnabled() {
-  return !['0', 'false', 'off', 'no'].includes(
-    String(process.env.MINI_APP_SEED || '1').trim().toLowerCase(),
-  );
+function envFlagOn(name, defaultOn = false) {
+  const raw = process.env[name];
+  if (raw === undefined || raw === '') return defaultOn;
+  return ['1', 'true', 'on', 'yes'].includes(String(raw).trim().toLowerCase());
 }
 
-/** New Pairs demo — MINI_APP_SEED=0 olsa da varsayılan açık; kapatmak için MINI_APP_NEW_PAIRS_PREVIEW=0. */
+/** Yerel geliştirme — üretimde kapalı (MINI_APP_SEED=1 ile açılır). */
+function seedEnabled() {
+  return envFlagOn('MINI_APP_SEED', false);
+}
+
+/** New Pairs demo — üretimde kapalı (MINI_APP_NEW_PAIRS_PREVIEW=1 ile açılır). */
 function newPairsPreviewEnabled() {
-  const raw = process.env.MINI_APP_NEW_PAIRS_PREVIEW;
-  if (raw === undefined || raw === '') return true;
-  return !['0', 'false', 'off', 'no'].includes(String(raw).trim().toLowerCase());
+  return envFlagOn('MINI_APP_NEW_PAIRS_PREVIEW', false);
 }
 
 function ageFmtFromListedAt(listedAt) {

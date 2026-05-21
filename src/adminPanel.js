@@ -486,7 +486,7 @@ async function buildDashboard(getWebAppBaseUrl, getBotApiBaseUrl) {
     promo: getPromoBanner(),
     flags: {
       miniAppSeed: ['1', 'true', 'on'].includes(
-        String(process.env.MINI_APP_SEED || '1').trim().toLowerCase(),
+        String(process.env.MINI_APP_SEED || '0').trim().toLowerCase(),
       ),
       solanaScan: ['1', 'true', 'on'].includes(
         String(process.env.SOLANA_SCAN_ENABLED || '0').trim().toLowerCase(),
