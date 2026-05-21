@@ -241,7 +241,7 @@
   function feedBadgeHtml(item, opts = {}) {
     const onNewTab = !!opts.newTab || feedTab === 'new';
     const parts = [];
-    if (!onNewTab && isWithinNewPairsWindow(item, NEW_PAIRS_MAX_AGE_MS)) {
+    if (onNewTab || isWithinNewPairsWindow(item, NEW_PAIRS_MAX_AGE_MS)) {
       parts.push('<span class="tr-badge tr-badge-new">NEW</span>');
     }
     if (isHotToken(item)) {
@@ -250,12 +250,6 @@
       );
     }
     return parts.length ? `<span class="tr-badges">${parts.join('')}</span>` : '';
-  }
-
-  function npRiskShort(label, band) {
-    if (band === 'high' || /HIGH/i.test(label || '')) return 'HIGH';
-    if (band === 'low' || /LOW/i.test(label || '')) return 'LOW';
-    return 'MED';
   }
 
   function renderFeedRow(item, extraClass = '') {
@@ -273,7 +267,7 @@
       : `<span class="tr-avatar-wrap"><span class="tr-avatar">${escHtml((item.symbol || '?').slice(0, 2))}</span>${pin}</span>`;
     const reportAttr = item.reportId ? ` data-report="${escHtml(item.reportId)}"` : '';
     const dexBadge = dexSubBadgeHtml(dexKey, item.dexLabel || item.dexShort);
-    const badges = feedBadgeHtml(item);
+    const badges = feedBadgeHtml(item, feedTab === 'new' ? { newTab: true } : {});
     const subParts = [
       dexBadge,
       item.marketCapUsdFmt && item.marketCapUsdFmt !== '—'
@@ -293,49 +287,6 @@
       <span class="tr-vol">${escHtml(getFeedVolumeFmt(item))}</span>
       <span class="tr-liq">${escHtml(item.liquidityUsdFmt || '—')}</span>
       ${riskColHtml(rc, label, up)}
-    </article>`;
-  }
-
-  function renderNewPairsRow(item) {
-    const risk = item.risk || {};
-    const rc = risk.band || 'mid';
-    const riskTxt = npRiskShort(risk.label, rc);
-    const dexKey = item.dexPlatform || item.dex || 'other';
-    const chainKey = item.chain || 'solana';
-    const pin = avatarCornerHtml(dexKey, chainKey);
-    const dexLabel = item.dexLabel || item.dexShort || dexKey;
-    const sym2 = escHtml((item.symbol || '?').slice(0, 2));
-    const avatar = item.imageUrl
-      ? `<div class="np-avatar"><img class="np-img" src="${escHtml(item.imageUrl)}" alt="" loading="lazy" data-fb="${escHtml((item.imageFallbacks || []).join('|'))}" />${pin}</div>`
-      : `<div class="np-avatar"><span class="np-avatar-fallback">${sym2}</span>${pin}</div>`;
-    const badges = feedBadgeHtml(item, { newTab: true });
-    const reportAttr = item.reportId ? ` data-report="${escHtml(item.reportId)}"` : '';
-    const dexUrlAttr = item.dexPageUrl ? ` data-dex-url="${escHtml(item.dexPageUrl)}"` : '';
-    const buys5 = Number(item.buys5m) || 0;
-    const sells5 = Number(item.sells5m) || 0;
-    const act =
-      buys5 + sells5 > 0
-        ? `<span class="np-act-buy">${buys5} alım</span><span class="np-act-sep">·</span><span class="np-act-sell">${sells5} satım</span><span class="np-act-w">5dk</span>`
-        : '<span class="np-act-muted">Aktivite bekleniyor</span>';
-    return `<article class="np-card risk-${rc}" data-mint="${escHtml(item.mint)}" data-dex="${escHtml(dexKey)}" data-chain="${escHtml(chainKey)}"${reportAttr}${dexUrlAttr}>
-      <span class="np-ribbon" aria-hidden="true">NEW</span>
-      <div class="np-head">
-        ${avatar}
-        <div class="np-main">
-          <div class="np-symbol-row">${escHtml(item.symbol)}${badges}</div>
-          <div class="np-chain-row">${escHtml(chainKey.toUpperCase())} · ${dexSubBadgeHtml(dexKey, dexLabel)}</div>
-        </div>
-        <div class="np-meta-col">
-          <span class="np-age">${escHtml(item.ageFmt || '—')}</span>
-          <span class="np-risk risk-badge ${rc}">${escHtml(riskTxt)}</span>
-        </div>
-      </div>
-      <dl class="np-metrics">
-        <div class="np-metric"><dt>MCAP</dt><dd>${escHtml(item.marketCapUsdFmt || '—')}</dd></div>
-        <div class="np-metric"><dt>LIQ</dt><dd>${escHtml(item.liquidityUsdFmt || '—')}</dd></div>
-        <div class="np-metric"><dt>VOL</dt><dd>${escHtml(item.volume24hFmt || '—')}</dd></div>
-      </dl>
-      <div class="np-foot">${act}</div>
     </article>`;
   }
 
@@ -562,11 +513,11 @@
     $('homeFeedPanel')?.classList.toggle('is-new-pairs', isNp);
     $('newPairsPanel')?.classList.toggle('hidden', !isNp);
     $('feedToolbar')?.classList.toggle('hidden', isNp);
-    $('tokenTheadMain')?.classList.toggle('hidden', isNp);
-    $('tokenTheadMain')?.setAttribute('aria-hidden', isNp ? 'true' : 'false');
-    $('tokenTableScroll')?.classList.toggle('mode-new-pairs', isNp);
-    $('tokenTableInner')?.classList.toggle('mode-new-pairs', isNp);
-    $('homeTokenList')?.classList.toggle('np-list', isNp);
+    $('tokenTheadMain')?.classList.remove('hidden');
+    $('tokenTheadMain')?.setAttribute('aria-hidden', 'false');
+    $('tokenTableScroll')?.classList.remove('mode-new-pairs');
+    $('tokenTableInner')?.classList.remove('mode-new-pairs');
+    $('homeTokenList')?.classList.remove('np-list');
     updateNewPairsLiveBar();
     syncNewPairsAgeUi();
   }
@@ -1115,7 +1066,7 @@
 
 
   function bindFeedRowLogos(root) {
-    root?.querySelectorAll('img.tr-img[data-fb], img.np-img[data-fb]').forEach((img) => {
+    root?.querySelectorAll('img.tr-img[data-fb]').forEach((img) => {
       const extra = (img.getAttribute('data-fb') || '').split('|').filter(Boolean);
       const urls = [img.getAttribute('src'), ...extra].filter(Boolean);
       let idx = 0;
@@ -1123,13 +1074,10 @@
         idx += 1;
         if (idx < urls.length) img.src = urls[idx];
         else {
-          const host = img.closest('.token-row, .np-card');
-          const sym =
-            host?.querySelector('.tr-name, .np-symbol-row')?.textContent?.trim().slice(0, 2) || '?';
-          const wrap = img.closest('.tr-avatar-wrap, .np-avatar');
+          const sym = img.closest('.token-row')?.querySelector('.tr-name')?.textContent?.trim().slice(0, 2) || '?';
+          const wrap = img.closest('.tr-avatar-wrap');
           if (wrap) {
-            const fbCls = wrap.classList.contains('np-avatar') ? 'np-avatar-fallback' : 'tr-avatar';
-            wrap.innerHTML = `<span class="${fbCls}">${escHtml(sym)}</span><span class="tr-chain-dot">◎</span>`;
+            wrap.innerHTML = `<span class="tr-avatar">${escHtml(sym)}</span><span class="tr-chain-dot">◎</span>`;
           }
         }
       };
@@ -1310,10 +1258,8 @@
     if (!list) return;
     const searching = !!opts.searching || !!(searchQuery || '').trim();
     const lastRow = searching ? '' : renderLastReportRow();
-    const useNp = feedTab === 'new' && !searching;
-    list.classList.toggle('np-list', useNp);
-    list.classList.toggle('token-list', true);
-    const rows = (items || []).map((it) => (useNp ? renderNewPairsRow(it) : renderFeedRow(it))).join('');
+    list.classList.remove('np-list');
+    const rows = (items || []).map((it) => renderFeedRow(it)).join('');
     if (!rows) {
       if (!searching && (feedTab === 'new' || feedEmptyKind === 'new_pairs_empty')) {
         list.innerHTML = renderNewPairsEmptyState();
@@ -1629,7 +1575,7 @@
     });
 
     $('homeTokenList')?.addEventListener('click', (ev) => {
-      const row = ev.target.closest('.token-row, .np-card');
+      const row = ev.target.closest('.token-row');
       if (!row) return;
       const rid = row.dataset.report;
       if (rid) {
