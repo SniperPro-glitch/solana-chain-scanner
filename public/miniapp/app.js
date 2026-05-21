@@ -456,6 +456,7 @@
     $('view-detail')?.classList.remove('hidden');
     ensureDetailSpacer();
     refreshTgViewport();
+    if (globalThis.SniperCropProfile?.apply) globalThis.SniperCropProfile.apply();
     scheduleDexTradesCrop();
   }
 
@@ -1937,14 +1938,9 @@
     }
   }
 
-  let dexCropBurstId = 0;
-
-  function applyDexCrop(opts) {
+  function applyDexCrop() {
     if (!globalThis.SniperDexCrop) return;
-    const run = () => {
-      if (opts?.immediate && SniperDexCrop.applyImmediate) SniperDexCrop.applyImmediate();
-      else SniperDexCrop.apply();
-    };
+    const run = () => SniperDexCrop.apply();
     if (SniperCropProfile?.apply) SniperCropProfile.apply();
     if (SniperDexCrop.ensureProfilesReady) {
       void SniperDexCrop.ensureProfilesReady().then(run);
@@ -1953,14 +1949,9 @@
     run();
   }
 
-  /** Token detay: en fazla 2 kırpma (hemen + iframe oturunca). */
   function scheduleDexTradesCrop() {
-    const burst = ++dexCropBurstId;
-    applyDexCrop({ immediate: true });
-    setTimeout(() => {
-      if (burst !== dexCropBurstId) return;
-      applyDexCrop();
-    }, 600);
+    applyDexCrop();
+    [150, 500, 1200, 2500].forEach((ms) => setTimeout(applyDexCrop, ms));
   }
 
   function chartPoolRef(m) {
@@ -2022,8 +2013,10 @@
       fallback.classList.remove('hidden');
     }
     iframe.classList.remove('hidden');
+    applyDexCrop();
     scheduleDexTradesCrop();
     iframe.onload = () => {
+      applyDexCrop();
       scheduleDexTradesCrop();
       if (fallback) fallback.classList.add('hidden');
       if (meta) meta.textContent = 'canlı';
@@ -2071,12 +2064,16 @@
       container.innerHTML = `<iframe class="dex-embed-chart" src="${escHtml(embed)}" title="DexScreener canlı grafik" loading="eager" allow="fullscreen" referrerpolicy="no-referrer-when-downgrade"></iframe>`;
       const chartIfr = container.querySelector('iframe.dex-embed-chart');
       if (chartIfr) {
-        chartIfr.addEventListener('load', () => scheduleDexTradesCrop());
+        chartIfr.addEventListener('load', () => {
+          applyDexCrop();
+          scheduleDexTradesCrop();
+        });
       }
       if (note) {
         note.textContent = `${(tf || '15m').toUpperCase()} · DexScreener`;
         note.classList.remove('hidden');
       }
+      applyDexCrop();
       scheduleDexTradesCrop();
       return true;
     }

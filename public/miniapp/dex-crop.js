@@ -325,7 +325,7 @@
     globalThis.__DEX_CROP_BAKED__ = serverBaked;
     syncProfilesToServer(store);
 
-    if (profileId === activeProfileId()) applyImmediate(block);
+    if (profileId === activeProfileId()) apply(block);
   }
 
   function resetProfile(profileId) {
@@ -339,7 +339,7 @@
     LEGACY_KEYS.forEach((k) => localStorage.removeItem(k));
     localStorage.removeItem(STORAGE_KEY);
     const d = load();
-    applyImmediate(d);
+    apply(d);
     return d;
   }
 
@@ -403,30 +403,24 @@
     ].join('\n');
   }
 
-  let applyDebounceTimer = null;
-  let lastApplySig = '';
-
-  function isDetailCropActive() {
-    if (isCalibrateMode()) return true;
-    const vd = document.getElementById('view-detail');
-    return !!(vd && !vd.classList.contains('hidden'));
-  }
-
-  function applySignature(s, profileId) {
-    const c = s.chart || {};
-    const t = s.trades || {};
-    return `${profileId}|${c.stageH}|${c.top}|${t.viewH}|${t.iframeTop}|${t.shiftDown || 0}`;
-  }
-
   function bindCropObservers() {
     if (global.__sniperCropObs) return;
     global.__sniperCropObs = true;
     const reapply = () => {
       if (document.getElementById('dexCropPanel')?.classList.contains('hidden') === false) return;
-      if (!isDetailCropActive()) return;
       apply();
     };
     window.addEventListener('resize', reapply);
+    const tg = global.Telegram?.WebApp;
+    if (tg && typeof tg.onEvent === 'function') {
+      tg.onEvent('viewportChanged', reapply);
+    }
+    for (const id of ['dexTradesWrap', 'dexTradesEmbed']) {
+      const node = document.getElementById(id);
+      if (!node || typeof ResizeObserver === 'undefined') continue;
+      const ro = new ResizeObserver(reapply);
+      ro.observe(node);
+    }
   }
 
   function applyMaskEl(el, enabled, heightPx) {
@@ -440,7 +434,7 @@
     el.style.height = `${Math.max(0, Number(heightPx) || 0)}px`;
   }
 
-  function applyCore(settings) {
+  function apply(settings) {
     const profileId = activeProfileId();
     document.documentElement.dataset.dexCropProfile = profileId;
     const s = settings || loadForProfile(profileId);
@@ -535,31 +529,6 @@
     applyMaskEl(maskTop, t.maskTopOn !== false, t.maskTop);
     applyMaskEl(maskFoot, t.maskFootOn !== false, t.maskFoot);
     showCropDebug(profileId, t);
-  }
-
-  function apply(settings, opts) {
-    const immediate = !!(opts && opts.immediate);
-    const force = !!(opts && opts.force);
-    const run = () => {
-      if (!isDetailCropActive()) return;
-      const profileId = activeProfileId();
-      const s = settings || loadForProfile(profileId);
-      const sig = applySignature(s, profileId);
-      if (!force && sig === lastApplySig) return;
-      lastApplySig = sig;
-      applyCore(settings);
-    };
-    if (immediate || force) {
-      clearTimeout(applyDebounceTimer);
-      run();
-      return;
-    }
-    clearTimeout(applyDebounceTimer);
-    applyDebounceTimer = setTimeout(run, 140);
-  }
-
-  function applyImmediate(settings) {
-    apply(settings, { immediate: true, force: true });
   }
 
   function enableCalibrateSession() {
@@ -735,7 +704,7 @@
     editingProfile = nextId;
     current = loadForProfile(editingProfile);
     syncSlidersFromCurrent();
-    applyImmediate(current);
+    apply(current);
     updateProfileTabs();
     refreshPreview();
   }
@@ -744,7 +713,7 @@
     if (!PROFILE_META[sourceId]) return;
     current = loadForProfile(sourceId);
     syncSlidersFromCurrent();
-    applyImmediate(current);
+    apply(current);
     refreshPreview();
     toast(`${PROFILE_META[sourceId].label} -> ${PROFILE_META[editingProfile].label} kopyalandi (Kaydet)`);
   }
@@ -756,7 +725,7 @@
     baselineProfiles = clone(loadStore().profiles);
     current = loadForProfile(editingProfile);
     syncSlidersFromCurrent();
-    applyImmediate(current);
+    apply(current);
     updateProfileTabs();
     panelEl.classList.remove('hidden');
     document.documentElement.classList.add('crop-panel-open');
@@ -861,7 +830,7 @@
     document.body.appendChild(panelEl);
 
     const onLive = () => {
-      applyImmediate(current);
+      apply(current);
       refreshPreview();
     };
 
@@ -900,7 +869,7 @@
     document.getElementById('cropResetProfBtn')?.addEventListener('click', () => {
       current = resetProfile(editingProfile);
       syncSlidersFromCurrent();
-      applyImmediate(current);
+      apply(current);
       refreshPreview();
       toast('Bu profil sifirlandi');
     });
@@ -980,7 +949,7 @@
   async function init() {
     if (global.SniperCropProfile?.apply) global.SniperCropProfile.apply();
     await ensureProfilesReady();
-    if (isDetailCropActive()) applyImmediate();
+    apply();
     bindCropObservers();
     addCalibrateButton();
     window.addEventListener('resize', () => {
@@ -1001,7 +970,7 @@
       new MutationObserver(() => {
         if (!vd.classList.contains('hidden')) {
           addCalibrateButton();
-          applyImmediate();
+          apply();
         }
       }).observe(vd, { attributes: true, attributeFilter: ['class'] });
     }
@@ -1021,7 +990,6 @@
     resetProfile,
     reset,
     apply,
-    applyImmediate,
     applyAsync,
     openPanel,
     closePanel,
