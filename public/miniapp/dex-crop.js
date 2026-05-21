@@ -138,6 +138,7 @@
   async function publishServerProfiles() {
     const store = loadStore();
     store.profiles[editingProfile] = clone(current);
+    saveStore(store);
     const r = await fetch('/api/crop-profiles', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -146,6 +147,7 @@
     const data = await r.json().catch(() => ({}));
     if (!r.ok) throw new Error(data.message || data.error || `HTTP ${r.status}`);
     serverBaked = data.saved || { version: 1, profiles: store.profiles };
+    globalThis.__DEX_CROP_BAKED__ = serverBaked;
     return serverBaked;
   }
 
@@ -529,7 +531,22 @@
     showCropDebug(profileId, t);
   }
 
+  function enableCalibrateSession() {
+    try {
+      sessionStorage.setItem('sniperCropCalibrate', '1');
+    } catch {
+      /* yoksay */
+    }
+    document.documentElement.dataset.cropCalibrate = '1';
+  }
+
   function isCalibrateMode() {
+    if (document.documentElement.dataset.cropCalibrate === '1') return true;
+    try {
+      if (sessionStorage.getItem('sniperCropCalibrate') === '1') return true;
+    } catch {
+      /* yoksay */
+    }
     try {
       const q = new URLSearchParams(location.search);
       if (q.get('kalibre') === '1' || q.get('calibrate') === '1') return true;
@@ -537,6 +554,11 @@
       /* yoksay */
     }
     return String(location.hash || '').includes('kalibre');
+  }
+
+  function shouldShowCropButton() {
+    if (isCalibrateMode()) return true;
+    return document.documentElement.classList.contains('web-browser');
   }
 
   /** ?profil=web|app11|app13|app13pm|app16 ÔÇö link sadece do─şru sekmeyi a├ğar; ├Âl├ğ├╝ler kay─▒tta. */
@@ -570,6 +592,23 @@
   let current = defaultBlock();
   let editingProfile = 'web';
   let panelBuilt = false;
+  /** Panel açılınca dosyadaki değerler — kayıttan sonra fark gösterilir */
+  let baselineProfiles = null;
+
+  function tradesDiffLine(id, before, after) {
+    const b = before?.trades || {};
+    const a = after?.trades || {};
+    const lines = [];
+    if (b.viewH !== a.viewH) lines.push(`viewH ${b.viewH}→${a.viewH}`);
+    if (b.iframeTop !== a.iframeTop) lines.push(`iframeTop ${b.iframeTop}→${a.iframeTop}`);
+    if (b.shiftDown !== a.shiftDown) lines.push(`shiftDown ${b.shiftDown || 0}→${a.shiftDown || 0}`);
+    if (b.iframeH !== a.iframeH) lines.push(`iframeH ${b.iframeH}→${a.iframeH}`);
+    const c = before?.chart || {};
+    const d = after?.chart || {};
+    if (c.stageH !== d.stageH) lines.push(`chartH ${c.stageH}→${d.stageH}`);
+    if (c.top !== d.top) lines.push(`chartTop ${c.top}→${d.top}`);
+    return lines.length ? `${id}: ${lines.join(', ')}` : null;
+  }
 
   function bindSlider(id, section, key, onChange) {
     const input = document.getElementById(id);
@@ -680,8 +719,10 @@
   }
 
   function openPanel() {
+    enableCalibrateSession();
     if (!panelBuilt) buildPanel();
     editingProfile = profileFromUrl() || detectProfile();
+    baselineProfiles = clone(loadStore().profiles);
     current = loadForProfile(editingProfile);
     syncSlidersFromCurrent();
     apply(current);
@@ -702,8 +743,20 @@
     if (!pre) return;
     const store = loadStore();
     store.profiles[editingProfile] = clone(current);
+    const diff = [];
+    if (baselineProfiles) {
+      PROFILE_ORDER.forEach((id) => {
+        const line = tradesDiffLine(id, baselineProfiles[id], store.profiles[id]);
+        if (line) diff.push(line);
+      });
+    }
     pre.textContent = JSON.stringify(
-      { activeProfile: detectProfile(), editingProfile, profiles: store.profiles },
+      {
+        activeProfile: detectProfile(),
+        editingProfile,
+        diffFromOpen: diff.length ? diff : ['(henüz fark yok)'],
+        profiles: store.profiles,
+      },
       null,
       2,
     );
@@ -745,7 +798,7 @@
       '<p class="crop-section-note">LIVE kutusu i├ği ÔÇö t├╝m telefonlarda ayn─▒ kayd─▒r─▒c─▒lar.</p>',
       sliderRow('G├Âr├╝n├╝r y├╝kseklik', 'cropTradesViewH', 160, 380, 2, t.viewH, 'px ÔÇö kutu y├╝ksekli─şi'),
       sliderRow('Iframe y├╝kseklik', 'cropTradesIframeH', 700, 1200, 5, t.iframeH, 'px'),
-      sliderRow('Iframe ├╝st', 'cropTradesTop', -1200, -300, 5, t.iframeTop, 'negatif = yukar─▒ ├ğek'),
+      sliderRow('Iframe üst', 'cropTradesTop', -1400, -200, 5, t.iframeTop, 'negatif = işlem tablosu yukarı'),
       sliderRow('A┼şa─ş─▒ kayd─▒r', 'cropTradesDown', 0, 250, 1, t.shiftDown, 'px ÔÇö tablo i├ğeri─şi a┼şa─ş─▒'),
       sliderRow('Sol kayd─▒r (%)', 'cropTradesLeft', -16, 12, 1, t.left, ''),
       sliderRow('Geni┼şlik (%)', 'cropTradesWidth', 88, 120, 1, t.width, ''),
@@ -763,8 +816,8 @@
       sliderRow('Kutu a┼şa─ş─▒ kayd─▒r', 'cropTapeDown', 0, 200, 1, tp.shiftDown, 'px'),
       '</section>',
       `<${D} class="crop-actions">`,
-      '<button type="button" class="crop-btn crop-btn-save" id="cropSaveBtn">Profili kaydet</button>',
-      '<button type="button" class="crop-btn crop-btn-publish" id="cropPublishBtn">Ôİü Herkese sabitle (5 profil)</button>',
+      '<button type="button" class="crop-btn crop-btn-save" id="cropSaveBtn">Bu profili kaydet</button>',
+      '<button type="button" class="crop-btn crop-btn-publish" id="cropPublishBtn">Sunucuya sabitle (5 profil + baked)</button>',
       '<button type="button" class="crop-btn crop-btn-copy" id="cropCopyWebBtn">Web ÔåÆ</button>',
       '<button type="button" class="crop-btn crop-btn-copy" id="cropCopy13pmBtn">13 PM ÔåÆ</button>',
       '<button type="button" class="crop-btn crop-btn-copy" id="cropCopy16pmBtn">16 PM ÔåÆ</button>',
@@ -789,19 +842,25 @@
     });
 
     document.getElementById('cropCloseBtn')?.addEventListener('click', closePanel);
-    document.getElementById('cropSaveBtn')?.addEventListener('click', () => {
+    document.getElementById('cropSaveBtn')?.addEventListener('click', async () => {
       saveBlock(editingProfile, current);
-      toast(`${PROFILE_META[editingProfile].label} kaydedildi`);
+      try {
+        await publishServerProfiles();
+        baselineProfiles = clone(loadStore().profiles);
+        refreshPreview();
+        toast(`${PROFILE_META[editingProfile].label} kaydedildi + sunucu güncellendi`);
+      } catch (e) {
+        toast(`${PROFILE_META[editingProfile].label} yerelde kayıtlı — sunucu: ${e.message || 'hata'}`);
+      }
     });
     document.getElementById('cropPublishBtn')?.addEventListener('click', async () => {
       try {
-        const store = loadStore();
-        store.profiles[editingProfile] = clone(current);
-        saveStore(store);
         await publishServerProfiles();
-        toast('5 profil sunucuya sabitlendi ÔÇö herkes g├Âr├╝r');
+        baselineProfiles = clone(loadStore().profiles);
+        refreshPreview();
+        toast('5 profil sunucuya yazıldı (json + baked.js) — redeploy');
       } catch (e) {
-        toast(e.message || 'Sunucuya kay─▒t ba┼şar─▒s─▒z');
+        toast(e.message || 'Sunucuya kayıt başarısız');
       }
     });
     document.getElementById('cropCopyWebBtn')?.addEventListener('click', () => copyProfileFrom('web'));
@@ -856,12 +915,14 @@
   }
 
   function addCalibrateButton() {
+    if (!shouldShowCropButton()) return;
     const head = document.querySelector('.trades-head');
     if (!head || head.querySelector('.btn-crop-cal')) return;
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.className = 'btn-crop-cal';
-    btn.textContent = 'K─▒rpma';
+    btn.textContent = 'Kırpma';
+    btn.title = 'Dex embed hizalama — kaydet';
     btn.addEventListener('click', (e) => {
       e.preventDefault();
       e.stopPropagation();
@@ -896,10 +957,13 @@
       apply();
     });
     if (isCalibrateMode()) {
+      enableCalibrateSession();
       setTimeout(() => {
         addCalibrateButton();
         openPanel();
-      }, 1500);
+      }, 1200);
+    } else {
+      addCalibrateButton();
     }
     const vd = document.getElementById('view-detail');
     if (vd) {
@@ -931,6 +995,7 @@
     closePanel,
     copyProfileFrom,
     isCalibrateMode,
+    enableCalibrateSession,
   };
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => init());

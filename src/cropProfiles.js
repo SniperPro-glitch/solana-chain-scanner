@@ -70,7 +70,15 @@ function saveBakedProfiles(payload) {
   };
   writeJsonFile(DATA_FILE, out);
   writeJsonFile(PUBLIC_FALLBACK, out);
+  writeBakedJs(out);
   return out;
+}
+
+function writeBakedJs(data) {
+  const bakedOut = path.join(__dirname, '..', 'public', 'miniapp', 'dex-crop-baked.js');
+  const stamp = data.updatedAt || new Date().toISOString();
+  const js = `/** Otomatik — crop save · ${stamp} */\nglobalThis.__DEX_CROP_BAKED__=${JSON.stringify(data, null, 2)};\n`;
+  fs.writeFileSync(bakedOut, js, 'utf8');
 }
 
 function isPublishAuthorized(req) {
