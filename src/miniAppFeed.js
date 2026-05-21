@@ -174,7 +174,7 @@ async function buildFeedFromBotShares(tab = 'trending', limit = 24, dexFilter = 
       }
     }),
   );
-  const items = [];
+  let items = [];
   let rank = 1;
 
   for (let i = 0; i < entries.length; i++) {
