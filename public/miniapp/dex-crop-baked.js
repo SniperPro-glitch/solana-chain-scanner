@@ -1,8 +1,7 @@
-/** Otomatik — scripts/sync-dex-crop-baked.js · 2026-05-21T21:00:00.000Z */
+/** 5 profil */
 globalThis.__DEX_CROP_BAKED__={
   "version": 1,
-  "updatedAt": "2026-05-21T21:00:00.000Z",
-  "layoutNote": "DexScreener embed May 2026 — trades iframeTop +120px (eski -590 footer gösteriyordu)",
+  "updatedAt": "2026-05-18T17:53:40.308Z",
   "profiles": {
     "web": {
       "chart": {
