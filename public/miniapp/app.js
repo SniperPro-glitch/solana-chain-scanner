@@ -264,7 +264,7 @@
     const buys5 = Number(item.buys5m) || 0;
     const sells5 = Number(item.sells5m) || 0;
     const tx5 = buys5 + sells5;
-    const tx1 = (Number(item.buys1h) || 0) + (Number(item.sells1h) || 0;
+    const tx1 = (Number(item.buys1h) || 0) + (Number(item.sells1h) || 0);
     const vol5 = Number(item.volume5m) || 0;
     const ch5 = Number(item.change5m);
     const ch1 = Number(item.change1h);
@@ -413,7 +413,7 @@
   function onBottomNav(nav) {
     if (!nav) return;
     const now = Date.now();
-    if (now - lastBottomNavAt < 350) return;
+    if (now - lastBottomNavAt < 120) return;
     lastBottomNavAt = now;
     if (nav === 'home') {
       location.hash = '';
@@ -1627,6 +1627,7 @@
     });
 
     $('homeTokenList')?.addEventListener('click', (ev) => {
+      if (ev.target.closest('.tr-badge-info-ico, .tr-badge-dump')) return;
       const row = ev.target.closest('.token-row');
       if (!row) return;
       const rid = row.dataset.report;

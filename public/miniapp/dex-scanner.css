@@ -1049,37 +1049,42 @@ html.scanner-mode .search-box {
 .tr-dex-badge {
   display: inline-flex;
   align-items: center;
+  justify-content: flex-start;
   gap: 3px;
+  height: 18px;
+  min-height: 18px;
+  max-height: 18px;
   font-size: 7px;
   font-weight: 700;
   letter-spacing: 0.03em;
-  padding: 1px 4px 1px 2px;
+  padding: 0 6px 0 3px;
   border-radius: 4px;
   margin-right: 2px;
   vertical-align: middle;
   border: 1px solid var(--border);
   color: var(--muted);
-  max-width: 88px;
+  max-width: 92px;
   overflow: hidden;
   white-space: nowrap;
+  box-sizing: border-box;
 }
 
-.tr-dex-badge-ico {
+.tr-dex-badge-ico,
+.tr-dex-badge-ico--swap {
   width: 12px;
   height: 12px;
+  min-width: 12px;
+  min-height: 12px;
   object-fit: contain;
   flex-shrink: 0;
   display: block;
 }
 
-.tr-dex-badge-ico--swap {
-  width: 16px;
-  height: 16px;
-}
-
 .tr-dex-badge-txt {
   overflow: hidden;
   text-overflow: ellipsis;
+  line-height: 1.1;
+  max-width: 58px;
 }
 
 .tr-dex-badge.dex-pumpfun { color: var(--green); border-color: rgba(0, 255, 136, 0.35); }
@@ -1419,11 +1424,42 @@ html.scanner-mode .search-box {
 .tr-token {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   min-width: 0;
 }
 
-.tr-avatar-wrap { position: relative; flex-shrink: 0; }
+.tr-token .tr-meta {
+  padding-left: 4px;
+  min-width: 0;
+}
+
+.tr-avatar-wrap {
+  position: relative;
+  flex-shrink: 0;
+  margin-right: 4px;
+}
+
+/* Ağ logosu — avatar ile isim/etiket arasında (home ile aynı) */
+.tr-avatar-wrap .tr-chain-ico,
+.tr-avatar-wrap .tr-chain-dot {
+  position: absolute;
+  right: -7px;
+  top: 50%;
+  bottom: auto;
+  transform: translateY(-50%);
+  z-index: 3;
+  box-sizing: border-box;
+}
+
+.tr-avatar-wrap .tr-chain-ico {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid var(--card, #161f2c);
+  object-fit: cover;
+  background: var(--card, #161f2c);
+  display: block;
+}
 
 .token-row .tr-img,
 .token-row .tr-avatar {
@@ -1444,9 +1480,6 @@ html.scanner-mode .search-box {
 }
 
 .tr-chain-dot {
-  position: absolute;
-  right: -2px;
-  bottom: -2px;
   width: 14px;
   height: 14px;
   border-radius: 50%;
