@@ -234,4 +234,4 @@
   } else {
     bind();
   }
-})(typeof window !== 'undefined' ? window : global);
+})(typeof globalThis !== 'undefined' ? globalThis : window);

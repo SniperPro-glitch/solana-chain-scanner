@@ -802,7 +802,7 @@
   }
 
   function getActiveChain() {
-    return global.SniperSidebar?.getChain?.() || activeChain || 'solana';
+    return globalThis.SniperSidebar?.getChain?.() || activeChain || 'solana';
   }
 
   function getFeedChainParam() {
@@ -2668,7 +2668,7 @@
   globalThis.updateHeaderChainPill = updateHeaderChainPill;
   globalThis.fetchFeedForChain = (chainId) => {
     if (!chainId) return;
-    if (global.SniperSidebar?.setChain) global.SniperSidebar.setChain(chainId);
+    if (globalThis.SniperSidebar?.setChain) globalThis.SniperSidebar.setChain(chainId);
     else switchActiveChain(chainId);
     showScannerHome();
   };

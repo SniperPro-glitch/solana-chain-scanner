@@ -1347,7 +1347,7 @@ html.scanner-mode .search-box {
   box-sizing: border-box;
 }
 
-.token-row > * {
+.token-row:not(.np-row) > * {
   min-width: 0;
 }
 
@@ -2289,5 +2289,31 @@ html.scanner-mode .search-box {
 
   .np-stat-val {
     font-size: 9px;
+  }
+}
+
+/* New Pairs kart — mobil grid override (son söz) */
+@media (max-width: 640px) {
+  .token-list article.token-row.np-row {
+    display: flex !important;
+    flex-direction: column !important;
+    grid-template-columns: unset !important;
+    grid-template-rows: unset !important;
+    align-items: stretch !important;
+    padding: 0 !important;
+  }
+
+  .token-list article.token-row.np-row > .np-top,
+  .token-list article.token-row.np-row > .np-foot,
+  .token-list article.token-row.np-row > .np-ribbon-new {
+    display: flex !important;
+    grid-column: auto !important;
+    grid-row: auto !important;
+  }
+
+  .token-list article.token-row.np-row > .np-stats {
+    display: grid !important;
+    grid-column: auto !important;
+    grid-row: auto !important;
   }
 }
