@@ -1051,7 +1051,8 @@ html.scanner-mode .search-box {
   align-items: center;
   justify-content: flex-start;
   gap: 3px;
-  width: 92px;
+  width: max-content;
+  max-width: 92px;
   height: 18px;
   min-height: 18px;
   max-height: 18px;
@@ -1064,7 +1065,6 @@ html.scanner-mode .search-box {
   vertical-align: middle;
   border: 1px solid var(--border);
   color: var(--muted);
-  max-width: 92px;
   overflow: hidden;
   white-space: nowrap;
   box-sizing: border-box;
@@ -1086,7 +1086,8 @@ html.scanner-mode .search-box {
   overflow: hidden;
   text-overflow: ellipsis;
   line-height: 1.1;
-  max-width: 58px;
+  flex: 0 1 auto;
+  min-width: 0;
 }
 
 .tr-dex-badge.dex-pumpfun { color: var(--green); border-color: rgba(0, 255, 136, 0.35); }
@@ -1471,6 +1472,13 @@ html.scanner-mode .search-box {
   height: 34px;
   border-radius: 50%;
   border: 2px solid var(--border);
+  flex-shrink: 0;
+}
+
+.token-row .tr-img {
+  object-fit: cover;
+  aspect-ratio: 1;
+  display: block;
 }
 
 .token-row .tr-avatar {
