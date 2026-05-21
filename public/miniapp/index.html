@@ -22,6 +22,7 @@
   <link rel="stylesheet" href="dex-sidebar.css?v=5" />
   <link rel="stylesheet" href="search-overlay.css?v=2" />
   <link rel="stylesheet" href="support.css?v=3" />
+  <link rel="stylesheet" href="account-login.css?v=1" />
 </head>
 <body>
   <div id="dexSidebar" class="dex-sidebar" aria-hidden="true">
@@ -410,6 +411,33 @@
     </div>
   </div>
 
+  <div id="accountLoginModal" class="account-login-overlay hidden" aria-hidden="true">
+    <div class="account-login-backdrop" id="accountLoginBackdrop"></div>
+    <div class="account-login-panel" role="dialog" aria-modal="true" aria-labelledby="accountLoginTitle">
+      <div class="account-login-head">
+        <strong id="accountLoginTitle">Giriş yap</strong>
+        <button type="button" class="account-login-close" id="accountLoginClose" aria-label="Kapat">✕</button>
+      </div>
+      <form id="accountLoginForm" class="account-login-block" autocomplete="on">
+        <p class="account-login-lead">Kullanıcı adı ve şifrenle giriş yap. Yönetim paneli yalnızca yetkili hesaplarda görünür.</p>
+        <label class="account-login-field">
+          <span>Kullanıcı adı</span>
+          <input type="text" id="accountLoginUser" name="username" autocomplete="username" required />
+        </label>
+        <label class="account-login-field">
+          <span>Şifre</span>
+          <input type="password" id="accountLoginPass" name="password" autocomplete="current-password" required />
+        </label>
+        <p class="account-login-err hidden" id="accountLoginErr" role="alert"></p>
+        <div class="account-login-actions">
+          <button type="submit" class="account-login-btn account-login-btn-primary" id="accountLoginSubmit">Giriş yap</button>
+          <button type="button" class="account-login-btn account-login-btn-ghost" id="accountLoginCancel">Vazgeç</button>
+        </div>
+        <p class="account-login-hint">Cüzdan için üstteki <b>Connect Wallet</b>. Panel: kurucu (.env) veya admin panelinde tanımlı hesaplar.</p>
+      </form>
+    </div>
+  </div>
+
   <div id="searchOverlay" class="search-overlay hidden" aria-hidden="true">
     <div class="search-overlay-backdrop" id="searchOverlayBackdrop"></div>
     <div class="search-overlay-panel" role="dialog" aria-modal="true" aria-label="Token ara">
@@ -434,7 +462,7 @@
 <script src="dex-sidebar.js?v=7"></script>
   <script src="search-overlay.js?v=5"></script>
   <script src="support.js?v=3"></script>
-  <script src="sidebar-account.js?v=2"></script>
+  <script src="sidebar-account.js?v=4"></script>
   <script src="app.js?v=96"></script>
   <script src="boot-feed.js?v=3"></script>
 </body>

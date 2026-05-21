@@ -1,39 +1,64 @@
 /**
- * Sidebar hesap — giriş sonrası profil; yalnızca yetkili Telegram ID'de Yönetim Paneli.
+ * Sidebar — tüm kullanıcılar için kullanıcı adı / şifre girişi.
+ * Yönetim Paneli: yalnızca .env kurucu veya admin panelinde tanımlı hesaplar (/api/admin/login).
  */
 (function () {
   const SIGNED_KEY = 'sniperSidebarSignedIn';
-  const TG_ID_KEY = 'sniperSidebarTgId';
+  const TOKEN_KEY = 'sniperAdminTokenV2';
+  const USER_KEY = 'sniperAdminUserV2';
+  const PROFILE_KEY = 'sniperAdminProfileV1';
 
   function $(id) {
     return document.getElementById(id);
   }
 
-  function getTelegramUser() {
-    return window.Telegram?.WebApp?.initDataUnsafe?.user || null;
-  }
-
   function isSignedIn() {
     try {
-      return sessionStorage.getItem(SIGNED_KEY) === '1';
+      return sessionStorage.getItem(SIGNED_KEY) === '1' && !!sessionStorage.getItem(TOKEN_KEY);
     } catch {
       return false;
     }
   }
 
-  function setSignedIn(telegramId) {
+  function getProfile() {
+    try {
+      return JSON.parse(sessionStorage.getItem(PROFILE_KEY) || 'null');
+    } catch {
+      return null;
+    }
+  }
+
+  function saveSession(loginBody) {
     try {
       sessionStorage.setItem(SIGNED_KEY, '1');
-      if (telegramId) sessionStorage.setItem(TG_ID_KEY, String(telegramId));
+      sessionStorage.setItem(TOKEN_KEY, loginBody.token || '');
+      sessionStorage.setItem(USER_KEY, loginBody.username || '');
+      sessionStorage.setItem(
+        PROFILE_KEY,
+        JSON.stringify({
+          username: loginBody.username,
+          displayName: loginBody.displayName || loginBody.username,
+          displayTitle: loginBody.displayTitle || loginBody.roleLabel || '',
+          role: loginBody.role,
+          roleLabel: loginBody.roleLabel,
+          isFounder: !!loginBody.isFounder,
+          permissions: loginBody.permissions || [],
+          id: loginBody.id,
+        }),
+      );
     } catch {
       /* yoksay */
     }
   }
 
-  function clearSignedIn() {
+  function clearSession() {
     try {
       sessionStorage.removeItem(SIGNED_KEY);
-      sessionStorage.removeItem(TG_ID_KEY);
+      sessionStorage.removeItem(TOKEN_KEY);
+      sessionStorage.removeItem(USER_KEY);
+      sessionStorage.removeItem(PROFILE_KEY);
+      sessionStorage.removeItem('sniperAdminActionToken');
+      sessionStorage.removeItem('sniperAdminActionExp');
     } catch {
       /* yoksay */
     }
@@ -54,42 +79,21 @@
     hideAdminButton();
   }
 
-  function setTelegramUi(tg) {
+  function setSignedInUi(profile) {
     const ava = $('sidebarUserAva');
     const name = $('sidebarUserName');
     const sub = $('sidebarUserSub');
     const btn = $('sidebarSignIn');
-    const display = [tg.first_name, tg.last_name].filter(Boolean).join(' ')
-      || tg.username
-      || 'Kullanıcı';
-    if (ava) {
-      if (tg.photo_url) {
-        ava.innerHTML = `<img src="${tg.photo_url}" alt="" width="32" height="32" style="width:100%;height:100%;border-radius:50%;object-fit:cover" />`;
-      } else {
-        ava.textContent = (display[0] || '?').toUpperCase();
-      }
-    }
-    if (name) name.textContent = display;
-    if (sub) sub.textContent = tg.username ? `@${tg.username}` : 'Telegram';
+    const title = profile.displayName || profile.username || 'Kullanıcı';
+    const line2 = profile.displayTitle || profile.roleLabel || profile.username || '';
+    if (ava) ava.textContent = profile.isFounder ? '👑' : '◎';
+    if (name) name.textContent = title;
+    if (sub) sub.textContent = line2;
     if (btn) {
       btn.textContent = 'Çıkış';
       btn.hidden = false;
     }
-  }
-
-  function setWalletUi(w) {
-    const ava = $('sidebarUserAva');
-    const name = $('sidebarUserName');
-    const sub = $('sidebarUserSub');
-    const btn = $('sidebarSignIn');
-    if (ava) ava.textContent = '◎';
-    if (name) name.textContent = w.shortAddr(w.pubkey);
-    if (sub) sub.textContent = w.label || 'Cüzdan';
-    if (btn) {
-      btn.textContent = 'Çıkış';
-      btn.hidden = false;
-    }
-    hideAdminButton();
+    showAdminButton();
   }
 
   function showAdminButton() {
@@ -102,68 +106,96 @@
     if (btn) btn.classList.add('hidden');
   }
 
-  function isLocalPreview() {
-    const host = window.location.hostname;
-    if (host !== 'localhost' && host !== '127.0.0.1') return false;
-    return new URLSearchParams(window.location.search).get('previewAdmin') === '1';
+  function showLoginError(msg) {
+    const el = $('accountLoginErr');
+    if (!el) return;
+    if (msg) {
+      el.textContent = msg;
+      el.classList.remove('hidden');
+    } else {
+      el.textContent = '';
+      el.classList.add('hidden');
+    }
   }
 
-  async function checkAdminAccess(telegramId) {
-    if (!telegramId) {
-      hideAdminButton();
+  function openLoginModal() {
+    const modal = $('accountLoginModal');
+    if (!modal) return;
+    showLoginError('');
+    const user = $('accountLoginUser');
+    const pass = $('accountLoginPass');
+    if (user) user.value = '';
+    if (pass) pass.value = '';
+    modal.classList.remove('hidden');
+    modal.setAttribute('aria-hidden', 'false');
+    document.body.classList.add('account-login-open');
+    if (typeof window.closeDexSidebar === 'function') window.closeDexSidebar();
+    setTimeout(() => user?.focus(), 80);
+  }
+
+  function closeLoginModal() {
+    const modal = $('accountLoginModal');
+    if (!modal) return;
+    modal.classList.add('hidden');
+    modal.setAttribute('aria-hidden', 'true');
+    document.body.classList.remove('account-login-open');
+    showLoginError('');
+  }
+
+  async function submitLogin() {
+    const username = ($('accountLoginUser')?.value || '').trim();
+    const password = $('accountLoginPass')?.value || '';
+    if (!username || !password) {
+      showLoginError('Kullanıcı adı ve şifre gerekli.');
       return;
     }
+
+    const btn = $('accountLoginSubmit');
+    if (btn) btn.disabled = true;
+    showLoginError('');
+
     try {
-      const res = await fetch(
-        `/api/miniapp/admin-access?telegramId=${encodeURIComponent(telegramId)}`,
-      );
+      const res = await fetch('/api/admin/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify({ username, password }),
+        cache: 'no-store',
+        credentials: 'same-origin',
+      });
+      const body = await res.json().catch(() => ({}));
       if (!res.ok) {
-        hideAdminButton();
+        if (res.status === 503) {
+          showLoginError('Giriş sunucuda kapalı. ADMIN_USERNAME ve ADMIN_PASSWORD tanımlayın.');
+        } else if (res.status === 401) {
+          showLoginError('Kullanıcı adı veya şifre hatalı.');
+        } else {
+          showLoginError('Giriş başarısız. Tekrar deneyin.');
+        }
         return;
       }
-      const data = await res.json();
-      if (data.allowed) showAdminButton();
-      else hideAdminButton();
+      saveSession(body);
+      setSignedInUi(getProfile());
+      closeLoginModal();
     } catch {
-      hideAdminButton();
-    }
-  }
-
-  async function signInWithTelegram() {
-    const tg = getTelegramUser();
-    if (!tg?.id) return false;
-    setSignedIn(tg.id);
-    setTelegramUi(tg);
-    await checkAdminAccess(String(tg.id));
-    return true;
-  }
-
-  async function signIn() {
-    if (await signInWithTelegram()) return;
-
-    const w = window.SniperWallet;
-    if (!w) return;
-    if (typeof window.closeDexSidebar === 'function') window.closeDexSidebar();
-    try {
-      const pk = await w.connect();
-      if (pk) {
-        setSignedIn(null);
-        setWalletUi(w);
-      }
-    } catch {
-      /* yoksay */
+      showLoginError('Bağlantı hatası. İnterneti kontrol edin.');
+    } finally {
+      if (btn) btn.disabled = false;
     }
   }
 
   function signOut() {
-    clearSignedIn();
-    const w = window.SniperWallet;
-    if (w?.pubkey) w.disconnect?.();
+    clearSession();
     setGuestUi();
+    closeLoginModal();
   }
 
   function openAdminPanel() {
+    if (!isSignedIn()) {
+      openLoginModal();
+      return;
+    }
     if (typeof window.closeDexSidebar === 'function') window.closeDexSidebar();
+    closeLoginModal();
     window.location.assign('/admin/');
   }
 
@@ -172,19 +204,43 @@
       setGuestUi();
       return;
     }
-    const tg = getTelegramUser();
-    if (tg?.id) {
-      setTelegramUi(tg);
-      await checkAdminAccess(String(tg.id));
-      return;
+    const token = sessionStorage.getItem(TOKEN_KEY);
+    try {
+      const res = await fetch('/api/admin/session', {
+        method: 'POST',
+        headers: {
+          Accept: 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        cache: 'no-store',
+        credentials: 'same-origin',
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok || !body.ok) {
+        clearSession();
+        setGuestUi();
+        return;
+      }
+      saveSession({
+        token,
+        username: body.username,
+        displayName: body.displayName,
+        displayTitle: body.displayTitle,
+        role: body.role,
+        roleLabel: body.roleLabel,
+        isFounder: body.isFounder,
+        permissions: body.permissions,
+        id: body.id,
+      });
+      setSignedInUi(getProfile());
+    } catch {
+      const profile = getProfile();
+      if (profile?.username) setSignedInUi(profile);
+      else {
+        clearSession();
+        setGuestUi();
+      }
     }
-    const w = window.SniperWallet;
-    if (w?.pubkey) {
-      setWalletUi(w);
-      return;
-    }
-    clearSignedIn();
-    setGuestUi();
   }
 
   function bind() {
@@ -194,8 +250,17 @@
         signOut();
         return;
       }
-      signIn();
+      openLoginModal();
     });
+
+    $('accountLoginForm')?.addEventListener('submit', (e) => {
+      e.preventDefault();
+      void submitLogin();
+    });
+
+    $('accountLoginBackdrop')?.addEventListener('click', closeLoginModal);
+    $('accountLoginClose')?.addEventListener('click', closeLoginModal);
+    $('accountLoginCancel')?.addEventListener('click', closeLoginModal);
 
     $('sidebarAdminPanel')?.addEventListener('click', (e) => {
       e.preventDefault();
@@ -203,25 +268,16 @@
       openAdminPanel();
     });
 
-    window.SniperWallet?.onChange?.((w) => {
-      if (!isSignedIn() || getTelegramUser()?.id) return;
-      if (w.pubkey) setWalletUi(w);
-      else if (!getTelegramUser()?.id) signOut();
-    });
-
     restoreSession();
-
-    if (isLocalPreview() && !isSignedIn()) {
-      const fakeId = '7399188880';
-      setSignedIn(fakeId);
-      $('sidebarUserName').textContent = 'Önizleme';
-      $('sidebarUserSub').textContent = '@admin';
-      checkAdminAccess(fakeId);
-      $('sidebarSignIn').textContent = 'Çıkış';
-    }
   }
 
-  window.SniperSidebarAccount = { signIn, signOut, restoreSession };
+  window.SniperSidebarAccount = {
+    signIn: openLoginModal,
+    signOut,
+    restoreSession,
+    openLoginModal,
+    closeLoginModal,
+  };
   window.openSniperAdminPanel = openAdminPanel;
 
   if (document.readyState === 'loading') {

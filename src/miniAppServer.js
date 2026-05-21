@@ -308,9 +308,13 @@ function createMiniAppServer() {
 
       if (req.method === 'GET' && url.pathname === '/api/config') {
         const supportStore = require('./supportStore');
+        const botUser = String(process.env.BOT_USERNAME || process.env.MINI_APP_BOT_USERNAME || '')
+          .replace(/^@/, '')
+          .trim();
         sendJson(res, 200, {
           webAppBase: getWebAppBaseUrl(),
           botApiBase: getBotApiBaseUrl(),
+          telegramBotUsername: botUser || 'solachainscanbot',
           support: supportStore.loadConfig(),
         });
         return;
