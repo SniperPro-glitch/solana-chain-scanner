@@ -165,7 +165,11 @@ async function proxyBotApi(res, url) {
   return true;
 }
 
-function serveStatic(res, filePath) {
+const MINIAPP_BUILD_ID = String(
+  process.env.RAILWAY_DEPLOYMENT_ID || process.env.RAILWAY_GIT_COMMIT_SHA || '',
+).trim().slice(0, 12) || 'dev';
+
+function serveStatic(res, filePath, extraHeaders = {}) {
   if (!fs.existsSync(filePath) || !fs.statSync(filePath).isFile()) {
     res.writeHead(404);
     res.end('Not found');
@@ -173,12 +177,23 @@ function serveStatic(res, filePath) {
   }
   const ext = path.extname(filePath).toLowerCase();
   const cache = ['.html', '.js', '.css'].includes(ext)
-    ? 'no-cache, must-revalidate'
+    ? 'no-store, no-cache, must-revalidate'
     : 'public, max-age=86400';
-  res.writeHead(200, {
+  const headers = {
     'Content-Type': MIME[ext] || 'application/octet-stream',
-    'Cache-Control': cache,
-  });
+    'Cache-Control': extraHeaders['Cache-Control'] || cache,
+    ...extraHeaders,
+  };
+
+  if (ext === '.html' && path.basename(filePath) === 'index.html') {
+    let html = fs.readFileSync(filePath, 'utf8');
+    html = html.replace(/__BUILD_ID__/g, MINIAPP_BUILD_ID);
+    res.writeHead(200, headers);
+    res.end(html);
+    return;
+  }
+
+  res.writeHead(200, headers);
   fs.createReadStream(filePath).pipe(res);
 }
 

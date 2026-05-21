@@ -1,5 +1,5 @@
 /**
- * Kayıtlı profil seçimi — sayfa yüklenmeden data-dex-crop-profile (CSS dosyası bunu okur).
+ * Kayıtlı profil — Telegram'da viewportWidth (kalibrasyon ile aynı ölçü).
  */
 (function () {
   const IDS = ['web', 'app11', 'app13', 'app13pm', 'app16'];
@@ -23,12 +23,20 @@
     return ['android', 'ios', 'macos', 'tdesktop', 'weba', 'webk'].includes(p);
   }
 
+  /** Kalibrasyonda kullanılan genişlik — innerWidth değil, TG viewportWidth. */
+  function layoutWidth() {
+    const tg = window.Telegram?.WebApp;
+    if (tg?.viewportWidth) return Math.round(tg.viewportWidth);
+    if (window.visualViewport?.width) return Math.round(window.visualViewport.width);
+    return Math.round(window.innerWidth || 390);
+  }
+
   function detect() {
     const forced = fromUrl();
     if (forced) return forced;
     if (document.documentElement.classList.contains('web-browser')) return 'web';
     if (!isTelegramApp()) return 'web';
-    const w = window.innerWidth || 390;
+    const w = layoutWidth();
     if (w >= 429) return 'app16';
     if (w >= 426) return 'app13pm';
     if (w >= 400) return 'app11';
@@ -38,9 +46,10 @@
   function apply() {
     const id = detect();
     document.documentElement.dataset.dexCropProfile = id;
+    document.documentElement.dataset.dexCropW = String(layoutWidth());
     return id;
   }
 
   apply();
-  window.SniperCropProfile = { detect, apply, IDS };
+  window.SniperCropProfile = { detect, apply, layoutWidth, IDS };
 })();

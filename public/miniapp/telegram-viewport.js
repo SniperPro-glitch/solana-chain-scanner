@@ -70,6 +70,8 @@
     applySafeArea();
     setTimeout(applySafeArea, 100);
     setTimeout(applySafeArea, 400);
+    if (window.SniperCropProfile?.apply) window.SniperCropProfile.apply();
+    if (window.SniperDexCrop?.apply) window.SniperDexCrop.apply();
   }
 
   document.documentElement.classList.add('tg-mini-app');

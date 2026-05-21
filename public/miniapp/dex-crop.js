@@ -147,13 +147,21 @@
     return !!global.Telegram?.WebApp?.initData || document.documentElement.classList.contains('tg-mini-app');
   }
 
+  function layoutWidth() {
+    if (global.SniperCropProfile?.layoutWidth) return global.SniperCropProfile.layoutWidth();
+    const tg = global.Telegram?.WebApp;
+    if (tg?.viewportWidth) return Math.round(tg.viewportWidth);
+    if (global.visualViewport?.width) return Math.round(global.visualViewport.width);
+    return Math.round(global.innerWidth || 390);
+  }
+
   function detectProfile() {
     if (global.SniperCropProfile?.detect) return global.SniperCropProfile.detect();
     const forced = profileFromUrl();
     if (forced) return forced;
     if (global.SniperHost?.isWebBrowser?.()) return 'web';
     if (!isTelegram()) return 'web';
-    const w = window.innerWidth || 390;
+    const w = layoutWidth();
     if (w >= 429) return 'app16';
     if (w >= 426) return 'app13pm';
     if (w >= 400) return 'app11';
@@ -460,6 +468,57 @@
     }
     applyMaskEl(maskTop, t.maskTopOn !== false, t.maskTop);
     applyMaskEl(maskFoot, t.maskFootOn !== false, t.maskFoot);
+    injectLiveCropStyle(profileId, s);
+    root.dataset.dexCropRev = '33';
+  }
+
+  function injectLiveCropStyle(profileId, s) {
+    const c = s.chart;
+    const t = s.trades;
+    const brandCrop = Number(c.brandCrop) || CHART_BRAND_CROP;
+    const chartDown = Number(c.shiftDown) || 0;
+    const tradesDown = Number(t.shiftDown) || 0;
+    const chartTop = c.top - brandCrop + chartDown;
+    const chartH = c.stageH + c.heightExtra + brandCrop;
+    const tradesTop = t.iframeTop + tradesDown;
+    const maskTopOn = t.maskTopOn !== false;
+    const maskFootOn = t.maskFootOn !== false;
+    const maskTopPx = Math.max(0, Number(t.maskTop) || 0);
+    const maskFootPx = Math.max(0, Number(t.maskFoot) || 0);
+
+    let el = document.getElementById('sniperDexCropLive');
+    if (!el) {
+      el = document.createElement('style');
+      el.id = 'sniperDexCropLive';
+      document.head.appendChild(el);
+    }
+    el.textContent = `
+html[data-dex-crop-profile="${profileId}"] .chart-terminal--dex-embed .chart-stage {
+  height: ${c.stageH}px !important; min-height: ${c.stageH}px !important; max-height: ${c.stageH}px !important;
+}
+html[data-dex-crop-profile="${profileId}"] iframe.dex-embed-chart {
+  position: absolute !important; top: ${chartTop}px !important; left: ${c.left}% !important;
+  width: ${c.width}% !important; height: ${chartH}px !important; margin: 0 !important; border: 0 !important;
+  transform: none !important; max-width: none !important;
+}
+html[data-dex-crop-profile="${profileId}"] #dexTradesWrap.dex-trades-embed-wrap {
+  height: ${t.viewH}px !important; min-height: ${t.viewH}px !important; max-height: ${t.viewH}px !important;
+  overflow: hidden !important;
+}
+html[data-dex-crop-profile="${profileId}"] #dexTradesEmbed.dex-trades-embed {
+  position: absolute !important; top: ${tradesTop}px !important; left: ${t.left}% !important;
+  width: ${t.width}% !important; height: ${t.iframeH}px !important; margin: 0 !important;
+  border: 0 !important; transform: none !important; max-width: none !important;
+}
+html[data-dex-crop-profile="${profileId}"] #dexTradesWrap.dex-mask-top-off::after,
+html[data-dex-crop-profile="${profileId}"] #dexTradesWrap.dex-masks-off::after { display: none !important; }
+html[data-dex-crop-profile="${profileId}"] #dexTradesWrap .dex-mask-top {
+  height: ${maskTopOn ? maskTopPx : 0}px !important; ${maskTopOn ? '' : 'display: none !important;'}
+}
+html[data-dex-crop-profile="${profileId}"] #dexTradesWrap .dex-mask-foot {
+  height: ${maskFootOn ? maskFootPx : 0}px !important; ${maskFootOn ? '' : 'display: none !important;'}
+}
+`.trim();
   }
 
   function isCalibrateMode() {
@@ -828,11 +887,24 @@
     apply(settings);
   }
 
+  function onViewportChange() {
+    if (global.SniperCropProfile?.apply) global.SniperCropProfile.apply();
+    apply();
+  }
+
   async function init() {
     if (global.SniperCropProfile?.apply) global.SniperCropProfile.apply();
     applyBakedSnapshot();
     await ensureProfilesReady();
     apply();
+    const tg = global.Telegram?.WebApp;
+    if (tg?.onEvent) {
+      tg.onEvent('viewportChanged', onViewportChange);
+    }
+    global.addEventListener('resize', onViewportChange);
+    if (global.visualViewport) {
+      global.visualViewport.addEventListener('resize', onViewportChange);
+    }
     addCalibrateButton();
     window.addEventListener('resize', () => {
       if (!document.getElementById('dexCropPanel')?.classList.contains('hidden')) return;

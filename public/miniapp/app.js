@@ -1949,7 +1949,7 @@
 
   function scheduleDexTradesCrop() {
     applyDexCrop();
-    [400, 1200, 2500].forEach((ms) => setTimeout(applyDexCrop, ms));
+    [100, 400, 1200, 2500, 5000].forEach((ms) => setTimeout(applyDexCrop, ms));
   }
 
   function chartPoolRef(m) {
