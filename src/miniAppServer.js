@@ -248,7 +248,7 @@ function createMiniAppServer() {
         let cropV = '';
         let bakedV = '';
         let appV = '';
-        let webIframeTop = null;
+        let webCrop = null;
         try {
           const indexPath = path.join(PUBLIC_DIR, 'index.html');
           const html = fs.readFileSync(indexPath, 'utf8');
@@ -258,10 +258,17 @@ function createMiniAppServer() {
           cropV = m1?.[1] || '';
           bakedV = m2?.[1] || '';
           appV = m3?.[1] || '';
-          const bakedPath = path.join(PUBLIC_DIR, 'dex-crop-baked.js');
-          const bakedJs = fs.readFileSync(bakedPath, 'utf8');
-          const topM = bakedJs.match(/"web"[\s\S]*?"iframeTop":\s*(-?\d+)/);
-          webIframeTop = topM ? Number(topM[1]) : null;
+          const cropProfiles = require('./cropProfiles');
+          const baked = cropProfiles.loadBakedProfiles();
+          const w = baked?.profiles?.web;
+          if (w) {
+            webCrop = {
+              stageH: w.chart?.stageH,
+              viewH: w.trades?.viewH,
+              iframeTop: w.trades?.iframeTop,
+              updatedAt: baked.updatedAt || null,
+            };
+          }
         } catch {
           /* yoksay */
         }
@@ -269,10 +276,8 @@ function createMiniAppServer() {
           build: MINIAPP_BUILD_ID,
           git: String(process.env.RAILWAY_GIT_COMMIT_SHA || '').slice(0, 7),
           assets: { cropV, bakedV, appV },
-          cropWebIframeTop: webIframeTop,
-          expectedBakedV: '8',
-          expectedCropV: '36',
-          expectedWebIframeTop: -470,
+          cropWeb: webCrop,
+          cropWebOk: webCrop?.stageH === 330 && webCrop?.viewH === 302 && webCrop?.iframeTop === -590,
         });
         return;
       }

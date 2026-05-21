@@ -8,6 +8,22 @@ async function main() {
   const { initPersistence } = require('../src/persistence');
   await initPersistence();
 
+  try {
+    const { seedCropFromPublicOnBoot } = require('../src/cropProfiles');
+    const seeded = seedCropFromPublicOnBoot();
+    if (seeded?.profiles?.web) {
+      const w = seeded.profiles.web;
+      console.log(
+        '[crop] boot seed web:',
+        `stageH=${w.chart?.stageH}`,
+        `viewH=${w.trades?.viewH}`,
+        `iframeTop=${w.trades?.iframeTop}`,
+      );
+    }
+  } catch (e) {
+    console.warn('[crop] boot seed atlandı:', e.message);
+  }
+
   const pg = require('../src/pgClient');
   const server = startMiniAppServer();
   if (!server) {

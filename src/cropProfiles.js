@@ -3,8 +3,9 @@
  */
 const fs = require('fs');
 const path = require('path');
+const { DATA_DIR, ensureDataDir } = require('./data-path');
 
-const DATA_FILE = path.join(__dirname, '..', 'data', 'dex-crop-profiles.json');
+const DATA_FILE = path.join(DATA_DIR, 'dex-crop-profiles.json');
 const PUBLIC_FALLBACK = path.join(__dirname, '..', 'public', 'miniapp', 'dex-crop-profiles.json');
 
 const PROFILE_ORDER = ['web', 'app11', 'app13', 'app13pm', 'app16'];
@@ -81,6 +82,23 @@ function writeBakedJs(data) {
   fs.writeFileSync(bakedOut, js, 'utf8');
 }
 
+/** Her deploy: git’teki public/miniapp/dex-crop-profiles.json → volume + baked.js (kalibrasyon volume’u ezmesin). */
+function seedCropFromPublicOnBoot() {
+  const pub = readJsonFile(PUBLIC_FALLBACK);
+  if (!pub?.profiles) return null;
+  ensureDataDir();
+  const out = {
+    version: pub.version || 1,
+    updatedAt: pub.updatedAt || new Date().toISOString(),
+    note: 'seed from public/miniapp/dex-crop-profiles.json on boot',
+    profiles: pub.profiles,
+  };
+  writeJsonFile(DATA_FILE, out);
+  writeJsonFile(PUBLIC_FALLBACK, out);
+  writeBakedJs(out);
+  return out;
+}
+
 function isPublishAuthorized(req) {
   const key = String(process.env.CROP_PUBLISH_KEY || process.env.MINI_APP_CROP_KEY || '').trim();
   if (!key) return true;
@@ -92,6 +110,7 @@ module.exports = {
   PROFILE_ORDER,
   loadBakedProfiles,
   saveBakedProfiles,
+  seedCropFromPublicOnBoot,
   isPublishAuthorized,
   DATA_FILE,
   PUBLIC_FALLBACK,
