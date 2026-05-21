@@ -75,6 +75,8 @@
   let feedEmptyMessage = '';
   let feedEmptyKind = '';
   const NEW_PAIRS_MAX_AGE_MS = 48 * 60 * 60 * 1000;
+  const DUMP_VOLATILITY_TIP =
+    'Bu token ani yükseliş ve ani düşüş yaşayabiliyor. Dikkatli olun.';
   const NEW_PAIRS_AGE_MS = {
     '1h': 1 * 60 * 60 * 1000,
     '6h': 6 * 60 * 60 * 1000,
@@ -282,7 +284,10 @@
     }
     if (isDumpToken(item)) {
       parts.push(
-        '<span class="tr-badge tr-badge-dump" title="Ani düşüş / satış baskısı">📉 DUMP</span>',
+        `<span class="tr-badge tr-badge-dump" title="${escHtml(DUMP_VOLATILITY_TIP)}">` +
+          `<span class="tr-badge-dump-lbl">📉 DUMP</span>` +
+          `<span class="tr-badge-info-ico" role="img" aria-label="${escHtml(DUMP_VOLATILITY_TIP)}" title="${escHtml(DUMP_VOLATILITY_TIP)}">ℹ</span>` +
+          `</span>`,
       );
     } else {
       if (isAthPumpToken(item)) {
