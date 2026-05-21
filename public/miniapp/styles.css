@@ -813,16 +813,16 @@ html.detail-mode body {
 
 .dex-trades-embed {
   position: absolute;
-  top: calc(var(--dex-iframe-top, -590px) + var(--dex-trades-shift-down, 0px));
-  left: var(--dex-iframe-left, 1%);
-  width: var(--dex-iframe-width, 98%) !important;
-  height: var(--dex-iframe-h, 845px) !important;
+  top: var(--dex-iframe-top, -820px);
+  left: var(--dex-iframe-left, -3%);
+  width: var(--dex-iframe-width, 106%);
+  height: var(--dex-iframe-h, 980px);
   max-width: none;
   border: 0;
   display: block;
   margin: 0;
   pointer-events: auto;
-  transform: none;
+  transform: translateZ(0);
 }
 
 .dex-mask {

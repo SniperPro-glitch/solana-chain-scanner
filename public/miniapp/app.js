@@ -1981,13 +1981,14 @@
   }
 
   function showDexTradesEmbed(m) {
-    const wrap = $('tradesTape');
+    const tape = $('tradesTape');
+    const wrap = $('dexTradesWrap');
     const iframe = $('dexTradesEmbed');
     const fallback = $('dexTradesFallback');
     const meta = $('tradesMeta');
-    if (!wrap) return;
+    if (!tape || !wrap) return;
 
-    wrap.classList.remove('hidden');
+    tape.classList.remove('hidden');
     const url = dexTradesEmbedUrl(chartPoolRef(m));
 
     if (!iframe) return;
@@ -2000,6 +2001,7 @@
       return;
     }
 
+    applyDexCrop();
     scheduleDexTradesCrop();
     if (!tradesResizeHandler) {
       tradesResizeHandler = () => scheduleDexTradesCrop();

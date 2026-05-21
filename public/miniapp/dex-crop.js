@@ -1,6 +1,6 @@
-/**
- * DexScreener kırpma — 5 profil: Web, iPhone 11, 13, 13 Pro Max, 16 Pro Max
- * ?kalibre=1 veya "Kırpma" butonu
+﻿/**
+ * DexScreener k─▒rpma ÔÇö 5 profil: Web, iPhone 11, 13, 13 Pro Max, 16 Pro Max
+ * ?kalibre=1 veya "K─▒rpma" butonu
  */
 (function (global) {
   const STORAGE_KEY = 'sniperDexCropV4';
@@ -11,7 +11,7 @@
   const D = 'di' + 'v';
 
   const PROFILE_META = {
-    web: { label: 'Web', hint: 'Tarayıcı / masaüstü' },
+    web: { label: 'Web', hint: 'Taray─▒c─▒ / masa├╝st├╝' },
     app11: { label: '11', hint: 'iPhone 11 / XR (~414px)' },
     app13: { label: '13', hint: 'iPhone 13 / 14 / 15 (~390px)' },
     app13pm: { label: '13 PM', hint: 'iPhone 13 Pro Max (~428px)' },
@@ -34,19 +34,19 @@
       clipBottom: 0,
       shiftDown: 0,
     },
-    /** Canlı alım/satım kutusu (#tradesTape) — Dex iframe değil */
+    /** Canl─▒ al─▒m/sat─▒m kutusu (#tradesTape) ÔÇö Dex iframe de─şil */
     tape: {
       shiftDown: 0,
     },
     trades: {
-      viewH: 302,
-      iframeH: 845,
-      iframeTop: -590,
+      viewH: 268,
+      iframeH: 980,
+      iframeTop: -820,
       shiftDown: 0,
-      left: 1,
-      width: 98,
-      maskTop: 0,
-      maskFoot: 0,
+      left: -3,
+      width: 106,
+      maskTop: 8,
+      maskFoot: 24,
       maskTopOn: true,
       maskFootOn: true,
       clipLeft: 0,
@@ -77,10 +77,17 @@
     );
   }
 
-  /** Üretim: dex-crop-baked.js (kayıtlı 5 profil). Kalibre modunda sunucu ile birleşir. */
+  function activeProfileId() {
+    if (global.SniperCropProfile?.apply) return global.SniperCropProfile.apply();
+    const ds = document.documentElement.dataset.dexCropProfile;
+    if (PROFILE_META[ds]) return ds;
+    return detectProfile();
+  }
+
+  /** Koddaki ├Âl├ğ├╝ler + sunucudaki g├╝ncel profiller birle┼şir (bo┼ş sunucu varsay─▒lan─▒ ezmez). */
   function getBakedSource() {
     const file = globalThis.__DEX_CROP_BAKED__;
-    if (!isCalibrateMode()) return file?.profiles ? file : serverBaked;
+    if (!isCalibrateMode()) return file?.profiles ? file : null;
     const server = serverBaked;
     if (!file?.profiles) return server || null;
     if (!server?.profiles) return file;
@@ -143,35 +150,17 @@
   }
 
   function isTelegram() {
-    if (global.SniperHost) return global.SniperHost.isTelegram();
     return !!global.Telegram?.WebApp?.initData || document.documentElement.classList.contains('tg-mini-app');
-  }
-
-  function layoutWidth() {
-    if (global.SniperCropProfile?.layoutWidth) return global.SniperCropProfile.layoutWidth();
-    const tg = global.Telegram?.WebApp;
-    if (tg?.viewportWidth) return Math.round(tg.viewportWidth);
-    if (global.visualViewport?.width) return Math.round(global.visualViewport.width);
-    return Math.round(global.innerWidth || 390);
   }
 
   function detectProfile() {
     if (global.SniperCropProfile?.detect) return global.SniperCropProfile.detect();
-    const forced = profileFromUrl();
-    if (forced) return forced;
-    if (global.SniperHost?.isWebBrowser?.()) return 'web';
     if (!isTelegram()) return 'web';
-    const w = layoutWidth();
+    const w = global.SniperCropProfile?.layoutWidth?.() || window.innerWidth || 390;
     if (w >= 429) return 'app16';
     if (w >= 426) return 'app13pm';
     if (w >= 400) return 'app11';
     return 'app13';
-  }
-
-  function syncProfileDataset() {
-    const id = detectProfile();
-    document.documentElement.dataset.dexCropProfile = id;
-    return id;
   }
 
   function normalizeBlock(patch) {
@@ -216,7 +205,7 @@
     }
   }
 
-  /** Üretim: sunucu + dex-crop-baked.js. localStorage yalnızca ?kalibre=1 iken (eski ölçü kaymayı önler). */
+  /** ├ûnce kod/sunucu varsay─▒lan─▒; senin kaydetti─şin profil varsa localStorage kazan─▒r. */
   function loadStore() {
     migrateLegacy();
     const store = defaultStore();
@@ -240,7 +229,7 @@
 
   let syncServerTimer = null;
 
-  /** Sadece bu cihazda kaydedilmiş profiller — sunucuda diğer cihazların ölçüsünü silmez. */
+  /** Sadece bu cihazda kaydedilmi┼ş profiller ÔÇö sunucuda di─şer cihazlar─▒n ├Âl├ğ├╝s├╝n├╝ silmez. */
   function profilesFromLocalStorage() {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
@@ -275,8 +264,9 @@
     });
   }
 
-  /** Açılışta kayıtlı profilleri belleğe al ve sunucuya gönder. */
+  /** A├ğ─▒l─▒┼şta kay─▒tl─▒ profilleri belle─şe al ve sunucuya g├Ânder. */
   function absorbLocalStorageToBaked() {
+    if (!isCalibrateMode()) return false;
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (!raw) return false;
@@ -311,7 +301,7 @@
   }
 
   function load() {
-    return loadForProfile(detectProfile());
+    return loadForProfile(activeProfileId());
   }
 
   function saveBlock(profileId, block) {
@@ -333,7 +323,7 @@
     globalThis.__DEX_CROP_BAKED__ = serverBaked;
     syncProfilesToServer(store);
 
-    if (profileId === detectProfile()) apply(block);
+    if (profileId === activeProfileId()) apply(block);
   }
 
   function resetProfile(profileId) {
@@ -376,11 +366,8 @@
   }
 
   function apply(settings) {
-    let profileId = document.documentElement.dataset.dexCropProfile;
-    if (!PROFILE_META[profileId]) {
-      profileId = detectProfile();
-      document.documentElement.dataset.dexCropProfile = profileId;
-    }
+    const profileId = activeProfileId();
+    document.documentElement.dataset.dexCropProfile = profileId;
     const s = settings || loadForProfile(profileId);
     const root = document.documentElement;
     const c = s.chart;
@@ -413,7 +400,9 @@
     root.style.setProperty('--dex-trades-clip-right', `${t.clipRight || 0}px`);
 
     const tapeEl = document.getElementById('tradesTape');
-    if (tapeEl) tapeEl.style.marginTop = `${tapeDown}px`;
+    if (tapeEl) {
+      tapeEl.style.marginTop = `${tapeDown}px`;
+    }
 
     const stage = document.querySelector('.chart-terminal--dex-embed .chart-stage');
     const chartIframe = document.querySelector('iframe.dex-embed-chart');
@@ -430,10 +419,6 @@
       chartIframe.style.width = `${c.width}%`;
       chartIframe.style.height = `${c.stageH + c.heightExtra + brandCrop}px`;
       chartIframe.style.maxWidth = 'none';
-      chartIframe.style.margin = '0';
-      chartIframe.style.border = '0';
-      chartIframe.style.display = 'block';
-      chartIframe.style.transform = 'none';
     }
 
     const wrap = document.getElementById('dexTradesWrap');
@@ -448,77 +433,27 @@
       applyClip(wrap, t.clipLeft, t.clipRight, t.clipTop, t.clipBottom);
       const maskTopOn = t.maskTopOn !== false;
       const maskFootOn = t.maskFootOn !== false;
-      const maskTopPx = Math.max(0, Number(t.maskTop) || 0);
-      const maskFootPx = Math.max(0, Number(t.maskFoot) || 0);
       wrap.classList.toggle('dex-masks-off', !maskTopOn && !maskFootOn);
-      wrap.classList.toggle('dex-mask-top-off', !maskTopOn || maskTopPx <= 0);
-      wrap.classList.toggle('dex-mask-foot-off', !maskFootOn || maskFootPx <= 0);
+      wrap.classList.toggle('dex-mask-top-off', !maskTopOn);
+      wrap.classList.toggle('dex-mask-foot-off', !maskFootOn);
     }
     if (tradesIframe) {
-      tradesIframe.style.position = 'absolute';
-      tradesIframe.style.top = `${t.iframeTop + tradesDown}px`;
-      tradesIframe.style.left = `${t.left}%`;
-      tradesIframe.style.width = `${t.width}%`;
-      tradesIframe.style.height = `${t.iframeH}px`;
-      tradesIframe.style.maxWidth = 'none';
-      tradesIframe.style.margin = '0';
-      tradesIframe.style.border = '0';
-      tradesIframe.style.display = 'block';
-      tradesIframe.style.transform = 'none';
+      const topPx = t.iframeTop + tradesDown;
+      tradesIframe.style.cssText = [
+        'position:absolute',
+        `top:${topPx}px`,
+        `left:${t.left}%`,
+        `width:${t.width}%`,
+        `height:${t.iframeH}px`,
+        'max-width:none',
+        'border:0',
+        'display:block',
+        'margin:0',
+        'pointer-events:auto',
+      ].join(';');
     }
     applyMaskEl(maskTop, t.maskTopOn !== false, t.maskTop);
     applyMaskEl(maskFoot, t.maskFootOn !== false, t.maskFoot);
-    injectLiveCropStyle(profileId, s);
-    root.dataset.dexCropRev = '33';
-  }
-
-  function injectLiveCropStyle(profileId, s) {
-    const c = s.chart;
-    const t = s.trades;
-    const brandCrop = Number(c.brandCrop) || CHART_BRAND_CROP;
-    const chartDown = Number(c.shiftDown) || 0;
-    const tradesDown = Number(t.shiftDown) || 0;
-    const chartTop = c.top - brandCrop + chartDown;
-    const chartH = c.stageH + c.heightExtra + brandCrop;
-    const tradesTop = t.iframeTop + tradesDown;
-    const maskTopOn = t.maskTopOn !== false;
-    const maskFootOn = t.maskFootOn !== false;
-    const maskTopPx = Math.max(0, Number(t.maskTop) || 0);
-    const maskFootPx = Math.max(0, Number(t.maskFoot) || 0);
-
-    let el = document.getElementById('sniperDexCropLive');
-    if (!el) {
-      el = document.createElement('style');
-      el.id = 'sniperDexCropLive';
-      document.head.appendChild(el);
-    }
-    el.textContent = `
-html[data-dex-crop-profile="${profileId}"] .chart-terminal--dex-embed .chart-stage {
-  height: ${c.stageH}px !important; min-height: ${c.stageH}px !important; max-height: ${c.stageH}px !important;
-}
-html[data-dex-crop-profile="${profileId}"] iframe.dex-embed-chart {
-  position: absolute !important; top: ${chartTop}px !important; left: ${c.left}% !important;
-  width: ${c.width}% !important; height: ${chartH}px !important; margin: 0 !important; border: 0 !important;
-  transform: none !important; max-width: none !important;
-}
-html[data-dex-crop-profile="${profileId}"] #dexTradesWrap.dex-trades-embed-wrap {
-  height: ${t.viewH}px !important; min-height: ${t.viewH}px !important; max-height: ${t.viewH}px !important;
-  overflow: hidden !important;
-}
-html[data-dex-crop-profile="${profileId}"] #dexTradesEmbed.dex-trades-embed {
-  position: absolute !important; top: ${tradesTop}px !important; left: ${t.left}% !important;
-  width: ${t.width}% !important; height: ${t.iframeH}px !important; margin: 0 !important;
-  border: 0 !important; transform: none !important; max-width: none !important;
-}
-html[data-dex-crop-profile="${profileId}"] #dexTradesWrap.dex-mask-top-off::after,
-html[data-dex-crop-profile="${profileId}"] #dexTradesWrap.dex-masks-off::after { display: none !important; }
-html[data-dex-crop-profile="${profileId}"] #dexTradesWrap .dex-mask-top {
-  height: ${maskTopOn ? maskTopPx : 0}px !important; ${maskTopOn ? '' : 'display: none !important;'}
-}
-html[data-dex-crop-profile="${profileId}"] #dexTradesWrap .dex-mask-foot {
-  height: ${maskFootOn ? maskFootPx : 0}px !important; ${maskFootOn ? '' : 'display: none !important;'}
-}
-`.trim();
   }
 
   function isCalibrateMode() {
@@ -531,7 +466,7 @@ html[data-dex-crop-profile="${profileId}"] #dexTradesWrap .dex-mask-foot {
     return String(location.hash || '').includes('kalibre');
   }
 
-  /** ?profil=web|app11|app13|app13pm|app16 — link sadece doğru sekmeyi açar; ölçüler kayıtta. */
+  /** ?profil=web|app11|app13|app13pm|app16 ÔÇö link sadece do─şru sekmeyi a├ğar; ├Âl├ğ├╝ler kay─▒tta. */
   function profileFromUrl() {
     try {
       const q = new URLSearchParams(location.search);
@@ -647,7 +582,7 @@ html[data-dex-crop-profile="${profileId}"] #dexTradesWrap .dex-mask-foot {
     const det = document.getElementById('cropDetectLabel');
     if (det) {
       const auto = detectProfile();
-      det.textContent = `Otomatik: ${PROFILE_META[auto]?.label || auto} (${window.innerWidth}×${window.innerHeight})`;
+      det.textContent = `Otomatik: ${PROFILE_META[auto]?.label || auto} (${window.innerWidth}├ù${window.innerHeight})`;
     }
   }
 
@@ -668,7 +603,7 @@ html[data-dex-crop-profile="${profileId}"] #dexTradesWrap .dex-mask-foot {
     syncSlidersFromCurrent();
     apply(current);
     refreshPreview();
-    toast(`${PROFILE_META[sourceId].label} → ${PROFILE_META[editingProfile].label} kopyalandı (Kaydet)`);
+    toast(`${PROFILE_META[sourceId].label} ÔåÆ ${PROFILE_META[editingProfile].label} kopyaland─▒ (Kaydet)`);
   }
 
   function openPanel() {
@@ -709,9 +644,9 @@ html[data-dex-crop-profile="${profileId}"] #dexTradesWrap .dex-mask-foot {
     panelEl.id = 'dexCropPanel';
     panelEl.className = 'dex-crop-panel hidden';
     panelEl.innerHTML = [
-      '<header class="dex-crop-head"><strong>Kırpma — 5 ekran</strong>',
-      '<button type="button" class="crop-close" id="cropCloseBtn" aria-label="Kapat">✕</button></header>',
-      '<p class="crop-intro">Link sadece paneli açar. <b>Profili kaydet</b> = ölçüler kalır + herkese sunucuya gider.</p>',
+      '<header class="dex-crop-head"><strong>K─▒rpma ÔÇö 5 ekran</strong>',
+      '<button type="button" class="crop-close" id="cropCloseBtn" aria-label="Kapat">Ô£ò</button></header>',
+      '<p class="crop-intro">Link sadece paneli a├ğar. <b>Profili kaydet</b> = ├Âl├ğ├╝ler kal─▒r + herkese sunucuya gider.</p>',
       '<p class="crop-detect" id="cropDetectLabel"></p>',
       '<div class="crop-profile-tabs" role="tablist">',
       ...PROFILE_ORDER.map(
@@ -721,48 +656,48 @@ html[data-dex-crop-profile="${profileId}"] #dexTradesWrap .dex-mask-foot {
       `</${D}>`,
       '<p class="crop-profile-hint" id="cropProfileHint"></p>',
       '<section class="crop-section"><h3>Grafik (Dex embed)</h3>',
-      sliderRow('Kutu yüksekliği', 'cropChartStageH', 240, 480, 2, c.stageH, 'px'),
-      sliderRow('Üst kaydır', 'cropChartTop', -180, 40, 1, c.top, 'px — negatif = yukarı'),
-      sliderRow('Aşağı kaydır', 'cropChartDown', 0, 200, 1, c.shiftDown, 'px — grafik içeriği aşağı'),
-      sliderRow('Sol kaydır (%)', 'cropChartLeft', -16, 12, 1, c.left, 'grafik konumu'),
-      sliderRow('Genişlik (%)', 'cropChartWidth', 88, 120, 1, c.width, 'daralt / genişlet'),
-      sliderRow('Sol kenar kırp', 'cropChartClipL', 0, 80, 1, c.clipLeft, 'px'),
-      sliderRow('Sağ kenar kırp', 'cropChartClipR', 0, 80, 1, c.clipRight, 'px'),
-      sliderRow('Yukarı daralt', 'cropChartClipT', 0, 100, 1, c.clipTop, 'px — panel üstten kes'),
-      sliderRow('Aşağı daralt', 'cropChartClipB', 0, 100, 1, c.clipBottom, 'px — panel alttan kes'),
-      sliderRow('Üst marka kırp', 'cropChartBrand', 0, 64, 1, c.brandCrop, 'dexscreener şeridi'),
-      sliderRow('Ekstra yükseklik', 'cropChartExtra', 0, 48, 1, c.heightExtra, 'px'),
+      sliderRow('Kutu y├╝ksekli─şi', 'cropChartStageH', 240, 480, 2, c.stageH, 'px'),
+      sliderRow('├£st kayd─▒r', 'cropChartTop', -180, 40, 1, c.top, 'px ÔÇö negatif = yukar─▒'),
+      sliderRow('A┼şa─ş─▒ kayd─▒r', 'cropChartDown', 0, 200, 1, c.shiftDown, 'px ÔÇö grafik i├ğeri─şi a┼şa─ş─▒'),
+      sliderRow('Sol kayd─▒r (%)', 'cropChartLeft', -16, 12, 1, c.left, 'grafik konumu'),
+      sliderRow('Geni┼şlik (%)', 'cropChartWidth', 88, 120, 1, c.width, 'daralt / geni┼şlet'),
+      sliderRow('Sol kenar k─▒rp', 'cropChartClipL', 0, 80, 1, c.clipLeft, 'px'),
+      sliderRow('Sa─ş kenar k─▒rp', 'cropChartClipR', 0, 80, 1, c.clipRight, 'px'),
+      sliderRow('Yukar─▒ daralt', 'cropChartClipT', 0, 100, 1, c.clipTop, 'px ÔÇö panel ├╝stten kes'),
+      sliderRow('A┼şa─ş─▒ daralt', 'cropChartClipB', 0, 100, 1, c.clipBottom, 'px ÔÇö panel alttan kes'),
+      sliderRow('├£st marka k─▒rp', 'cropChartBrand', 0, 64, 1, c.brandCrop, 'dexscreener ┼şeridi'),
+      sliderRow('Ekstra y├╝kseklik', 'cropChartExtra', 0, 48, 1, c.heightExtra, 'px'),
       '</section>',
-      '<section class="crop-section crop-section--tape"><h3>Alım / satım panosu</h3>',
-      '<p class="crop-section-note">LIVE kutusu içi — tüm telefonlarda aynı kaydırıcılar.</p>',
-      sliderRow('Görünür yükseklik', 'cropTradesViewH', 160, 380, 2, t.viewH, 'px — kutu yüksekliği'),
-      sliderRow('Iframe yükseklik', 'cropTradesIframeH', 700, 1200, 5, t.iframeH, 'px'),
-      sliderRow('Iframe üst', 'cropTradesTop', -1200, -300, 5, t.iframeTop, 'negatif = yukarı çek'),
-      sliderRow('Aşağı kaydır', 'cropTradesDown', 0, 250, 1, t.shiftDown, 'px — tablo içeriği aşağı'),
-      sliderRow('Sol kaydır (%)', 'cropTradesLeft', -16, 12, 1, t.left, ''),
-      sliderRow('Genişlik (%)', 'cropTradesWidth', 88, 120, 1, t.width, ''),
-      sliderRow('Sol kenar kırp', 'cropTradesClipL', 0, 80, 1, t.clipLeft, 'px'),
-      sliderRow('Sağ kenar kırp', 'cropTradesClipR', 0, 80, 1, t.clipRight, 'px'),
-      sliderRow('Yukarı daralt', 'cropTradesClipT', 0, 100, 1, t.clipTop, 'px — panel üstten kes'),
-      sliderRow('Aşağı daralt', 'cropTradesClipB', 0, 100, 1, t.clipBottom, 'px — panel alttan kes'),
-      toggleRow('Üst maske açık', 'cropTradesMaskTopOn', t.maskTopOn !== false),
-      sliderRow('Üst maske kalınlık', 'cropTradesMaskTop', 0, 80, 1, t.maskTop, 'px (kapalıysa yok sayılır)'),
-      toggleRow('Alt maske açık', 'cropTradesMaskFootOn', t.maskFootOn !== false),
-      sliderRow('Alt maske kalınlık', 'cropTradesMaskFoot', 0, 60, 1, t.maskFoot, 'px (kapalıysa yok sayılır)'),
+      '<section class="crop-section crop-section--tape"><h3>Al─▒m / sat─▒m panosu</h3>',
+      '<p class="crop-section-note">LIVE kutusu i├ği ÔÇö t├╝m telefonlarda ayn─▒ kayd─▒r─▒c─▒lar.</p>',
+      sliderRow('G├Âr├╝n├╝r y├╝kseklik', 'cropTradesViewH', 160, 380, 2, t.viewH, 'px ÔÇö kutu y├╝ksekli─şi'),
+      sliderRow('Iframe y├╝kseklik', 'cropTradesIframeH', 700, 1200, 5, t.iframeH, 'px'),
+      sliderRow('Iframe ├╝st', 'cropTradesTop', -1200, -300, 5, t.iframeTop, 'negatif = yukar─▒ ├ğek'),
+      sliderRow('A┼şa─ş─▒ kayd─▒r', 'cropTradesDown', 0, 250, 1, t.shiftDown, 'px ÔÇö tablo i├ğeri─şi a┼şa─ş─▒'),
+      sliderRow('Sol kayd─▒r (%)', 'cropTradesLeft', -16, 12, 1, t.left, ''),
+      sliderRow('Geni┼şlik (%)', 'cropTradesWidth', 88, 120, 1, t.width, ''),
+      sliderRow('Sol kenar k─▒rp', 'cropTradesClipL', 0, 80, 1, t.clipLeft, 'px'),
+      sliderRow('Sa─ş kenar k─▒rp', 'cropTradesClipR', 0, 80, 1, t.clipRight, 'px'),
+      sliderRow('Yukar─▒ daralt', 'cropTradesClipT', 0, 100, 1, t.clipTop, 'px ÔÇö panel ├╝stten kes'),
+      sliderRow('A┼şa─ş─▒ daralt', 'cropTradesClipB', 0, 100, 1, t.clipBottom, 'px ÔÇö panel alttan kes'),
+      toggleRow('├£st maske a├ğ─▒k', 'cropTradesMaskTopOn', t.maskTopOn !== false),
+      sliderRow('├£st maske kal─▒nl─▒k', 'cropTradesMaskTop', 0, 80, 1, t.maskTop, 'px (kapal─▒ysa yok say─▒l─▒r)'),
+      toggleRow('Alt maske a├ğ─▒k', 'cropTradesMaskFootOn', t.maskFootOn !== false),
+      sliderRow('Alt maske kal─▒nl─▒k', 'cropTradesMaskFoot', 0, 60, 1, t.maskFoot, 'px (kapal─▒ysa yok say─▒l─▒r)'),
       '</section>',
-      '<section class="crop-section crop-section--dex"><h3>Kutu sayfada (isteğe bağlı)</h3>',
-      '<p class="crop-section-note">Tüm LIVE kutusunu grafik altında yukarı/aşağı kaydırır.</p>',
-      sliderRow('Kutu aşağı kaydır', 'cropTapeDown', 0, 200, 1, tp.shiftDown, 'px'),
+      '<section class="crop-section crop-section--dex"><h3>Kutu sayfada (iste─şe ba─şl─▒)</h3>',
+      '<p class="crop-section-note">T├╝m LIVE kutusunu grafik alt─▒nda yukar─▒/a┼şa─ş─▒ kayd─▒r─▒r.</p>',
+      sliderRow('Kutu a┼şa─ş─▒ kayd─▒r', 'cropTapeDown', 0, 200, 1, tp.shiftDown, 'px'),
       '</section>',
       `<${D} class="crop-actions">`,
       '<button type="button" class="crop-btn crop-btn-save" id="cropSaveBtn">Profili kaydet</button>',
-      '<button type="button" class="crop-btn crop-btn-publish" id="cropPublishBtn">☁ Herkese sabitle (5 profil)</button>',
-      '<button type="button" class="crop-btn crop-btn-copy" id="cropCopyWebBtn">Web →</button>',
-      '<button type="button" class="crop-btn crop-btn-copy" id="cropCopy13pmBtn">13 PM →</button>',
-      '<button type="button" class="crop-btn crop-btn-copy" id="cropCopy16pmBtn">16 PM →</button>',
-      '<button type="button" class="crop-btn" id="cropCopyBtn">Tüm JSON</button>',
-      '<button type="button" class="crop-btn crop-btn-muted" id="cropResetProfBtn">Profil sıfır</button>',
-      '<button type="button" class="crop-btn crop-btn-muted" id="cropResetAllBtn">Hepsi sıfır</button>',
+      '<button type="button" class="crop-btn crop-btn-publish" id="cropPublishBtn">Ôİü Herkese sabitle (5 profil)</button>',
+      '<button type="button" class="crop-btn crop-btn-copy" id="cropCopyWebBtn">Web ÔåÆ</button>',
+      '<button type="button" class="crop-btn crop-btn-copy" id="cropCopy13pmBtn">13 PM ÔåÆ</button>',
+      '<button type="button" class="crop-btn crop-btn-copy" id="cropCopy16pmBtn">16 PM ÔåÆ</button>',
+      '<button type="button" class="crop-btn" id="cropCopyBtn">T├╝m JSON</button>',
+      '<button type="button" class="crop-btn crop-btn-muted" id="cropResetProfBtn">Profil s─▒f─▒r</button>',
+      '<button type="button" class="crop-btn crop-btn-muted" id="cropResetAllBtn">Hepsi s─▒f─▒r</button>',
       `</${D}>`,
       '<pre class="crop-json" id="cropJsonPreview"></pre>',
     ].join('');
@@ -791,9 +726,9 @@ html[data-dex-crop-profile="${profileId}"] #dexTradesWrap .dex-mask-foot {
         store.profiles[editingProfile] = clone(current);
         saveStore(store);
         await publishServerProfiles();
-        toast('5 profil sunucuya sabitlendi — herkes görür');
+        toast('5 profil sunucuya sabitlendi ÔÇö herkes g├Âr├╝r');
       } catch (e) {
-        toast(e.message || 'Sunucuya kayıt başarısız');
+        toast(e.message || 'Sunucuya kay─▒t ba┼şar─▒s─▒z');
       }
     });
     document.getElementById('cropCopyWebBtn')?.addEventListener('click', () => copyProfileFrom('web'));
@@ -804,7 +739,7 @@ html[data-dex-crop-profile="${profileId}"] #dexTradesWrap .dex-mask-foot {
       syncSlidersFromCurrent();
       apply(current);
       refreshPreview();
-      toast('Bu profil sıfırlandı');
+      toast('Bu profil s─▒f─▒rland─▒');
     });
     document.getElementById('cropResetAllBtn')?.addEventListener('click', () => {
       current = reset();
@@ -813,7 +748,7 @@ html[data-dex-crop-profile="${profileId}"] #dexTradesWrap .dex-mask-foot {
       syncSlidersFromCurrent();
       updateProfileTabs();
       refreshPreview();
-      toast('5 profil sıfırlandı');
+      toast('5 profil s─▒f─▒rland─▒');
     });
     document.getElementById('cropCopyBtn')?.addEventListener('click', async () => {
       const store = loadStore();
@@ -821,7 +756,7 @@ html[data-dex-crop-profile="${profileId}"] #dexTradesWrap .dex-mask-foot {
       const text = JSON.stringify(store, null, 2);
       try {
         await navigator.clipboard.writeText(text);
-        toast('5 profil JSON kopyalandı');
+        toast('5 profil JSON kopyaland─▒');
       } catch {
         toast('Alttaki JSON\'u kopyala');
       }
@@ -853,7 +788,7 @@ html[data-dex-crop-profile="${profileId}"] #dexTradesWrap .dex-mask-foot {
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.className = 'btn-crop-cal';
-    btn.textContent = 'Kırpma';
+    btn.textContent = 'K─▒rpma';
     btn.addEventListener('click', (e) => {
       e.preventDefault();
       e.stopPropagation();
@@ -862,21 +797,11 @@ html[data-dex-crop-profile="${profileId}"] #dexTradesWrap .dex-mask-foot {
     head.appendChild(btn);
   }
 
-  /** Sayfa açılışında kayıtlı profil (baked.js) — fetch/LS beklemeden. */
-  function applyBakedSnapshot() {
-    const baked = globalThis.__DEX_CROP_BAKED__;
-    if (!baked?.profiles) return;
-    const id = detectProfile();
-    const block = baked.profiles[id] || baked.profiles.web;
-    if (!block) return;
-    apply(normalizeBlock(block));
-  }
-
   function ensureProfilesReady() {
     if (!profilesReady) {
       profilesReady = (async () => {
         await fetchServerBaked();
-        if (isCalibrateMode()) absorbLocalStorageToBaked();
+        absorbLocalStorageToBaked();
       })();
     }
     return profilesReady;
@@ -887,28 +812,13 @@ html[data-dex-crop-profile="${profileId}"] #dexTradesWrap .dex-mask-foot {
     apply(settings);
   }
 
-  function onViewportChange() {
-    if (global.SniperCropProfile?.apply) global.SniperCropProfile.apply();
-    apply();
-  }
-
   async function init() {
     if (global.SniperCropProfile?.apply) global.SniperCropProfile.apply();
-    applyBakedSnapshot();
     await ensureProfilesReady();
     apply();
-    const tg = global.Telegram?.WebApp;
-    if (tg?.onEvent) {
-      tg.onEvent('viewportChanged', onViewportChange);
-    }
-    global.addEventListener('resize', onViewportChange);
-    if (global.visualViewport) {
-      global.visualViewport.addEventListener('resize', onViewportChange);
-    }
     addCalibrateButton();
     window.addEventListener('resize', () => {
       if (!document.getElementById('dexCropPanel')?.classList.contains('hidden')) return;
-      if (global.SniperCropProfile?.apply) global.SniperCropProfile.apply();
       apply();
     });
     if (isCalibrateMode()) {
@@ -934,7 +844,6 @@ html[data-dex-crop-profile="${profileId}"] #dexTradesWrap .dex-mask-foot {
     PROFILE_ORDER,
     DEFAULT_BLOCK,
     detectProfile,
-    syncProfileDataset,
     ensureProfilesReady,
     loadStore,
     loadForProfile,
@@ -949,8 +858,6 @@ html[data-dex-crop-profile="${profileId}"] #dexTradesWrap .dex-mask-foot {
     copyProfileFrom,
     isCalibrateMode,
   };
-
-  applyBakedSnapshot();
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => init());
   else init();
