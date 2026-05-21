@@ -233,7 +233,7 @@ async function buildDexChainFeed(chainKey, tab = 'trending', limit = 24, dexFilt
 async function buildFeed(tab = 'trending', limit = 24, dexFilter = 'all', chain = 'solana', searchQ = '') {
   let chainKey = String(chain || 'solana').toLowerCase();
   const q = String(searchQ || '').trim();
-  const apiTab = tab === 'home' ? 'trending' : tab;
+  const apiTab = tab === 'new' ? 'new' : tab === 'home' ? 'home' : 'trending';
 
   if (apiTab === 'new' && chainKey === 'all') {
     return buildAllChainsNewPairsFeed(limit);

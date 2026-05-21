@@ -311,11 +311,13 @@ function createMiniAppServer() {
         const botUser = String(process.env.BOT_USERNAME || process.env.MINI_APP_BOT_USERNAME || '')
           .replace(/^@/, '')
           .trim();
+        const { loadConfig: loadTrendConfig } = require('./trendConfigStore');
         sendJson(res, 200, {
           webAppBase: getWebAppBaseUrl(),
           botApiBase: getBotApiBaseUrl(),
           telegramBotUsername: botUser || 'solachainscanbot',
           support: supportStore.loadConfig(),
+          trend: loadTrendConfig(),
         });
         return;
       }

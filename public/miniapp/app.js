@@ -12,12 +12,21 @@
       try {
         const res = await fetch('/api/config');
         if (res.ok) apiConfig = await res.json();
+        applyTrendConfigDefaults(apiConfig.trend);
       } catch {
         /* aynı sunucu */
       }
       return apiConfig;
     })();
     return apiConfigPromise;
+  }
+
+  function applyTrendConfigDefaults(trend) {
+    if (!trend) return;
+    const tf = String(trend.defaults?.timeframe || '').trim();
+    if (tf && FEED_TF_META[tf]) feedTimeframe = tf;
+    const dex = String(trend.defaults?.dexFilter || '').trim();
+    if (dex) dexFilter = dex;
   }
 
   function loadApiConfigOnce() {
@@ -235,71 +244,77 @@
     return isWithinNewPairsWindow(item, NEW_PAIRS_MAX_AGE_MS);
   }
 
-  /** Ani satış / düşüş (kriptoda genelde DUMP). */
+  /** Ani satış / düşüş — DUMP önceliği; negatif baskı. */
   function isDumpToken(item) {
     const ch5 = Number(item.change5m);
     const ch1 = Number(item.change1h);
+    const ch24 = Number(item.change24h);
     const buys5 = Number(item.buys5m) || 0;
     const sells5 = Number(item.sells5m) || 0;
     const tx5 = buys5 + sells5;
-    if (Number.isFinite(ch5) && ch5 <= -12) return true;
-    if (Number.isFinite(ch1) && ch1 <= -18) return true;
-    if (Number.isFinite(ch5) && ch5 <= -6 && sells5 >= buys5 * 1.15 && tx5 >= 5) return true;
+    if (Number.isFinite(ch5) && ch5 <= -10) return true;
+    if (Number.isFinite(ch1) && ch1 <= -15) return true;
+    if (Number.isFinite(ch24) && ch24 <= -22) return true;
+    if (Number.isFinite(ch5) && ch5 < 0 && sells5 >= buys5 * 1.2 && tx5 >= 4) return true;
+    if (Number.isFinite(ch1) && ch1 <= -8 && sells5 > buys5 && tx5 >= 3) return true;
     return false;
   }
 
-  /** Kısa vadede güçlü yükseliş — ATH / pump proxy (DexScreener ATH alanı yok). */
+  /** Kısa vadede güçlü yükseliş — yalnızca pozitif momentum. */
   function isAthPumpToken(item) {
+    if (isDumpToken(item)) return false;
     const ch5 = Number(item.change5m);
     const ch1 = Number(item.change1h);
-    if (Number.isFinite(ch5) && ch5 >= 22) return true;
-    if (Number.isFinite(ch1) && ch1 >= 45) return true;
-    if (Number.isFinite(ch5) && ch5 >= 14 && Number(item.change1h) >= 20) return true;
+    const ch24 = Number(item.change24h);
+    if (Number.isFinite(ch24) && ch24 < 0) return false;
+    if (Number.isFinite(ch1) && ch1 < 0) return false;
+    if (Number.isFinite(ch5) && ch5 < 0) return false;
+    if (Number.isFinite(ch5) && ch5 >= 25) return true;
+    if (Number.isFinite(ch1) && ch1 >= 42) return true;
+    if (Number.isFinite(ch5) && ch5 >= 16 && ch1 >= 24) return true;
     return false;
   }
 
-  /** Hızlı alım-satım veya kısa vadeli pump. */
+  /** Yoğun alım / hızlı işlem — DUMP ve ATH değilse. */
   function isHotToken(item) {
-    if (isDumpToken(item)) return false;
+    if (isDumpToken(item) || isAthPumpToken(item)) return false;
     const buys5 = Number(item.buys5m) || 0;
     const sells5 = Number(item.sells5m) || 0;
     const tx5 = buys5 + sells5;
-    const tx1 = (Number(item.buys1h) || 0) + (Number(item.sells1h) || 0);
     const vol5 = Number(item.volume5m) || 0;
     const ch5 = Number(item.change5m);
     const ch1 = Number(item.change1h);
-
-    if (isAthPumpToken(item)) return true;
-    if (tx5 >= 12 || vol5 >= 8000) return true;
-    if (Number.isFinite(ch5) && ch5 >= 8 && buys5 >= sells5 && tx5 >= 6) return true;
-    if (Number.isFinite(ch1) && ch1 >= 15 && buys5 >= sells5 * 1.1 && tx5 >= 4) return true;
-    if (tx5 >= 6 && tx1 > 0 && tx5 / tx1 >= 0.35) return true;
+    if (Number.isFinite(ch5) && ch5 < 0) return false;
+    if (Number.isFinite(ch1) && ch1 < 0) return false;
+    if (tx5 >= 16 && vol5 >= 12000 && buys5 >= sells5 * 1.08) return true;
+    if (Number.isFinite(ch5) && ch5 >= 6 && ch5 < 22 && buys5 >= sells5 && tx5 >= 10) return true;
+    if (Number.isFinite(ch1) && ch1 >= 12 && ch1 < 40 && buys5 >= sells5 && tx5 >= 6) return true;
     return false;
   }
 
   function feedBadgeHtml(item) {
     const parts = [];
-    if (showNewListingBadge(item)) {
-      parts.push('<span class="tr-badge tr-badge-new" title="Son 48 saat içinde listelendi">NEW</span>');
-    }
-    if (isDumpToken(item)) {
+    const dumped = isDumpToken(item);
+    if (dumped) {
       parts.push(
         `<span class="tr-badge tr-badge-dump" title="${escHtml(DUMP_VOLATILITY_TIP)}">` +
           `<span class="tr-badge-dump-lbl">📉 DUMP</span>` +
           `<span class="tr-badge-info-ico" role="img" aria-label="${escHtml(DUMP_VOLATILITY_TIP)}" title="${escHtml(DUMP_VOLATILITY_TIP)}">ℹ</span>` +
           `</span>`,
       );
-    } else {
-      if (isAthPumpToken(item)) {
-        parts.push(
-          '<span class="tr-badge tr-badge-ath" title="Kısa vadede güçlü yükseliş (ATH bölgesi)">ATH</span>',
-        );
-      }
-      if (isHotToken(item)) {
-        parts.push(
-          '<span class="tr-badge tr-badge-hot" title="Yoğun işlem / hızlı alım"><span class="tr-badge-hot-ico" aria-hidden="true">🔥</span>HOT</span>',
-        );
-      }
+      return `<span class="tr-badges">${parts.join('')}</span>`;
+    }
+    if (showNewListingBadge(item)) {
+      parts.push('<span class="tr-badge tr-badge-new" title="Son 48 saat içinde listelendi">NEW</span>');
+    }
+    if (isAthPumpToken(item)) {
+      parts.push(
+        '<span class="tr-badge tr-badge-ath" title="Kısa vadede güçlü yükseliş (ATH bölgesi)">ATH</span>',
+      );
+    } else if (isHotToken(item)) {
+      parts.push(
+        '<span class="tr-badge tr-badge-hot" title="Yoğun işlem / hızlı alım"><span class="tr-badge-hot-ico" aria-hidden="true">🔥</span>HOT</span>',
+      );
     }
     return parts.length ? `<span class="tr-badges">${parts.join('')}</span>` : '';
   }
@@ -402,9 +417,7 @@
       return;
     }
     if (!scannerNavActive && !feedItemsFull.length) {
-      void loadHomeFeed('trending', feedTab === 'new' ? 'new' : feedTab === 'home' ? 'home' : 'trending', {
-        force: true,
-      });
+      void loadHomeFeed(feedTabForApi(feedTab), feedTab, { force: true });
     }
   }
 
@@ -423,7 +436,7 @@
       showScannerHome();
       clearSearch({ skipFetch: true });
       syncFeedToolbarUi();
-      void loadHomeFeed('trending', 'home', { force: true });
+      void loadHomeFeed('home', 'home', { force: true });
       return;
     }
     if (nav === 'trend') {
@@ -439,7 +452,7 @@
     if (nav === 'new') {
       location.hash = '';
       reportId = null;
-      feedListMode = 'new';
+      feedListMode = 'top';
       feedEmptyMessage = '';
       feedEmptyKind = '';
       if (feedChainFilter !== 'all' && feedChainFilter !== 'solana') {
@@ -528,8 +541,7 @@
     $('scanner-home')?.classList.toggle('scanner-nav-active', scannerNavActive);
     toggleHomeRadarPanels();
     if (was !== scannerNavActive && feedItemsFull.length && !scannerNavActive) {
-      if ((searchQuery || '').trim()) applySearchFilter();
-      else renderTokenList(feedItemsFull);
+      applySearchFilter();
     }
     updateFeedListTitle();
   }
@@ -558,13 +570,17 @@
       feedEmptyKind = '';
     }
     syncNewPairsView();
+    syncFeedToolbarUi();
   }
 
   function syncNewPairsView() {
     const isNp = feedTab === 'new' && !scannerNavActive;
     $('homeFeedPanel')?.classList.toggle('is-new-pairs', isNp);
+    $('homeFeedPanel')?.classList.toggle('is-home-tab', feedTab === 'home' && !scannerNavActive);
+    $('homeFeedPanel')?.classList.toggle('is-trend-tab', feedTab === 'trending' && !scannerNavActive);
     $('newPairsPanel')?.classList.toggle('hidden', !isNp);
     $('feedToolbar')?.classList.toggle('hidden', isNp);
+    $('trendingBand')?.classList.toggle('hidden', isNp || feedTab === 'home');
     $('tokenTheadMain')?.classList.remove('hidden');
     $('tokenTheadMain')?.setAttribute('aria-hidden', 'false');
     $('tokenTableScroll')?.classList.remove('mode-new-pairs');
@@ -956,21 +972,37 @@
     return item[meta.volFmtKey] || item.volume24hFmt || '—';
   }
 
+  function feedItemMcap(it) {
+    return Number(it.marketCapUsd) || 0;
+  }
+
+  function sortByApiRank(list) {
+    return [...list].sort((a, b) => (Number(a.rank) || 999) - (Number(b.rank) || 999));
+  }
+
   function prepareFeedListItems(items) {
     let list = Array.isArray(items) ? [...items] : [];
     if (feedChainFilter && feedChainFilter !== 'all') {
       list = list.filter((it) => String(it.chain || 'solana').toLowerCase() === feedChainFilter);
     }
-    if (feedListMode === 'gainers') {
-      list = list.filter((it) => (getFeedChange(it) ?? -1) > 0);
-      list.sort((a, b) => (getFeedChange(b) ?? 0) - (getFeedChange(a) ?? 0));
-    } else if (feedListMode === 'new' || feedTab === 'new') {
+
+    if (feedTab === 'new') {
       list = list.filter((it) => isWithinNewPairsWindow(it));
       list.sort((a, b) => (b.listedAt || 0) - (a.listedAt || 0));
     } else {
       list = list.filter((it) => !isWithinNewPairsWindow(it));
-      const volKey = feedTfMeta(feedTimeframe).volKey;
-      list.sort((a, b) => (b[volKey] || 0) - (a[volKey] || 0));
+      if (feedListMode === 'gainers') {
+        list = list.filter((it) => (getFeedChange(it) ?? -1) > 0);
+        list.sort((a, b) => (getFeedChange(b) ?? 0) - (getFeedChange(a) ?? 0));
+        if (feedTab === 'trending') list = sortByApiRank(list);
+      } else if (feedTab === 'home') {
+        list.sort((a, b) => feedItemMcap(b) - feedItemMcap(a));
+      } else if (feedTab === 'trending') {
+        list = sortByApiRank(list);
+      } else {
+        const volKey = feedTfMeta(feedTimeframe).volKey;
+        list.sort((a, b) => (b[volKey] || 0) - (a[volKey] || 0));
+      }
     }
     return list.map((it, i) => ({ ...it, rank: i + 1 }));
   }
@@ -996,13 +1028,26 @@
     const compact = $('feedTfLabelCompact');
     if (full) full.textContent = meta.label;
     if (compact) compact.textContent = meta.short;
+    const toolbarLabel = document.querySelector('.feed-toolbar-label');
+    if (toolbarLabel) {
+      toolbarLabel.textContent =
+        feedTab === 'home' ? 'Market Cap' : feedTab === 'trending' ? 'Trending' : 'Filter';
+    }
+    const topChip = document.querySelector('.feed-mode-chip[data-list-mode="top"]');
+    if (topChip) {
+      topChip.textContent = feedTab === 'home' ? 'MCap' : 'Top';
+      topChip.title = feedTab === 'home' ? 'Piyasa değerine göre sırala' : 'Trend skoruna göre sırala';
+    }
     document.querySelectorAll('.feed-tf-option[data-tf]').forEach((btn) => {
       const on = btn.dataset.tf === feedTimeframe;
       btn.classList.toggle('active', on);
       btn.setAttribute('aria-selected', on ? 'true' : 'false');
     });
     document.querySelectorAll('.feed-mode-chip[data-list-mode]').forEach((btn) => {
-      btn.classList.toggle('active', btn.dataset.listMode === feedListMode);
+      const mode = btn.dataset.listMode;
+      const hideNewChip = mode === 'new';
+      btn.classList.toggle('hidden', hideNewChip);
+      if (!hideNewChip) btn.classList.toggle('active', mode === feedListMode);
     });
     updateFeedTableHead();
   }
@@ -1056,18 +1101,9 @@
   }
 
   function setFeedListMode(mode) {
-    feedListMode = mode || 'top';
+    if (mode === 'new') return;
+    feedListMode = mode === 'gainers' ? 'gainers' : 'top';
     syncFeedToolbarUi();
-    if (mode === 'new') {
-      setFeedTab('new');
-      void loadHomeFeed('new', 'new', { force: true });
-      return;
-    }
-    if (feedTab === 'new') {
-      setFeedTab('trending');
-      void loadHomeFeed('trending', 'trending', { force: true });
-      return;
-    }
     applySearchFilter();
   }
 
@@ -1258,8 +1294,9 @@
       return;
     }
     if (label) {
-      label.textContent =
-        sortMode === 'listedAt_desc' || sortMode === 'postedAt_desc' ? 'NEW ↓' : '24H VOL ↓';
+      if (sortMode === 'listedAt_desc' || sortMode === 'postedAt_desc') label.textContent = 'NEW ↓';
+      else if (sortMode === 'marketCap_desc') label.textContent = 'MCAP ↓';
+      else label.textContent = '24H VOL ↓';
     }
     const chipHtml = ticker.map((t) => {
       const up = t.change24h == null || Number(t.change24h) >= 0;
@@ -1421,9 +1458,11 @@
 
   function feedTabForApi(tab) {
     const t = tab || feedTab;
-    if (t === 'home' || t === 'scan') return 'trending';
-    if (t === 'trend') return 'trending';
-    return t;
+    if (t === 'home') return 'home';
+    if (t === 'new') return 'new';
+    if (t === 'scan') return 'trending';
+    if (t === 'trend' || t === 'trending') return 'trending';
+    return 'trending';
   }
 
   function resolveFeedTab(tab) {
@@ -1675,11 +1714,11 @@
     if (list) list.innerHTML = '';
     $('feedLoading')?.classList.remove('hidden');
     void loadPromoBanner();
-    void loadHomeFeed('trending', 'home', { force: true });
+    void loadHomeFeed('home', 'home', { force: true });
     setTimeout(() => {
       if (!scannerNavActive && !feedItemsFull.length && !$('scanner-home')?.classList.contains('hidden')) {
         if (typeof globalThis.bootHomeFeed === 'function') void globalThis.bootHomeFeed();
-        else void loadHomeFeed('trending', 'home', { force: true });
+        else void loadHomeFeed('home', 'home', { force: true });
       }
     }, 2500);
   }
@@ -2688,7 +2727,8 @@
 
   globalThis.loadHomeFeed = loadHomeFeed;
   globalThis.ingestFeedResponse = ingestFeedResponse;
-  globalThis.refreshHomeFeed = () => loadHomeFeed('trending', feedTab === 'new' ? 'new' : feedTab === 'home' ? 'home' : 'trending');
+  globalThis.refreshHomeFeed = () =>
+    loadHomeFeed(feedTabForApi(feedTab), feedTab === 'scan' ? 'trending' : feedTab);
 
   main();
 })();

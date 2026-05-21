@@ -208,19 +208,39 @@ async function buildFeedFromBotShares(tab = 'trending', limit = 24, dexFilter = 
     items = items.filter((it) => !isWithinNewPairsWindowMs(it.listedAt, now));
   }
 
-  let ranked = items;
+  const { loadConfig } = require('./trendConfigStore');
+  const trendCfg = loadConfig();
+
+  function applyTrendViewFilters(list) {
+    let out = list;
+    const minVol = Number(trendCfg.view?.minVolumeUsd) || 0;
+    if (minVol > 0) {
+      out = out.filter((it) => (Number(it.volume24h) || 0) >= minVol);
+    }
+    if (trendCfg.view?.hideHighRisk) {
+      out = out.filter((it) => {
+        const band = it.risk?.band || it.level;
+        return band !== 'high' && it.level !== 'red' && it.level !== 'critical';
+      });
+    }
+    return out;
+  }
+
+  let ranked = applyTrendViewFilters(items);
   if (tab === 'trending') {
-    const { loadConfig } = require('./trendConfigStore');
-    const trendCfg = loadConfig();
-    let trendItems = items;
+    let trendItems = ranked;
     if (trendCfg.ticker?.minVolumeUsd > 0) {
       trendItems = trendItems.filter(
         (it) => (Number(it.volume24h) || 0) >= trendCfg.ticker.minVolumeUsd,
       );
     }
     ranked = rankFeedByVolume(trendItems, trendCfg.weights);
+  } else if (tab === 'home') {
+    ranked = [...ranked]
+      .sort((a, b) => (Number(b.marketCapUsd) || 0) - (Number(a.marketCapUsd) || 0))
+      .map((it, i) => ({ ...it, rank: i + 1 }));
   } else {
-    ranked = items
+    ranked = ranked
       .sort((a, b) => (b.listedAt || 0) - (a.listedAt || 0))
       .map((it, i) => ({ ...it, rank: i + 1 }));
   }
@@ -246,7 +266,7 @@ async function buildFeedFromBotShares(tab = 'trending', limit = 24, dexFilter = 
   return {
     tab,
     source: feedSource,
-    sortMode: tab === 'new' ? 'listedAt_desc' : 'volume24h_desc',
+    sortMode: tab === 'new' ? 'listedAt_desc' : tab === 'home' ? 'marketCap_desc' : 'volume24h_desc',
     updatedAt: Date.now(),
     botCount: await botFeedStore.feedCountAsync(),
     promo: getPromoBanner(),

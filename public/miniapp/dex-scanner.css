@@ -1051,6 +1051,7 @@ html.scanner-mode .search-box {
   align-items: center;
   justify-content: flex-start;
   gap: 3px;
+  width: 92px;
   height: 18px;
   min-height: 18px;
   max-height: 18px;
@@ -1059,7 +1060,7 @@ html.scanner-mode .search-box {
   letter-spacing: 0.03em;
   padding: 0 6px 0 3px;
   border-radius: 4px;
-  margin-right: 2px;
+  margin-right: 0;
   vertical-align: middle;
   border: 1px solid var(--border);
   color: var(--muted);
@@ -1067,6 +1068,7 @@ html.scanner-mode .search-box {
   overflow: hidden;
   white-space: nowrap;
   box-sizing: border-box;
+  flex-shrink: 0;
 }
 
 .tr-dex-badge-ico,
@@ -1436,7 +1438,9 @@ html.scanner-mode .search-box {
 .tr-avatar-wrap {
   position: relative;
   flex-shrink: 0;
-  margin-right: 4px;
+  margin-right: 6px;
+  width: 34px;
+  height: 34px;
 }
 
 /* Ağ logosu — avatar ile isim/etiket arasında (home ile aynı) */
@@ -1509,10 +1513,14 @@ html.scanner-mode .search-box {
 }
 
 .tr-name {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: 2px;
   font-size: 12px;
   font-weight: 700;
   color: var(--text);
-  white-space: nowrap;
+  max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
 }
@@ -1526,13 +1534,26 @@ html.scanner-mode .search-box {
 }
 
 .tr-sub {
+  display: flex;
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: 4px;
   font-size: 9px;
   font-weight: 400;
   color: var(--muted);
   margin-top: 2px;
-  white-space: nowrap;
+  min-width: 0;
   overflow: hidden;
-  text-overflow: ellipsis;
+  line-height: 1.25;
+}
+
+.tr-sub .tr-dex-badge {
+  flex: 0 0 auto;
+  margin-right: 0;
+}
+
+.tr-sub .tr-mcap-inline {
+  flex: 0 0 auto;
 }
 
 .token-row .tr-price {
@@ -2105,10 +2126,17 @@ html.scanner-mode .search-box {
 
 .tr-badges {
   display: inline-flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  align-items: center;
   gap: 3px;
   margin-left: 4px;
   vertical-align: middle;
+  flex-shrink: 0;
+  max-width: 100%;
+}
+
+.feed-mode-chip.hidden {
+  display: none !important;
 }
 
 .tr-badge {
