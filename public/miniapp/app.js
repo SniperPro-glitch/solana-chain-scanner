@@ -968,6 +968,7 @@
       list = list.filter((it) => isWithinNewPairsWindow(it));
       list.sort((a, b) => (b.listedAt || 0) - (a.listedAt || 0));
     } else {
+      list = list.filter((it) => !isWithinNewPairsWindow(it));
       const volKey = feedTfMeta(feedTimeframe).volKey;
       list.sort((a, b) => (b[volKey] || 0) - (a[volKey] || 0));
     }

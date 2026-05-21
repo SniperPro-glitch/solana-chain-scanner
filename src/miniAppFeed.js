@@ -212,6 +212,11 @@ async function buildFeedFromBotShares(tab = 'trending', limit = 24, dexFilter = 
     rank += 1;
   }
 
+  // ≤48s DEX listelemesi yalnızca New Pairs sekmesinde; Trending/Home'da gösterme.
+  if (!isNewTab) {
+    items = items.filter((it) => !isWithinNewPairsWindowMs(it.listedAt, now));
+  }
+
   let ranked = items;
   if (tab === 'trending') {
     const { loadConfig } = require('./trendConfigStore');
