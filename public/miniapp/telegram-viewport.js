@@ -55,11 +55,17 @@
 
   /** TG viewport oturunca profil + kırpma (debounce — sersemleme yok). */
   function scheduleCropApply() {
+    const detailOpen = !document.getElementById('view-detail')?.classList.contains('hidden');
+    if (!detailOpen) {
+      if (window.SniperCropProfile?.apply) window.SniperCropProfile.apply();
+      return;
+    }
     clearTimeout(cropTimer);
     cropTimer = setTimeout(() => {
       if (window.SniperCropProfile?.apply) window.SniperCropProfile.apply();
-      if (window.SniperDexCrop?.apply) window.SniperDexCrop.apply();
-    }, 220);
+      if (window.SniperDexCrop?.applyImmediate) window.SniperDexCrop.applyImmediate();
+      else if (window.SniperDexCrop?.apply) window.SniperDexCrop.apply();
+    }, 300);
   }
 
   function applyViewport() {
@@ -80,12 +86,11 @@
     if (typeof tg.expand === 'function') tg.expand();
 
     applySafeArea();
-    scheduleCropApply();
     clearTimeout(viewportTimer);
     viewportTimer = setTimeout(() => {
       applySafeArea();
       scheduleCropApply();
-    }, 180);
+    }, 200);
   }
 
   document.documentElement.classList.add('tg-mini-app');
