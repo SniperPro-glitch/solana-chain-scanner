@@ -244,58 +244,17 @@
     return isWithinNewPairsWindow(item, NEW_PAIRS_MAX_AGE_MS);
   }
 
-  /** Ani satış / düşüş — DUMP önceliği; negatif baskı. */
-  function isDumpToken(item) {
-    const ch5 = Number(item.change5m);
-    const ch1 = Number(item.change1h);
-    const ch24 = Number(item.change24h);
-    const buys5 = Number(item.buys5m) || 0;
-    const sells5 = Number(item.sells5m) || 0;
-    const tx5 = buys5 + sells5;
-    if (Number.isFinite(ch5) && ch5 <= -10) return true;
-    if (Number.isFinite(ch1) && ch1 <= -15) return true;
-    if (Number.isFinite(ch24) && ch24 <= -22) return true;
-    if (Number.isFinite(ch5) && ch5 < 0 && sells5 >= buys5 * 1.2 && tx5 >= 4) return true;
-    if (Number.isFinite(ch1) && ch1 <= -8 && sells5 > buys5 && tx5 >= 3) return true;
-    return false;
-  }
-
-  /** Kısa vadede güçlü yükseliş — yalnızca pozitif momentum. */
-  function isAthPumpToken(item) {
-    if (isDumpToken(item)) return false;
-    const ch5 = Number(item.change5m);
-    const ch1 = Number(item.change1h);
-    const ch24 = Number(item.change24h);
-    if (Number.isFinite(ch24) && ch24 < 0) return false;
-    if (Number.isFinite(ch1) && ch1 < 0) return false;
-    if (Number.isFinite(ch5) && ch5 < 0) return false;
-    if (Number.isFinite(ch5) && ch5 >= 25) return true;
-    if (Number.isFinite(ch1) && ch1 >= 42) return true;
-    if (Number.isFinite(ch5) && ch5 >= 16 && ch1 >= 24) return true;
-    return false;
-  }
-
-  /** Yoğun alım / hızlı işlem — DUMP ve ATH değilse. */
-  function isHotToken(item) {
-    if (isDumpToken(item) || isAthPumpToken(item)) return false;
-    const buys5 = Number(item.buys5m) || 0;
-    const sells5 = Number(item.sells5m) || 0;
-    const tx5 = buys5 + sells5;
-    const vol5 = Number(item.volume5m) || 0;
-    const ch5 = Number(item.change5m);
-    const ch1 = Number(item.change1h);
-    if (Number.isFinite(ch5) && ch5 < 0) return false;
-    if (Number.isFinite(ch1) && ch1 < 0) return false;
-    if (tx5 >= 16 && vol5 >= 12000 && buys5 >= sells5 * 1.08) return true;
-    if (Number.isFinite(ch5) && ch5 >= 6 && ch5 < 22 && buys5 >= sells5 && tx5 >= 10) return true;
-    if (Number.isFinite(ch1) && ch1 >= 12 && ch1 < 40 && buys5 >= sells5 && tx5 >= 6) return true;
-    return false;
+  /** Tek sınıflandırma: sunucu momentumBadge veya SniperFeedBadges (DUMP > ATH > HOT). */
+  function resolveMomentumBadge(item) {
+    const server = String(item?.momentumBadge || '').toLowerCase();
+    if (server === 'dump' || server === 'ath' || server === 'hot') return server;
+    return globalThis.SniperFeedBadges?.classifyMomentumBadge(item) || null;
   }
 
   function feedBadgeHtml(item) {
     const parts = [];
-    const dumped = isDumpToken(item);
-    if (dumped) {
+    const kind = resolveMomentumBadge(item);
+    if (kind === 'dump') {
       parts.push(
         `<span class="tr-badge tr-badge-dump" title="${escHtml(DUMP_VOLATILITY_TIP)}">` +
           `<span class="tr-badge-dump-lbl">📉 DUMP</span>` +
@@ -307,13 +266,13 @@
     if (showNewListingBadge(item)) {
       parts.push('<span class="tr-badge tr-badge-new" title="Son 48 saat içinde listelendi">NEW</span>');
     }
-    if (isAthPumpToken(item)) {
+    if (kind === 'ath') {
       parts.push(
-        '<span class="tr-badge tr-badge-ath" title="Kısa vadede güçlü yükseliş (ATH bölgesi)">ATH</span>',
+        '<span class="tr-badge tr-badge-ath" title="Güçlü kısa vadeli yükseliş ve alım baskısı">ATH</span>',
       );
-    } else if (isHotToken(item)) {
+    } else if (kind === 'hot') {
       parts.push(
-        '<span class="tr-badge tr-badge-hot" title="Yoğun işlem / hızlı alım"><span class="tr-badge-hot-ico" aria-hidden="true">🔥</span>HOT</span>',
+        '<span class="tr-badge tr-badge-hot" title="Yoğun alım-satım / hızlı işlem"><span class="tr-badge-hot-ico" aria-hidden="true">🔥</span>HOT</span>',
       );
     }
     return parts.length ? `<span class="tr-badges">${parts.join('')}</span>` : '';

@@ -17,6 +17,7 @@ const { buildMarketFromToken } = require('./marketData');
 const { buildLogoCandidates } = require('./tokenLogo');
 
 const { fmtUsd, fmtPriceUsd } = require('./formatUsd');
+const { classifyMomentumBadge } = require('./feedBadges');
 
 /** New Pairs sekmesi — DEX çift oluşturma zamanına göre (kanala eklenme değil). */
 const NEW_PAIRS_MAX_AGE_MS = 48 * 60 * 60 * 1000;
@@ -93,7 +94,7 @@ function tokenToFeedItem(token, audit, rank, reportId = null) {
   const imageUrl = token.tokenImage || candidates[0] || null;
   const imageFallbacks = candidates.filter((u) => u !== imageUrl).slice(0, 4);
   const plat = resolveDexPlatform(token.dex, token.tokenAddress);
-  return {
+  const item = {
     rank,
     mint: token.tokenAddress,
     poolId: token.poolId,
@@ -140,8 +141,12 @@ function tokenToFeedItem(token, audit, rank, reportId = null) {
     level: cardLevelFromAudit(audit),
     postedAt: null,
     listedAt: null,
+    momentumBadge: null,
   };
+  item.momentumBadge = classifyMomentumBadge(item);
+  return item;
 }
+
 
 async function refreshTokenFromDex(storedToken) {
   try {
