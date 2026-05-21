@@ -46,6 +46,7 @@ function normalizePair(pair) {
     isPumpFun: isPump,
     discoverySource: pair._pumpSource || null,
     createdAt: pair.pairCreatedAt ? new Date(pair.pairCreatedAt).toISOString() : null,
+    pairCreatedAt: pair.pairCreatedAt || null,
     ageMinutes,
 
     tokenAddress,

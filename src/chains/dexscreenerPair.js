@@ -30,6 +30,10 @@ function normalizeDexPair(pair, chainKey) {
   const dexRaw = (pair.dexId || 'unknown').toLowerCase();
   const plat = resolveDexPlatform(dexRaw, tokenAddress);
   const quoteSym = pair.quoteToken?.symbol || quote;
+  let ageMinutes = null;
+  if (pair.pairCreatedAt) {
+    ageMinutes = Math.round((Date.now() - pair.pairCreatedAt) / 60_000);
+  }
 
   return {
     chain: chainKey,
@@ -39,6 +43,16 @@ function normalizeDexPair(pair, chainKey) {
     dex: dexRaw,
     dexPlatform: plat.key,
     dexLabel: plat.label,
+    dexShort: plat.short,
+    createdAt: pair.pairCreatedAt ? new Date(pair.pairCreatedAt).toISOString() : null,
+    pairCreatedAt: pair.pairCreatedAt || null,
+    ageMinutes,
+    buys5m: pair.txns?.m5?.buys || 0,
+    sells5m: pair.txns?.m5?.sells || 0,
+    buys1h: pair.txns?.h1?.buys || 0,
+    sells1h: pair.txns?.h1?.sells || 0,
+    buys24h: pair.txns?.h24?.buys || 0,
+    sells24h: pair.txns?.h24?.sells || 0,
     tokenAddress,
     tokenName: pair.baseToken.name || pair.baseToken.symbol || '?',
     tokenSymbol: (pair.baseToken.symbol || '?').toUpperCase(),
@@ -130,6 +144,38 @@ async function searchDexPairs(chainKey, query, limit = 24) {
   return picked.slice(0, limit);
 }
 
+/** Son 48 saat içinde oluşturulan çiftler (DexScreener arama + pairCreatedAt). */
+async function discoverNewDexPairs(chainKey, limit = 48) {
+  const { dsId, quote } = chainMeta(chainKey);
+  const now = Date.now();
+  const maxAge = 48 * 60 * 60 * 1000;
+  const queries = [quote, `${quote}/USD`, 'new', chainKey];
+  const merged = [];
+  const seen = new Set();
+
+  for (const q of queries) {
+    try {
+      const { data } = await http.get(
+        `${config.api.dexScreenerBase}/latest/dex/search?q=${encodeURIComponent(q)}`,
+      );
+      for (const p of data?.pairs || []) {
+        if (String(p.chainId || '').toLowerCase() !== dsId) continue;
+        if (!p.pairCreatedAt || now - p.pairCreatedAt >= maxAge) continue;
+        const addr = p.pairAddress || p.baseToken?.address;
+        if (!addr || seen.has(addr)) continue;
+        seen.add(addr);
+        merged.push(p);
+      }
+    } catch (e) {
+      console.warn(`[dexscreener/${chainKey}] new search "${q}":`, e.message);
+    }
+    if (merged.length >= limit * 2) break;
+  }
+
+  merged.sort((a, b) => (b.pairCreatedAt || 0) - (a.pairCreatedAt || 0));
+  return merged.slice(0, limit);
+}
+
 async function discoverDexPairs(chainKey, limit = 24) {
   const { dsId } = chainMeta(chainKey);
   try {
@@ -159,4 +205,5 @@ module.exports = {
   pickBestPairs,
   searchDexPairs,
   discoverDexPairs,
+  discoverNewDexPairs,
 };

@@ -17,11 +17,34 @@ const { buildMarketFromToken } = require('./marketData');
 const { buildLogoCandidates } = require('./tokenLogo');
 
 const { fmtUsd, fmtPriceUsd } = require('./formatUsd');
-const { buildSeedFeedItems, mergeFeedItems, seedEnabled } = require('./miniAppSeed');
+const {
+  buildSeedFeedItems,
+  buildNewPairsSeedItems,
+  buildStaticNewPairsDemoItems,
+  appendNewPairsPreview,
+  mergeFeedItems,
+  newPairsPreviewEnabled,
+  seedEnabled,
+} = require('./miniAppSeed');
 
-/** New Pairs sekmesi — yalnızca bu süre içinde listelenenler (sonra listeden düşer). */
+/** New Pairs sekmesi — DEX çift oluşturma zamanına göre (kanala eklenme değil). */
 const NEW_PAIRS_MAX_AGE_MS = 48 * 60 * 60 * 1000;
 const NEW_PAIRS_MAX_AGE_HOURS = 48;
+
+/** Çiftin DEX'te listelendiği an (ms). Yoksa null — New Pairs'e alınmaz. */
+function getPairListedAtMs(token) {
+  if (!token) return null;
+  const raw = token.pairCreatedAt ?? token.createdAt;
+  if (raw == null) return null;
+  if (typeof raw === 'number' && raw > 0) return raw;
+  const t = new Date(raw).getTime();
+  return t > 0 ? t : null;
+}
+
+function isWithinNewPairsWindowMs(listedAtMs, now = Date.now()) {
+  if (!listedAtMs) return false;
+  return now - listedAtMs < NEW_PAIRS_MAX_AGE_MS;
+}
 
 function cardLevelFromAudit(audit) {
   if (audit?.isCritical) return 'critical';
@@ -117,10 +140,15 @@ function tokenToFeedItem(token, audit, rank, reportId = null) {
     marketCapUsd: Number(token.marketCapUsd || token.fdvUsd) || 0,
     ageMinutes: token.ageMinutes ?? null,
     txns24h: (Number(token.buys24h) || 0) + (Number(token.sells24h) || 0),
+    buys5m: Number(token.buys5m) || 0,
+    sells5m: Number(token.sells5m) || 0,
+    buys1h: Number(token.buys1h) || 0,
+    sells1h: Number(token.sells1h) || 0,
     risk,
     trustScore: safe,
     level: cardLevelFromAudit(audit),
     postedAt: null,
+    listedAt: null,
   };
 }
 
@@ -142,10 +170,7 @@ async function buildFeedFromBotShares(tab = 'trending', limit = 24, dexFilter = 
   const isNewTab = tab === 'new';
   const fetchLimit = isNewTab ? 400 : limit;
   const now = Date.now();
-  let entries = await botFeedStore.listRecentAsync(fetchLimit, tab);
-  if (isNewTab) {
-    entries = entries.filter((e) => now - (e.postedAt || 0) < NEW_PAIRS_MAX_AGE_MS);
-  }
+  const entries = await botFeedStore.listRecentAsync(fetchLimit, tab);
   const tokens = await Promise.all(
     entries.map(async (entry) => {
       const snap = entry.token;
@@ -174,9 +199,13 @@ async function buildFeedFromBotShares(tab = 'trending', limit = 24, dexFilter = 
     }
     if (!audit) audit = auditFromFeedEntry(entry) || quickAudit(token);
 
+    const listedAt = getPairListedAtMs(token) ?? getPairListedAtMs(entry.token);
+    if (isNewTab && !isWithinNewPairsWindowMs(listedAt, now)) continue;
+
     const item = tokenToFeedItem(token, audit, rank, entry.reportId);
     item.postedAt = entry.postedAt;
-    item.ageFmt = ageFmtForToken(token, entry.postedAt);
+    item.listedAt = listedAt;
+    item.ageFmt = ageFmtForToken(token, listedAt);
     item.txns24hFmt = item.txns24h > 0 ? String(item.txns24h) : '—';
     item.channelTitle = entry.channelTitle;
     items.push(item);
@@ -196,7 +225,7 @@ async function buildFeedFromBotShares(tab = 'trending', limit = 24, dexFilter = 
     ranked = rankFeedByVolume(trendItems, trendCfg.weights);
   } else {
     ranked = items
-      .sort((a, b) => (b.postedAt || 0) - (a.postedAt || 0))
+      .sort((a, b) => (b.listedAt || 0) - (a.listedAt || 0))
       .map((it, i) => ({ ...it, rank: i + 1 }));
   }
 
@@ -208,7 +237,19 @@ async function buildFeedFromBotShares(tab = 'trending', limit = 24, dexFilter = 
 
   let finalItems = ranked;
   let feedSource = 'bot_channel';
-  if (!isNewTab && seedEnabled() && finalItems.length < limit) {
+  if (isNewTab && newPairsPreviewEnabled()) {
+    const preview = await buildNewPairsSeedItems(tokenToFeedItem, quickAudit, 6);
+    const hadLive = finalItems.length > 0;
+    finalItems = appendNewPairsPreview(
+      finalItems.filter((it) => it.listedAt && isWithinNewPairsWindowMs(it.listedAt, now)),
+      preview.filter((it) => it.listedAt && isWithinNewPairsWindowMs(it.listedAt, now)),
+      limit,
+    );
+    if (!hadLive && finalItems.length) feedSource = 'dev_seed';
+  } else if (!isNewTab && finalItems.length === 0 && newPairsPreviewEnabled()) {
+    finalItems = buildStaticNewPairsDemoItems(Math.min(6, limit));
+    feedSource = 'dev_seed';
+  } else if (!isNewTab && seedEnabled() && finalItems.length < limit) {
     const seedItems = await buildSeedFeedItems(tokenToFeedItem, quickAudit);
     if (seedItems.length) {
       finalItems = mergeFeedItems(seedItems, finalItems, limit);
@@ -216,16 +257,19 @@ async function buildFeedFromBotShares(tab = 'trending', limit = 24, dexFilter = 
     }
   }
 
-  const newPairs = isNewTab
-    ? finalItems.length
-    : entries.filter((e) => now - (e.postedAt || 0) < NEW_PAIRS_MAX_AGE_MS).length;
+  let newPairs = 0;
+  for (let i = 0; i < entries.length; i++) {
+    const listedAt = getPairListedAtMs(tokens[i]) ?? getPairListedAtMs(entries[i].token);
+    if (isWithinNewPairsWindowMs(listedAt, now)) newPairs += 1;
+  }
+  if (isNewTab) newPairs = finalItems.length;
   const volFromTokens = finalItems.reduce((s, it) => s + (it.volume24h || 0), 0);
   const dexCountsFinal = countByPlatform(finalItems, (it) => it.dexPlatform);
 
   return {
     tab,
     source: feedSource,
-    sortMode: tab === 'new' ? 'postedAt_desc' : 'volume24h_desc',
+    sortMode: tab === 'new' ? 'listedAt_desc' : 'volume24h_desc',
     updatedAt: Date.now(),
     botCount: await botFeedStore.feedCountAsync(),
     promo: getPromoBanner(),
@@ -248,6 +292,7 @@ async function buildFeedFromBotShares(tab = 'trending', limit = 24, dexFilter = 
     items: finalItems,
     empty: finalItems.length === 0,
     emptyKind: isNewTab && finalItems.length === 0 ? 'new_pairs_empty' : 'generic',
+    previewDemo: finalItems.some((it) => it.preview),
     emptyMessage: finalItems.length === 0
       ? (isNewTab
         ? null
@@ -293,6 +338,9 @@ module.exports = {
   buildFeedFromBotShares,
   analyzeMintAndSave,
   tokenToFeedItem,
+  getPairListedAtMs,
+  isWithinNewPairsWindowMs,
+  ageFmtForToken,
   NEW_PAIRS_MAX_AGE_MS,
   NEW_PAIRS_MAX_AGE_HOURS,
 };

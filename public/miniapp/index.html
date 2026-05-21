@@ -17,7 +17,7 @@
     }
   </script>
   <link rel="stylesheet" href="styles.css?v=45" />
-  <link rel="stylesheet" href="dex-scanner.css?v=48" />
+  <link rel="stylesheet" href="dex-scanner.css?v=59" />
   <link rel="stylesheet" href="dex-scanner-radar.css?v=2" />
   <link rel="stylesheet" href="dex-sidebar.css?v=5" />
   <link rel="stylesheet" href="search-overlay.css?v=2" />
@@ -164,15 +164,47 @@
 
 
     <section id="scannerCardSlot" class="scanner-card-slot hidden" aria-live="polite"></section>
-    <div class="dex-scroll" id="dexScroll" role="tablist" aria-label="DEX platform">
-      <button type="button" class="dex-chip active" data-dex="all">All</button>
-      <button type="button" class="dex-chip" data-dex="pumpfun"><img class="dex-ico-img" src="assets/dex-pumpfun.png?v=8" alt="" width="16" height="16" decoding="async" /><span class="dex-chip-label">Pump.fun</span></button>
-      <button type="button" class="dex-chip" data-dex="raydium"><img class="dex-ico-img" src="assets/dex-raydium.png?v=8" alt="" width="16" height="16" decoding="async" /><span class="dex-chip-label">Raydium</span></button>
-      <button type="button" class="dex-chip" data-dex="meteora"><img class="dex-ico-img" src="assets/dex-meteora.png?v=8" alt="" width="16" height="16" decoding="async" /><span class="dex-chip-label">Meteora</span></button>
-      <button type="button" class="dex-chip" data-dex="orca"><img class="dex-ico-img" src="assets/dex-orca.png?v=8" alt="" width="16" height="16" decoding="async" /><span class="dex-chip-label">Orca</span></button>
+    <div class="chain-scroll" id="chainScroll" role="tablist" aria-label="Ağ filtresi">
+      <button type="button" class="chain-chip active" data-chain="all"><span class="chain-chip-label">Tümü</span></button>
+      <button type="button" class="chain-chip" data-chain="solana"><img class="chain-chip-ico" src="assets/chains/chain-solana.png?v=1" alt="" width="16" height="16" decoding="async" /><span class="chain-chip-label">Solana</span></button>
+      <button type="button" class="chain-chip" data-chain="ton"><img class="chain-chip-ico" src="assets/chains/chain-ton.png?v=1" alt="" width="16" height="16" decoding="async" /><span class="chain-chip-label">TON</span></button>
+      <button type="button" class="chain-chip" data-chain="bsc"><img class="chain-chip-ico" src="assets/chains/chain-bsc.png?v=1" alt="" width="16" height="16" decoding="async" /><span class="chain-chip-label">BSC</span></button>
+      <button type="button" class="chain-chip" data-chain="eth"><img class="chain-chip-ico" src="assets/chains/chain-eth.png?v=1" alt="" width="16" height="16" decoding="async" /><span class="chain-chip-label">ETH</span></button>
     </div>
 
     <h2 class="feed-list-title hidden" id="feedListTitle" aria-live="polite"></h2>
+
+    <section class="new-pairs-panel hidden" id="newPairsPanel" aria-label="New Pairs">
+      <div class="np-head">
+        <div class="np-title-block">
+          <div class="np-title-row">
+            <h2 class="np-title">New Pairs</h2>
+            <div class="feed-tf-dropdown np-age-dropdown" id="npAgeDropdown">
+              <button type="button" class="feed-tf-trigger" id="npAgeTrigger" aria-expanded="false" aria-haspopup="listbox" aria-controls="npAgeMenu">
+                <svg class="feed-tf-ico" width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8"/><path d="M12 7v5l3 2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+                <span class="feed-tf-trigger-label" id="npAgeTriggerLabel">
+                  <span class="feed-tf-label-full" id="npAgeLabelFull">24 saat</span>
+                  <span class="feed-tf-label-compact" id="npAgeLabelCompact">24 saat</span>
+                </span>
+                <svg class="feed-tf-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </button>
+              <div class="feed-tf-menu hidden" id="npAgeMenu" role="listbox" aria-label="Listeleme süresi">
+                <button type="button" class="feed-tf-option" role="option" data-np-age="1h"><span class="feed-tf-check" aria-hidden="true">✓</span>Son 1 saat</button>
+                <button type="button" class="feed-tf-option" role="option" data-np-age="6h"><span class="feed-tf-check" aria-hidden="true">✓</span>Son 6 saat</button>
+                <button type="button" class="feed-tf-option" role="option" data-np-age="12h"><span class="feed-tf-check" aria-hidden="true">✓</span>Son 12 saat</button>
+                <button type="button" class="feed-tf-option active" role="option" data-np-age="24h"><span class="feed-tf-check" aria-hidden="true">✓</span>Son 24 saat</button>
+                <button type="button" class="feed-tf-option" role="option" data-np-age="48h"><span class="feed-tf-check" aria-hidden="true">✓</span>Son 48 saat</button>
+              </div>
+            </div>
+          </div>
+          <p class="np-sub">DEX'te yeni listelenen tokenler · max 48 saat</p>
+        </div>
+        <div class="np-live" id="newPairsLive">
+          <span class="np-live-dot" aria-hidden="true"></span>
+          <span id="newPairsLiveText">CANLI</span>
+        </div>
+      </div>
+    </section>
 
     <section class="feed-toolbar" id="feedToolbar" aria-label="Liste">
       <div class="feed-toolbar-group feed-toolbar-trend">
@@ -206,8 +238,11 @@
 
     <div class="token-table-scroll">
       <div class="token-table-inner">
-        <div class="token-thead">
+        <div class="token-thead" id="tokenTheadMain">
           <span>#</span><span>TOKEN</span><span>MCAP</span><span>PRICE</span><span>AGE</span><span class="th-chg">24H %</span><span class="th-vol">VOL</span><span class="th-liq">LIQ</span><span>RISK</span>
+        </div>
+        <div class="token-thead token-thead-np hidden" id="tokenTheadNp" aria-hidden="true">
+          <span>TOKEN</span><span>AGE</span><span>MCAP</span><span>LIQ</span><span>VOL</span><span>RISK</span>
         </div>
         <div class="feed-loading hidden" id="feedLoading">Bot paylaşımları yükleniyor…</div>
         <div class="token-list" id="homeTokenList"></div>
@@ -461,7 +496,7 @@
   <script src="search-overlay.js?v=5"></script>
   <script src="support.js?v=3"></script>
   <script src="sidebar-account.js?v=4"></script>
-  <script src="app.js?v=98"></script>
+  <script src="app.js?v=108"></script>
   <script src="boot-feed.js?v=3"></script>
 </body>
 </html>

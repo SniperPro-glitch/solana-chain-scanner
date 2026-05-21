@@ -1,7 +1,12 @@
 // Mini App feed — liste yalnızca Solana bot kanalı paylaşımları (sc_feed).
 
 const miniAppFeed = require('./miniAppFeed');
-const { discoverDexPairs, searchDexPairs, normalizeDexPair } = require('./chains/dexscreenerPair');
+const {
+  discoverDexPairs,
+  discoverNewDexPairs,
+  searchDexPairs,
+  normalizeDexPair,
+} = require('./chains/dexscreenerPair');
 const { rankFeedByVolume, buildTrendingTicker } = require('./trendingEngine');
 const { countByPlatform, listPlatformsForUi, matchesDexFilter } = require('./dexPlatform');
 const { getPromoBanner } = require('./miniAppPromo');
@@ -42,7 +47,10 @@ function pairToFeedItem(pair, chainKey, rank) {
     }
   }
   const item = miniAppFeed.tokenToFeedItem(token, audit, rank, null);
+  const listedAt = miniAppFeed.getPairListedAtMs(token);
   item.chain = chainKey;
+  item.listedAt = listedAt;
+  item.ageFmt = miniAppFeed.ageFmtForToken(token, listedAt);
   item.dexPageUrl = token.dexScreener?.url || null;
   item.source = 'dexscreener';
   return item;
@@ -65,6 +73,132 @@ function emptyNonSolanaFeed(chainKey) {
     items: [],
     empty: true,
     emptyMessage: `${label} listesi henüz boş. Tokenler yalnızca Solana bot kanalına düştükçe burada görünür.`,
+  };
+}
+
+async function buildDexChainNewPairsFeed(chainKey, limit = 48) {
+  const pairs = await discoverNewDexPairs(chainKey, Math.min(80, limit * 3));
+  const now = Date.now();
+  let items = [];
+  for (const p of pairs) {
+    const it = pairToFeedItem(p, chainKey, 0);
+    if (!it?.listedAt || !miniAppFeed.isWithinNewPairsWindowMs(it.listedAt, now)) continue;
+    items.push(it);
+  }
+  items.sort((a, b) => (b.listedAt || 0) - (a.listedAt || 0));
+  items = items.slice(0, limit).map((it, i) => ({ ...it, rank: i + 1 }));
+
+  if (!items.length && chainKey === 'solana') {
+    const { buildNewPairsSeedItems, newPairsPreviewEnabled } = require('./miniAppSeed');
+    if (newPairsPreviewEnabled()) {
+      items = await buildNewPairsSeedItems(
+        (t, a, r) => miniAppFeed.tokenToFeedItem(t, a, r, null),
+        (t) => solana.auditToken(t),
+        Math.min(6, limit),
+      );
+    }
+  }
+
+  const vol = items.reduce((s, it) => s + (it.volume24h || 0), 0);
+  const label = { ton: 'TON', bsc: 'BSC', eth: 'Ethereum', solana: 'Solana' }[chainKey] || chainKey;
+  const isPreview = items.some((it) => it.preview);
+
+  return {
+    tab: 'new',
+    chain: chainKey,
+    source: isPreview ? 'dev_seed' : 'dexscreener',
+    sortMode: 'listedAt_desc',
+    updatedAt: Date.now(),
+    promo: getPromoBanner(),
+    trendingTicker: [],
+    dexFilter: 'all',
+    dexPlatforms: listPlatformsForUi(),
+    dexCounts: { all: items.length },
+    stats: {
+      count: items.length,
+      volume24hFmt: fmtUsd(vol),
+      liquidityFmt: fmtUsd(items.reduce((s, it) => s + (it.liquidityUsd || 0), 0)),
+      newPairs: items.length,
+      activeNow: items.length,
+    },
+    items,
+    empty: items.length === 0,
+    emptyKind: items.length === 0 ? 'new_pairs_empty' : undefined,
+    emptyMessage: items.length === 0 ? null : null,
+    previewDemo: isPreview,
+    devSeed: isPreview,
+    newPairsWindowHours: miniAppFeed.NEW_PAIRS_MAX_AGE_HOURS,
+    emptyHint:
+      items.length === 0
+        ? `${label} · Son 48 saatte yeni DEX listelemesi yok`
+        : `${label} · DexScreener yeni listelemeler`,
+  };
+}
+
+async function buildAllChainsNewPairsFeed(limit = 48) {
+  const chains = ['solana', 'ton', 'bsc', 'eth'];
+  let merged = [];
+  const seenMint = new Set();
+  for (const c of chains) {
+    try {
+      const part =
+        c === 'solana'
+          ? await miniAppFeed.buildFeedFromBotShares('new', limit, 'all')
+          : await buildDexChainNewPairsFeed(c, limit);
+      for (const it of part.items || []) {
+        const row = { ...it, chain: it.chain || c };
+        if (!row.mint || seenMint.has(row.mint)) continue;
+        seenMint.add(row.mint);
+        merged.push(row);
+      }
+    } catch (e) {
+      console.warn(`[feed/new/all] ${c}:`, e.message);
+    }
+  }
+  merged = merged
+    .filter((it) => it.listedAt && miniAppFeed.isWithinNewPairsWindowMs(it.listedAt))
+    .sort((a, b) => (b.listedAt || 0) - (a.listedAt || 0))
+    .slice(0, limit)
+    .map((it, i) => ({ ...it, rank: i + 1 }));
+
+  if (!merged.length) {
+    const { buildNewPairsSeedItems, newPairsPreviewEnabled } = require('./miniAppSeed');
+    if (newPairsPreviewEnabled()) {
+      merged = await buildNewPairsSeedItems(
+        (t, a, r) => miniAppFeed.tokenToFeedItem(t, a, r, null),
+        (t) => solana.auditToken(t),
+        Math.min(6, limit),
+      );
+    }
+  }
+
+  const vol = merged.reduce((s, it) => s + (it.volume24h || 0), 0);
+  const isPreview = merged.some((it) => it.preview);
+  return {
+    tab: 'new',
+    chain: 'all',
+    source: isPreview ? 'dev_seed' : 'multi_chain',
+    sortMode: 'listedAt_desc',
+    updatedAt: Date.now(),
+    promo: getPromoBanner(),
+    trendingTicker: [],
+    dexFilter: 'all',
+    dexPlatforms: listPlatformsForUi(),
+    dexCounts: { all: merged.length },
+    stats: {
+      count: merged.length,
+      volume24hFmt: fmtUsd(vol),
+      liquidityFmt: fmtUsd(merged.reduce((s, it) => s + (it.liquidityUsd || 0), 0)),
+      newPairs: merged.length,
+      activeNow: merged.length,
+    },
+    items: merged,
+    empty: merged.length === 0,
+    emptyKind: merged.length === 0 ? 'new_pairs_empty' : undefined,
+    emptyMessage: null,
+    previewDemo: isPreview,
+    devSeed: isPreview,
+    newPairsWindowHours: miniAppFeed.NEW_PAIRS_MAX_AGE_HOURS,
   };
 }
 
@@ -121,8 +255,15 @@ async function buildDexChainFeed(chainKey, tab = 'trending', limit = 24, dexFilt
 }
 
 async function buildFeed(tab = 'trending', limit = 24, dexFilter = 'all', chain = 'solana', searchQ = '') {
-  const chainKey = String(chain || 'solana').toLowerCase();
+  let chainKey = String(chain || 'solana').toLowerCase();
   const q = String(searchQ || '').trim();
+  const apiTab = tab === 'home' ? 'trending' : tab;
+
+  if (apiTab === 'new' && chainKey === 'all') {
+    return buildAllChainsNewPairsFeed(limit);
+  }
+
+  if (chainKey === 'all') chainKey = 'solana';
 
   if (!LIVE_CHAINS.has(chainKey)) {
     return {
@@ -135,8 +276,13 @@ async function buildFeed(tab = 'trending', limit = 24, dexFilter = 'all', chain 
     };
   }
 
+  if (chainKey !== 'solana') {
+    if (apiTab === 'new') return buildDexChainNewPairsFeed(chainKey, limit);
+    return emptyNonSolanaFeed(chainKey);
+  }
+
   if (chainKey === 'solana') {
-    const solTab = tab === 'home' ? 'trending' : tab;
+    const solTab = apiTab;
     const feed = await miniAppFeed.buildFeedFromBotShares(solTab, limit, dexFilter);
     feed.chain = 'solana';
     feed.source = feed.source || 'bot_channel';

@@ -63,6 +63,8 @@
   let feedTab = 'trending';
   let dexFilter = 'all';
   let activeChain = 'solana';
+  /** Üst şerit: Tümü | Solana | TON | BSC | ETH */
+  let feedChainFilter = 'solana';
   let homeShellBound = false;
   let homeFeedBooted = false;
   let detailShellBound = false;
@@ -73,6 +75,22 @@
   let feedEmptyMessage = '';
   let feedEmptyKind = '';
   const NEW_PAIRS_MAX_AGE_MS = 48 * 60 * 60 * 1000;
+  const NEW_PAIRS_AGE_MS = {
+    '1h': 1 * 60 * 60 * 1000,
+    '6h': 6 * 60 * 60 * 1000,
+    '12h': 12 * 60 * 60 * 1000,
+    '24h': 24 * 60 * 60 * 1000,
+    '48h': NEW_PAIRS_MAX_AGE_MS,
+  };
+  let newPairsAgeFilter = '24h';
+  let npAgeMenuOpen = false;
+  const NEW_PAIRS_AGE_META = {
+    '1h': { label: 'Son 1 saat', short: '1 saat' },
+    '6h': { label: 'Son 6 saat', short: '6 saat' },
+    '12h': { label: 'Son 12 saat', short: '12 saat' },
+    '24h': { label: 'Son 24 saat', short: '24 saat' },
+    '48h': { label: 'Son 48 saat', short: '48 saat' },
+  };
   let feedListMode = 'top';
   let feedTimeframe = '24h';
   const FEED_TF_META = {
@@ -165,6 +183,7 @@
   const DEX_LOGO_SRC = {
     pumpfun: 'assets/dex-pumpfun.png?v=8',
     pumpswap: 'assets/dex-pumpfun.png?v=8',
+    pump: 'assets/dex-pumpfun.png?v=8',
     raydium: 'assets/dex-raydium.png?v=8',
     meteora: 'assets/dex-meteora.png?v=8',
     orca: 'assets/dex-orca.png?v=8',
@@ -173,7 +192,12 @@
   /** Alt satır — Pump.fun / PumpSwap yazısının solu (kapsül) */
   const SWAP_BADGE_SRC = 'assets/swap-badge.png?v=2';
 
-  function avatarCornerHtml(dexKey) {
+  function avatarCornerHtml(dexKey, chainKey) {
+    const ck = chainKey || 'solana';
+    const src = CHAIN_PILL_ICONS[ck];
+    if (src) {
+      return `<img class="tr-chain-ico" src="${src}" alt="" width="10" height="10" decoding="async" />`;
+    }
     if (dexKey === 'pumpswap' || dexKey === 'pumpfun') return '';
     return '<span class="tr-chain-dot" aria-hidden="true">◎</span>';
   }
@@ -192,6 +216,50 @@
     return `<span class="tr-dex-badge dex-${escHtml(dexKey)}">${ico}<span class="tr-dex-badge-txt">${escHtml(label)}</span></span>`;
   }
 
+  function getNewPairsFilterMs() {
+    return NEW_PAIRS_AGE_MS[newPairsAgeFilter] || NEW_PAIRS_MAX_AGE_MS;
+  }
+
+  function isWithinNewPairsWindow(item, windowMs = null) {
+    const listed = item?.listedAt;
+    if (!listed) return false;
+    if (Date.now() - listed >= NEW_PAIRS_MAX_AGE_MS) return false;
+    const maxMs = windowMs == null ? getNewPairsFilterMs() : windowMs;
+    return Date.now() - listed < maxMs;
+  }
+
+  function isHotToken(item) {
+    const tx5 = (Number(item.buys5m) || 0) + (Number(item.sells5m) || 0);
+    const tx1 = (Number(item.buys1h) || 0) + (Number(item.sells1h) || 0);
+    const vol5 = Number(item.volume5m) || 0;
+    if (tx5 >= 12) return true;
+    if (vol5 >= 8000) return true;
+    if (tx5 >= 6 && tx1 > 0 && tx5 / tx1 >= 0.35) return true;
+    return false;
+  }
+
+  function feedBadgeHtml(item, opts = {}) {
+    const onNewTab = !!opts.newTab || feedTab === 'new';
+    const parts = [];
+    if (onNewTab) {
+      parts.push('<span class="tr-badge tr-badge-new">NEW</span>');
+    } else if (isWithinNewPairsWindow(item, NEW_PAIRS_MAX_AGE_MS)) {
+      parts.push('<span class="tr-badge tr-badge-new">NEW</span>');
+    }
+    if (isHotToken(item)) {
+      parts.push(
+        '<span class="tr-badge tr-badge-hot"><span class="tr-badge-hot-ico" aria-hidden="true">🔥</span>HOT</span>',
+      );
+    }
+    return parts.length ? `<span class="tr-badges">${parts.join('')}</span>` : '';
+  }
+
+  function npRiskShort(label, band) {
+    if (band === 'high' || /HIGH/i.test(label || '')) return 'HIGH';
+    if (band === 'low' || /LOW/i.test(label || '')) return 'LOW';
+    return 'MED';
+  }
+
   function renderFeedRow(item, extraClass = '') {
     const risk = item.risk || {};
     const rc = risk.band || 'mid';
@@ -199,13 +267,15 @@
     const chg = getFeedChange(item);
     const up = chg == null ? true : Number(chg) >= 0;
     const pairShort = escHtml((item.pairLabel || 'SOL').replace(/^.*\//, '') || 'SOL');
-    const dexKey = item.dexPlatform || 'other';
-    const pin = avatarCornerHtml(dexKey);
+    const dexKey = item.dexPlatform || item.dex || 'other';
+    const chainKey = item.chain || 'solana';
+    const pin = avatarCornerHtml(dexKey, chainKey);
     const avatar = item.imageUrl
       ? `<span class="tr-avatar-wrap"><img class="tr-img" src="${escHtml(item.imageUrl)}" alt="" loading="lazy" data-fb="${escHtml((item.imageFallbacks || []).join('|'))}" />${pin}</span>`
       : `<span class="tr-avatar-wrap"><span class="tr-avatar">${escHtml((item.symbol || '?').slice(0, 2))}</span>${pin}</span>`;
     const reportAttr = item.reportId ? ` data-report="${escHtml(item.reportId)}"` : '';
-    const dexBadge = dexSubBadgeHtml(dexKey, item.dexLabel);
+    const dexBadge = dexSubBadgeHtml(dexKey, item.dexLabel || item.dexShort);
+    const badges = feedBadgeHtml(item);
     const subParts = [
       dexBadge,
       item.marketCapUsdFmt && item.marketCapUsdFmt !== '—'
@@ -217,7 +287,7 @@
     const chainAttr = item.chain ? ` data-chain="${escHtml(item.chain)}"` : '';
     return `<article class="token-row ${extraClass}" data-mint="${escHtml(item.mint)}" data-dex="${escHtml(dexKey)}" data-chain="${escHtml(item.chain || 'solana')}"${reportAttr}${dexUrlAttr}${chainAttr}>
       <span class="tr-rank">${item.rank ?? '·'}</span>
-      <div class="tr-token">${avatar}<div class="tr-meta"><div class="tr-name">${escHtml(item.symbol)}<span class="tr-pair"> / ${pairShort}</span></div><div class="tr-sub">${subParts || '—'}</div></div></div>
+      <div class="tr-token">${avatar}<div class="tr-meta"><div class="tr-name">${escHtml(item.symbol)}<span class="tr-pair"> / ${pairShort}</span>${badges}</div><div class="tr-sub">${subParts || '—'}</div></div></div>
       <span class="tr-mcap">${escHtml(item.marketCapUsdFmt || '—')}</span>
       <span class="tr-price" title="${item.priceUsd != null ? escHtml(String(item.priceUsd)) : ''}">${escHtml(fmtPriceDisplay(item))}</span>
       <span class="tr-age">${escHtml(item.ageFmt || '—')}</span>
@@ -225,6 +295,40 @@
       <span class="tr-vol">${escHtml(getFeedVolumeFmt(item))}</span>
       <span class="tr-liq">${escHtml(item.liquidityUsdFmt || '—')}</span>
       ${riskColHtml(rc, label, up)}
+    </article>`;
+  }
+
+  function renderNewPairsRow(item) {
+    const risk = item.risk || {};
+    const rc = risk.band || 'mid';
+    const riskTxt = npRiskShort(risk.label, rc);
+    const dexKey = item.dexPlatform || item.dex || 'other';
+    const chainKey = item.chain || 'solana';
+    const pin = avatarCornerHtml(dexKey, chainKey);
+    const dexLabel = item.dexLabel || item.dexShort || dexKey;
+    const avatar = item.imageUrl
+      ? `<span class="tr-avatar-wrap np-avatar"><img class="tr-img" src="${escHtml(item.imageUrl)}" alt="" loading="lazy" data-fb="${escHtml((item.imageFallbacks || []).join('|'))}" />${pin}</span>`
+      : `<span class="tr-avatar-wrap np-avatar"><span class="tr-avatar">${escHtml((item.symbol || '?').slice(0, 2))}</span>${pin}</span>`;
+    const badges = feedBadgeHtml(item, { newTab: true });
+    const reportAttr = item.reportId ? ` data-report="${escHtml(item.reportId)}"` : '';
+    const dexUrlAttr = item.dexPageUrl ? ` data-dex-url="${escHtml(item.dexPageUrl)}"` : '';
+    const buys5 = Number(item.buys5m) || 0;
+    const sells5 = Number(item.sells5m) || 0;
+    const act =
+      buys5 + sells5 > 0
+        ? `<span class="np-act-buy">${buys5} alım</span><span class="np-act-sep">·</span><span class="np-act-sell">${sells5} satım</span><span class="np-act-w">5dk</span>`
+        : '<span class="np-act-muted">Aktivite bekleniyor</span>';
+    return `<article class="token-row np-row risk-${rc}" data-mint="${escHtml(item.mint)}" data-dex="${escHtml(dexKey)}" data-chain="${escHtml(chainKey)}"${reportAttr}${dexUrlAttr}>
+      <span class="np-ribbon-new" aria-hidden="true">NEW</span>
+      <div class="np-main">
+        <div class="tr-token np-token">${avatar}<div class="tr-meta"><div class="tr-name">${escHtml(item.symbol)}${badges}</div><div class="tr-sub np-pair">${escHtml(chainKey.toUpperCase())} · ${dexSubBadgeHtml(dexKey, dexLabel)}</div></div></div>
+        <span class="tr-age">${escHtml(item.ageFmt || '—')}</span>
+        <span class="tr-mcap" title="${escHtml(item.marketCapUsdFmt || '')}">${escHtml(item.marketCapUsdFmt || '—')}</span>
+        <span class="tr-liq" title="${escHtml(item.liquidityUsdFmt || '')}">${escHtml(item.liquidityUsdFmt || '—')}</span>
+        <span class="tr-vol" title="${escHtml(item.volume24hFmt || '')}">${escHtml(item.volume24hFmt || '—')}</span>
+        <span class="np-risk risk-badge ${rc}">${escHtml(riskTxt)}</span>
+      </div>
+      <div class="np-foot">${act}</div>
     </article>`;
   }
 
@@ -326,10 +430,18 @@
       location.hash = '';
       reportId = null;
       feedListMode = 'new';
+      feedEmptyMessage = '';
+      feedEmptyKind = '';
+      if (feedChainFilter !== 'all' && feedChainFilter !== 'solana') {
+        feedChainFilter = 'solana';
+        activeChain = 'solana';
+        updateHeaderChainPill('solana');
+      }
       setFeedTab('new');
       showScannerHome();
       syncFeedToolbarUi();
       updateFeedListTitle();
+      syncFeedChainChips();
       void loadHomeFeed('new', 'new', { force: true });
       return;
     }
@@ -431,6 +543,104 @@
       btn.classList.toggle('active', active);
     });
     updateFeedListTitle();
+    if (feedTab === 'new') {
+      feedEmptyMessage = '';
+      feedEmptyKind = '';
+    }
+    syncNewPairsView();
+  }
+
+  function syncNewPairsView() {
+    const isNp = feedTab === 'new' && !scannerNavActive;
+    $('homeFeedPanel')?.classList.toggle('is-new-pairs', isNp);
+    $('newPairsPanel')?.classList.toggle('hidden', !isNp);
+    $('feedToolbar')?.classList.toggle('hidden', isNp);
+    $('tokenTheadMain')?.classList.toggle('hidden', isNp);
+    $('tokenTheadNp')?.classList.toggle('hidden', !isNp);
+    $('tokenTheadNp')?.setAttribute('aria-hidden', isNp ? 'false' : 'true');
+    $('tokenTableInner')?.classList.toggle('token-table-np', isNp);
+    updateNewPairsLiveBar();
+    syncNewPairsAgeUi();
+  }
+
+  function updateNewPairsLiveBar() {
+    const txt = $('newPairsLiveText');
+    if (!txt || feedTab !== 'new') return;
+    const n = prepareFeedListItems(feedItemsFull).length;
+    const label = NEW_PAIRS_AGE_MS[newPairsAgeFilter] ? newPairsAgeFilter : '48h';
+    txt.textContent = n ? `${n} çift · ${label}` : `Boş · ${label}`;
+  }
+
+  function npAgeMeta(ageKey) {
+    return NEW_PAIRS_AGE_META[ageKey] || NEW_PAIRS_AGE_META['24h'];
+  }
+
+  function syncNewPairsAgeUi() {
+    const meta = npAgeMeta(newPairsAgeFilter);
+    const full = $('npAgeLabelFull');
+    const compact = $('npAgeLabelCompact');
+    if (full) full.textContent = meta.short;
+    if (compact) compact.textContent = meta.short;
+    document.querySelectorAll('#npAgeMenu .feed-tf-option[data-np-age]').forEach((btn) => {
+      const on = btn.dataset.npAge === newPairsAgeFilter;
+      btn.classList.toggle('active', on);
+      btn.setAttribute('aria-selected', on ? 'true' : 'false');
+    });
+  }
+
+  function setNpAgeMenuOpen(open) {
+    npAgeMenuOpen = !!open;
+    const dd = $('npAgeDropdown');
+    const menu = $('npAgeMenu');
+    const trigger = $('npAgeTrigger');
+    dd?.classList.toggle('open', npAgeMenuOpen);
+    menu?.classList.toggle('hidden', !npAgeMenuOpen);
+    trigger?.setAttribute('aria-expanded', npAgeMenuOpen ? 'true' : 'false');
+  }
+
+  function setNewPairsAgeFilter(ageKey) {
+    if (!NEW_PAIRS_AGE_MS[ageKey]) return;
+    newPairsAgeFilter = ageKey;
+    setNpAgeMenuOpen(false);
+    syncNewPairsAgeUi();
+    updateNewPairsLiveBar();
+    applySearchFilter();
+  }
+
+  let newPairsAgeFilterBound = false;
+
+  function bindNewPairsAgeFilter() {
+    const dd = $('npAgeDropdown');
+    const trigger = $('npAgeTrigger');
+    const menu = $('npAgeMenu');
+    if (!trigger || !menu || !dd) return;
+    if (newPairsAgeFilterBound) return;
+    newPairsAgeFilterBound = true;
+
+    trigger.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      setNpAgeMenuOpen(!npAgeMenuOpen);
+    });
+
+    menu.querySelectorAll('.feed-tf-option[data-np-age]').forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setNewPairsAgeFilter(btn.dataset.npAge || '24h');
+      });
+    });
+
+    document.addEventListener('click', (e) => {
+      if (dd.contains(e.target)) return;
+      setNpAgeMenuOpen(false);
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') setNpAgeMenuOpen(false);
+    });
+
+    syncNewPairsAgeUi();
   }
 
   function setSearchHint(msg) {
@@ -595,9 +805,34 @@
     return global.SniperSidebar?.getChain?.() || activeChain || 'solana';
   }
 
-  function syncDexChipsForChain(chain) {
-    const scroll = $('dexScroll');
-    if (scroll) scroll.classList.toggle('hidden', chain !== 'solana');
+  function getFeedChainParam() {
+    return feedChainFilter || activeChain || 'solana';
+  }
+
+  function syncFeedChainChips() {
+    const key = feedChainFilter || 'solana';
+    document.querySelectorAll('.chain-chip[data-chain]').forEach((btn) => {
+      btn.classList.toggle('active', btn.dataset.chain === key);
+    });
+  }
+
+  function switchFeedChain(chainId) {
+    const id = String(chainId || 'solana').toLowerCase();
+    feedChainFilter = id;
+    if (id !== 'all') {
+      activeChain = id;
+      try {
+        localStorage.setItem('sniperSidebarChainV1', id);
+      } catch {
+        /* yoksay */
+      }
+      updateHeaderChainPill(id);
+    }
+    syncFeedChainChips();
+    homeFeedCacheKey = '';
+    homeFeedInflight = null;
+    const uiTab = feedTab === 'scan' ? 'trending' : feedTab;
+    void loadHomeFeed(feedTabForApi(resolveFeedTab(uiTab)), uiTab, { force: true });
   }
 
   const CHAIN_UI = {
@@ -640,7 +875,7 @@
     const title = feedTab === 'trending'
       ? 'Trading List'
       : feedTab === 'new'
-        ? 'New Pairs · son 48 saat'
+        ? ''
         : '';
     if (title) {
       el.textContent = title;
@@ -666,8 +901,8 @@
   function switchActiveChain(chain) {
     const chainKey = String(chain || 'solana').toLowerCase();
     activeChain = chainKey;
-    syncDexChipsForChain(chainKey);
-    if (chainKey !== 'solana' && dexFilter !== 'all') setDexFilter('all');
+    feedChainFilter = chainKey;
+    syncFeedChainChips();
     applyChainHeaderUi(chainKey);
     homeFeedCacheKey = '';
     homeFeedInflight = null;
@@ -710,20 +945,17 @@
     return item[meta.volFmtKey] || item.volume24hFmt || '—';
   }
 
-  function isWithinNewPairsWindow(item) {
-    const posted = item?.postedAt;
-    if (!posted) return false;
-    return Date.now() - posted < NEW_PAIRS_MAX_AGE_MS;
-  }
-
   function prepareFeedListItems(items) {
     let list = Array.isArray(items) ? [...items] : [];
+    if (feedChainFilter && feedChainFilter !== 'all') {
+      list = list.filter((it) => String(it.chain || 'solana').toLowerCase() === feedChainFilter);
+    }
     if (feedListMode === 'gainers') {
       list = list.filter((it) => (getFeedChange(it) ?? -1) > 0);
       list.sort((a, b) => (getFeedChange(b) ?? 0) - (getFeedChange(a) ?? 0));
     } else if (feedListMode === 'new' || feedTab === 'new') {
-      list = list.filter(isWithinNewPairsWindow);
-      list.sort((a, b) => (b.postedAt || 0) - (a.postedAt || 0));
+      list = list.filter((it) => isWithinNewPairsWindow(it));
+      list.sort((a, b) => (b.listedAt || 0) - (a.listedAt || 0));
     } else {
       const volKey = feedTfMeta(feedTimeframe).volKey;
       list.sort((a, b) => (b[volKey] || 0) - (a[volKey] || 0));
@@ -832,7 +1064,7 @@
     const prepared = prepareFeedListItems(feedItemsFull);
     renderTokenList(prepared, {
       searching: !!(searchQuery || '').trim(),
-      emptyMessage: feedEmptyMessage,
+      emptyMessage: feedTab === 'new' ? '' : feedEmptyMessage,
     });
   }
 
@@ -1014,7 +1246,8 @@
       return;
     }
     if (label) {
-      label.textContent = sortMode === 'postedAt_desc' ? 'NEW ↓' : '24H VOL ↓';
+      label.textContent =
+        sortMode === 'listedAt_desc' || sortMode === 'postedAt_desc' ? 'NEW ↓' : '24H VOL ↓';
     }
     const chipHtml = ticker.map((t) => {
       const up = t.change24h == null || Number(t.change24h) >= 0;
@@ -1051,12 +1284,13 @@
   }
 
   function renderNewPairsEmptyState() {
+    const ageLbl = newPairsAgeFilter || '24h';
     return `<div class="feed-empty-pro" role="status">
       <span class="feed-empty-pro-glow" aria-hidden="true"></span>
       <span class="feed-empty-pro-icon" aria-hidden="true">✦</span>
       <strong class="feed-empty-pro-title">YENİ LİSTELEME HENÜZ YOK</strong>
-      <p class="feed-empty-pro-lead">Son <b>48 saat</b> içinde kanala eklenen yeni çift bulunmuyor. İlk listeleme geldiğinde burada görünecek; 48 saat sonra listeden otomatik kalkar.</p>
-      <span class="feed-empty-pro-tag">NEW PAIRS · 48H WINDOW</span>
+      <p class="feed-empty-pro-lead">Seçili sürede (<b>${escHtml(ageLbl)}</b>) DEX'te yeni listelenen çift yok. Listelenince burada görünür; <b>48 saat</b> sonra bu listeden düşer, Trending'de kalır.</p>
+      <span class="feed-empty-pro-tag">NEW PAIRS · MAX 48H</span>
     </div>`;
   }
 
@@ -1065,7 +1299,8 @@
     if (!list) return;
     const searching = !!opts.searching || !!(searchQuery || '').trim();
     const lastRow = searching ? '' : renderLastReportRow();
-    const rows = (items || []).map((it) => renderFeedRow(it)).join('');
+    const useNp = feedTab === 'new' && !searching;
+    const rows = (items || []).map((it) => (useNp ? renderNewPairsRow(it) : renderFeedRow(it))).join('');
     if (!rows) {
       if (!searching && (feedTab === 'new' || feedEmptyKind === 'new_pairs_empty')) {
         list.innerHTML = renderNewPairsEmptyState();
@@ -1081,6 +1316,7 @@
     }
     list.innerHTML = lastRow + rows;
     bindFeedRowLogos(list);
+    if (feedTab === 'new') updateNewPairsLiveBar();
   }
 
   function applyMarketStats(stats, items) {
@@ -1119,10 +1355,11 @@
     const c = CHAIN_UI[chainKey] || { label: chainKey, src: 'DexScreener' };
     if (body.tab === 'new' || feedTab === 'new') {
       const n = body.items?.length ?? 0;
+      const demo = body.previewDemo ? ' · örnek liste' : '';
       if (body.empty) {
-        txt.textContent = `◎ ${c.label} · New Pairs · son 48 saat · liste boş`;
+        txt.textContent = `◎ ${c.label} · New Pairs · DEX listeleme 48h · boş`;
       } else {
-        txt.textContent = `◎ ${c.label} · New Pairs · son 48 saat · ${n} çift`;
+        txt.textContent = `◎ ${c.label} · New Pairs · DEX listeleme 48h · ${n} çift${demo}`;
       }
       delete txt.dataset.lockChain;
       bar.classList.remove('hidden');
@@ -1134,32 +1371,36 @@
     }
     const n = body.botCount ?? body.items?.length ?? 0;
     const vol = body.stats?.volume24hFmt || '—';
-    const src = body.source === 'bot_channel' ? 'Bot + arama' : c.src;
-    txt.textContent = `◎ ${c.label} · ${src} · ${n} token · ${vol} 24h`;
+    const demo = body.previewDemo ? ' · örnek liste' : '';
+    const src =
+      body.source === 'dev_seed'
+        ? 'Örnek'
+        : body.source === 'bot_channel'
+          ? 'Bot + arama'
+          : c.src;
+    txt.textContent = `◎ ${c.label} · ${src} · ${n} token · ${vol} 24h${demo}`;
     delete txt.dataset.lockChain;
     bar.classList.remove('hidden');
   }
 
-  function setDexFilter(dex) {
-    dexFilter = dex || 'all';
-    document.querySelectorAll('.dex-chip[data-dex]').forEach((btn) => {
-      btn.classList.toggle('active', btn.dataset.dex === dexFilter);
-    });
-  }
-
-  function updateDexChipCounts(counts) {
-    if (!counts) return;
-    document.querySelectorAll('.dex-chip[data-dex]').forEach((btn) => {
-      const key = btn.dataset.dex;
+  function updateChainChipCounts(items) {
+    const counts = { all: 0, solana: 0, ton: 0, bsc: 0, eth: 0 };
+    for (const it of items || []) {
+      counts.all += 1;
+      const c = String(it.chain || 'solana').toLowerCase();
+      if (counts[c] != null) counts[c] += 1;
+    }
+    document.querySelectorAll('.chain-chip[data-chain]').forEach((btn) => {
+      const key = btn.dataset.chain;
       const n = counts[key];
-      let badge = btn.querySelector('.dex-count');
-      if (n == null || key === 'all') {
+      let badge = btn.querySelector('.chain-count');
+      if (n == null || !n) {
         badge?.remove();
         return;
       }
       if (!badge) {
         badge = document.createElement('span');
-        badge.className = 'dex-count';
+        badge.className = 'chain-count';
         btn.appendChild(badge);
       }
       badge.textContent = String(n);
@@ -1198,8 +1439,12 @@
       }
       return body;
     }
-    updateDexChipCounts(body.dexCounts);
-    if (body.dexFilter) setDexFilter(body.dexFilter);
+    updateChainChipCounts(items);
+    if (body.chain && body.chain !== 'all') {
+      feedChainFilter = body.chain;
+      activeChain = body.chain;
+      syncFeedChainChips();
+    }
     applyMarketStats(body.stats || PLACEHOLDER_STATS, items);
     applyHomeExtras(body);
     updateFeedMetaBar(body);
@@ -1220,8 +1465,8 @@
   async function loadHomeFeed(apiTab = 'trending', uiTab = 'trending', opts = {}) {
     // Ana liste tam feed; metin araması yalnızca search-overlay (/api/search).
     const q = '';
-    const chain = getActiveChain();
-    const cacheKey = `${apiTab}|${chain}|${dexFilter}`;
+    const chain = getFeedChainParam();
+    const cacheKey = `${apiTab}|${chain}|${newPairsAgeFilter}`;
     if (!opts.force && homeFeedInflight) return homeFeedInflight;
     if (!opts.force && feedItemsFull.length && cacheKey === homeFeedCacheKey) {
       applySearchFilter();
@@ -1236,8 +1481,8 @@
     else feedTab = 'trending';
     setFeedTab(feedTab);
 
-    activeChain = chain;
-    syncDexChipsForChain(activeChain);
+    if (chain !== 'all') activeChain = chain;
+    syncFeedChainChips();
     searchQuery = '';
     const sideInp = $('sidebarSearchInput');
     if (sideInp) sideInp.value = '';
@@ -1252,18 +1497,14 @@
       try {
         const qs = new URLSearchParams({
           tab: apiTab,
-          limit: '24',
-          dex: dexFilter,
-          chain: activeChain,
+          limit: feedTab === 'new' ? '48' : '24',
+          dex: 'all',
+          chain,
         });
         const res = await fetch(`/api/feed?${qs.toString()}`, { cache: 'no-store', credentials: 'same-origin' });
         const body = await res.json().catch(() => ({}));
         if (!res.ok) throw new Error(body.message || 'feed_failed');
         const items = body.items?.length ? body.items : [];
-        if (dexFilter !== 'all' && !items.length && (body.dexCounts?.all || 0) > 0) {
-          setDexFilter('all');
-          return loadHomeFeed(apiTab, uiTab, { force: true });
-        }
         homeFeedCacheKey = cacheKey;
         return ingestFeedResponse(body, q);
       } catch (e) {
@@ -1336,17 +1577,19 @@
       });
     });
 
-    document.querySelectorAll('.dex-chip[data-dex]').forEach((btn) => {
+    document.querySelectorAll('.chain-chip[data-chain]').forEach((btn) => {
       btn.addEventListener('click', () => {
-        const d = btn.dataset.dex || 'all';
-        if (d === dexFilter) return;
-        setDexFilter(d);
-        fetchFeed(feedTab);
+        const c = btn.dataset.chain || 'solana';
+        if (c === feedChainFilter) return;
+        switchFeedChain(c);
       });
     });
+    syncFeedChainChips();
 
     bindFeedTfDropdown();
+    bindNewPairsAgeFilter();
     syncFeedToolbarUi();
+    syncNewPairsView();
     document.querySelectorAll('.feed-mode-chip[data-list-mode]').forEach((btn) => {
       btn.addEventListener('click', () => setFeedListMode(btn.dataset.listMode || 'top'));
     });
@@ -1406,7 +1649,7 @@
     if (homeFeedBooted) return;
     homeFeedBooted = true;
     activeChain = getActiveChain();
-    syncDexChipsForChain(activeChain);
+    syncFeedChainChips();
     updateHeaderChainPill(activeChain);
     syncFeedToolbarUi();
     setFeedTab('home');
