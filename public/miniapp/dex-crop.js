@@ -397,7 +397,7 @@
       `profil=${profileId} w=${document.documentElement.dataset.dexCropW || '?'}`,
       `beklenen viewH=${t.viewH} top=${t.iframeTop + (t.shiftDown || 0)} h=${t.iframeH}`,
       `gerçek wrap=${w} iframe top=${top} h=${h}`,
-      `rev=dex-crop-v35`,
+      `rev=dex-crop-v36 layout=2026-05`,
     ].join('\n');
   }
 
