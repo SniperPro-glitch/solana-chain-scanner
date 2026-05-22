@@ -20,6 +20,26 @@
 
   const PROFILE_ORDER = ['web', 'app11', 'app13', 'app13pm', 'app16'];
 
+  /** 18 May — alım/satım dış çerçeve (5 cihaz aynı); iç iframeTop vb. kalibrede değişir */
+  const LOCKED_TRADES_FRAME = {
+    viewH: 302,
+    left: 1,
+    width: 98,
+    maskTop: 0,
+    maskFoot: 0,
+    maskTopOn: true,
+    maskFootOn: true,
+    clipLeft: 0,
+    clipRight: 0,
+    clipTop: 0,
+    clipBottom: 0,
+  };
+
+  function enforceTradesFrame(trades) {
+    if (!trades) return { ...LOCKED_TRADES_FRAME };
+    return { ...trades, ...LOCKED_TRADES_FRAME };
+  }
+
   const DEFAULT_BLOCK = {
     chart: {
       stageH: 340,
@@ -39,14 +59,14 @@
       shiftDown: 0,
     },
     trades: {
-      viewH: 268,
-      iframeH: 980,
-      iframeTop: -820,
+      viewH: 302,
+      iframeH: 845,
+      iframeTop: -590,
       shiftDown: 0,
-      left: -3,
-      width: 106,
-      maskTop: 8,
-      maskFoot: 24,
+      left: 1,
+      width: 98,
+      maskTop: 0,
+      maskFoot: 0,
       maskTopOn: true,
       maskFootOn: true,
       clipLeft: 0,
@@ -481,7 +501,7 @@
     const s = settings || loadForProfile(profileId);
     const root = document.documentElement;
     const c = s.chart;
-    const t = s.trades;
+    const t = enforceTradesFrame(s.trades);
     const brandCrop = Number(c.brandCrop) || CHART_BRAND_CROP;
     const chartDown = Number(c.shiftDown) || 0;
     const tapeDown = Number(s.tape?.shiftDown) || 0;
