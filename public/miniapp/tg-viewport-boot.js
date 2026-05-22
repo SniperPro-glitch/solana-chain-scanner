@@ -1,12 +1,11 @@
 /**
- * Telegram açılışında hemen expand (yarım sheet kalmasın).
- * telegram-viewport.js ile birlikte çalışır.
+ * İlk açılışta bir kez expand (sürekli pump kaydırır).
  */
 (function () {
   const tg = window.Telegram?.WebApp;
   if (!tg) return;
 
-  function pump() {
+  function once() {
     try {
       if (typeof tg.expand === 'function') tg.expand();
     } catch (_) {
@@ -19,19 +18,13 @@
     }
   }
 
-  pump();
+  once();
   if (typeof tg.ready === 'function') {
     try {
-      tg.ready(pump);
+      tg.ready(once);
     } catch (_) {
-      setTimeout(pump, 0);
+      setTimeout(once, 0);
     }
   }
-
-  let n = 0;
-  const tick = setInterval(() => {
-    n += 1;
-    pump();
-    if (tg.isExpanded || n >= 30) clearInterval(tick);
-  }, 100);
+  setTimeout(once, 250);
 })();

@@ -86,15 +86,11 @@ html.tg-mini-app.tg-fullscreen .scan-header {
 
 /* X Kapat sol üst — hamburger/logo TG ile çakışmasın (16 PM / island) */
 html.tg-mini-app.tg-expanded .scan-header {
-  padding-left: calc(12px + max(var(--tg-content-safe-left, 0px), var(--tg-chrome-left, 0px), 48px));
+  padding-left: calc(12px + max(var(--tg-content-safe-left, 0px), 48px));
 }
 
 html.tg-mini-app.tg-fullscreen .scan-header {
   padding-left: calc(12px + var(--tg-content-safe-left, 0px));
-}
-
-html[data-safe-tier="island"] .scan-header {
-  padding-top: calc(10px + var(--sniper-content-top, 56px));
 }
 
 .scanner-home {
@@ -1770,7 +1766,6 @@ html.scanner-mode .search-box {
 /* Market overview */
 .market-overview-label {
   flex: 0 0 auto;
-  margin-top: auto;
   padding: 8px 16px 6px;
   font-size: 9px;
   font-weight: 700;
