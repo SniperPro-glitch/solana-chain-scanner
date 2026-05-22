@@ -16,9 +16,12 @@
   }
 
   function isTelegramApp() {
+    if (window.SniperHost?.isTelegram) return window.SniperHost.isTelegram();
     const tg = window.Telegram?.WebApp;
     if (!tg) return false;
     if (String(tg.initData || '').trim().length > 0) return true;
+    const uid = tg.initDataUnsafe?.user?.id;
+    if (uid != null && String(uid) !== '0') return true;
     const p = String(tg.platform || '').toLowerCase();
     return ['android', 'ios', 'macos', 'tdesktop', 'weba', 'webk'].includes(p);
   }
@@ -34,7 +37,6 @@
   function detect() {
     const forced = fromUrl();
     if (forced) return forced;
-    if (document.documentElement.classList.contains('web-browser')) return 'web';
     if (!isTelegramApp()) return 'web';
     const w = layoutWidth();
     if (w >= 429) return 'app16';

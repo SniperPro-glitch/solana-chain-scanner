@@ -152,7 +152,13 @@
   }
 
   function isTelegram() {
-    return !!global.Telegram?.WebApp?.initData || document.documentElement.classList.contains('tg-mini-app');
+    if (global.SniperHost?.isTelegram) return global.SniperHost.isTelegram();
+    const tg = global.Telegram?.WebApp;
+    if (!tg) return document.documentElement.classList.contains('tg-mini-app');
+    if (String(tg.initData || '').trim().length > 0) return true;
+    const uid = tg.initDataUnsafe?.user?.id;
+    if (uid != null && String(uid) !== '0') return true;
+    return document.documentElement.classList.contains('tg-mini-app');
   }
 
   function detectProfile() {
@@ -604,7 +610,7 @@
   /** Web localStorage ölçüsü — enableCalibrateSession olmadan (panel açılmaz). */
   function loadProfileForMotor(profileId) {
     const id = profileId || detectProfile();
-    if (document.documentElement.classList.contains('web-browser')) {
+    if (!isTelegram()) {
       try {
         const raw = localStorage.getItem(STORAGE_KEY);
         if (raw) {
