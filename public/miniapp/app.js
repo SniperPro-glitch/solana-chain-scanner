@@ -84,6 +84,11 @@
   let resizeHandler = null;
   let chartResizeObs = null;
   let livePollTimer = null;
+  let chartDrawMode = null;
+  let chartDrawings = [];
+  let chartTrendPending = null;
+  let chartClickUnsub = null;
+  const CHART_DRAW_COLOR = '#f0b429';
 
   let feedTab = 'trending';
   let dexFilter = 'all';
@@ -1722,6 +1727,7 @@
     setupNav();
     setupTfButtons();
     setupChartType();
+    setupChartDrawTools();
     setupCopy();
   }
 
@@ -2466,8 +2472,132 @@
     }
   }
 
+  function chartTimeToNum(t) {
+    if (typeof t === 'number') return t;
+    if (typeof t === 'string') return Math.floor(new Date(`${t}T00:00:00Z`).getTime() / 1000);
+    return 0;
+  }
+
+  function clearChartDrawings() {
+    for (const d of chartDrawings) {
+      try {
+        if (d.priceLine && candleSeries?.removePriceLine) candleSeries.removePriceLine(d.priceLine);
+        if (d.trendSeries && chartApi?.removeSeries) chartApi.removeSeries(d.trendSeries);
+      } catch {
+        /* seri kaldırıldı */
+      }
+    }
+    chartDrawings = [];
+    chartTrendPending = null;
+  }
+
+  function setChartDrawMode(mode) {
+    chartDrawMode = mode;
+    chartTrendPending = null;
+    document.querySelectorAll('.chart-draw-btn').forEach((b) => {
+      const draw = b.dataset.draw;
+      b.classList.toggle('active', draw === mode && draw !== 'clear');
+    });
+    const stage = document.querySelector('.chart-stage');
+    if (stage) {
+      stage.classList.toggle('chart-draw-hline', mode === 'hline');
+      stage.classList.toggle('chart-draw-trend', mode === 'trend');
+    }
+  }
+
+  function priceFromChartClick(param) {
+    const series = candleSeries || lineSeries;
+    if (!series || !param.point || typeof series.coordinateToPrice !== 'function') return null;
+    const price = series.coordinateToPrice(param.point.y);
+    return Number.isFinite(price) ? price : null;
+  }
+
+  function onChartDrawClick(param) {
+    if (!chartDrawMode || chartDrawMode === 'clear' || !param.time) return;
+    const price = priceFromChartClick(param);
+    if (price == null) return;
+    const time = param.time;
+    const mainSeries = candleSeries || lineSeries;
+    if (!mainSeries) return;
+
+    if (chartDrawMode === 'hline') {
+      if (typeof mainSeries.createPriceLine !== 'function') return;
+      const priceLine = mainSeries.createPriceLine({
+        price,
+        color: CHART_DRAW_COLOR,
+        lineWidth: 1,
+        lineStyle: 2,
+        axisLabelVisible: true,
+        title: '',
+      });
+      chartDrawings.push({ type: 'hline', priceLine });
+      return;
+    }
+
+    if (chartDrawMode === 'trend') {
+      if (!chartTrendPending) {
+        chartTrendPending = { time, price };
+        return;
+      }
+      let tA = chartTrendPending.time;
+      let pA = chartTrendPending.price;
+      let tB = time;
+      let pB = price;
+      if (chartTimeToNum(tA) > chartTimeToNum(tB)) {
+        [tA, tB] = [tB, tA];
+        [pA, pB] = [pB, pA];
+      }
+      chartTrendPending = null;
+      const trendSeries = addChartSeries(chartApi, 'line', {
+        color: CHART_DRAW_COLOR,
+        lineWidth: 2,
+        lineStyle: 0,
+        priceLineVisible: false,
+        lastValueVisible: false,
+        crosshairMarkerVisible: false,
+      });
+      trendSeries.setData([
+        { time: tA, value: pA },
+        { time: tB, value: pB },
+      ]);
+      chartDrawings.push({ type: 'trend', trendSeries });
+    }
+  }
+
+  function attachChartDrawClick() {
+    if (!chartApi || typeof chartApi.subscribeClick !== 'function') return;
+    if (chartClickUnsub) {
+      chartClickUnsub();
+      chartClickUnsub = null;
+    }
+    chartClickUnsub = chartApi.subscribeClick(onChartDrawClick);
+  }
+
+  function setupChartDrawTools() {
+    const toolbar = $('chartDrawToolbar');
+    if (!toolbar || toolbar.dataset.bound) return;
+    toolbar.dataset.bound = '1';
+    toolbar.addEventListener('click', (e) => {
+      const btn = e.target.closest('.chart-draw-btn');
+      if (!btn) return;
+      const draw = btn.dataset.draw;
+      if (draw === 'clear') {
+        clearChartDrawings();
+        setChartDrawMode(null);
+        return;
+      }
+      setChartDrawMode(chartDrawMode === draw ? null : draw);
+    });
+  }
+
   function destroyChart() {
     document.documentElement.classList.remove('chart-interacting');
+    clearChartDrawings();
+    setChartDrawMode(null);
+    if (chartClickUnsub) {
+      chartClickUnsub();
+      chartClickUnsub = null;
+    }
     if (chartResizeObs) {
       chartResizeObs.disconnect();
       chartResizeObs = null;
@@ -2740,6 +2870,8 @@
         chartResizeObs = new ResizeObserver(() => resizeHandler());
         chartResizeObs.observe(container);
       }
+
+      attachChartDrawClick();
 
     } catch (e) {
       console.warn('chart render', e);

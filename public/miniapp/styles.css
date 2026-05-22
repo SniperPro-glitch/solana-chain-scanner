@@ -722,8 +722,73 @@ html.detail-mode body {
 .ohlc-chg.up { color: var(--green); }
 .ohlc-chg.down { color: var(--red); }
 
-.chart-stage { position: relative; }
+.chart-stage {
+  position: relative;
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+}
+
+.chart-draw-toolbar {
+  flex: 0 0 76px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 6px;
+  border-right: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(0, 0, 0, 0.28);
+  z-index: 6;
+}
+
+.chart-draw-btn {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: rgba(13, 17, 23, 0.9);
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 1.25;
+  padding: 8px 4px;
+  text-align: center;
+  cursor: pointer;
+  font-family: inherit;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+
+.chart-draw-btn:hover {
+  color: var(--text);
+  border-color: var(--border-strong);
+}
+
+.chart-draw-btn.active {
+  color: #f0b429;
+  border-color: rgba(240, 180, 41, 0.45);
+  background: rgba(240, 180, 41, 0.08);
+}
+
+.chart-draw-btn[data-draw="clear"] {
+  margin-top: auto;
+  color: var(--red);
+}
+
+.chart-draw-btn[data-draw="clear"]:hover {
+  border-color: rgba(239, 83, 80, 0.4);
+  background: rgba(239, 83, 80, 0.08);
+}
+
+.chart-pane {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+}
+
 .chart-canvas { height: 100%; width: 100%; }
+
+.chart-stage.chart-draw-hline .chart-pane,
+.chart-stage.chart-draw-trend .chart-pane {
+  cursor: crosshair;
+}
 
 .chart-loader {
   position: absolute;
@@ -839,8 +904,8 @@ html.detail-mode body {
   overscroll-behavior: contain;
 }
 
-.chart-stage .chart-canvas,
-.chart-stage canvas {
+.chart-pane .chart-canvas,
+.chart-pane canvas {
   touch-action: none;
   pointer-events: auto;
 }
