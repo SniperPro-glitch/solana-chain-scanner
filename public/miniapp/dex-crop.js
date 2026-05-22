@@ -100,7 +100,17 @@
   /** Koddaki ├Âl├ğ├╝ler + sunucudaki g├╝ncel profiller birle┼şir (bo┼ş sunucu varsay─▒lan─▒ ezmez). */
   function getBakedSource() {
     const file = globalThis.__DEX_CROP_BAKED__;
-    if (!isCalibrateMode()) return file?.profiles ? file : null;
+    if (!isCalibrateMode()) {
+      const server = serverBaked;
+      if (!file?.profiles && !server?.profiles) return null;
+      if (!server?.profiles) return file;
+      if (!file?.profiles) return server;
+      const profiles = {};
+      PROFILE_ORDER.forEach((id) => {
+        profiles[id] = server.profiles[id] || file.profiles[id];
+      });
+      return { version: 1, updatedAt: server.updatedAt || file.updatedAt, profiles };
+    }
     const server = serverBaked;
     if (!file?.profiles) return server || null;
     if (!server?.profiles) return file;
@@ -135,11 +145,11 @@
   }
 
   async function fetchServerBaked() {
-    if (!isCalibrateMode() && layoutSessionDone()) return null;
     try {
       const r = await fetch(`/api/crop-profiles?v=${Date.now()}`, { cache: 'no-store' });
       if (r.ok) {
         serverBaked = await r.json();
+        globalThis.__DEX_CROP_BAKED__ = serverBaked;
         return serverBaked;
       }
     } catch {
