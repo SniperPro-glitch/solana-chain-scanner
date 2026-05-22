@@ -54,8 +54,6 @@ html.tg-mini-app body::before {
 }
 
 /* Telegram: viewport tam yükseklik; üst boşluk yalnızca header satırında (çift offset yok) */
-html.tg-mini-app.tg-maxed .scanner-home,
-html.tg-mini-app.tg-maxed .boot-screen,
 html.tg-mini-app.tg-expanded .scanner-home,
 html.tg-mini-app.tg-expanded .boot-screen,
 html.tg-mini-app.tg-fullscreen .scanner-home,
@@ -68,7 +66,6 @@ html.tg-mini-app.tg-fullscreen .boot-screen {
   box-sizing: border-box;
 }
 
-html.tg-mini-app.tg-maxed .view-detail,
 html.tg-mini-app.tg-expanded .view-detail,
 html.tg-mini-app.tg-fullscreen .view-detail {
   top: 0;
@@ -79,20 +76,9 @@ html.tg-mini-app.tg-fullscreen .view-detail {
   box-sizing: border-box;
 }
 
-/* Expanded — X Kapat barı altında; ekstra safe-area padding yok */
 html.tg-mini-app.tg-expanded .scan-header,
-html.tg-expanded .scan-header {
-  padding-left: 12px;
-  padding-right: 12px;
-  padding-top: 10px;
-}
-
-/* Tam ekran — Dynamic Island / notch */
-html.tg-mini-app.tg-fullscreen .scan-header,
-html.tg-fullscreen .scan-header {
-  padding-top: calc(10px + var(--tg-safe-top, env(safe-area-inset-top, 0px)));
-  padding-left: 16px;
-  padding-right: 16px;
+html.tg-mini-app.tg-fullscreen .scan-header {
+  padding-top: calc(8px + var(--sniper-content-top, 0px));
 }
 
 .scanner-home {
@@ -119,26 +105,12 @@ html.tg-fullscreen .scan-header {
   color: var(--text);
   font-family: 'Inter', system-ui, sans-serif;
   padding-top: 0;
-  padding-bottom: 0;
+  padding-bottom: var(--footer-stack);
   box-sizing: border-box;
   position: relative;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-
-.scan-header {
-  flex: 0 0 auto;
-}
-
-.home-feed-panel {
-  flex: 1 1 auto;
-  min-height: 0;
   overflow-x: hidden;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
-  padding-bottom: var(--footer-stack);
-  box-sizing: border-box;
 }
 
 .scanner-home::before {
@@ -606,15 +578,6 @@ html.web-browser .promo-banner-img {
   color: var(--muted);
 }
 
-/* Üst meta satırı kapalı (TG yan sekme / telefon); geliştirici: ?showmeta=1 */
-.feed-meta-bar {
-  display: none !important;
-}
-
-html[data-show-feed-meta="1"] .feed-meta-bar {
-  display: flex !important;
-}
-
 .feed-meta-dot {
   width: 8px;
   height: 8px;
@@ -705,8 +668,8 @@ html.web-browser .scan-header {
   flex-shrink: 0;
 }
 
-html.tg-expanded .scan-header .btn-sidebar-open {
-  margin-left: 0;
+html.tg-expanded .scan-header {
+  padding-left: calc(12px + var(--tg-content-safe-left, 0px));
 }
 
 .btn-connect {
@@ -1191,7 +1154,7 @@ html.scanner-mode .search-box {
 .tr-dex-badge.dex-meteora { color: var(--yellow); border-color: rgba(245, 166, 35, 0.35); }
 .tr-dex-badge.dex-orca { color: var(--cyan); border-color: rgba(0, 229, 255, 0.35); }
 
-/* Token table — doğal yükseklik (flex-grow ortadaki boşluğu yapıyordu) */
+/* Token table */
 .token-table-scroll {
   overflow-x: hidden;
   margin: 0 0 8px;
@@ -1743,7 +1706,7 @@ html.scanner-mode .search-box {
 
 .feed-loading {
   text-align: center;
-  padding: 16px 20px;
+  padding: 20px;
   font-size: 12px;
   color: var(--muted);
 }
@@ -1752,7 +1715,6 @@ html.scanner-mode .search-box {
 
 /* Market overview */
 .market-overview-label {
-  flex: 0 0 auto;
   padding: 8px 16px 6px;
   font-size: 9px;
   font-weight: 700;

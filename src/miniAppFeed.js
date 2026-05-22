@@ -308,7 +308,7 @@ async function buildFeedFromBotShares(tab = 'trending', limit = 24, dexFilter = 
     emptyMessage: finalItems.length === 0
       ? (isNewTab
         ? null
-        : 'Liste boş — veri şu an alınamadı.')
+        : 'Liste boş — DexScreener veya bot kanalından veri alınamadı.')
       : null,
     liveRefresh: true,
     newPairsWindowHours: NEW_PAIRS_MAX_AGE_HOURS,

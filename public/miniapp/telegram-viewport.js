@@ -1,5 +1,5 @@
 /**
- * Telegram — expand + requestFullscreen (retry) + sabit viewport.
+ * Telegram — genişletilmiş tam yükseklik (referans: X Kapat + ok + menü görünür, içerik altında).
  */
 (function () {
   const tg = window.Telegram?.WebApp;
@@ -8,82 +8,35 @@
   const BG = '#060910';
   const root = document.documentElement;
   const MOBILE_PLATFORMS = ['android', 'ios', 'android_x', 'unigram'];
-  let heightLocked = false;
-  let lockedHeight = 0;
-
-  function skipFullscreen() {
-    try {
-      return /(?:^|[?&])nofs=1(?:&|$)/.test(location.search || '');
-    } catch (_) {
-      return false;
-    }
-  }
-
-  function enterFullscreen() {
-    if (skipFullscreen() || typeof tg.requestFullscreen !== 'function') return;
-    try {
-      tg.requestFullscreen();
-    } catch (_) {
-      /* yoksay */
-    }
-    setTimeout(() => {
-      if (!tg.isFullscreen && typeof tg.requestFullscreen === 'function') {
-        try {
-          tg.requestFullscreen();
-        } catch (_) {
-          /* yoksay */
-        }
-      }
-    }, 300);
-    setTimeout(() => {
-      if (!tg.isFullscreen && typeof tg.requestFullscreen === 'function') {
-        try {
-          tg.requestFullscreen();
-        } catch (_) {
-          /* yoksay */
-        }
-      }
-    }, 1000);
-  }
 
   function applySafeArea() {
-    if (typeof window.SniperSafeArea?.apply === 'function') {
+    if (typeof window.SniperSafeArea?.scheduleRetries === 'function') {
+      window.SniperSafeArea.scheduleRetries();
+    } else if (typeof window.SniperSafeArea?.apply === 'function') {
       window.SniperSafeArea.apply();
     }
 
-    const stable = Math.round(Number(tg.viewportStableHeight) || 0);
-    const vh = Math.round(Number(tg.viewportHeight) || 0);
-    const next = stable > 0 ? stable : vh;
-
-    if (!heightLocked && next > 0) {
-      lockedHeight = next;
-      heightLocked = true;
-      root.style.setProperty('--app-height', `${lockedHeight}px`);
-    } else if (heightLocked && lockedHeight > 0) {
-      root.style.setProperty('--app-height', `${lockedHeight}px`);
+    if (tg.viewportStableHeight) {
+      root.style.setProperty('--app-height', `${tg.viewportStableHeight}px`);
+    } else if (tg.viewportHeight) {
+      root.style.setProperty('--app-height', `${tg.viewportHeight}px`);
     }
 
     const fs = !!tg.isFullscreen;
-    const expanded = !!tg.isExpanded;
     root.classList.toggle('tg-fullscreen', fs);
-    root.classList.toggle('tg-expanded', !fs && expanded);
-    root.classList.toggle('tg-sheet', !fs && !expanded);
+    root.classList.toggle('tg-expanded', !fs);
     root.classList.toggle('tg-chrome-hidden', fs);
-    root.classList.toggle('tg-maxed', fs || expanded || heightLocked);
   }
 
-  function ensureMaxViewport() {
-    if (window.SniperHost?.isWebBrowser?.()) return;
-    try {
-      if (typeof tg.expand === 'function') tg.expand();
-    } catch (_) {
-      /* yoksay */
-    }
-    try {
-      if (typeof tg.requestViewport === 'function') tg.requestViewport({ height: 10000 });
-    } catch (_) {
-      /* yoksay */
-    }
+  let profileTimer = null;
+
+  function scheduleProfileApply() {
+    clearTimeout(profileTimer);
+    profileTimer = setTimeout(() => {
+      if (window.SniperCropProfile?.applyWhenReady) window.SniperCropProfile.applyWhenReady();
+      else if (window.SniperCropProfile?.apply) window.SniperCropProfile.apply();
+      if (typeof window.SniperSafeArea?.apply === 'function') window.SniperSafeArea.apply();
+    }, 60);
   }
 
   function hideTelegramUiExtras() {
@@ -106,60 +59,95 @@
     }
   }
 
-  function bootTelegramUi() {
+  /** Referans layout: API fullscreen değil, expand + Telegram üst barı */
+  function ensureExpandedMode() {
     if (window.SniperHost?.isWebBrowser?.()) return;
 
-    const run = () => {
-      hideTelegramUiExtras();
-      disableSwipeClose();
-      const p = String(tg.platform || '').toLowerCase();
-      root.classList.toggle('tg-sticky-mobile', MOBILE_PLATFORMS.includes(p));
-
+    if (tg.isFullscreen && typeof tg.exitFullscreen === 'function') {
       try {
-        if (typeof tg.setHeaderColor === 'function') tg.setHeaderColor(BG);
-        if (typeof tg.setBackgroundColor === 'function') tg.setBackgroundColor(BG);
+        tg.exitFullscreen();
       } catch (_) {
         /* yoksay */
       }
+    }
 
-      ensureMaxViewport();
-      enterFullscreen();
-      setTimeout(ensureMaxViewport, 300);
-      applySafeArea();
-      setTimeout(applySafeArea, 450);
-      setTimeout(() => {
-        applySafeArea();
-        if (typeof window.SniperSafeArea?.lockLayout === 'function') {
-          window.SniperSafeArea.lockLayout();
-        }
-      }, 1200);
-
-      if (window.SniperCropProfile?.applyWhenReady) window.SniperCropProfile.applyWhenReady();
-
-      if (tg.BackButton && !tg.__sniperBackBound) {
-        tg.__sniperBackBound = true;
-        tg.BackButton.onClick(() => {
-          if (typeof window.SniperNavBack === 'function') window.SniperNavBack();
-        });
-      }
-      tg.BackButton?.hide?.();
-      if (typeof window.syncTgBackButton === 'function') window.syncTgBackButton();
-    };
-
-    if (typeof tg.ready === 'function') {
+    if (typeof tg.expand === 'function') {
       try {
-        tg.ready(run);
+        tg.expand();
       } catch (_) {
-        run();
+        /* yoksay */
       }
-    } else {
-      run();
+    }
+    if (typeof tg.requestViewport === 'function') {
+      try {
+        tg.requestViewport({ height: 10000 });
+      } catch (_) {
+        /* yoksay */
+      }
     }
   }
 
-  function onFullscreenChanged() {
+  function scheduleExpandRetries() {
+    const delays = [0, 80, 200, 450, 900, 1600];
+    delays.forEach((ms) => {
+      setTimeout(() => {
+        if (tg.isFullscreen) ensureExpandedMode();
+        else if (typeof tg.expand === 'function') {
+          try {
+            tg.expand();
+          } catch (_) {
+            /* yoksay */
+          }
+        }
+        applySafeArea();
+      }, ms);
+    });
+  }
+
+  function applyStickyMobile() {
+    const p = String(tg.platform || '').toLowerCase();
+    root.classList.toggle('tg-sticky-mobile', MOBILE_PLATFORMS.includes(p));
+  }
+
+  function bindBackButton() {
+    if (!tg.BackButton) return;
+    if (!tg.__sniperBackBound) {
+      tg.__sniperBackBound = true;
+      tg.BackButton.onClick(() => {
+        if (typeof window.SniperNavBack === 'function') window.SniperNavBack();
+      });
+    }
+    tg.BackButton.hide();
+  }
+
+  function bootTelegramUi() {
+    if (window.SniperHost?.isWebBrowser?.()) return;
+
+    tg.ready();
+    hideTelegramUiExtras();
+    disableSwipeClose();
+    applyStickyMobile();
+
+    try {
+      if (typeof tg.setHeaderColor === 'function') tg.setHeaderColor(BG);
+      if (typeof tg.setBackgroundColor === 'function') tg.setBackgroundColor(BG);
+    } catch (_) {
+      /* yoksay */
+    }
+
+    ensureExpandedMode();
+    scheduleExpandRetries();
+
     applySafeArea();
-    if (window.SniperCropProfile?.apply) window.SniperCropProfile.apply();
+    scheduleProfileApply();
+    bindBackButton();
+    if (typeof window.syncTgBackButton === 'function') window.syncTgBackButton();
+  }
+
+  function onFullscreenChanged() {
+    if (tg.isFullscreen) ensureExpandedMode();
+    applySafeArea();
+    scheduleProfileApply();
     if (typeof window.syncTgBackButton === 'function') window.syncTgBackButton();
   }
 
@@ -173,23 +161,20 @@
 
   if (typeof tg.onEvent === 'function') {
     tg.onEvent('viewportChanged', () => {
-      if (!heightLocked) applySafeArea();
+      applySafeArea();
+      scheduleProfileApply();
     });
     tg.onEvent('safeAreaChanged', applySafeArea);
     tg.onEvent('contentSafeAreaChanged', applySafeArea);
     tg.onEvent('fullscreenChanged', onFullscreenChanged);
-    tg.onEvent('fullscreenFailed', () => {
-      ensureMaxViewport();
-      enterFullscreen();
-      applySafeArea();
-    });
+    tg.onEvent('fullscreenFailed', scheduleExpandRetries);
   }
 
   document.addEventListener('visibilitychange', () => {
     if (document.hidden || window.SniperHost?.isWebBrowser?.()) return;
     disableSwipeClose();
-    ensureMaxViewport();
-    enterFullscreen();
+    hideTelegramUiExtras();
+    ensureExpandedMode();
     applySafeArea();
   });
 
@@ -203,9 +188,10 @@
   window.__tgBootUi = bootTelegramUi;
   window.__tgApplySafeArea = applySafeArea;
   window.__tgApplyExpanded = () => {
-    ensureMaxViewport();
-    enterFullscreen();
+    ensureExpandedMode();
+    scheduleExpandRetries();
+    hideTelegramUiExtras();
     applySafeArea();
   };
-  window.__tgEnterFullscreen = enterFullscreen;
+  window.__tgApplyFullscreen = window.__tgApplyExpanded;
 })();

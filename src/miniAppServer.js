@@ -590,16 +590,14 @@ function getWebAppBaseUrl() {
 function getWebAppEntryUrl() {
   const base = getWebAppBaseUrl();
   const v = MINIAPP_BUILD_ID;
+  if (!v || v === 'dev') return base;
   try {
     const u = new URL(base);
-    if (v && v !== 'dev') u.searchParams.set('dv', v);
-    /* mode=compact → yarım sheet; kaldır (tam yükseklik varsayılan + JS expand) */
-    if (u.searchParams.get('mode') === 'compact') u.searchParams.delete('mode');
+    u.searchParams.set('dv', v);
     return u.toString();
   } catch {
     const sep = base.includes('?') ? '&' : '?';
-    const dv = v && v !== 'dev' ? `${sep}dv=${encodeURIComponent(v)}` : '';
-    return `${base}${dv}`;
+    return `${base}${sep}dv=${encodeURIComponent(v)}`;
   }
 }
 

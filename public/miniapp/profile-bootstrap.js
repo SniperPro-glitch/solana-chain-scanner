@@ -38,20 +38,12 @@
     return 'app13';
   }
 
-  let lockedProfile = null;
-
   function detect() {
     const forced = fromUrl();
-    if (forced) {
-      lockedProfile = forced;
-      return forced;
-    }
-    if (lockedProfile && isTelegramApp()) return lockedProfile;
+    if (forced) return forced;
     const w = layoutWidth();
     if (!isTelegramApp() && w > 500) return 'web';
-    const id = detectByWidth(w);
-    if (isTelegramApp() && w >= 390) lockedProfile = id;
-    return id;
+    return detectByWidth(w);
   }
 
   function apply() {

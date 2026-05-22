@@ -3,15 +3,6 @@
   function isWebBrowser() {
     return window.SniperHost?.isWebBrowser?.() ?? !tg;
   }
-
-  function isTgMiniApp() {
-    if (/(?:^|[?&])showmeta=1(?:&|$)/.test(location.search || '')) return false;
-    if (window.SniperHost?.isTelegram?.()) return true;
-    if (document.documentElement.classList.contains('tg-mini-app')) return true;
-    if (window.SniperTgLaunch?.hasLaunchData?.()) return true;
-    const p = String(window.Telegram?.WebApp?.platform || '').toLowerCase();
-    return ['android', 'ios', 'macos', 'tdesktop', 'weba', 'webk', 'unigram'].includes(p);
-  }
   let apiConfig = { botApiBase: '', webAppBase: '' };
   let apiConfigPromise = null;
   let homeFeedInflight = null;
@@ -1410,9 +1401,7 @@
         opts.emptyMessage ||
         (searching
           ? 'Eşleşen token yok.'
-          : isTgMiniApp()
-            ? 'Liste boş — veri şu an yok.'
-            : 'Henüz bot paylaşımı yok. Tokenler yalnızca Solana bot kanalına düştükçe listelenir.');
+          : 'Henüz bot paylaşımı yok. Tokenler yalnızca Solana bot kanalına düştükçe listelenir.');
       list.innerHTML = `<p class="home-cta">${escHtml(emptyMsg)}</p>`;
       return;
     }
@@ -1449,12 +1438,6 @@
     const bar = $('feedMetaBar');
     const txt = $('feedMetaText');
     if (!bar || !txt) return;
-    const showMeta = /(?:^|[?&])showmeta=1(?:&|$)/.test(location.search || '');
-    document.documentElement.dataset.showFeedMeta = showMeta ? '1' : '0';
-    if (!showMeta || isTgMiniApp()) {
-      bar.classList.add('hidden');
-      return;
-    }
     if (!body) {
       bar.classList.add('hidden');
       return;
@@ -1553,7 +1536,7 @@
       updateFeedMetaBar(body);
       feedItemsFull = [];
       applySearchFilter();
-      if (!q && body.emptyMessage && feedEmptyKind !== 'new_pairs_empty' && !isTgMiniApp()) {
+      if (!q && body.emptyMessage && feedEmptyKind !== 'new_pairs_empty') {
         showToast(body.emptyMessage.slice(0, 80));
       }
       return body;
@@ -1574,7 +1557,7 @@
     }
     if (body.chain) activeChain = body.chain;
     applySearchFilter();
-    if (body.empty && body.emptyMessage && feedEmptyKind !== 'new_pairs_empty' && !isTgMiniApp()) {
+    if (body.empty && body.emptyMessage && feedEmptyKind !== 'new_pairs_empty') {
       showToast('Liste boş — /post ile kanala paylaşın');
     }
     return body;
@@ -1609,10 +1592,7 @@
     setSearchHint('');
     const loadingEl = $('feedLoading');
     const list = $('homeTokenList');
-    if (loadingEl) {
-      if (isTgMiniApp()) loadingEl.textContent = 'Veriler yükleniyor…';
-      loadingEl.classList.remove('hidden');
-    }
+    loadingEl?.classList.remove('hidden');
     list?.classList.add('dimmed');
 
     homeFeedInflight = (async () => {
@@ -1786,11 +1766,7 @@
     setSearchHint('');
     const list = $('homeTokenList');
     if (list) list.innerHTML = '';
-    const loadingEl = $('feedLoading');
-    if (loadingEl) {
-      if (isTgMiniApp()) loadingEl.textContent = 'Veriler yükleniyor…';
-      loadingEl.classList.remove('hidden');
-    }
+    $('feedLoading')?.classList.remove('hidden');
     void loadPromoBanner();
     void loadHomeFeed('home', 'home', { force: true });
     setTimeout(() => {
@@ -2705,12 +2681,6 @@
     });
     window.addEventListener('hashchange', onReportRouteChange);
     window.addEventListener('popstate', onReportRouteChange);
-    document.documentElement.dataset.showFeedMeta = '0';
-    $('feedMetaBar')?.classList.add('hidden');
-    window.addEventListener('sniper-host-changed', () => {
-      $('feedMetaBar')?.classList.add('hidden');
-      updateFeedMetaBar(null);
-    });
   }
 
   async function main() {
