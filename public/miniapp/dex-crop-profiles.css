@@ -1,0 +1,106 @@
+/* Otomatik — scripts/gen-dex-crop-css.js */
+html[data-dex-crop-profile="web"] {
+  --dex-trades-view-h: 302px;
+  --dex-iframe-h: 845px;
+  --dex-iframe-top: -590px;
+  --dex-trades-shift-down: 0px;
+  --dex-iframe-left: 1%;
+  --dex-iframe-width: 98%;
+}
+html[data-dex-crop-profile="web"] .dex-trades-embed-wrap {
+  height: 302px !important;
+  min-height: 302px !important;
+  max-height: 302px !important;
+}
+
+html[data-dex-crop-profile="app11"] {
+  --dex-trades-view-h: 302px;
+  --dex-iframe-h: 845px;
+  --dex-iframe-top: -590px;
+  --dex-trades-shift-down: 0px;
+  --dex-iframe-left: 1%;
+  --dex-iframe-width: 98%;
+}
+html[data-dex-crop-profile="app11"] .dex-trades-embed-wrap {
+  height: 302px !important;
+  min-height: 302px !important;
+  max-height: 302px !important;
+}
+
+html[data-dex-crop-profile="app13"] {
+  --dex-trades-view-h: 302px;
+  --dex-iframe-h: 845px;
+  --dex-iframe-top: -590px;
+  --dex-trades-shift-down: 0px;
+  --dex-iframe-left: 1%;
+  --dex-iframe-width: 98%;
+}
+html[data-dex-crop-profile="app13"] .dex-trades-embed-wrap {
+  height: 302px !important;
+  min-height: 302px !important;
+  max-height: 302px !important;
+}
+
+html[data-dex-crop-profile="app13pm"] {
+  --dex-trades-view-h: 302px;
+  --dex-iframe-h: 845px;
+  --dex-iframe-top: -590px;
+  --dex-trades-shift-down: 0px;
+  --dex-iframe-left: 1%;
+  --dex-iframe-width: 98%;
+}
+html[data-dex-crop-profile="app13pm"] .dex-trades-embed-wrap {
+  height: 302px !important;
+  min-height: 302px !important;
+  max-height: 302px !important;
+}
+
+html[data-dex-crop-profile="app16"] {
+  --dex-trades-view-h: 302px;
+  --dex-iframe-h: 845px;
+  --dex-iframe-top: -590px;
+  --dex-trades-shift-down: 0px;
+  --dex-iframe-left: 1%;
+  --dex-iframe-width: 98%;
+}
+html[data-dex-crop-profile="app16"] .dex-trades-embed-wrap {
+  height: 302px !important;
+  min-height: 302px !important;
+  max-height: 302px !important;
+}
+
+.dex-trades-embed-wrap {
+  position: relative;
+  overflow: hidden;
+  background: #0d1117;
+}
+.dex-trades-embed {
+  position: absolute;
+  border: 0;
+  left: var(--dex-iframe-left, 0);
+  width: var(--dex-iframe-width, 100%);
+  height: var(--dex-iframe-h, 800px);
+  top: calc(var(--dex-iframe-top, -500px) + var(--dex-trades-shift-down, 0px));
+  background: #0d1117;
+}
+.dex-mask {
+  position: absolute;
+  left: 0;
+  right: 0;
+  pointer-events: none;
+  z-index: 2;
+}
+.dex-mask-top {
+  top: 0;
+  height: var(--dex-mask-top-h, 6px);
+  background: #0d1117;
+}
+.dex-mask-foot {
+  bottom: 0;
+  height: var(--dex-mask-foot-h, 6px);
+  background: #0d1117;
+}
+.trades-tape--dex-embed .trades-thead,
+.trades-tape--dex-embed #tradesList {
+  display: none !important;
+}

@@ -105,10 +105,7 @@
   let tradesFetchGen = 0;
   let tradesLastGood = [];
   let tradesDisplayRows = [];
-  let birdeyeTradesWs = null;
-  let birdeyeTradesMint = null;
-  let birdeyeWsReconnectTimer = null;
-  let birdeyeWsFailCount = 0;
+  let dexTradesEmbedRef = '';
   const TRADES_MAX_ROWS = 50;
   const TRADES_POLL_MS = 1000;
   const CHART_LIVE_POLL_MS = 5000;
@@ -1988,193 +1985,68 @@
     if (counts) counts.textContent = `${ratio.buys} alım · ${ratio.sells} satım (${ratio.buyPct}% alım)`;
   }
 
-  function birdeyeWsUrl(mint) {
-    const be = apiConfig?.birdeye || {};
-    const relay = be.wsRelay || '/api/dex/ws/trades';
-    const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
-    return `${proto}//${location.host}${relay}?mint=${encodeURIComponent(mint)}`;
+  function dexScreenerTradesUrl(poolOrMint) {
+    const ref = String(poolOrMint || '').trim();
+    if (!ref) return null;
+    const q = new URLSearchParams({
+      embed: '1',
+      theme: 'dark',
+      trades: '1',
+      info: '0',
+      tabs: '0',
+      chartLeftToolbar: '0',
+      chartTheme: 'dark',
+      interval: '15',
+    });
+    return `https://dexscreener.com/solana/${encodeURIComponent(ref)}?${q}`;
   }
 
-  function isBirdeyeTradeEvent(type) {
-    const t = String(type || '');
-    return t === 'TXS_DATA' || t === 'TRANSACTION_DATA' || t === 'TRANSACTION_EVENT';
-  }
-
-  function fmtTradeUsd(usd) {
-    const n = Math.abs(Number(usd) || 0);
-    if (!n) return '—';
-    if (n >= 1) return `$${n >= 1000 ? (n / 1000).toFixed(1) + 'K' : n.toFixed(2)}`;
-    if (n >= 0.01) return `$${n.toFixed(4)}`;
-    return `$${n.toExponential(2)}`;
-  }
-
-  function birdeyeLegAddr(leg) {
-    return String(leg?.address || leg?.mint || '').toLowerCase();
-  }
-
-  function birdeyeLegUiAmount(leg) {
-    if (!leg) return 0;
-    const uiChange = parseFloat(leg.uiChangeAmount);
-    if (Number.isFinite(uiChange) && uiChange !== 0) return Math.abs(uiChange);
-    const ui = parseFloat(leg.uiAmount);
-    if (Number.isFinite(ui) && ui !== 0) return Math.abs(ui);
-    const dec = parseInt(leg.decimals, 10);
-    const change = parseFloat(leg.changeAmount);
-    if (Number.isFinite(change) && change !== 0 && Number.isFinite(dec)) {
-      return Math.abs(change) / 10 ** dec;
+  function mountDexTradesEmbed(m) {
+    const iframe = $('dexTradesEmbed');
+    if (!iframe) return;
+    const mint = tokenMintRef(m);
+    const pool = chartPoolRef(m) || m?.poolAddress;
+    const ref = pool && pool !== mint ? pool : (pool || mint);
+    if (!ref) {
+      iframe.classList.add('hidden');
+      iframe.src = 'about:blank';
+      return;
     }
-    const amt = parseFloat(leg.amount);
-    if (Number.isFinite(amt) && amt !== 0 && Number.isFinite(dec)) {
-      return Math.abs(amt) / 10 ** dec;
+    const url = dexScreenerTradesUrl(ref);
+    if (!url) return;
+    if (dexTradesEmbedRef !== ref || iframe.src !== url) {
+      dexTradesEmbedRef = ref;
+      iframe.src = url;
     }
-    return 0;
+    iframe.classList.remove('hidden');
+    const meta = $('tradesMeta');
+    if (meta) meta.textContent = 'DexScreener';
   }
 
-  function birdeyeTokenAmount(item, side, baseMint) {
-    const mint = String(baseMint || item?.tokenAddress || '').trim().toLowerCase();
-    if (!mint) return null;
-    const legs = [item?.from, item?.to, item?.base, item?.quote].filter(Boolean);
-    for (const leg of legs) {
-      if (birdeyeLegAddr(leg) === mint) {
-        const n = birdeyeLegUiAmount(leg);
-        if (n > 0) return n;
-      }
-    }
-    if (side === 'buy') {
-      const n = birdeyeLegUiAmount(item?.to) || birdeyeLegUiAmount(item?.quote);
-      if (n > 0) return n;
-    }
-    if (side === 'sell') {
-      const n = birdeyeLegUiAmount(item?.from) || birdeyeLegUiAmount(item?.base);
-      if (n > 0) return n;
-    }
-    const fb = birdeyeLegUiAmount(item?.from) || birdeyeLegUiAmount(item?.to)
-      || birdeyeLegUiAmount(item?.base) || birdeyeLegUiAmount(item?.quote);
-    return fb > 0 ? fb : null;
-  }
-
-  function normalizeBirdeyeWsTrade(msg, baseMint) {
-    if (msg?.type === 'SNIPER_TRADE' && msg.trade) return msg.trade;
-    const item = msg?.data || msg;
-    if (!item) return null;
-    let side = String(item.side || '').toLowerCase();
-    if (side === 'swap') return null;
-    if (side !== 'buy' && side !== 'sell') return null;
-    const unix = Number(item.blockUnixTime);
-    if (!unix) return null;
-    const usd = Math.abs(parseFloat(item.volumeUSD) || 0);
-    const txHash = item.txHash || null;
-    const at = new Date(unix * 1000).toISOString();
-    const amount = birdeyeTokenAmount(item, side, baseMint);
-    return {
-      id: txHash || `be-${unix}-${item.owner || ''}`,
-      side,
-      usd,
-      usdFmt: fmtTradeUsd(usd),
-      amount,
-      wallet: item.owner ? `${item.owner.slice(0, 4)}…${item.owner.slice(-4)}` : '—',
-      txHash,
-      at,
-      updatedAt: at,
-      ago: tradeAgoLabel(at),
-      source: 'birdeye',
-    };
-  }
-
-  function stopBirdeyeTradesWs() {
-    if (birdeyeWsReconnectTimer) {
-      clearTimeout(birdeyeWsReconnectTimer);
-      birdeyeWsReconnectTimer = null;
-    }
-    if (birdeyeTradesWs) {
+  async function startDexTradesPanel(m) {
+    const tape = $('tradesTape');
+    if (tape) tape.classList.add('trades-tape--dex-embed');
+    if (!chartPoolRef(m) || !m?.poolAddress) {
       try {
-        birdeyeTradesWs.onclose = null;
-        birdeyeTradesWs.close();
+        await ensurePoolOnMarket(m);
       } catch {
         /* yoksay */
       }
-      birdeyeTradesWs = null;
     }
-    birdeyeTradesMint = null;
-    birdeyeWsFailCount = 0;
+    mountDexTradesEmbed(m);
   }
 
-  function scheduleBirdeyeWsReconnect(m) {
-    if (!reportId || birdeyeWsReconnectTimer) return;
-    birdeyeWsFailCount = Math.min(birdeyeWsFailCount + 1, 6);
-    const delay = Math.min(30_000, 1500 * 2 ** birdeyeWsFailCount);
-    birdeyeWsReconnectTimer = setTimeout(() => {
-      birdeyeWsReconnectTimer = null;
-      if (reportId && appData?.market) void startBirdeyeTradesWs(appData.market);
-    }, delay);
-  }
-
-  async function startBirdeyeTradesWs(m) {
-    await loadApiConfig();
-    const mint = tokenMintRef(m);
-    if (!mint || !reportId) return;
-    const be = apiConfig?.birdeye;
-    if (!be?.enabled && !be?.hasApiKey) {
-      const meta = $('tradesMeta');
-      if (meta) meta.textContent = 'Birdeye API key yok';
-      return;
+  function stopDexTradesPanel() {
+    dexTradesEmbedRef = '';
+    const iframe = $('dexTradesEmbed');
+    if (iframe) {
+      iframe.src = 'about:blank';
+      iframe.classList.add('hidden');
     }
-    if (birdeyeTradesWs && birdeyeTradesMint === mint) return;
-    stopBirdeyeTradesWs();
-    birdeyeTradesMint = mint;
-
-    let ws;
-    try {
-      ws = new WebSocket(birdeyeWsUrl(mint));
-    } catch (e) {
-      console.warn('birdeye ws', e);
-      scheduleBirdeyeWsReconnect(m);
-      return;
-    }
-    birdeyeTradesWs = ws;
-
-    ws.onopen = () => {
-      birdeyeWsFailCount = 0;
-      const meta = $('tradesMeta');
-      if (meta && tradesDisplayRows.length) meta.textContent = `${tradesDisplayRows.length} işlem · canlı WS`;
-      else if (meta) meta.textContent = 'canlı WS · işlem bekleniyor';
-    };
-
-    ws.onmessage = (ev) => {
-      const market = appData?.market;
-      if (!market || tokenMintRef(market) !== mint) return;
-      let msg;
-      try {
-        msg = JSON.parse(ev.data);
-      } catch {
-        return;
-      }
-      if (msg?.type !== 'SNIPER_TRADE' && !isBirdeyeTradeEvent(msg?.type)) return;
-      const trade = normalizeBirdeyeWsTrade(msg, mint);
-      if (!trade) return;
-      tradesLastGood = mergeTradesDisplay([trade], tradesLastGood);
-      saveTradesSession(market, tradesLastGood);
-      renderTradesList(tradesLastGood, market?.symbol, { keepPrevious: false, fullRender: false });
-      const meta = $('tradesMeta');
-      if (meta) meta.textContent = `${tradesDisplayRows.length} işlem · canlı WS`;
-    };
-
-    ws.onerror = () => {
-      scheduleBirdeyeWsReconnect(m);
-    };
-
-    ws.onclose = () => {
-      if (birdeyeTradesWs === ws) birdeyeTradesWs = null;
-      if (reportId && birdeyeTradesMint === mint) scheduleBirdeyeWsReconnect(m);
-    };
-  }
-
-  async function bootstrapTrades(m) {
-    await refreshTrades(m, true);
   }
 
   function stopTradesPoll() {
-    stopBirdeyeTradesWs();
+    stopDexTradesPanel();
     if (tradesPollTimer) {
       clearInterval(tradesPollTimer);
       tradesPollTimer = null;
@@ -2493,8 +2365,7 @@
 
   function startTradesPoll(m) {
     stopTradesPoll();
-    tradesFetchGen += 1;
-    void bootstrapTrades(m).then(() => startBirdeyeTradesWs(m));
+    void startDexTradesPanel(m);
   }
 
   function stopLivePoll() {
@@ -2507,8 +2378,7 @@
 
   function startLivePoll(m) {
     stopLivePoll();
-    tradesFetchGen += 1;
-    void bootstrapTrades(m).then(() => startBirdeyeTradesWs(m));
+    void startDexTradesPanel(m);
     void refreshChartAndPrice(m);
     livePollTimer = setInterval(() => {
       if (reportId && appData?.market) void refreshChartAndPrice(appData.market);
@@ -2667,7 +2537,10 @@
       const live = await fetchChartCandles(m, tf, { live: true });
       applyLivePairToMarket(m, live.pair, live.priceUsd);
       renderLivePrice(m);
-      if (live.poolAddress) m.poolAddress = live.poolAddress;
+      if (live.poolAddress) {
+        m.poolAddress = live.poolAddress;
+        mountDexTradesEmbed(m);
+      }
       if (!live.candles.length) return;
       if (appData?.market?.chart) {
         appData.market.chart.candles = live.candles;

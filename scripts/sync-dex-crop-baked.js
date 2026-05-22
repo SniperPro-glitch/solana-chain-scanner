@@ -8,11 +8,13 @@ const path = require('path');
 
 const root = path.join(__dirname, '..');
 const src = path.join(root, 'public', 'miniapp', 'dex-crop-profiles.json');
+const srcFallback = path.join(root, 'data', 'dex-crop-profiles.json');
+const srcPath = fs.existsSync(src) ? src : srcFallback;
 const bakedOut = path.join(root, 'public', 'miniapp', 'dex-crop-baked.js');
 const cssOut = path.join(root, 'public', 'miniapp', 'dex-crop-profiles.css');
 const dataOut = path.join(root, 'data', 'dex-crop-profiles.json');
 
-const data = JSON.parse(fs.readFileSync(src, 'utf8'));
+const data = JSON.parse(fs.readFileSync(srcPath, 'utf8'));
 if (!data?.profiles) {
   console.error('profiles eksik:', src);
   process.exit(1);
