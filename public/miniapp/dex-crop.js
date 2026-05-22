@@ -78,10 +78,28 @@
   }
 
   function activeProfileId() {
+    return refreshCropProfile();
+  }
+
+  /** Her motor/apply öncesi — web=web, TG=viewportWidth ile 5 profil. */
+  function refreshCropProfile() {
+    const forced = profileFromUrl();
+    if (forced) {
+      document.documentElement.dataset.dexCropProfile = forced;
+      document.documentElement.dataset.dexCropW = String(
+        global.SniperCropProfile?.layoutWidth?.() || window.innerWidth || 0,
+      );
+      return forced;
+    }
+    if (global.SniperHost?.isWebBrowser?.() || document.documentElement.classList.contains('web-browser')) {
+      document.documentElement.dataset.dexCropProfile = 'web';
+      document.documentElement.dataset.dexCropW = String(window.innerWidth || 0);
+      return 'web';
+    }
     if (global.SniperCropProfile?.apply) return global.SniperCropProfile.apply();
-    const ds = document.documentElement.dataset.dexCropProfile;
-    if (PROFILE_META[ds]) return ds;
-    return detectProfile();
+    const id = detectProfile();
+    document.documentElement.dataset.dexCropProfile = id;
+    return id;
   }
 
   /** Koddaki ├Âl├ğ├╝ler + sunucudaki g├╝ncel profiller birle┼şir (bo┼ş sunucu varsay─▒lan─▒ ezmez). */
@@ -156,6 +174,9 @@
   }
 
   function detectProfile() {
+    if (global.SniperHost?.isWebBrowser?.() || document.documentElement.classList.contains('web-browser')) {
+      return 'web';
+    }
     if (global.SniperCropProfile?.detect) return global.SniperCropProfile.detect();
     if (!isTelegram()) return 'web';
     const w = global.SniperCropProfile?.layoutWidth?.() || window.innerWidth || 390;
@@ -408,7 +429,11 @@
     global.__sniperCropObs = true;
     const reapply = () => {
       if (document.getElementById('dexCropPanel')?.classList.contains('hidden') === false) return;
-      apply();
+      handleCropProfileChange();
+      const pid = refreshCropProfile();
+      if (!isDetailOpen()) return;
+      if (!layoutSessionDone(pid)) ensureMotorOnce();
+      else apply(loadForProfile(pid));
     };
     window.addEventListener('resize', reapply);
     const tg = global.Telegram?.WebApp;
@@ -582,30 +607,44 @@
 
   const LAYOUT_SESSION_KEY = 'sniperCropLayoutV3';
   let motorBurstDoneTimer = null;
+  let lastMotorProfileId = null;
 
-  function layoutSessionDone() {
+  function layoutSessionStorageKey(profileId) {
+    return `${LAYOUT_SESSION_KEY}:${profileId}`;
+  }
+
+  function layoutSessionDone(profileId) {
     if (calibrateFromUrl()) return false;
+    const id = profileId || refreshCropProfile();
     try {
-      return sessionStorage.getItem(LAYOUT_SESSION_KEY) === '1';
+      return sessionStorage.getItem(layoutSessionStorageKey(id)) === '1';
     } catch {
-      return !!global.__sniperCropLayoutDone;
+      return false;
     }
   }
 
-  function markLayoutSessionDone() {
+  function markLayoutSessionDone(profileId) {
+    const id = profileId || refreshCropProfile();
     try {
-      sessionStorage.setItem(LAYOUT_SESSION_KEY, '1');
+      sessionStorage.setItem(layoutSessionStorageKey(id), '1');
+      sessionStorage.removeItem(LAYOUT_SESSION_KEY);
       sessionStorage.removeItem('sniperCropLayoutDone');
     } catch {
       /* yoksay */
     }
     global.__sniperCropLayoutDone = true;
+    lastMotorProfileId = id;
   }
 
-  function clearLayoutSession() {
+  function clearLayoutSession(profileId) {
     try {
-      sessionStorage.removeItem(LAYOUT_SESSION_KEY);
-      sessionStorage.removeItem('sniperCropLayoutDone');
+      if (profileId) {
+        sessionStorage.removeItem(layoutSessionStorageKey(profileId));
+      } else {
+        PROFILE_ORDER.forEach((id) => sessionStorage.removeItem(layoutSessionStorageKey(id)));
+        sessionStorage.removeItem(LAYOUT_SESSION_KEY);
+        sessionStorage.removeItem('sniperCropLayoutDone');
+      }
     } catch {
       /* yoksay */
     }
@@ -614,6 +653,20 @@
       clearTimeout(motorBurstDoneTimer);
       motorBurstDoneTimer = null;
     }
+  }
+
+  /** 16 PM ↔ web vb. profil değişince motoru yeniden çalıştır. */
+  function handleCropProfileChange() {
+    const prev = lastMotorProfileId || document.documentElement.dataset.dexCropProfile;
+    const next = refreshCropProfile();
+    if (prev && prev !== next) {
+      clearLayoutSession();
+      const panel = document.getElementById('dexCropPanel');
+      const panelOpen = panel && !panel.classList.contains('hidden');
+      if (isDetailOpen() && !panelOpen) runHiddenMotor();
+    }
+    lastMotorProfileId = next;
+    return next;
   }
 
   function isDetailOpen() {
@@ -634,8 +687,7 @@
     if (panel && !panel.classList.contains('hidden')) return false;
 
     enableCalibrateSession();
-    editingProfile = profileFromUrl() || detectProfile();
-    if (global.SniperCropProfile?.apply) global.SniperCropProfile.apply();
+    editingProfile = refreshCropProfile();
     current = loadForProfile(editingProfile);
     apply(current);
     if (panel) panel.classList.add('hidden');
@@ -648,19 +700,21 @@
     finish();
     [150, 500, 1200, 2500, 4000, 6000].forEach((ms) => setTimeout(finish, ms));
     if (motorBurstDoneTimer) clearTimeout(motorBurstDoneTimer);
-    motorBurstDoneTimer = setTimeout(() => markLayoutSessionDone(), 6200);
+    motorBurstDoneTimer = setTimeout(() => markLayoutSessionDone(editingProfile), 6200);
     return true;
   }
 
-  /** Oturumda bir kez — Dex iframe hazır olunca (erken "bitti" yok). */
+  /** Profil başına bir kez — Dex iframe hazır olunca. */
   function ensureMotorOnce() {
-    if (layoutSessionDone()) return false;
+    handleCropProfileChange();
+    const profileId = refreshCropProfile();
+    if (layoutSessionDone(profileId)) return false;
     if (!isDetailOpen()) return false;
     void ensureProfilesReady().then(() => {
-      if (layoutSessionDone()) return;
+      if (layoutSessionDone(profileId)) return;
       let tries = 0;
       const attempt = () => {
-        if (layoutSessionDone()) return;
+        if (layoutSessionDone(refreshCropProfile())) return;
         tries += 1;
         const hasEmbed = !!(
           document.querySelector('iframe.dex-embed-chart')
@@ -1092,8 +1146,10 @@
     window.addEventListener('resize', () => {
       if (!document.getElementById('dexCropPanel')?.classList.contains('hidden')) return;
       if (!isDetailOpen()) return;
-      if (layoutSessionDone()) return;
-      apply();
+      handleCropProfileChange();
+      const pid = refreshCropProfile();
+      if (!layoutSessionDone(pid)) ensureMotorOnce();
+      else apply(loadForProfile(pid));
     });
     if (calibrateFromUrl()) {
       enableCalibrateSession();
@@ -1129,6 +1185,8 @@
     reset,
     apply,
     applyAsync,
+    refreshCropProfile,
+    handleCropProfileChange,
     runHiddenMotor,
     ensureMotorOnce,
     scheduleMotorCrop,

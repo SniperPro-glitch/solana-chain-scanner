@@ -34,6 +34,7 @@
   function detect() {
     const forced = fromUrl();
     if (forced) return forced;
+    if (window.SniperHost?.isWebBrowser?.()) return 'web';
     if (document.documentElement.classList.contains('web-browser')) return 'web';
     if (!isTelegramApp()) return 'web';
     const w = layoutWidth();
@@ -50,6 +51,25 @@
     return id;
   }
 
-  apply();
-  window.SniperCropProfile = { detect, apply, layoutWidth, IDS };
+  /** TG: viewportWidth gelene kadar tekrar dene (erken app13 kilidi önlenir). */
+  function applyWhenReady() {
+    apply();
+    if (document.documentElement.classList.contains('web-browser')) return;
+    const tg = window.Telegram?.WebApp;
+    if (!tg) return;
+    let n = 0;
+    const retry = () => {
+      n += 1;
+      const w = layoutWidth();
+      if (w >= 390 || n >= 30) apply();
+      else setTimeout(retry, 80);
+    };
+    if (typeof tg.ready === 'function') tg.ready();
+    setTimeout(retry, 0);
+    setTimeout(retry, 250);
+    setTimeout(retry, 600);
+  }
+
+  applyWhenReady();
+  window.SniperCropProfile = { detect, apply, applyWhenReady, layoutWidth, IDS };
 })();
