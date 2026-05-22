@@ -88,13 +88,11 @@ html, body {
   box-shadow: var(--glow-cyan);
 }
 
-/* Scanner home */
+/* Scanner home — layout dex-scanner.css (flex shell) */
 .scanner-home {
   width: 100%;
   max-width: 100%;
   margin: 0;
-  padding-bottom: calc(var(--nav-h) + 12px);
-  min-height: 100vh;
 }
 
 .scan-header {
@@ -1460,9 +1458,13 @@ html.web-browser .detail-body {
 html.tg-mini-app .detail-top,
 html.tg-expanded .detail-top {
   padding-top: calc(8px + var(--sniper-content-top, 0px));
-  padding-left: calc(12px + var(--tg-content-safe-left, 0px));
+  padding-left: calc(12px + max(var(--tg-content-safe-left, 0px), 48px));
   padding-right: calc(12px + var(--tg-content-safe-right, 0px));
   top: 0;
+}
+
+html.tg-mini-app.tg-fullscreen .detail-top {
+  padding-left: calc(12px + var(--tg-content-safe-left, 0px));
 }
 
 html.web-browser .detail-top {
