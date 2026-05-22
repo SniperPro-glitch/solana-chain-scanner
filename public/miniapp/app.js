@@ -368,7 +368,7 @@
   function burstDexEmbedCrop() {
     const C = globalThis.SniperDexCrop;
     if (C?.burstMotorApply) C.burstMotorApply();
-    else if (C?.runCropLikeButton) C.runCropLikeButton();
+    else if (C?.pressCropButtonBot) C.pressCropButtonBot();
     else scheduleDexTradesCrop();
   }
 
@@ -1967,7 +1967,7 @@
     void C.ensureProfilesReady?.();
     if (document.documentElement.classList.contains('detail-mode')) {
       if (C.ensureBackgroundCrop) C.ensureBackgroundCrop();
-      else if (C.runCropLikeButton) C.runCropLikeButton();
+      else if (C.pressCropButtonBot) C.pressCropButtonBot();
       return;
     }
     if (C.burstMotorApply) C.burstMotorApply();
