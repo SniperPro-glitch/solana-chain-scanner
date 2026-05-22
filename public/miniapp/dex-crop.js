@@ -556,9 +556,94 @@
     return String(location.hash || '').includes('kalibre');
   }
 
+  /** URL ?kalibre=1 — normal kullanıcıda buton/panel yok, motor gizli. */
+  function calibrateFromUrl() {
+    try {
+      const q = new URLSearchParams(location.search);
+      if (q.get('kalibre') === '1' || q.get('calibrate') === '1') return true;
+    } catch {
+      /* yoksay */
+    }
+    return String(location.hash || '').includes('kalibre');
+  }
+
   function shouldShowCropButton() {
-    if (isCalibrateMode()) return true;
-    return document.documentElement.classList.contains('web-browser');
+    return calibrateFromUrl();
+  }
+
+  function clearCalibrateSession() {
+    try {
+      sessionStorage.removeItem('sniperCropCalibrate');
+    } catch {
+      /* yoksay */
+    }
+    delete document.documentElement.dataset.cropCalibrate;
+  }
+
+  const LAYOUT_SESSION_KEY = 'sniperCropLayoutDone';
+
+  function layoutSessionDone() {
+    if (calibrateFromUrl()) return false;
+    try {
+      return sessionStorage.getItem(LAYOUT_SESSION_KEY) === '1';
+    } catch {
+      return !!global.__sniperCropLayoutDone;
+    }
+  }
+
+  function markLayoutSessionDone() {
+    try {
+      sessionStorage.setItem(LAYOUT_SESSION_KEY, '1');
+    } catch {
+      /* yoksay */
+    }
+    global.__sniperCropLayoutDone = true;
+  }
+
+  function isDetailOpen() {
+    const vd = document.getElementById('view-detail');
+    return (
+      document.documentElement.classList.contains('detail-mode')
+      || (vd && !vd.classList.contains('hidden'))
+    );
+  }
+
+  /**
+   * Gizli motor = Kırpma aç-kapat (panel görünmez).
+   * Web: enableCalibrateSession → localStorage ölçüleri; TG: baked profil.
+   */
+  function runHiddenMotor() {
+    if (!isDetailOpen()) return false;
+    const panel = document.getElementById('dexCropPanel');
+    if (panel && !panel.classList.contains('hidden')) return false;
+
+    enableCalibrateSession();
+    editingProfile = profileFromUrl() || detectProfile();
+    if (global.SniperCropProfile?.apply) global.SniperCropProfile.apply();
+    current = loadForProfile(editingProfile);
+    apply(current);
+    if (panel) panel.classList.add('hidden');
+    document.documentElement.classList.remove('crop-panel-open');
+
+    const finish = () => apply(load());
+    finish();
+    [150, 500, 1200, 2500].forEach((ms) => setTimeout(finish, ms));
+    return true;
+  }
+
+  /** Oturumda bir kez gizli motor (token değişiminde tekrar yok). */
+  function ensureMotorOnce() {
+    if (layoutSessionDone()) return false;
+    if (!isDetailOpen()) return false;
+    void ensureProfilesReady().then(() => {
+      if (layoutSessionDone()) return;
+      if (runHiddenMotor()) markLayoutSessionDone();
+    });
+    return true;
+  }
+
+  function scheduleMotorCrop() {
+    ensureMotorOnce();
   }
 
   /** ?profil=web|app11|app13|app13pm|app16 ÔÇö link sadece do─şru sekmeyi a├ğar; ├Âl├ğ├╝ler kay─▒tta. */
@@ -719,6 +804,7 @@
   }
 
   function openPanel() {
+    if (!calibrateFromUrl() && !isCalibrateMode()) return;
     enableCalibrateSession();
     if (!panelBuilt) buildPanel();
     editingProfile = profileFromUrl() || detectProfile();
@@ -947,6 +1033,7 @@
   }
 
   async function init() {
+    if (!calibrateFromUrl()) clearCalibrateSession();
     if (global.SniperCropProfile?.apply) global.SniperCropProfile.apply();
     await ensureProfilesReady();
     apply();
@@ -954,25 +1041,26 @@
     addCalibrateButton();
     window.addEventListener('resize', () => {
       if (!document.getElementById('dexCropPanel')?.classList.contains('hidden')) return;
+      if (!isDetailOpen()) return;
+      if (layoutSessionDone()) return;
       apply();
     });
-    if (isCalibrateMode()) {
+    if (calibrateFromUrl()) {
       enableCalibrateSession();
       setTimeout(() => {
         addCalibrateButton();
         openPanel();
       }, 1200);
-    } else {
-      addCalibrateButton();
     }
     const vd = document.getElementById('view-detail');
     if (vd) {
       new MutationObserver(() => {
         if (!vd.classList.contains('hidden')) {
           addCalibrateButton();
-          apply();
+          ensureMotorOnce();
         }
       }).observe(vd, { attributes: true, attributeFilter: ['class'] });
+      if (!vd.classList.contains('hidden')) ensureMotorOnce();
     }
   }
 
@@ -991,11 +1079,17 @@
     reset,
     apply,
     applyAsync,
+    runHiddenMotor,
+    ensureMotorOnce,
+    scheduleMotorCrop,
     openPanel,
     closePanel,
     copyProfileFrom,
     isCalibrateMode,
+    calibrateFromUrl,
+    isCalibrateUrl: calibrateFromUrl,
     enableCalibrateSession,
+    clearCalibrateSession,
   };
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => init());

@@ -1952,6 +1952,11 @@
   }
 
   function scheduleDexTradesCrop() {
+    const C = globalThis.SniperDexCrop;
+    if (C?.ensureMotorOnce) {
+      C.ensureMotorOnce();
+      return;
+    }
     applyDexCrop();
     [150, 500, 1200, 2500].forEach((ms) => setTimeout(applyDexCrop, ms));
   }
@@ -2005,24 +2010,15 @@
       return;
     }
 
-    if (!tradesResizeHandler) {
-      tradesResizeHandler = () => scheduleDexTradesCrop();
-      window.addEventListener('resize', tradesResizeHandler);
-    }
-
     if (fallback) {
       fallback.textContent = 'İşlem akışı yükleniyor…';
       fallback.classList.remove('hidden');
     }
     iframe.classList.remove('hidden');
-    applyDexCrop();
-    scheduleDexTradesCrop();
     iframe.onload = () => {
-      applyDexCrop();
-      scheduleDexTradesCrop();
       if (fallback) fallback.classList.add('hidden');
       if (meta) meta.textContent = 'canlı';
-      if (globalThis.SniperDexCrop?.isCalibrateMode?.()) {
+      if (globalThis.SniperDexCrop?.calibrateFromUrl?.()) {
         setTimeout(() => SniperDexCrop.openPanel(), 300);
       }
     };
@@ -2065,18 +2061,10 @@
       setChartEmbedMode(true);
       container.innerHTML = `<iframe class="dex-embed-chart" src="${escHtml(embed)}" title="DexScreener canlı grafik" loading="eager" allow="fullscreen" referrerpolicy="no-referrer-when-downgrade"></iframe>`;
       const chartIfr = container.querySelector('iframe.dex-embed-chart');
-      if (chartIfr) {
-        chartIfr.addEventListener('load', () => {
-          applyDexCrop();
-          scheduleDexTradesCrop();
-        });
-      }
       if (note) {
         note.textContent = `${(tf || '15m').toUpperCase()} · DexScreener`;
         note.classList.remove('hidden');
       }
-      applyDexCrop();
-      scheduleDexTradesCrop();
       return true;
     }
     setChartEmbedMode(false);
