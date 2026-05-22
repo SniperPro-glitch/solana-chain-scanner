@@ -1152,31 +1152,60 @@
     host.appendChild(btn);
   }
 
+  function runMotorManual() {
+    clearLayoutSession();
+    const ok = runHiddenMotor();
+    toast(ok ? 'Motor çalıştı (6 sn burst)' : 'Motor: önce token detay + grafik bekleyin');
+    return ok;
+  }
+
+  /** Token detayında her zaman — URL / ?motor=1 gerekmez */
+  function ensureMotorFab() {
+    if (!isDetailOpen()) {
+      document.getElementById('sniperMotorFab')?.remove();
+      return;
+    }
+    let fab = document.getElementById('sniperMotorFab');
+    if (!fab) {
+      fab = document.createElement('div');
+      fab.id = 'sniperMotorFab';
+      fab.className = 'sniper-motor-fab';
+      fab.setAttribute('aria-label', 'Kırpma motoru');
+      document.body.appendChild(fab);
+    }
+    if (!fab.querySelector('.btn-crop-motor')) {
+      mountCropBtn(fab, 'btn-crop-motor', 'MOTOR', 'Gizli kırpma motorunu çalıştır', () => runMotorManual());
+    }
+    if (calibrateFromUrl() && !fab.querySelector('.btn-crop-cal')) {
+      mountCropBtn(fab, 'btn-crop-cal', 'Kırpma', 'Kalibrasyon paneli', () => openPanel());
+    }
+  }
+
   function addCalibrateButton() {
-    if (!shouldShowCropButton()) return;
-    const hosts = [
-      document.querySelector('.detail-action-row'),
-      document.querySelector('.trades-head'),
-    ].filter(Boolean);
-    if (!hosts.length) return;
-    hosts.forEach((host) => {
-      if (calibrateFromUrl()) {
-        mountCropBtn(host, 'btn-crop-cal', 'K\u0131rpma', 'Dex embed — kaydet', () => openPanel());
-      }
-      if (motorTestFromUrl()) {
-        mountCropBtn(host, 'btn-crop-motor', 'Motor', 'Gizli motor (runHiddenMotor)', () => {
-          clearLayoutSession();
-          const ok = runHiddenMotor();
-          toast(ok ? 'Motor çalıştı (6 sn burst)' : 'Motor: detay/embed yok');
-        });
-      }
-    });
+    if (calibrateFromUrl() || motorTestFromUrl()) {
+      const hosts = [
+        document.querySelector('.detail-action-row'),
+        document.querySelector('.trades-head'),
+      ].filter(Boolean);
+      hosts.forEach((host) => {
+        if (calibrateFromUrl()) {
+          mountCropBtn(host, 'btn-crop-cal', 'K\u0131rpma', 'Dex embed — kaydet', () => openPanel());
+        }
+        if (motorTestFromUrl()) {
+          mountCropBtn(host, 'btn-crop-motor', 'Motor', 'Gizli motor', () => runMotorManual());
+        }
+      });
+    }
+    ensureMotorFab();
   }
 
   function scheduleCropButtons() {
-    if (!shouldShowCropButton()) return;
+    ensureMotorFab();
     addCalibrateButton();
-    [100, 500, 1500].forEach((ms) => setTimeout(addCalibrateButton, ms));
+    [100, 500, 1500, 3000].forEach((ms) => setTimeout(() => {
+      ensureMotorFab();
+      addCalibrateButton();
+    }, ms));
   }
 
   function ensureProfilesReady() {
@@ -1226,6 +1255,8 @@
         if (!vd.classList.contains('hidden')) {
           scheduleCropButtons();
           ensureMotorOnce();
+        } else {
+          document.getElementById('sniperMotorFab')?.remove();
         }
       }).observe(vd, { attributes: true, attributeFilter: ['class'] });
       if (!vd.classList.contains('hidden')) ensureMotorOnce();
@@ -1251,6 +1282,8 @@
     applyCropNow,
     handleCropProfileChange,
     runHiddenMotor,
+    runMotorManual,
+    ensureMotorFab,
     ensureMotorOnce,
     scheduleMotorCrop,
     clearLayoutSession,
