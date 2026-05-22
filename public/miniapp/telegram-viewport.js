@@ -58,11 +58,8 @@
     clearTimeout(cropTimer);
     cropTimer = setTimeout(() => {
       if (window.SniperCropProfile?.apply) window.SniperCropProfile.apply();
-      const detailOpen = !document.getElementById('view-detail')?.classList.contains('hidden');
-      if (detailOpen && typeof window.__scheduleDexTradesCrop === 'function') {
-        window.__scheduleDexTradesCrop();
-      }
-    }, 280);
+      if (window.SniperDexCrop?.apply) window.SniperDexCrop.apply();
+    }, 220);
   }
 
   function applyViewport() {
@@ -83,11 +80,12 @@
     if (typeof tg.expand === 'function') tg.expand();
 
     applySafeArea();
+    scheduleCropApply();
     clearTimeout(viewportTimer);
     viewportTimer = setTimeout(() => {
       applySafeArea();
       scheduleCropApply();
-    }, 200);
+    }, 180);
   }
 
   document.documentElement.classList.add('tg-mini-app');
@@ -95,8 +93,14 @@
 
   if (typeof tg.onEvent === 'function') {
     tg.onEvent('viewportChanged', applyViewport);
-    tg.onEvent('safeAreaChanged', applySafeArea);
-    tg.onEvent('contentSafeAreaChanged', applySafeArea);
+    tg.onEvent('safeAreaChanged', () => {
+      applySafeArea();
+      scheduleCropApply();
+    });
+    tg.onEvent('contentSafeAreaChanged', () => {
+      applySafeArea();
+      scheduleCropApply();
+    });
     tg.onEvent('fullscreenChanged', () => {
       if (tg.isFullscreen && typeof tg.exitFullscreen === 'function') {
         try {
