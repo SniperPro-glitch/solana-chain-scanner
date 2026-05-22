@@ -3,7 +3,11 @@
 const axios = require('axios');
 const config = require('./chains/solana/config');
 const { resolveTokenLogo, chartStatsFromCandles, buildLogoCandidates } = require('./tokenLogo');
-const { resolveDexScreenerPair } = require('./dexscreenerApi');
+const {
+  resolveDexScreenerPair,
+  dexScreenerChartEmbedUrl,
+  dexScreenerTradesEmbedUrl,
+} = require('./dexscreenerApi');
 
 const http = axios.create({
   timeout: 12_000,
@@ -336,14 +340,14 @@ async function enrichMarketForMiniApp(token, options = {}) {
   }
 
   const chartRef = poolAddress || merged.address;
+  const chartEmbedUrl = dexScreenerChartEmbedUrl(chartRef, timeframe);
+  const tradesEmbedUrl = dexScreenerTradesEmbedUrl(chartRef);
+  const useCandleApi = ['1', 'true', 'gecko'].includes(
+    String(process.env.MINIAPP_CHART_CANDLES || '').trim().toLowerCase(),
+  );
   let candles = [];
-  let chartSource = 'dexscreener';
-  const { fetchOhlcvByMint, isBirdeyeEnabled } = require('./birdeyeApi');
-  if (isBirdeyeEnabled() && merged.address) {
-    candles = await fetchOhlcvByMint(merged.address, timeframe);
-    if (candles.length) chartSource = 'birdeye';
-  }
-  if (!candles.length && poolAddress && !isBirdeyeEnabled()) {
+  let chartSource = 'dexscreener_embed';
+  if (useCandleApi && poolAddress) {
     candles = await fetchOhlcv(poolAddress, timeframe);
     if (candles.length) chartSource = 'geckoterminal';
   }
@@ -352,40 +356,23 @@ async function enrichMarketForMiniApp(token, options = {}) {
   const sells = merged.sells24h || 0;
   const txnTotal = buys + sells;
 
-  let recentTrades = [];
-  try {
-    const { isBirdeyeEnabled, fetchTokenTrades: fetchBirdeyeTrades } = require('./birdeyeApi');
-    if (isBirdeyeEnabled() && merged.address) {
-      recentTrades = await fetchBirdeyeTrades(merged.address, 28);
-    }
-    if (!recentTrades.length && !isBirdeyeEnabled()) {
-      const { fetchPairTrades } = require('./pairTrades');
-      recentTrades = await fetchPairTrades({
-        poolAddress,
-        mint: merged.address,
-        limit: 28,
-      });
-    }
-  } catch (e) {
-    console.warn('[market] trades:', e.message);
-  }
-
   return {
     ...merged,
     poolAddress,
+    dexTradesEmbedUrl: tradesEmbedUrl,
     txnRatio: txnTotal > 0 ? { buys, sells, buyPct: Math.round((buys / txnTotal) * 100) } : null,
-    recentTrades,
-    tradesPollMs: 1000,
     chart: {
       timeframe,
-      mode: 'lightweight',
+      mode: 'dexscreener_embed',
       candles,
       stats: chartStats,
       priceSource: 'dexscreener',
-      source: chartSource,
-      empty: !chartRef,
+      source: candles.length ? chartSource : 'dexscreener_embed',
+      empty: !chartEmbedUrl,
       pairRef: chartRef,
+      dexScreenerEmbedUrl: chartEmbedUrl,
       dexScreenerPageUrl: merged.dexScreenerUrl,
+      dexTradesEmbedUrl: tradesEmbedUrl,
     },
   };
 }

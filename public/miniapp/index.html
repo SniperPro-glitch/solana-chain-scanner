@@ -373,38 +373,8 @@
           <span class="ohlc-vol">Vol <b id="ohlcV">—</b></span>
         </div>
         <div class="chart-stage">
-          <div class="chart-draw-toolbar" id="chartDrawToolbar" aria-label="Çizim araçları">
-            <button type="button" class="chart-draw-btn chart-draw-btn--icon active" data-draw="select" id="chartDrawSelect" aria-label="Seçim" title="Seçim">
-              <svg class="chart-draw-ico" width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                <path d="M5.5 3.5 19 12l-5.25.75L8.5 20.5 7 12.25 5.5 3.5z" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round" fill="currentColor" fill-opacity="0.18"/>
-              </svg>
-            </button>
-            <button type="button" class="chart-draw-btn chart-draw-btn--icon" data-draw="hline" id="chartDrawHline" aria-label="Yatay çizgi" title="Yatay çizgi">
-              <svg class="chart-draw-ico" width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                <path d="M4 12h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                <circle cx="6" cy="12" r="2" fill="currentColor"/>
-                <circle cx="18" cy="12" r="2" fill="currentColor"/>
-              </svg>
-            </button>
-            <button type="button" class="chart-draw-btn chart-draw-btn--icon" data-draw="trend" id="chartDrawTrend" aria-label="Trend çizgisi" title="Trend çizgisi">
-              <svg class="chart-draw-ico" width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                <path d="M5 18L19 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                <circle cx="5" cy="18" r="2.25" fill="currentColor"/>
-                <circle cx="19" cy="6" r="2.25" fill="currentColor"/>
-              </svg>
-            </button>
-            <button type="button" class="chart-draw-btn chart-draw-btn--icon chart-draw-btn--clear" data-draw="clear" id="chartDrawClear" aria-label="Temizle" title="Temizle">
-              <svg class="chart-draw-ico" width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                <path d="M9 4h6l1 3h4v2H4V7h4l1-3z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
-                <path d="M7 9v9a2 2 0 002 2h6a2 2 0 002-2V9" stroke="currentColor" stroke-width="1.6"/>
-                <path d="M10 12v5M14 12v5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
-              </svg>
-            </button>
-          </div>
-          <div class="chart-pane">
-            <div class="chart-loader hidden" id="chartLoader"><span></span></div>
-            <div id="priceChart" class="chart-canvas"></div>
-          </div>
+          <div class="chart-loader hidden" id="chartLoader"><span></span></div>
+          <div id="priceChart" class="chart-canvas"></div>
         </div>
         <p id="chartNote" class="chart-source hidden">—</p>
       </section>
@@ -542,9 +512,9 @@
   <script src="support.js?v=3"></script>
   <script src="miniapp-i18n.js?v=2"></script>
   <script src="sidebar-account.js?v=6"></script>
-  <script src="vendor/lightweight-charts.js?v=4"></script>
-  <script src="dex-crop-baked.js?v=1"></script>
-  <script src="app.js?v=180"></script>
+  <script src="dex-crop-baked.js?v=2"></script>
+  <script src="dex-crop.js?v=62"></script>
+  <script src="app.js?v=181"></script>
   <script src="boot-feed.js?v=5"></script>
 </body>
 </html>

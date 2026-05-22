@@ -1731,7 +1731,6 @@
     setupNav();
     setupTfButtons();
     setupChartType();
-    setupChartDrawTools();
     setupCopy();
   }
 
@@ -2021,6 +2020,7 @@
     iframe.classList.remove('hidden');
     const meta = $('tradesMeta');
     if (meta) meta.textContent = 'DexScreener';
+    scheduleDexTradesCrop();
   }
 
   function startDexTradesPanel(m) {
@@ -2389,18 +2389,70 @@
     }, CHART_LIVE_POLL_MS);
   }
 
-  function chartsLibReady() {
-    return typeof window.LightweightCharts?.createChart === 'function';
+  function applyDexCrop() {
+    if (!globalThis.SniperDexCrop) return;
+    const run = () => SniperDexCrop.apply();
+    if (SniperCropProfile?.apply) SniperCropProfile.apply();
+    if (SniperDexCrop.ensureProfilesReady) {
+      void SniperDexCrop.ensureProfilesReady().then(run);
+      return;
+    }
+    run();
   }
 
-  async function waitForChartLayout(container, tries = 12) {
-    for (let i = 0; i < tries; i += 1) {
-      const w = container?.clientWidth || 0;
-      const h = document.querySelector('.chart-stage')?.clientHeight || 0;
-      if (w > 40 && h > 40) return { w, h: chartStageHeight() };
-      await new Promise((r) => setTimeout(r, 50));
+  function scheduleDexTradesCrop() {
+    applyDexCrop();
+    [150, 500, 1200, 2500].forEach((ms) => setTimeout(applyDexCrop, ms));
+  }
+
+  function dexEmbedUrlFor(poolOrMint, tf, ctype) {
+    const ref = String(poolOrMint || chartPoolRef(appData?.market) || '').trim();
+    if (!ref) return null;
+    const intervals = { '1m': '1', '5m': '5', '15m': '15', '1h': '60', '4h': '240', '1d': '1D' };
+    const interval = intervals[String(tf || '15m').toLowerCase()] || '15';
+    const type = ctype === 'line' ? 'line' : 'candle';
+    const q = new URLSearchParams({
+      embed: '1',
+      theme: 'dark',
+      trades: '0',
+      info: '0',
+      tabs: '0',
+      chartLeftToolbar: '1',
+      chartTheme: 'dark',
+      chartType: type,
+      interval,
+    });
+    return `https://dexscreener.com/solana/${encodeURIComponent(ref)}?${q}`;
+  }
+
+  function setChartEmbedMode(on) {
+    document.querySelector('.chart-terminal')?.classList.toggle('chart-terminal--dex-embed', !!on);
+  }
+
+  function showDexEmbedChart(container, m, note, tf) {
+    const poolRef = chartPoolRef(m) || tokenMintRef(m);
+    const embed = m?.chart?.dexScreenerEmbedUrl || dexEmbedUrlFor(poolRef, tf, chartType);
+    const page = m?.chart?.dexScreenerPageUrl || m?.dexScreenerUrl;
+    if (embed) {
+      setChartEmbedMode(true);
+      container.innerHTML = `<iframe class="dex-embed-chart" src="${escHtml(embed)}" title="DexScreener canlı grafik" loading="eager" allow="fullscreen" referrerpolicy="no-referrer-when-downgrade"></iframe>`;
+      const chartIfr = container.querySelector('iframe.dex-embed-chart');
+      if (note) {
+        note.textContent = `${(tf || '15m').toUpperCase()} · DexScreener`;
+        note.classList.remove('hidden');
+      }
+      if (chartIfr) {
+        chartIfr.addEventListener('load', scheduleDexTradesCrop);
+        scheduleDexTradesCrop();
+      }
+      return true;
     }
-    return { w: Math.max(container?.clientWidth || 320, 320), h: chartStageHeight() };
+    setChartEmbedMode(false);
+    const link = page
+      ? `<a class="dex-chart-link" href="${escHtml(page)}" target="_blank" rel="noopener">DexScreener'da aç</a>`
+      : '';
+    container.innerHTML = `<div class="empty-chart">Grafik yüklenemedi. ${link}</div>`;
+    return false;
   }
 
   async function fetchChartCandles(m, tf, opts = {}) {
@@ -2415,295 +2467,24 @@
     return {
       candles: body.candles || [],
       stats: body.stats || null,
-      poolAddress: body.poolAddress || pool || null,
+      poolAddress: body.poolAddress || null,
       priceUsd: body.priceUsd ?? null,
       pair: body.pair || null,
     };
   }
 
-  function pushChartLiveUpdate(candles, stats, tf) {
-    if (!chartApi || !candleSeries || !candles?.length) return false;
-    const seriesData = buildChartData(candles);
-    if (!seriesData.length) return false;
-    const prev = buildChartData(appData?.market?.chart?.candles || []);
-    const prevLast = prev[prev.length - 1];
-    const nextLast = seriesData[seriesData.length - 1];
-    if (prev.length === seriesData.length && prevLast?.time === nextLast?.time) {
-      if (chartType !== 'line') candleSeries.update(nextLast);
-      lineSeries?.update({ time: nextLast.time, value: nextLast.close });
-      const raw = candles[candles.length - 1];
-      if (volumeSeries) {
-        volumeSeries.update({
-          time: nextLast.time,
-          value: Number(raw.volume) || 0,
-          color: nextLast.close >= nextLast.open ? CHART_DS.volUp : CHART_DS.volDown,
-        });
-      }
-      updateOhlc(raw);
-      renderChartPeriodChg(stats, tf);
-      return true;
-    }
-    applyChartSeriesData(candles);
-    renderChartPeriodChg(stats, tf);
-    chartApi.timeScale().fitContent();
-    return true;
-  }
-
-  function addChartSeries(chart, kind, opts) {
-    const L = LightweightCharts;
-    if (kind === 'candle' && typeof chart.addCandlestickSeries === 'function') {
-      return chart.addCandlestickSeries(opts);
-    }
-    if (kind === 'line' && typeof chart.addLineSeries === 'function') {
-      return chart.addLineSeries(opts);
-    }
-    if (kind === 'hist' && typeof chart.addHistogramSeries === 'function') {
-      return chart.addHistogramSeries(opts);
-    }
-    if (kind === 'candle' && L.CandlestickSeries) return chart.addSeries(L.CandlestickSeries, opts);
-    if (kind === 'line' && L.LineSeries) return chart.addSeries(L.LineSeries, opts);
-    if (kind === 'hist' && L.HistogramSeries) return chart.addSeries(L.HistogramSeries, opts);
-    throw new Error('unsupported chart library version');
-  }
-
-  function loadChartLibrary() {
-    return new Promise((resolve) => {
-      if (chartsLibReady()) {
-        resolve(true);
-        return;
-      }
-      const urls = [
-        'vendor/lightweight-charts.js?v=4',
-        '/vendor/lightweight-charts.js?v=4',
-      ];
-      let i = 0;
-      const next = () => {
-        if (chartsLibReady()) {
-          resolve(true);
-          return;
-        }
-        if (i >= urls.length) {
-          resolve(false);
-          return;
-        }
-        const s = document.createElement('script');
-        s.src = urls[i];
-        i += 1;
-        s.onload = () => resolve(chartsLibReady());
-        s.onerror = next;
-        document.head.appendChild(s);
-      };
-      next();
-    });
-  }
-
-  function bindChartTouchGuard(stage) {
-    if (!stage || stage.dataset.chartTouchBound) return;
-    stage.dataset.chartTouchBound = '1';
-    const lock = () => document.documentElement.classList.add('chart-interacting');
-    const unlock = () => document.documentElement.classList.remove('chart-interacting');
-    stage.addEventListener('pointerdown', lock, { passive: true });
-    stage.addEventListener('pointerup', unlock, { passive: true });
-    stage.addEventListener('pointercancel', unlock, { passive: true });
-    stage.addEventListener('touchmove', (e) => {
-      if (e.cancelable) e.preventDefault();
-    }, { passive: false });
-  }
-
-  function applyChartSeriesData(candles) {
-    const seriesData = buildChartData(candles);
-    if (!seriesData.length || !candleSeries || !lineSeries) return;
-    const volData = seriesData.map((d, i) => {
-      const raw = candles.find((c) => c.time === d.time) || candles[i] || {};
-      return {
-        time: d.time,
-        value: Number(raw.volume) || 0,
-        color: d.close >= d.open ? CHART_DS.volUp : CHART_DS.volDown,
-      };
-    });
-    lineSeries.setData(seriesData.map((d) => ({ time: d.time, value: d.close })));
-    if (chartType === 'line') {
-      candleSeries.setData([]);
-      lineSeries.applyOptions({ visible: true });
-      candleSeries.applyOptions({ visible: false });
-    } else {
-      candleSeries.setData(seriesData);
-      candleSeries.applyOptions({ visible: true });
-      lineSeries.applyOptions({ visible: false });
-    }
-    volumeSeries?.setData(volData);
-  }
-
-  async function refreshChartAndPrice(m) {
-    if (!m) return;
-    const tf = currentTf;
-    try {
-      const live = await fetchChartCandles(m, tf, { live: true });
-      applyLivePairToMarket(m, live.pair, live.priceUsd);
-      renderLivePrice(m);
-      if (live.poolAddress) {
-        m.poolAddress = live.poolAddress;
-        mountDexTradesEmbed(m);
-      }
-      if (!live.candles.length) return;
-      if (appData?.market?.chart) {
-        appData.market.chart.candles = live.candles;
-        appData.market.chart.stats = live.stats || appData.market.chart.stats;
-        appData.market.chart.timeframe = tf;
-      }
-      if (chartApi && candleSeries) {
-        pushChartLiveUpdate(live.candles, live.stats, tf);
-      }
-    } catch (e) {
-      console.warn('live refresh', e);
-    }
-  }
-
-  function chartTimeToNum(t) {
-    if (typeof t === 'number') return t;
-    if (typeof t === 'string') return Math.floor(new Date(`${t}T00:00:00Z`).getTime() / 1000);
-    return 0;
-  }
-
-  function clearChartDrawings() {
-    for (const d of chartDrawings) {
-      try {
-        if (d.priceLine && candleSeries?.removePriceLine) candleSeries.removePriceLine(d.priceLine);
-        if (d.trendSeries && chartApi?.removeSeries) chartApi.removeSeries(d.trendSeries);
-      } catch {
-        /* seri kaldırıldı */
-      }
-    }
-    chartDrawings = [];
-    chartTrendPending = null;
-  }
-
-  function setChartDrawMode(mode) {
-    chartDrawMode = mode === 'clear' || !mode ? 'select' : mode;
-    chartTrendPending = null;
-    document.querySelectorAll('.chart-draw-btn').forEach((b) => {
-      const draw = b.dataset.draw;
-      if (draw === 'clear') {
-        b.classList.remove('active');
-        return;
-      }
-      b.classList.toggle('active', draw === chartDrawMode);
-    });
-    const stage = document.querySelector('.chart-stage');
-    if (stage) {
-      stage.classList.toggle('chart-draw-select', chartDrawMode === 'select');
-      stage.classList.toggle('chart-draw-hline', chartDrawMode === 'hline');
-      stage.classList.toggle('chart-draw-trend', chartDrawMode === 'trend');
-    }
-  }
-
-  function priceFromChartClick(param) {
-    const series = candleSeries || lineSeries;
-    if (!series || !param.point || typeof series.coordinateToPrice !== 'function') return null;
-    const price = series.coordinateToPrice(param.point.y);
-    return Number.isFinite(price) ? price : null;
-  }
-
-  function onChartDrawClick(param) {
-    if (!chartDrawMode || chartDrawMode === 'select' || chartDrawMode === 'clear' || !param.time) return;
-    const price = priceFromChartClick(param);
-    if (price == null) return;
-    const time = param.time;
-    const mainSeries = candleSeries || lineSeries;
-    if (!mainSeries) return;
-
-    if (chartDrawMode === 'hline') {
-      if (typeof mainSeries.createPriceLine !== 'function') return;
-      const priceLine = mainSeries.createPriceLine({
-        price,
-        color: CHART_DRAW_COLOR,
-        lineWidth: 1,
-        lineStyle: 2,
-        axisLabelVisible: true,
-        title: '',
-      });
-      chartDrawings.push({ type: 'hline', priceLine });
-      return;
-    }
-
-    if (chartDrawMode === 'trend') {
-      if (!chartTrendPending) {
-        chartTrendPending = { time, price };
-        return;
-      }
-      let tA = chartTrendPending.time;
-      let pA = chartTrendPending.price;
-      let tB = time;
-      let pB = price;
-      if (chartTimeToNum(tA) > chartTimeToNum(tB)) {
-        [tA, tB] = [tB, tA];
-        [pA, pB] = [pB, pA];
-      }
-      chartTrendPending = null;
-      const trendSeries = addChartSeries(chartApi, 'line', {
-        color: CHART_DRAW_COLOR,
-        lineWidth: 2,
-        lineStyle: 0,
-        priceLineVisible: false,
-        lastValueVisible: false,
-        crosshairMarkerVisible: false,
-      });
-      trendSeries.setData([
-        { time: tA, value: pA },
-        { time: tB, value: pB },
-      ]);
-      chartDrawings.push({ type: 'trend', trendSeries });
-    }
-  }
-
-  function attachChartDrawClick() {
-    if (!chartApi || typeof chartApi.subscribeClick !== 'function') return;
-    if (chartClickUnsub) {
-      chartClickUnsub();
-      chartClickUnsub = null;
-    }
-    chartClickUnsub = chartApi.subscribeClick(onChartDrawClick);
-  }
-
-  function setupChartDrawTools() {
-    const toolbar = $('chartDrawToolbar');
-    if (!toolbar || toolbar.dataset.bound) return;
-    toolbar.dataset.bound = '1';
-    toolbar.addEventListener('click', (e) => {
-      const btn = e.target.closest('.chart-draw-btn');
-      if (!btn) return;
-      const draw = btn.dataset.draw;
-      if (draw === 'clear') {
-        clearChartDrawings();
-        setChartDrawMode('select');
-        return;
-      }
-      if (draw === 'select') {
-        setChartDrawMode('select');
-        return;
-      }
-      setChartDrawMode(chartDrawMode === draw ? 'select' : draw);
-    });
-  }
-
   function destroyChart() {
     document.documentElement.classList.remove('chart-interacting');
-    clearChartDrawings();
-    setChartDrawMode('select');
-    if (chartClickUnsub) {
-      chartClickUnsub();
-      chartClickUnsub = null;
-    }
-    if (chartResizeObs) {
-      chartResizeObs.disconnect();
-      chartResizeObs = null;
-    }
     if (resizeHandler) {
       window.removeEventListener('resize', resizeHandler);
       resizeHandler = null;
     }
     if (chartApi) {
-      chartApi.remove();
+      try {
+        chartApi.remove();
+      } catch {
+        /* yoksay */
+      }
       chartApi = null;
       candleSeries = null;
       lineSeries = null;
@@ -2711,269 +2492,51 @@
     }
   }
 
-  function updateOhlc(c) {
-    if (!c) return;
-    const set = (id, v) => {
-      const el = $(id);
-      if (el) el.textContent = fmtPriceNum(v);
-    };
-    set('ohlcO', c.open);
-    set('ohlcH', c.high);
-    set('ohlcL', c.low);
-    set('ohlcC', c.close ?? c.value);
-    const vol = $('ohlcV');
-    if (vol) {
-      const v = Number(c.volume);
-      vol.textContent = v >= 1e6 ? `${(v / 1e6).toFixed(2)}M` : v >= 1e3 ? `${(v / 1e3).toFixed(1)}K` : v ? v.toFixed(2) : '—';
-    }
-  }
-
-  function buildChartData(candles) {
-    const out = [];
-    const seen = new Set();
-    for (const c of candles || []) {
-      const time = c.time;
-      if (time == null || seen.has(time)) continue;
-      const open = Number(c.open);
-      const high = Number(c.high);
-      const low = Number(c.low);
-      const close = Number(c.close);
-      if (![open, high, low, close].every(Number.isFinite)) continue;
-      seen.add(time);
-      out.push({ time, open, high, low, close });
-    }
-    return out;
-  }
-
-  function chartStageHeight() {
-    const stage = document.querySelector('.chart-stage');
-    if (stage?.clientHeight > 80) return stage.clientHeight;
-    return Math.min(330, Math.max(260, Math.floor(window.innerHeight * 0.34)));
-  }
-
   async function renderChart(m) {
     const container = $('priceChart');
     const note = $('chartNote');
     if (!container) return;
 
-    let candles = m?.chart?.candles || [];
     const tf = m?.chart?.timeframe || currentTf;
-    let stats = m?.chart?.stats;
-
-    try {
-      let live = await fetchChartCandles(m, tf);
-      if (!live.candles.length) {
-        await new Promise((r) => setTimeout(r, 800));
-        live = await fetchChartCandles(m, tf);
-      }
-      if (live.candles.length) {
-        candles = live.candles;
-        stats = live.stats || stats;
-        if (live.poolAddress && appData?.market) appData.market.poolAddress = live.poolAddress;
-      } else if (!candles.length && live.poolAddress && appData?.market) {
-        appData.market.poolAddress = live.poolAddress;
-      }
-      if (appData?.market?.chart) {
-        appData.market.chart.candles = candles;
-        appData.market.chart.stats = stats;
-      }
-    } catch (e) {
-      console.warn('chart api', e);
-    }
-
+    const stats = m?.chart?.stats;
     renderChartPeriodChg(stats, tf);
 
     destroyChart();
+    setChartEmbedMode(false);
     container.innerHTML = '';
     if (note) note.classList.remove('hidden');
 
-    const hasLib = await loadChartLibrary();
-    if (!hasLib) {
-      if (note) note.textContent = 'Grafik kütüphanesi yüklenemedi';
-      container.innerHTML = '<div class="empty-chart">Grafik kütüphanesi yüklenemedi</div>';
-      return;
-    }
-
-    const seriesData = buildChartData(candles);
-    if (!seriesData.length) {
-      const hasRef = !!(m?.poolAddress || tokenMintRef(m));
-      if (note) {
-        note.textContent = hasRef ? `${tf.toUpperCase()} · veri bekleniyor` : 'Pool bulunamadı';
-        note.classList.remove('hidden');
-      }
-      const page = m?.chart?.dexScreenerPageUrl || m?.dexScreenerUrl;
-      const link = page
-        ? `<a class="dex-chart-link" href="${escHtml(page)}" target="_blank" rel="noopener">DexScreener’da aç</a>`
-        : '';
-      container.innerHTML = `<div class="empty-chart">Mum verisi yok. ${link}</div>`;
+    if (showDexEmbedChart(container, m, note, tf)) {
+      const candles = m?.chart?.candles || [];
+      const last = candles[candles.length - 1];
+      if (last) updateOhlc(last);
       return;
     }
 
     if (note) {
-      note.textContent = `${tf.toUpperCase()} · canlı mum`;
-      note.classList.add('hidden');
+      note.textContent = 'DexScreener grafik — pool/mint bekleniyor';
+      note.classList.remove('hidden');
     }
+    const page = m?.chart?.dexScreenerPageUrl || m?.dexScreenerUrl;
+    const link = page
+      ? `<a class="dex-chart-link" href="${escHtml(page)}" target="_blank" rel="noopener">DexScreener'da aç</a>`
+      : '';
+    container.innerHTML = `<div class="empty-chart">Grafik için DexScreener gerekli. ${link}</div>`;
+  }
 
-    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
-
-    const last = candles[candles.length - 1];
-    updateOhlc(last);
-
-    const { w, h } = await waitForChartLayout(container);
-    const priceFmt = chartPriceFormat(seriesData);
+  async function refreshChartAndPrice(m) {
+    if (!m) return;
     try {
-      const crosshairMode = LightweightCharts.CrosshairMode?.Normal ?? 0;
-      container.style.touchAction = 'none';
-      container.style.userSelect = 'none';
-      container.style.webkitUserSelect = 'none';
-      bindChartTouchGuard(document.querySelector('.chart-stage'));
-
-      chartApi = LightweightCharts.createChart(container, {
-        width: w,
-        height: h,
-        layout: {
-          background: { color: CHART_DS.bg },
-          textColor: CHART_DS.text,
-          fontFamily: 'Inter, system-ui, sans-serif',
-          fontSize: 11,
-          attributionLogo: false,
-        },
-        grid: {
-          vertLines: { color: CHART_DS.grid },
-          horzLines: { color: CHART_DS.grid },
-        },
-        watermark: {
-          visible: false,
-          color: 'transparent',
-          text: '',
-        },
-        localization: {
-          priceFormatter: chartPriceLabel,
-        },
-        rightPriceScale: {
-          borderVisible: false,
-          scaleMargins: { top: 0.06, bottom: 0.2 },
-        },
-        timeScale: {
-          borderVisible: false,
-          timeVisible: true,
-          secondsVisible: tf === '1m' || tf === '5m',
-          rightOffset: 6,
-          barSpacing: 7,
-        },
-        crosshair: {
-          mode: crosshairMode,
-          vertLine: { width: 1, color: CHART_DS.crosshair, style: 0, labelBackgroundColor: CHART_DS.bg },
-          horzLine: { width: 1, color: CHART_DS.crosshair, style: 0, labelBackgroundColor: CHART_DS.bg },
-        },
-        handleScroll: {
-          mouseWheel: true,
-          pressedMouseMove: true,
-          horzTouchDrag: true,
-          vertTouchDrag: true,
-        },
-        handleScale: {
-          axisPressedMouseMove: true,
-          mouseWheel: true,
-          pinch: true,
-        },
-        kineticScroll: {
-          touch: true,
-          mouse: false,
-        },
-      });
-
-      requestAnimationFrame(() => {
-        container.querySelectorAll('canvas').forEach((cv) => {
-          cv.style.touchAction = 'none';
-        });
-      });
-
-      candleSeries = addChartSeries(chartApi, 'candle', {
-        upColor: CHART_DS.up,
-        downColor: CHART_DS.down,
-        borderUpColor: CHART_DS.up,
-        borderDownColor: CHART_DS.down,
-        wickUpColor: CHART_DS.up,
-        wickDownColor: CHART_DS.down,
-        borderVisible: true,
-        priceFormat: priceFmt,
-        priceLineVisible: true,
-        priceLineColor: CHART_DS.priceLine,
-        priceLineWidth: 1,
-        visible: chartType !== 'line',
-      });
-
-      lineSeries = addChartSeries(chartApi, 'line', {
-        color: CHART_DS.up,
-        lineWidth: 2,
-        crosshairMarkerVisible: true,
-        priceLineVisible: true,
-        priceLineColor: CHART_DS.priceLine,
-        priceLineWidth: 1,
-        priceFormat: priceFmt,
-        visible: chartType === 'line',
-      });
-
-      volumeSeries = addChartSeries(chartApi, 'hist', {
-        priceFormat: { type: 'volume' },
-        priceScaleId: '',
-      });
-      volumeSeries.priceScale().applyOptions({
-        scaleMargins: { top: 0.8, bottom: 0 },
-      });
-
-      const volData = seriesData.map((d, i) => {
-        const raw = candles.find((c) => c.time === d.time) || candles[i] || {};
-        return {
-          time: d.time,
-          value: Number(raw.volume) || 0,
-          color: d.close >= d.open ? CHART_DS.volUp : CHART_DS.volDown,
-        };
-      });
-
-      candleSeries.setData(chartType === 'line' ? [] : seriesData);
-      lineSeries.setData(seriesData.map((d) => ({ time: d.time, value: d.close })));
-      volumeSeries.setData(volData);
-      chartApi.timeScale().fitContent();
-
-      chartApi.subscribeCrosshairMove((param) => {
-        if (!param.time || !param.seriesData) return;
-        const cd = param.seriesData.get(candleSeries);
-        if (cd) {
-          updateOhlc(cd);
-          return;
-        }
-        const ld = param.seriesData.get(lineSeries);
-        if (ld) {
-          updateOhlc({ open: ld.value, high: ld.value, low: ld.value, close: ld.value, volume: 0 });
-        }
-      });
-
-      resizeHandler = () => {
-        if (chartApi) {
-          chartApi.applyOptions({
-            width: container.clientWidth || w,
-            height: chartStageHeight(),
-          });
-        }
-      };
-      window.addEventListener('resize', resizeHandler);
-      requestAnimationFrame(() => resizeHandler());
-
-      if (chartResizeObs) chartResizeObs.disconnect();
-      if (typeof ResizeObserver === 'function') {
-        chartResizeObs = new ResizeObserver(() => resizeHandler());
-        chartResizeObs.observe(container);
+      const live = await fetchChartCandles(m, currentTf, { live: true });
+      applyLivePairToMarket(m, live.pair, live.priceUsd);
+      renderLivePrice(m);
+      if (live.poolAddress) {
+        m.poolAddress = live.poolAddress;
+        if (appData?.market) appData.market.poolAddress = live.poolAddress;
+        mountDexTradesEmbed(m);
       }
-
-      attachChartDrawClick();
-      setChartDrawMode('select');
-
     } catch (e) {
-      console.warn('chart render', e);
-      destroyChart();
-      container.innerHTML = '<div class="empty-chart">Grafik oluşturulamadı</div>';
+      console.warn('live refresh', e);
     }
   }
 
@@ -2982,8 +2545,7 @@
     document.querySelectorAll('.ctype').forEach((b) => {
       b.classList.toggle('active', b.dataset.type === type);
     });
-    if (!chartApi || !candleSeries || !lineSeries || !appData?.market?.chart?.candles) return;
-    applyChartSeriesData(appData.market.chart.candles);
+    if (appData?.market) void renderChart(appData.market);
   }
 
   function sectionCard(title, bodyHtml) {
@@ -3145,30 +2707,11 @@
   async function applyChartTimeframe(m, tf) {
     setChartLoading(true);
     try {
-      let live = await fetchChartCandles(m, tf);
-      if (!live.candles.length) {
-        await new Promise((r) => setTimeout(r, 400));
-        live = await fetchChartCandles(m, tf);
-      }
-      const candles = live.candles || [];
-      const stats = live.stats || m?.chart?.stats;
-      if (live.poolAddress) {
-        m.poolAddress = live.poolAddress;
-        if (appData?.market) appData.market.poolAddress = live.poolAddress;
-      }
-      if (appData?.market?.chart) {
-        appData.market.chart.candles = candles;
-        appData.market.chart.stats = stats;
-        appData.market.chart.timeframe = tf;
-      }
-      renderChartPeriodChg(stats, tf);
-      if (candles.length && chartApi && candleSeries && lineSeries) {
-        applyChartSeriesData(candles);
-        updateOhlc(candles[candles.length - 1]);
-        chartApi.timeScale().fitContent();
-        return true;
-      }
-      return false;
+      currentTf = tf;
+      if (appData?.market?.chart) appData.market.chart.timeframe = tf;
+      await renderChart(m);
+      scheduleDexTradesCrop();
+      return true;
     } finally {
       setChartLoading(false);
     }
@@ -3182,9 +2725,7 @@
       b.classList.add('loading');
     });
     try {
-      if (appData.market.chart) appData.market.chart.timeframe = tf;
-      const updated = await applyChartTimeframe(appData.market, tf);
-      if (!updated) await renderChart(appData.market);
+      await applyChartTimeframe(appData.market, tf);
     } catch (e) {
       console.warn('switchChartTimeframe', e);
       showToast('Grafik yenilenemedi — birkaç sn sonra tekrar dene');
@@ -3280,7 +2821,9 @@
       destroyChart();
     } else {
       chartSection?.classList.remove('hidden');
-      renderChart(m).catch((e) => console.warn('renderChart', e));
+      renderChart(m)
+        .then(() => scheduleDexTradesCrop())
+        .catch((e) => console.warn('renderChart', e));
     }
     startLivePoll(m);
     renderInfoPanel(data);

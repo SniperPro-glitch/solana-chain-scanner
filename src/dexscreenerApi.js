@@ -97,6 +97,50 @@ async function resolveDexScreenerPair({ mint, poolAddress } = {}) {
   return null;
 }
 
+const CHART_INTERVAL = {
+  '1m': '1',
+  '5m': '5',
+  '15m': '15',
+  '1h': '60',
+  '4h': '240',
+  '1d': '1D',
+};
+
+function dexScreenerChartEmbedUrl(poolOrMint, timeframe = '15m') {
+  const ref = String(poolOrMint || '').trim();
+  if (!ref) return null;
+  const tf = String(timeframe || '15m').toLowerCase();
+  const interval = CHART_INTERVAL[tf] || '15';
+  const q = new URLSearchParams({
+    embed: '1',
+    theme: 'dark',
+    trades: '0',
+    info: '0',
+    tabs: '0',
+    chartLeftToolbar: '1',
+    chartTheme: 'dark',
+    chartType: 'candle',
+    interval,
+  });
+  return `https://dexscreener.com/solana/${encodeURIComponent(ref)}?${q.toString()}`;
+}
+
+function dexScreenerTradesEmbedUrl(poolOrMint) {
+  const ref = String(poolOrMint || '').trim();
+  if (!ref) return null;
+  const q = new URLSearchParams({
+    embed: '1',
+    theme: 'dark',
+    trades: '1',
+    info: '0',
+    tabs: '0',
+    chartLeftToolbar: '0',
+    chartTheme: 'dark',
+    interval: '15',
+  });
+  return `https://dexscreener.com/solana/${encodeURIComponent(ref)}?${q.toString()}`;
+}
+
 function dexScreenerPageUrl(poolOrMint) {
   const ref = String(poolOrMint || '').trim();
   if (!ref) return null;
@@ -131,17 +175,11 @@ async function getPairChart(poolOrMint, timeframe = '15m', opts = {}) {
   }
 
   const { fetchOhlcv, normalizeTimeframe, patchLastCandle } = require('./marketData');
-  const { fetchOhlcvByMint, isBirdeyeEnabled } = require('./birdeyeApi');
   const tf = normalizeTimeframe(timeframe);
   let candles = [];
   let source = null;
 
-  if (isBirdeyeEnabled() && mint) {
-    candles = await fetchOhlcvByMint(mint, tf, { fresh: live });
-    if (candles.length) source = 'birdeye';
-  }
-
-  if (!candles.length && pool && !isBirdeyeEnabled()) {
+  if (pool) {
     const ohlcvKey = `${pool}:${tf}`;
     const needFull = !live
       || !ohlcvLiveFetchAt.has(ohlcvKey)
@@ -235,6 +273,8 @@ module.exports = {
   resolveDexScreenerPair,
   resolvePoolAddressForMint,
   pickBestSolanaPair,
+  dexScreenerChartEmbedUrl,
+  dexScreenerTradesEmbedUrl,
   dexScreenerPageUrl,
   getPairChart,
   getTokenTrades,

@@ -49,12 +49,11 @@ async function sendDexChartJson(res, ref, tf, live) {
   const { getPairChart } = require('./dexscreenerApi');
   const { chartStatsFromCandles } = require('./tokenLogo');
   const { ohlcvCacheMs, normalizeTimeframe } = require('./marketData');
-  const { ohlcvCacheMs: birdeyeCacheMs, isBirdeyeEnabled } = require('./birdeyeApi');
   const t0 = Date.now();
   const timeframe = normalizeTimeframe(tf);
   const { pair, candles, poolAddress, priceUsd, source, mint } = await getPairChart(ref, timeframe, { fresh: live });
   const serverMs = Date.now() - t0;
-  const cacheMs = source === 'birdeye' ? birdeyeCacheMs(timeframe) : ohlcvCacheMs(timeframe);
+  const cacheMs = ohlcvCacheMs(timeframe);
   sendJson(res, 200, {
     pair,
     poolAddress,
@@ -64,7 +63,7 @@ async function sendDexChartJson(res, ref, tf, live) {
     priceUsd,
     stats: chartStatsFromCandles(candles),
     live,
-    source: source || (isBirdeyeEnabled() ? 'birdeye' : 'geckoterminal'),
+    source: source || 'dexscreener',
     cacheMs,
     serverMs,
   });
@@ -284,7 +283,7 @@ function createMiniAppServer() {
           git: String(process.env.RAILWAY_GIT_COMMIT_SHA || '').slice(0, 7),
           webAppEntry: getWebAppEntryUrl(),
           assets: { appV },
-          chart: 'lightweight',
+          chart: 'dexscreener_embed',
         });
         return;
       }
@@ -416,12 +415,10 @@ function createMiniAppServer() {
         const { isMiniAppOnlyMode } = require('../scripts/railway-env');
         const hasBotToken = !!String(process.env.BOT_TOKEN || process.env.TELEGRAM_BOT_TOKEN || '').trim();
         const miniOnly = isMiniAppOnlyMode();
-        const { publicConfig: birdeyePublicConfig } = require('./birdeyeApi');
         sendJson(res, 200, {
           webAppBase: getWebAppBaseUrl(),
           webAppEntry: getWebAppEntryUrl(),
           botApiBase: getBotApiBaseUrl(),
-          birdeye: birdeyePublicConfig(),
           telegramBotUsername: botUser || 'solachainscanbot',
           bot: {
             miniAppOnly: miniOnly,
@@ -644,12 +641,6 @@ function startMiniAppServer() {
 
   const port = parseInt(process.env.MINI_APP_PORT || process.env.PORT || '3080', 10);
   const server = createMiniAppServer();
-  try {
-    const { attachBirdeyeTradesWs } = require('./birdeyeTradesWs');
-    attachBirdeyeTradesWs(server);
-  } catch (e) {
-    console.warn('[miniApp] Birdeye WS köprüsü yüklenemedi:', e.message);
-  }
   server.on('error', (err) => {
     console.error('[miniApp] HTTP dinleme hatası:', err.message);
     if (err.code === 'EADDRINUSE') {
