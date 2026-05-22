@@ -49,7 +49,8 @@
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  padding: 14px 14px 10px;
+  /* contentSafeAreaInset.top = Telegram bar yüksekliği — sidebar da onun altından başlamalı */
+  padding: calc(14px + var(--tg-content-safe-top, 0px)) 14px 10px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 }
 
