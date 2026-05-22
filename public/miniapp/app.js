@@ -362,26 +362,26 @@
     else if (typeof window.__tgApplySafeArea === 'function') window.__tgApplySafeArea();
   }
 
+  function canTgNavBack() {
+    if (!$('searchOverlay')?.classList.contains('hidden')) return true;
+    if (document.body.classList.contains('sidebar-open')) return true;
+    if (reportId || !$('view-detail')?.classList.contains('hidden')) return true;
+    return false;
+  }
+
   function syncTgBackButton() {
     const tg = window.Telegram?.WebApp;
     if (!tg?.BackButton || window.SniperHost?.isWebBrowser?.()) return;
-    const searchOpen = !$('searchOverlay')?.classList.contains('hidden');
-    const sidebarOpen = document.body.classList.contains('sidebar-open');
-    const onDetail = !!reportId || !$('view-detail')?.classList.contains('hidden');
-    const show = searchOpen || sidebarOpen || onDetail;
-    if (show) tg.BackButton.show();
-    else tg.BackButton.hide();
+    tg.BackButton.show();
   }
 
   function tgNavBack() {
     if (!$('searchOverlay')?.classList.contains('hidden')) {
       if (typeof globalThis.closeSearchOverlay === 'function') globalThis.closeSearchOverlay();
-      syncTgBackButton();
       return;
     }
     if (document.body.classList.contains('sidebar-open')) {
       if (typeof globalThis.closeDexSidebar === 'function') globalThis.closeDexSidebar();
-      syncTgBackButton();
       return;
     }
     if (reportId || !$('view-detail')?.classList.contains('hidden')) {
@@ -389,8 +389,10 @@
       reportId = null;
       destroyChart();
       showScannerHome();
-      syncTgBackButton();
+      return;
     }
+    const tg = window.Telegram?.WebApp;
+    if (tg && typeof tg.close === 'function') tg.close();
   }
 
   function showScannerHome() {
