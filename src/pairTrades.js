@@ -220,21 +220,19 @@ async function fetchPairTradesInner({
     console.warn('[trades] gecko slow', elapsed, 'ms', key);
   }
 
-  if (!skipDexOrders && mint) {
-    if (!trades.length) {
-      try {
-        const ds = await fetchDexOrders(mint, limit);
-        if (ds.length) trades = ds;
-      } catch {
-        /* yoksay */
-      }
-    } else if (trades.length < limit) {
-      try {
-        const ds = await fetchDexOrders(mint, limit);
-        trades = mergeTrades(trades, ds, limit);
-      } catch {
-        /* yoksay */
-      }
+  if (mint && !trades.length) {
+    try {
+      const ds = await fetchDexOrders(mint, limit);
+      if (ds.length) trades = ds;
+    } catch {
+      /* yoksay */
+    }
+  } else if (!skipDexOrders && mint && trades.length < limit) {
+    try {
+      const ds = await fetchDexOrders(mint, limit);
+      trades = mergeTrades(trades, ds, limit);
+    } catch {
+      /* yoksay */
     }
   }
 

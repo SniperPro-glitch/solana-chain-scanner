@@ -166,7 +166,7 @@ async function getTokenTrades(mint, limit = 50, opts = {}) {
     mint,
     limit,
     fresh: !!opts.fresh,
-    skipDexOrders: !!(poolQ || opts.fresh),
+    skipDexOrders: !!poolQ,
   });
   const fetchMs = Date.now() - t0;
   if (fetchMs > 2000) {

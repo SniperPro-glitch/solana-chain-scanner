@@ -1987,14 +1987,32 @@
 
   function chartPoolRef(m) {
     const market = m || appData?.market || {};
-    return (
+    const mint = tokenMintRef(m);
+    const pool = (
       market.poolAddress
+      || market.chart?.poolAddress
       || market.chart?.pairRef
       || appData?.poolAddress
-      || market.address
-      || appData?.address
       || ''
     ).trim();
+    if (!pool || (mint && pool === mint)) return '';
+    return pool;
+  }
+
+  async function ensurePoolOnMarket(m) {
+    if (chartPoolRef(m)) return chartPoolRef(m);
+    const mint = tokenMintRef(m);
+    if (!mint) return '';
+    try {
+      const live = await fetchChartCandles(m, currentTf, {});
+      if (live.poolAddress) {
+        m.poolAddress = live.poolAddress;
+        if (appData?.market) appData.market.poolAddress = live.poolAddress;
+      }
+    } catch (e) {
+      console.warn('pool resolve', e);
+    }
+    return chartPoolRef(m);
   }
 
   function tokenMintRef(m) {
@@ -2217,6 +2235,7 @@
     }
     tradesPollInFlight = true;
     try {
+      await ensurePoolOnMarket(m);
       const trades = await fetchTradesFromServer(m, true);
       if (trades.length) {
         tradesLastGood = trades;
@@ -2267,14 +2286,16 @@
 
   function startLivePoll(m) {
     stopLivePoll();
-    const tick = () => {
+    const tick = async () => {
       if (!reportId || !appData?.market) return;
+      await refreshChartAndPrice(appData.market);
       void refreshTrades(appData.market);
-      void refreshChartAndPrice(appData.market);
     };
-    void refreshTrades(m, true);
-    void refreshChartAndPrice(m);
-    livePollTimer = setInterval(tick, 5000);
+    void (async () => {
+      await refreshChartAndPrice(m);
+      void refreshTrades(m, true);
+    })();
+    livePollTimer = setInterval(() => { void tick(); }, 5000);
   }
 
   function chartsLibReady() {
