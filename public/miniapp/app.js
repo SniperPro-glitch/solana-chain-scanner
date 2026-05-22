@@ -456,8 +456,6 @@
     $('view-detail')?.classList.remove('hidden');
     ensureDetailSpacer();
     refreshTgViewport();
-    if (globalThis.SniperCropProfile?.apply) globalThis.SniperCropProfile.apply();
-    scheduleDexTradesCrop();
   }
 
   function isSolanaMint(s) {
@@ -1680,21 +1678,21 @@
     syncFeedToolbarUi();
     setFeedTab('home');
     searchQuery = '';
+    homeFeedCacheKey = '';
     const sideInp = $('sidebarSearchInput');
     if (sideInp) sideInp.value = '';
     setSearchHint('');
     const list = $('homeTokenList');
-    const hasRows = !!list?.querySelector('.token-row');
-    if (!hasRows) {
-      homeFeedCacheKey = '';
-      if (list) list.innerHTML = '';
-      $('feedLoading')?.classList.remove('hidden');
-      void loadHomeFeed('home', 'home', { force: true });
-    } else {
-      $('feedLoading')?.classList.add('hidden');
-      list?.classList.remove('dimmed');
-    }
+    if (list) list.innerHTML = '';
+    $('feedLoading')?.classList.remove('hidden');
     void loadPromoBanner();
+    void loadHomeFeed('home', 'home', { force: true });
+    setTimeout(() => {
+      if (!scannerNavActive && !feedItemsFull.length && !$('scanner-home')?.classList.contains('hidden')) {
+        if (typeof globalThis.bootHomeFeed === 'function') void globalThis.bootHomeFeed();
+        else void loadHomeFeed('home', 'home', { force: true });
+      }
+    }, 2500);
   }
 
   function bindDetailShell() {
@@ -1951,7 +1949,7 @@
 
   function scheduleDexTradesCrop() {
     applyDexCrop();
-    [150, 500, 1200, 2500].forEach((ms) => setTimeout(applyDexCrop, ms));
+    [100, 400, 1200, 2500, 5000].forEach((ms) => setTimeout(applyDexCrop, ms));
   }
 
   function chartPoolRef(m) {

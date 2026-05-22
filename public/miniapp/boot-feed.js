@@ -2,7 +2,7 @@
  * Ana sayfa feed — app.js yüklenmese bile liste doldurur.
  */
 (function (g) {
-  const FEED_QS = 'tab=home&limit=24&dex=all';
+  const FEED_QS = 'tab=trending&limit=24&dex=all';
 
   function storedChain() {
     try {
@@ -97,12 +97,13 @@
   g.bootHomeFeed = pullFeed;
   g.bootHomeFeedIfEmpty = bootIfEmpty;
 
+  showHomeShell();
+  void pullFeed();
   document.addEventListener('sniper:chain', () => {
     void pullFeed();
   });
-
-  /** app.js ana feed'i yükler; yalnızca çok geç kalırsa yedek (çift fetch / sersemleme önlenir). */
   window.addEventListener('load', () => {
-    setTimeout(bootIfEmpty, 3500);
+    setTimeout(bootIfEmpty, 500);
+    setTimeout(bootIfEmpty, 2200);
   });
 })(typeof globalThis !== 'undefined' ? globalThis : window);
