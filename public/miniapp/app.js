@@ -3,6 +3,10 @@
   function isWebBrowser() {
     return window.SniperHost?.isWebBrowser?.() ?? !tg;
   }
+
+  function isTgMiniApp() {
+    return window.SniperHost?.isTelegram?.() || document.documentElement.classList.contains('tg-mini-app');
+  }
   let apiConfig = { botApiBase: '', webAppBase: '' };
   let apiConfigPromise = null;
   let homeFeedInflight = null;
@@ -1401,7 +1405,9 @@
         opts.emptyMessage ||
         (searching
           ? 'Eşleşen token yok.'
-          : 'Henüz bot paylaşımı yok. Tokenler yalnızca Solana bot kanalına düştükçe listelenir.');
+          : isTgMiniApp()
+            ? 'Liste boş — veri şu an yok.'
+            : 'Henüz bot paylaşımı yok. Tokenler yalnızca Solana bot kanalına düştükçe listelenir.');
       list.innerHTML = `<p class="home-cta">${escHtml(emptyMsg)}</p>`;
       return;
     }
@@ -1438,6 +1444,10 @@
     const bar = $('feedMetaBar');
     const txt = $('feedMetaText');
     if (!bar || !txt) return;
+    if (isTgMiniApp()) {
+      bar.classList.add('hidden');
+      return;
+    }
     if (!body) {
       bar.classList.add('hidden');
       return;
@@ -1536,7 +1546,7 @@
       updateFeedMetaBar(body);
       feedItemsFull = [];
       applySearchFilter();
-      if (!q && body.emptyMessage && feedEmptyKind !== 'new_pairs_empty') {
+      if (!q && body.emptyMessage && feedEmptyKind !== 'new_pairs_empty' && !isTgMiniApp()) {
         showToast(body.emptyMessage.slice(0, 80));
       }
       return body;
@@ -1557,7 +1567,7 @@
     }
     if (body.chain) activeChain = body.chain;
     applySearchFilter();
-    if (body.empty && body.emptyMessage && feedEmptyKind !== 'new_pairs_empty') {
+    if (body.empty && body.emptyMessage && feedEmptyKind !== 'new_pairs_empty' && !isTgMiniApp()) {
       showToast('Liste boş — /post ile kanala paylaşın');
     }
     return body;
@@ -1592,7 +1602,10 @@
     setSearchHint('');
     const loadingEl = $('feedLoading');
     const list = $('homeTokenList');
-    loadingEl?.classList.remove('hidden');
+    if (loadingEl) {
+      if (isTgMiniApp()) loadingEl.textContent = 'Veriler yükleniyor…';
+      loadingEl.classList.remove('hidden');
+    }
     list?.classList.add('dimmed');
 
     homeFeedInflight = (async () => {
@@ -1766,7 +1779,11 @@
     setSearchHint('');
     const list = $('homeTokenList');
     if (list) list.innerHTML = '';
-    $('feedLoading')?.classList.remove('hidden');
+    const loadingEl = $('feedLoading');
+    if (loadingEl) {
+      if (isTgMiniApp()) loadingEl.textContent = 'Veriler yükleniyor…';
+      loadingEl.classList.remove('hidden');
+    }
     void loadPromoBanner();
     void loadHomeFeed('home', 'home', { force: true });
     setTimeout(() => {
