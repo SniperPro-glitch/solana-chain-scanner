@@ -398,9 +398,12 @@
   function syncTgBackButton() {
     const tg = window.Telegram?.WebApp;
     if (!tg?.BackButton || window.SniperHost?.isWebBrowser?.()) return;
-    const onDetail = document.documentElement.classList.contains('detail-mode');
-    if (onDetail) tg.BackButton.show();
-    else tg.BackButton.hide();
+    tg.BackButton.hide();
+  }
+
+  function syncDetailBackUi() {
+    const tgMode = !isWebBrowser();
+    $('btnHeroBack')?.classList.toggle('hidden', !tgMode);
   }
 
   function tgNavBack() {
@@ -430,6 +433,7 @@
     document.documentElement.classList.remove('detail-mode');
     hideAllViews();
     $('scanner-home')?.classList.remove('hidden');
+    syncDetailBackUi();
     refreshTgViewport();
     syncTgBackButton();
     bindHomeShell();
@@ -515,6 +519,7 @@
     document.documentElement.classList.add('detail-mode');
     $('view-detail')?.classList.remove('hidden');
     ensureDetailSpacer();
+    syncDetailBackUi();
     refreshTgViewport();
     syncTgBackButton();
   }
@@ -2647,12 +2652,14 @@
   }
 
   function setupShell() {
-    $('btnBack')?.addEventListener('click', () => {
+    const onDetailBack = () => {
       clearReportRoute();
       reportId = null;
       destroyChart();
       showScannerHome();
-    });
+    };
+    $('btnBack')?.addEventListener('click', onDetailBack);
+    $('btnHeroBack')?.addEventListener('click', onDetailBack);
     $('btnErrorHome')?.addEventListener('click', () => {
       clearReportRoute();
       reportId = null;

@@ -1,5 +1,5 @@
 /**
- * Telegram Mini App — tam ekran (X + aşağı ok kalkar), swipe ile küçültme kapalı.
+ * Telegram — tam ekran (üst X / ok / menü kalkar). BackButton gizli (çift Geri olmasın).
  */
 (function () {
   const tg = window.Telegram?.WebApp;
@@ -29,7 +29,6 @@
   }
 
   let profileTimer = null;
-  let fsRetryTimer = null;
 
   function scheduleProfileApply() {
     clearTimeout(profileTimer);
@@ -44,6 +43,7 @@
     try {
       tg.SettingsButton?.hide?.();
       tg.SecondaryButton?.hide?.();
+      tg.BackButton?.hide?.();
     } catch (_) {
       /* yoksay */
     }
@@ -53,13 +53,6 @@
     if (typeof tg.disableVerticalSwipes === 'function') {
       try {
         tg.disableVerticalSwipes();
-      } catch (_) {
-        /* yoksay */
-      }
-    }
-    if (typeof tg.postEvent === 'function') {
-      try {
-        tg.postEvent('web_app_setup_swipe_behavior', { allow_vertical_swipe: false });
       } catch (_) {
         /* yoksay */
       }
@@ -88,11 +81,11 @@
   }
 
   function scheduleFullscreenRetries() {
-    clearTimeout(fsRetryTimer);
-    const delays = [0, 120, 350, 700, 1400, 2800];
+    const delays = [0, 100, 250, 500, 900, 1500, 2500, 4000];
     delays.forEach((ms) => {
       setTimeout(() => {
         if (!tg.isFullscreen) requestFullscreenMode();
+        else hideTelegramUiExtras();
       }, ms);
     });
   }
@@ -100,6 +93,17 @@
   function applyStickyMobile() {
     const p = String(tg.platform || '').toLowerCase();
     root.classList.toggle('tg-sticky-mobile', MOBILE_PLATFORMS.includes(p));
+  }
+
+  function bindBackButton() {
+    if (!tg.BackButton) return;
+    if (!tg.__sniperBackBound) {
+      tg.__sniperBackBound = true;
+      tg.BackButton.onClick(() => {
+        if (typeof window.SniperNavBack === 'function') window.SniperNavBack();
+      });
+    }
+    tg.BackButton.hide();
   }
 
   function bootTelegramUi() {
@@ -120,28 +124,10 @@
     requestFullscreenMode();
     scheduleFullscreenRetries();
 
-    if (typeof tg.expand === 'function') {
-      try {
-        tg.expand();
-      } catch (_) {
-        /* yoksay */
-      }
-    }
-
     applySafeArea();
     scheduleProfileApply();
     bindBackButton();
     if (typeof window.syncTgBackButton === 'function') window.syncTgBackButton();
-  }
-
-  function bindBackButton() {
-    if (!tg.BackButton) return;
-    if (!tg.__sniperBackBound) {
-      tg.__sniperBackBound = true;
-      tg.BackButton.onClick(() => {
-        if (typeof window.SniperNavBack === 'function') window.SniperNavBack();
-      });
-    }
   }
 
   function onFullscreenChanged() {
@@ -174,6 +160,13 @@
     tg.onEvent('contentSafeAreaChanged', applySafeArea);
     tg.onEvent('fullscreenChanged', onFullscreenChanged);
     tg.onEvent('fullscreenFailed', () => {
+      if (typeof tg.expand === 'function') {
+        try {
+          tg.expand();
+        } catch (_) {
+          /* yoksay */
+        }
+      }
       scheduleFullscreenRetries();
     });
   }
@@ -181,8 +174,8 @@
   document.addEventListener('visibilitychange', () => {
     if (document.hidden || window.SniperHost?.isWebBrowser?.()) return;
     disableSwipeClose();
+    hideTelegramUiExtras();
     if (!tg.isFullscreen) scheduleFullscreenRetries();
-    else if (typeof tg.expand === 'function') tg.expand();
     applySafeArea();
   });
 
@@ -199,6 +192,7 @@
   window.__tgApplyFullscreen = () => {
     requestFullscreenMode();
     scheduleFullscreenRetries();
+    hideTelegramUiExtras();
     applySafeArea();
   };
 })();

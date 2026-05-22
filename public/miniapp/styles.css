@@ -512,6 +512,35 @@ html.detail-mode body {
   z-index: -1;
 }
 
+/* Telegram: üst siyah bar + çift Geri yok — tam ekran + hero içi geri */
+html.tg-mini-app .view-detail .detail-top {
+  display: none !important;
+}
+
+html.tg-mini-app .hero-back-fab {
+  display: inline-flex;
+}
+
+.hero-back-fab {
+  display: none;
+  align-items: center;
+  gap: 4px;
+  margin: 0 0 10px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--glass);
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.hero-back-fab .hero-back-ico {
+  font-size: 18px;
+  line-height: 1;
+}
+
 .detail-top {
   display: flex;
   align-items: center;
