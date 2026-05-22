@@ -557,9 +557,9 @@
     return String(location.hash || '').includes('kalibre');
   }
 
+  /** Görünür Kırpma yalnızca ?kalibre=1 — normalde motor gizli düğmeye basar. */
   function shouldShowCropButton() {
-    if (isCalibrateMode()) return true;
-    return document.documentElement.classList.contains('web-browser');
+    return calibrateFromUrl();
   }
 
   /** ?profil=web|app11|app13|app13pm|app16 ÔÇö link sadece do─şru sekmeyi a├ğar; ├Âl├ğ├╝ler kay─▒tta. */
@@ -775,8 +775,42 @@
     return true;
   }
 
+  /** Görünmez Kırpma — motor bunu programatik .click() ile tetikler. */
+  function ensureKirpmaBotButton() {
+    let btn = document.getElementById('sniperKirpmaBot');
+    if (btn) return btn;
+    btn = document.createElement('button');
+    btn.id = 'sniperKirpmaBot';
+    btn.type = 'button';
+    btn.setAttribute('aria-hidden', 'true');
+    btn.tabIndex = -1;
+    btn.textContent = 'K\u0131rpma';
+    Object.assign(btn.style, {
+      position: 'fixed',
+      left: '-9999px',
+      width: '1px',
+      height: '1px',
+      opacity: '0',
+      pointerEvents: 'none',
+    });
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      applyLikeKirpmaButton();
+    });
+    document.body.appendChild(btn);
+    return btn;
+  }
+
+  /** Motor = gizli düğmeye bas (aç-kapat apply ile aynı). */
+  function pressKirpmaBot() {
+    if (!isDetailOpen()) return false;
+    ensureKirpmaBotButton().click();
+    return true;
+  }
+
   function runMotorCrop() {
-    return applyLikeKirpmaButton();
+    return pressKirpmaBot();
   }
 
   let motorBurstIds = [];
@@ -1025,6 +1059,7 @@
     apply();
     bindCropObservers();
     bindMotorOnEmbed();
+    ensureKirpmaBotButton();
     addCalibrateButton();
     window.addEventListener('resize', () => {
       if (!document.getElementById('dexCropPanel')?.classList.contains('hidden')) return;
@@ -1068,6 +1103,8 @@
     runMotorCrop,
     scheduleMotorCrop,
     applyLikeKirpmaButton,
+    pressKirpmaBot,
+    ensureKirpmaBotButton,
     openPanel,
     closePanel,
     copyProfileFrom,
