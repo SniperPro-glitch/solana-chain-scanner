@@ -414,11 +414,52 @@
     ].join('\n');
   }
 
+  /** Panel DOM yokken veya kapalıyken motor çalışır; açık panel slider yönetir. */
+  function isCropPanelInteractive() {
+    const p = document.getElementById('dexCropPanel');
+    return !!(p && !p.classList.contains('hidden'));
+  }
+
+  let cropMotorTimer = null;
+  let cropMotorGen = 0;
+
+  function isDetailViewVisible() {
+    const vd = document.getElementById('view-detail');
+    return !!(vd && !vd.classList.contains('hidden'));
+  }
+
+  function stopCropMotor() {
+    cropMotorGen += 1;
+    if (cropMotorTimer) clearInterval(cropMotorTimer);
+    cropMotorTimer = null;
+  }
+
+  /** Görünmez arka plan motoru — panel açıkken apply tekrarlar (Dex iframe stilleri sıfırlar). */
+  function startCropMotor() {
+    if (!isDetailViewVisible()) {
+      stopCropMotor();
+      return;
+    }
+    stopCropMotor();
+    const gen = cropMotorGen;
+    const tick = () => {
+      if (gen !== cropMotorGen || !isDetailViewVisible()) {
+        stopCropMotor();
+        return;
+      }
+      if (isCropPanelInteractive()) return;
+      void applyLiveProfile();
+    };
+    tick();
+    cropMotorTimer = setInterval(tick, 480);
+    [1200, 2800, 5500, 9000].forEach((ms) => setTimeout(tick, ms));
+  }
+
   function bindCropObservers() {
     if (global.__sniperCropObs) return;
     global.__sniperCropObs = true;
     const reapply = () => {
-      if (document.getElementById('dexCropPanel')?.classList.contains('hidden') === false) return;
+      if (isCropPanelInteractive()) return;
       void applyLiveProfile();
     };
     window.addEventListener('resize', reapply);
@@ -1005,6 +1046,7 @@
     };
     run();
     [200, 500, 1100, 2200, 4000].forEach((ms) => setTimeout(run, ms));
+    startCropMotor();
   }
 
   async function init() {
@@ -1028,13 +1070,15 @@
     }
     bindCropObservers();
     window.addEventListener('resize', () => {
-      if (!document.getElementById('dexCropPanel')?.classList.contains('hidden')) return;
+      if (isCropPanelInteractive()) return;
       void applyLiveProfile();
+      if (isDetailViewVisible()) startCropMotor();
     });
     const vd = document.getElementById('view-detail');
     if (vd) {
       const onDetailVisible = () => {
         if (!vd.classList.contains('hidden')) scheduleDetailCrop();
+        else stopCropMotor();
       };
       new MutationObserver(onDetailVisible).observe(vd, {
         attributes: true,
@@ -1060,6 +1104,8 @@
     apply,
     applyLiveProfile,
     scheduleDetailCrop,
+    startCropMotor,
+    stopCropMotor,
     applyAsync,
     profileFromBaked,
     openPanel,

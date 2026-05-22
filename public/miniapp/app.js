@@ -358,6 +358,7 @@
     $('error')?.classList.add('hidden');
     $('scanner-home')?.classList.add('hidden');
     $('view-detail')?.classList.add('hidden');
+    globalThis.SniperDexCrop?.stopCropMotor?.();
   }
 
   function refreshTgViewport() {
