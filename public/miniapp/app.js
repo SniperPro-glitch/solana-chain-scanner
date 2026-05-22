@@ -70,6 +70,8 @@
   let lineSeries = null;
   let volumeSeries = null;
   let resizeHandler = null;
+  let chartResizeObs = null;
+  let chartPollTimer = null;
 
   let feedTab = 'trending';
   let dexFilter = 'all';
@@ -370,6 +372,7 @@
 
   function showScannerHome() {
     stopTradesPoll();
+    stopChartPoll();
     if (typeof globalThis.closeSearchOverlay === 'function') globalThis.closeSearchOverlay();
     document.documentElement.classList.remove('detail-mode');
     hideAllViews();
@@ -2155,7 +2158,83 @@
     });
   }
 
+  function stopChartPoll() {
+    if (chartPollTimer) {
+      clearInterval(chartPollTimer);
+      chartPollTimer = null;
+    }
+  }
+
+  function startChartPoll(m) {
+    stopChartPoll();
+    chartPollTimer = setInterval(() => {
+      if (reportId && appData?.market) void refreshChartLive(appData.market);
+    }, 30_000);
+  }
+
+  function bindChartTouchGuard(stage) {
+    if (!stage || stage.dataset.chartTouchBound) return;
+    stage.dataset.chartTouchBound = '1';
+    const lock = () => document.documentElement.classList.add('chart-interacting');
+    const unlock = () => document.documentElement.classList.remove('chart-interacting');
+    stage.addEventListener('pointerdown', lock, { passive: true });
+    stage.addEventListener('pointerup', unlock, { passive: true });
+    stage.addEventListener('pointercancel', unlock, { passive: true });
+    stage.addEventListener('touchmove', (e) => {
+      if (e.cancelable) e.preventDefault();
+    }, { passive: false });
+  }
+
+  function applyChartSeriesData(candles) {
+    const seriesData = buildChartData(candles);
+    if (!seriesData.length || !candleSeries || !lineSeries) return;
+    const volData = seriesData.map((d, i) => {
+      const raw = candles.find((c) => c.time === d.time) || candles[i] || {};
+      return {
+        time: d.time,
+        value: Number(raw.volume) || 0,
+        color: d.close >= d.open ? 'rgba(0, 200, 80, 0.35)' : 'rgba(239, 68, 68, 0.35)',
+      };
+    });
+    lineSeries.setData(seriesData.map((d) => ({ time: d.time, value: d.close })));
+    if (chartType === 'line') {
+      candleSeries.setData([]);
+      lineSeries.applyOptions({ visible: true });
+      candleSeries.applyOptions({ visible: false });
+    } else {
+      candleSeries.setData(seriesData);
+      candleSeries.applyOptions({ visible: true });
+      lineSeries.applyOptions({ visible: false });
+    }
+    volumeSeries?.setData(volData);
+  }
+
+  async function refreshChartLive(m) {
+    if (!chartApi || !candleSeries || !m) return;
+    const tf = currentTf;
+    try {
+      const live = await fetchChartCandles(m, tf);
+      if (!live.candles.length) return;
+      if (appData?.market?.chart) {
+        appData.market.chart.candles = live.candles;
+        appData.market.chart.stats = live.stats || appData.market.chart.stats;
+        appData.market.chart.timeframe = tf;
+      }
+      applyChartSeriesData(live.candles);
+      renderChartPeriodChg(live.stats || appData.market.chart.stats, tf);
+      updateOhlc(live.candles[live.candles.length - 1]);
+    } catch (e) {
+      console.warn('chart refresh', e);
+    }
+  }
+
   function destroyChart() {
+    stopChartPoll();
+    document.documentElement.classList.remove('chart-interacting');
+    if (chartResizeObs) {
+      chartResizeObs.disconnect();
+      chartResizeObs = null;
+    }
     if (resizeHandler) {
       window.removeEventListener('resize', resizeHandler);
       resizeHandler = null;
@@ -2281,10 +2360,14 @@
     const priceFmt = chartPriceFormat(seriesData);
     try {
       const crosshairMode = LightweightCharts.CrosshairMode?.Normal ?? 0;
+      container.style.touchAction = 'none';
+      container.style.userSelect = 'none';
+      container.style.webkitUserSelect = 'none';
+      bindChartTouchGuard(document.querySelector('.chart-stage'));
+
       chartApi = LightweightCharts.createChart(container, {
         width: w,
         height: h,
-        autoSize: true,
         layout: {
           background: { color: '#080c16' },
           textColor: '#6b7788',
@@ -2325,6 +2408,16 @@
           mouseWheel: true,
           pinch: true,
         },
+        kineticScroll: {
+          touch: true,
+          mouse: false,
+        },
+      });
+
+      requestAnimationFrame(() => {
+        container.querySelectorAll('canvas').forEach((cv) => {
+          cv.style.touchAction = 'none';
+        });
       });
 
       candleSeries = addChartSeries(chartApi, 'candle', {
@@ -2392,6 +2485,14 @@
       };
       window.addEventListener('resize', resizeHandler);
       requestAnimationFrame(() => resizeHandler());
+
+      if (chartResizeObs) chartResizeObs.disconnect();
+      if (typeof ResizeObserver === 'function') {
+        chartResizeObs = new ResizeObserver(() => resizeHandler());
+        chartResizeObs.observe(container);
+      }
+
+      startChartPoll(m);
     } catch (e) {
       console.warn('chart render', e);
       destroyChart();
@@ -2405,16 +2506,7 @@
       b.classList.toggle('active', b.dataset.type === type);
     });
     if (!chartApi || !candleSeries || !lineSeries || !appData?.market?.chart?.candles) return;
-    const seriesData = buildChartData(appData.market.chart.candles);
-    if (type === 'line') {
-      candleSeries.applyOptions({ visible: false });
-      lineSeries.applyOptions({ visible: true });
-      lineSeries.setData(seriesData.map((d) => ({ time: d.time, value: d.close })));
-    } else {
-      lineSeries.applyOptions({ visible: false });
-      candleSeries.applyOptions({ visible: true });
-      candleSeries.setData(seriesData);
-    }
+    applyChartSeriesData(appData.market.chart.candles);
   }
 
   function sectionCard(title, bodyHtml) {

@@ -841,6 +841,12 @@ html.detail-mode body {
 .chart-stage .chart-canvas,
 .chart-stage canvas {
   touch-action: none;
+  pointer-events: auto;
+}
+
+html.chart-interacting .view-detail {
+  overflow: hidden !important;
+  overscroll-behavior: none;
 }
 
 .chart-terminal .chart-canvas {
