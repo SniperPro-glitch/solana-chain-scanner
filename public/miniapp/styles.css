@@ -732,7 +732,8 @@ html.detail-mode body {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(13, 17, 23, 0.88);
+  background: rgba(13, 17, 23, 0.42);
+  backdrop-filter: blur(1px);
   pointer-events: none;
 }
 

@@ -117,9 +117,21 @@ const TIMEFRAMES = {
   '1d': { aggregate: 1, limit: 90, path: 'day' },
 };
 
-const OHLCV_CACHE_MS = 45_000;
+/** OHLCV cache TTL per timeframe (key: ${pool}:${tf}). */
+const OHLCV_CACHE_MS_BY_TF = {
+  '1m': 10_000,
+  '5m': 30_000,
+  '15m': 60_000,
+  '1h': 60_000,
+  '4h': 120_000,
+  '1d': 120_000,
+};
 const ohlcvCache = new Map();
 const ohlcvLastGood = new Map();
+
+function ohlcvCacheMs(tf) {
+  return OHLCV_CACHE_MS_BY_TF[normalizeTimeframe(tf)] || 60_000;
+}
 
 function sleep(ms) {
   return new Promise((r) => setTimeout(r, ms));
@@ -260,7 +272,8 @@ async function fetchOhlcv(poolAddress, timeframe = '15m', third, fourth) {
   const tf = normalizeTimeframe(timeframe);
   const cacheKey = `${poolAddress}:${tf}`;
   const hit = ohlcvCache.get(cacheKey);
-  if (!opts.fresh && hit?.candles?.length && Date.now() - hit.at < OHLCV_CACHE_MS) return hit.candles;
+  const cacheMs = ohlcvCacheMs(tf);
+  if (!opts.fresh && hit?.candles?.length && Date.now() - hit.at < cacheMs) return hit.candles;
   if (opts.allowStale && hit?.candles?.length) return hit.candles;
   const staleOnly = ohlcvLastGood.get(cacheKey);
   if (opts.allowStale && staleOnly?.length) return staleOnly;
@@ -367,6 +380,8 @@ async function enrichMarketForMiniApp(token, options = {}) {
 module.exports = {
   buildMarketFromToken,
   enrichMarketForMiniApp,
+  ohlcvCacheMs,
+  OHLCV_CACHE_MS_BY_TF,
   fetchOhlcv,
   patchLastCandle,
   fetchGeckoPoolAddress,

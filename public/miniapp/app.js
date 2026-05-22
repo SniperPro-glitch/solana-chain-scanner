@@ -2319,7 +2319,7 @@
     if (!ref) return { candles: [], stats: null, poolAddress: null, priceUsd: null, pair: null };
     const q = new URLSearchParams({ tf });
     if (opts.live) q.set('live', '1');
-    const res = await fetch(apiPath(`/api/dex/pair/${encodeURIComponent(ref)}?${q}`));
+    const res = await fetch(apiPath(`/api/dex/chart/${encodeURIComponent(ref)}?${q}`));
     if (!res.ok) return { candles: [], stats: null, poolAddress: null, priceUsd: null, pair: null };
     const body = await res.json();
     return {
@@ -2913,6 +2913,38 @@
     });
   }
 
+  async function applyChartTimeframe(m, tf) {
+    setChartLoading(true);
+    try {
+      let live = await fetchChartCandles(m, tf);
+      if (!live.candles.length) {
+        await new Promise((r) => setTimeout(r, 400));
+        live = await fetchChartCandles(m, tf);
+      }
+      const candles = live.candles || [];
+      const stats = live.stats || m?.chart?.stats;
+      if (live.poolAddress) {
+        m.poolAddress = live.poolAddress;
+        if (appData?.market) appData.market.poolAddress = live.poolAddress;
+      }
+      if (appData?.market?.chart) {
+        appData.market.chart.candles = candles;
+        appData.market.chart.stats = stats;
+        appData.market.chart.timeframe = tf;
+      }
+      renderChartPeriodChg(stats, tf);
+      if (candles.length && chartApi && candleSeries && lineSeries) {
+        applyChartSeriesData(candles);
+        updateOhlc(candles[candles.length - 1]);
+        chartApi.timeScale().fitContent();
+        return true;
+      }
+      return false;
+    } finally {
+      setChartLoading(false);
+    }
+  }
+
   async function switchChartTimeframe(tf) {
     if (!tf || tf === currentTf || !reportId || !appData?.market) return;
     currentTf = tf;
@@ -2920,16 +2952,15 @@
       b.classList.toggle('active', b.dataset.tf === tf);
       b.classList.add('loading');
     });
-    setChartLoading(true);
     try {
       if (appData.market.chart) appData.market.chart.timeframe = tf;
-      await renderChart(appData.market);
+      const updated = await applyChartTimeframe(appData.market, tf);
+      if (!updated) await renderChart(appData.market);
     } catch (e) {
       console.warn('switchChartTimeframe', e);
       showToast('Grafik yenilenemedi — birkaç sn sonra tekrar dene');
     } finally {
       document.querySelectorAll('.tf').forEach((b) => b.classList.remove('loading'));
-      setChartLoading(false);
     }
   }
 

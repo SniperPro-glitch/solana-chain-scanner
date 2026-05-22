@@ -45,6 +45,27 @@ function sendJson(res, code, obj, extraHeaders = {}) {
   res.end(body);
 }
 
+async function sendDexChartJson(res, ref, tf, live) {
+  const { getPairChart } = require('./dexscreenerApi');
+  const { chartStatsFromCandles } = require('./tokenLogo');
+  const { ohlcvCacheMs, normalizeTimeframe } = require('./marketData');
+  const t0 = Date.now();
+  const timeframe = normalizeTimeframe(tf);
+  const { pair, candles, poolAddress, priceUsd } = await getPairChart(ref, timeframe, { fresh: live });
+  const serverMs = Date.now() - t0;
+  sendJson(res, 200, {
+    pair,
+    poolAddress,
+    timeframe,
+    candles,
+    priceUsd,
+    stats: chartStatsFromCandles(candles),
+    live,
+    cacheMs: ohlcvCacheMs(timeframe),
+    serverMs,
+  });
+}
+
 /** DEX Railway: rapor/feed bot sunucusunda; status/config yerel kalsın. */
 function shouldProxyToBot(pathname, searchParams) {
   if (pathname === '/api/feed/status' || pathname === '/api/config') return false;
@@ -264,23 +285,25 @@ function createMiniAppServer() {
         return;
       }
 
-      const dexPairMatch = url.pathname.match(/^\/api\/dex\/pair\/([A-Za-z0-9]+)$/);
-      if (req.method === 'GET' && dexPairMatch) {
-        const { getPairChart } = require('./dexscreenerApi');
-        const { chartStatsFromCandles } = require('./tokenLogo');
+      const dexChartMatch = url.pathname.match(/^\/api\/dex\/chart\/([A-Za-z0-9]+)$/);
+      if (req.method === 'GET' && dexChartMatch) {
         const tf = url.searchParams.get('tf') || '15m';
         const live = url.searchParams.get('live') === '1';
         try {
-          const { pair, candles, poolAddress, priceUsd } = await getPairChart(dexPairMatch[1], tf, { fresh: live });
-          sendJson(res, 200, {
-            pair,
-            poolAddress,
-            timeframe: tf,
-            candles,
-            priceUsd,
-            stats: chartStatsFromCandles(candles),
-            live,
-          });
+          await sendDexChartJson(res, dexChartMatch[1], tf, live);
+        } catch (e) {
+          console.warn('[miniApp] dex chart:', e.message);
+          sendJson(res, 502, { error: 'dex_chart_failed', message: e.message });
+        }
+        return;
+      }
+
+      const dexPairMatch = url.pathname.match(/^\/api\/dex\/pair\/([A-Za-z0-9]+)$/);
+      if (req.method === 'GET' && dexPairMatch) {
+        const tf = url.searchParams.get('tf') || '15m';
+        const live = url.searchParams.get('live') === '1';
+        try {
+          await sendDexChartJson(res, dexPairMatch[1], tf, live);
         } catch (e) {
           console.warn('[miniApp] dex pair:', e.message);
           sendJson(res, 502, { error: 'dex_pair_failed', message: e.message });
