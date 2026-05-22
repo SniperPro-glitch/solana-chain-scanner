@@ -153,13 +153,14 @@ async function getTokenTrades(mint, limit = 50, opts = {}) {
   const token = await fetchTokenData(mint, pairOpts);
   const best = token?.best;
   const { fetchPairTrades } = require('./pairTrades');
+  const pool = opts.poolAddress || best?.pairAddress || null;
   const trades = await fetchPairTrades({
-    poolAddress: best?.pairAddress,
+    poolAddress: pool,
     mint,
     limit,
     fresh: !!opts.fresh,
   });
-  return { trades, pair: best, pairs: token?.pairs || [] };
+  return { trades, pair: best, poolAddress: pool, pairs: token?.pairs || [] };
 }
 
 module.exports = {

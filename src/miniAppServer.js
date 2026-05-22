@@ -293,8 +293,12 @@ function createMiniAppServer() {
         const { getTokenTrades } = require('./dexscreenerApi');
         const limit = Math.min(50, Math.max(8, parseInt(url.searchParams.get('limit') || '50', 10) || 50));
         const live = url.searchParams.get('live') === '1';
+        const poolQ = url.searchParams.get('pool') || '';
         try {
-          const out = await getTokenTrades(dexTradesMatch[1], limit, { fresh: live });
+          const out = await getTokenTrades(dexTradesMatch[1], limit, {
+            fresh: live,
+            poolAddress: poolQ,
+          });
           sendJson(res, 200, { ...out, live });
         } catch (e) {
           console.warn('[miniApp] dex trades:', e.message);

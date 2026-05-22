@@ -15,6 +15,11 @@ const http = axios.create({
 const CACHE_MS = 5_000;
 const TRADES_FEED_MAX = 50;
 const cache = new Map();
+const tradesLastGood = new Map();
+
+function sleep(ms) {
+  return new Promise((r) => setTimeout(r, ms));
+}
 
 function tradeTimeMs(t) {
   const ms = new Date(t?.at || 0).getTime();
@@ -91,8 +96,17 @@ async function fetchGeckoTrades(poolAddress, baseMint, limit = TRADES_FEED_MAX) 
   if (!poolAddress) return [];
   const { data, status } = await http.get(
     `https://api.geckoterminal.com/api/v2/networks/solana/pools/${poolAddress}/trades`,
-    { params: { limit: Math.min(limit, 40) }, validateStatus: () => true },
+    {
+      params: { limit: Math.min(limit, 50) },
+      validateStatus: () => true,
+      timeout: 16_000,
+    },
   );
+  if (status === 429) {
+    const err = new Error('GeckoTerminal rate limit');
+    err.code = 'rate_limit';
+    throw err;
+  }
   if (status >= 400 || !data?.data) return [];
   return data.data
     .map((row) => normalizeGeckoTrade(row, baseMint))
@@ -130,7 +144,7 @@ async function fetchPairTrades({ poolAddress, mint, limit = TRADES_FEED_MAX, fre
   const key = `${poolAddress || ''}:${mint || ''}:${limit}`;
   const hit = cache.get(key);
   const maxAge = fresh ? 2_500 : CACHE_MS;
-  if (hit && Date.now() - hit.at < maxAge) return hit.trades;
+  if (hit?.trades?.length && Date.now() - hit.at < maxAge) return hit.trades;
 
   let pool = poolAddress;
   let baseMint = mint;
@@ -141,13 +155,23 @@ async function fetchPairTrades({ poolAddress, mint, limit = TRADES_FEED_MAX, fre
   }
 
   let trades = [];
-  if (pool) {
+  const attempts = fresh ? 3 : 2;
+  for (let i = 0; i < attempts && pool; i += 1) {
     try {
       trades = await fetchGeckoTrades(pool, baseMint, limit);
+      if (trades.length) break;
+      if (i < attempts - 1) await sleep(500 * (i + 1));
     } catch (e) {
+      if (e.code === 'rate_limit') {
+        console.warn('[trades] gecko rate limit:', `attempt ${i + 1}/${attempts}`);
+        if (i < attempts - 1) await sleep(800 * (i + 1));
+        continue;
+      }
       console.warn('[trades] gecko:', e.message);
+      break;
     }
   }
+
   if (!trades.length && mint) {
     try {
       const ds = await fetchDexOrders(mint, limit);
@@ -165,8 +189,18 @@ async function fetchPairTrades({ poolAddress, mint, limit = TRADES_FEED_MAX, fre
   }
 
   const out = mergeTrades(trades, [], limit);
-  cache.set(key, { at: Date.now(), trades: out });
-  return out;
+  if (out.length) {
+    cache.set(key, { at: Date.now(), trades: out });
+    tradesLastGood.set(key, out);
+    return out;
+  }
+
+  const stale = tradesLastGood.get(key);
+  if (stale?.length) {
+    console.warn('[trades] boş yanıt — son iyi işlem listesi:', key);
+    return stale;
+  }
+  return [];
 }
 
 module.exports = {

@@ -2092,10 +2092,19 @@
     trimTradesDom(list);
   }
 
-  async function fetchTradesFromServer(mint, live = false) {
+  function seedTradesFromMarket(m) {
+    const raw = m?.recentTrades || appData?.market?.recentTrades || [];
+    return Array.isArray(raw) ? raw.slice(0, TRADES_MAX_ROWS) : [];
+  }
+
+  async function fetchTradesFromServer(m, live = false) {
+    const mint = tokenMintRef(m) || m;
     if (!mint) return [];
-    const q = live ? '?live=1' : '';
-    const res = await fetch(apiPath(`/api/dex/token/${encodeURIComponent(mint)}/trades${q}`));
+    const pool = chartPoolRef(m);
+    const q = new URLSearchParams({ limit: String(TRADES_MAX_ROWS) });
+    if (live) q.set('live', '1');
+    if (pool) q.set('pool', pool);
+    const res = await fetch(apiPath(`/api/dex/token/${encodeURIComponent(mint)}/trades?${q}`));
     if (!res.ok) return [];
     const body = await res.json();
     return body?.trades || [];
@@ -2144,16 +2153,25 @@
     if (initial && meta) meta.textContent = 'yükleniyor…';
     tradesPollInFlight = true;
     try {
-      const trades = await fetchTradesFromServer(mint, true);
       if (initial) {
         tradesDisplayRows = [];
-        tradesLastGood = [];
+        tradesLastGood = seedTradesFromMarket(m);
+        if (tradesLastGood.length) {
+          renderTradesList(tradesLastGood, m?.symbol, { fullRender: true });
+        }
       }
-      if (trades.length) tradesLastGood = trades;
+      const trades = await fetchTradesFromServer(m, true);
+      if (trades.length) {
+        tradesLastGood = trades;
+      } else if (!tradesLastGood.length) {
+        tradesLastGood = seedTradesFromMarket(m);
+      }
       const display = trades.length ? trades : tradesLastGood;
+      const list = $('tradesList');
+      const needsFull = initial || !list?.querySelector('.trade-row[data-trade-key]');
       renderTradesList(display, m?.symbol, {
-        keepPrevious: !initial && !trades.length,
-        fullRender: initial,
+        keepPrevious: !needsFull && !display.length,
+        fullRender: needsFull && !!display.length,
       });
       if (meta) {
         const n = tradesDisplayRows.length;
