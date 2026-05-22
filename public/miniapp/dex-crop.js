@@ -135,7 +135,7 @@
   }
 
   async function fetchServerBaked() {
-    if (!isCalibrateMode()) return null;
+    if (!isCalibrateMode() && layoutSessionDone()) return null;
     try {
       const r = await fetch(`/api/crop-profiles?v=${Date.now()}`, { cache: 'no-store' });
       if (r.ok) {
