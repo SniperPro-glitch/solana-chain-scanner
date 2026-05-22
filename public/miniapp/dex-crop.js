@@ -542,9 +542,15 @@
     document.documentElement.dataset.cropCalibrate = '1';
   }
 
-  /** Yalnızca ?kalibre=1 — motor localStorage açmaz (tek Chrome ayarı diğerlerini bozuyordu). */
+  /** URL ?kalibre=1 veya Kırpma paneli açıkken (oturum). */
   function isCalibrateMode() {
-    return calibrateFromUrl();
+    if (calibrateFromUrl()) return true;
+    try {
+      if (sessionStorage.getItem('sniperCropCalibrate') === '1') return true;
+    } catch {
+      /* yoksay */
+    }
+    return document.documentElement.dataset.cropCalibrate === '1';
   }
 
   /** URL ?kalibre=1 — normal kullanıcıda buton/panel yok, motor gizli. */
@@ -580,7 +586,7 @@
   }
 
   function layoutSessionDone(profileId) {
-    if (calibrateFromUrl()) return false;
+    if (isCalibrateMode()) return false;
     const id = profileId || refreshCropProfile();
     try {
       return sessionStorage.getItem(layoutSessionStorageKey(id)) === '1';
@@ -886,7 +892,7 @@
   }
 
   function openPanel() {
-    if (!calibrateFromUrl() && !isCalibrateMode()) return;
+    if (!isDetailOpen() && !calibrateFromUrl()) return;
     enableCalibrateSession();
     if (!panelBuilt) buildPanel();
     editingProfile = profileFromUrl() || detectProfile();
@@ -903,7 +909,10 @@
   function closePanel() {
     panelEl?.classList.add('hidden');
     document.documentElement.classList.remove('crop-panel-open');
-    apply(load());
+    if (!calibrateFromUrl()) clearCalibrateSession();
+    const pid = refreshCropProfile();
+    apply(profileFromBaked(pid));
+    if (isDetailOpen()) runHiddenMotor();
   }
 
   function refreshPreview() {
