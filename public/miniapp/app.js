@@ -357,9 +357,10 @@
     globalThis.SniperDexCrop?.stopCropEngine?.();
   }
 
-  /** DEX detay ekranı — kırpma motoru arka planda (panel gerekmez). */
+  /** DEX detay ekranı — panel apply + arka plan motoru. */
   function startDexScreenMotor() {
     const C = globalThis.SniperDexCrop;
+    if (C?.applyDetailCrop) C.applyDetailCrop();
     if (C?.startCropEngine) C.startCropEngine();
     else if (C?.burstMotorApply) C.burstMotorApply();
     else scheduleDexTradesCrop();
@@ -1965,6 +1966,8 @@
     if (!C) return;
     void C.ensureProfilesReady?.();
     if (document.documentElement.classList.contains('detail-mode')) {
+      if (C.applyDetailCrop) C.applyDetailCrop();
+      if (C.motorApply) C.motorApply();
       if (C.startCropEngine) C.startCropEngine();
       else if (C.burstMotorApply) C.burstMotorApply();
       return;

@@ -252,9 +252,9 @@ function createMiniAppServer() {
         try {
           const indexPath = path.join(PUBLIC_DIR, 'index.html');
           const html = fs.readFileSync(indexPath, 'utf8');
-          const m1 = html.match(/dex-crop\.js\?v=(\d+)/);
-          const m2 = html.match(/dex-crop-baked\.js\?v=(\d+)/);
-          const m3 = html.match(/app\.js\?v=(\d+)/);
+          const m1 = html.match(/dex-crop\.js\?v=([^"&]+)/);
+          const m2 = html.match(/dex-crop-baked\.js\?v=([^"&]+)/);
+          const m3 = html.match(/app\.js\?v=([^"&]+)/);
           cropV = m1?.[1] || '';
           bakedV = m2?.[1] || '';
           appV = m3?.[1] || '';

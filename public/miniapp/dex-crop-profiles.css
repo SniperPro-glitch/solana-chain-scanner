@@ -154,28 +154,30 @@ html[data-dex-crop-profile="app16"] .dex-trades-embed-wrap {
   max-height: 302px !important;
 }
 
-/* Iframe konumu — JS motoru olmasa da profil CSS ile hizalanir */
-html[data-dex-crop-profile="web"] #dexTradesEmbed,
-html.crop-motor-on[data-dex-crop-profile="web"] #dexTradesEmbed {
+/* Iframe konumu — token detay (detail-mode) + profil */
+html.detail-mode[data-dex-crop-profile="web"] #dexTradesEmbed,
+html[data-dex-crop-profile="web"] #dexTradesEmbed {
   top: -590px !important;
   height: 845px !important;
   left: 1% !important;
   width: 98% !important;
 }
-html[data-dex-crop-profile="web"] iframe.dex-embed-chart,
-html.crop-motor-on[data-dex-crop-profile="web"] iframe.dex-embed-chart {
+html.detail-mode[data-dex-crop-profile="web"] iframe.dex-embed-chart,
+html[data-dex-crop-profile="web"] iframe.dex-embed-chart {
   top: 1px !important;
   height: 369px !important;
   left: 1% !important;
   width: 104% !important;
 }
 
+html.detail-mode[data-dex-crop-profile="app11"] #dexTradesEmbed,
 html[data-dex-crop-profile="app11"] #dexTradesEmbed {
   top: -590px !important;
   height: 845px !important;
   left: 1% !important;
   width: 98% !important;
 }
+html.detail-mode[data-dex-crop-profile="app11"] iframe.dex-embed-chart,
 html[data-dex-crop-profile="app11"] iframe.dex-embed-chart {
   top: -6px !important;
   height: 384px !important;
@@ -183,12 +185,14 @@ html[data-dex-crop-profile="app11"] iframe.dex-embed-chart {
   width: 98% !important;
 }
 
+html.detail-mode[data-dex-crop-profile="app13"] #dexTradesEmbed,
 html[data-dex-crop-profile="app13"] #dexTradesEmbed {
   top: -625px !important;
   height: 990px !important;
   left: 0% !important;
   width: 100% !important;
 }
+html.detail-mode[data-dex-crop-profile="app13"] iframe.dex-embed-chart,
 html[data-dex-crop-profile="app13"] iframe.dex-embed-chart {
   top: 40px !important;
   height: 314px !important;
@@ -196,12 +200,14 @@ html[data-dex-crop-profile="app13"] iframe.dex-embed-chart {
   width: 102% !important;
 }
 
+html.detail-mode[data-dex-crop-profile="app13pm"] #dexTradesEmbed,
 html[data-dex-crop-profile="app13pm"] #dexTradesEmbed {
   top: -589px !important;
   height: 980px !important;
   left: 0% !important;
   width: 100% !important;
 }
+html.detail-mode[data-dex-crop-profile="app13pm"] iframe.dex-embed-chart,
 html[data-dex-crop-profile="app13pm"] iframe.dex-embed-chart {
   top: 1px !important;
   height: 419px !important;
@@ -209,12 +215,14 @@ html[data-dex-crop-profile="app13pm"] iframe.dex-embed-chart {
   width: 108% !important;
 }
 
+html.detail-mode[data-dex-crop-profile="app16"] #dexTradesEmbed,
 html[data-dex-crop-profile="app16"] #dexTradesEmbed {
   top: -590px !important;
   height: 845px !important;
   left: 1% !important;
   width: 98% !important;
 }
+html.detail-mode[data-dex-crop-profile="app16"] iframe.dex-embed-chart,
 html[data-dex-crop-profile="app16"] iframe.dex-embed-chart {
   top: 2px !important;
   height: 364px !important;
