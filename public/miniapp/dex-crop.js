@@ -540,8 +540,13 @@
     document.documentElement.dataset.cropCalibrate = '1';
   }
 
-  /** Kalibrasyon UI + localStorage — yalnızca ?kalibre=1 (veya #kalibre). */
-  function isCalibrateUrl() {
+  function isCalibrateMode() {
+    if (document.documentElement.dataset.cropCalibrate === '1') return true;
+    try {
+      if (sessionStorage.getItem('sniperCropCalibrate') === '1') return true;
+    } catch {
+      /* yoksay */
+    }
     try {
       const q = new URLSearchParams(location.search);
       if (q.get('kalibre') === '1' || q.get('calibrate') === '1') return true;
@@ -551,27 +556,9 @@
     return String(location.hash || '').includes('kalibre');
   }
 
-  function isCalibrateMode() {
-    return isCalibrateUrl();
-  }
-
-  function clearCalibrateSessionArtifacts() {
-    try {
-      sessionStorage.removeItem('sniperCropCalibrate');
-    } catch {
-      /* yoksay */
-    }
-    if (document.documentElement.dataset.cropCalibrate) {
-      delete document.documentElement.dataset.cropCalibrate;
-    }
-  }
-
   function shouldShowCropButton() {
-    return isCalibrateUrl();
-  }
-
-  function removeCalibrateButton() {
-    document.querySelectorAll('.btn-crop-cal').forEach((el) => el.remove());
+    if (isCalibrateMode()) return true;
+    return document.documentElement.classList.contains('web-browser');
   }
 
   /** ?profil=web|app11|app13|app13pm|app16 ÔÇö link sadece do─şru sekmeyi a├ğar; ├Âl├ğ├╝ler kay─▒tta. */
@@ -732,7 +719,6 @@
   }
 
   function openPanel() {
-    if (!isCalibrateUrl()) return;
     enableCalibrateSession();
     if (!panelBuilt) buildPanel();
     editingProfile = profileFromUrl() || detectProfile();
@@ -929,10 +915,7 @@
   }
 
   function addCalibrateButton() {
-    if (!shouldShowCropButton()) {
-      removeCalibrateButton();
-      return;
-    }
+    if (!shouldShowCropButton()) return;
     const head = document.querySelector('.trades-head');
     if (!head || head.querySelector('.btn-crop-cal')) return;
     const btn = document.createElement('button');
@@ -964,27 +947,29 @@
   }
 
   async function init() {
-    if (isCalibrateUrl()) enableCalibrateSession();
-    else clearCalibrateSessionArtifacts();
     if (global.SniperCropProfile?.apply) global.SniperCropProfile.apply();
     await ensureProfilesReady();
     apply();
     bindCropObservers();
-    removeCalibrateButton();
-    if (isCalibrateUrl()) {
-      addCalibrateButton();
-      setTimeout(() => openPanel(), 1200);
-    }
+    addCalibrateButton();
     window.addEventListener('resize', () => {
       if (!document.getElementById('dexCropPanel')?.classList.contains('hidden')) return;
       apply();
     });
+    if (isCalibrateMode()) {
+      enableCalibrateSession();
+      setTimeout(() => {
+        addCalibrateButton();
+        openPanel();
+      }, 1200);
+    } else {
+      addCalibrateButton();
+    }
     const vd = document.getElementById('view-detail');
     if (vd) {
       new MutationObserver(() => {
         if (!vd.classList.contains('hidden')) {
-          if (shouldShowCropButton()) addCalibrateButton();
-          else removeCalibrateButton();
+          addCalibrateButton();
           apply();
         }
       }).observe(vd, { attributes: true, attributeFilter: ['class'] });
@@ -1010,7 +995,6 @@
     closePanel,
     copyProfileFrom,
     isCalibrateMode,
-    isCalibrateUrl,
     enableCalibrateSession,
   };
 
