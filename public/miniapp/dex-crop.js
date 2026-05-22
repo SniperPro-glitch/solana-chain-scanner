@@ -329,16 +329,27 @@
   }
 
   function resetProfile(profileId) {
-    const store = loadStore();
-    store.profiles[profileId] = defaultBlock();
-    saveStore(store);
-    return clone(store.profiles[profileId]);
+    const block = profileFromBaked(profileId);
+    if (isCalibrateMode()) {
+      const store = loadStore();
+      store.profiles[profileId] = clone(block);
+      saveStore(store);
+    }
+    if (profileId === activeProfileId()) apply(block);
+    return clone(block);
   }
 
   function reset() {
     LEGACY_KEYS.forEach((k) => localStorage.removeItem(k));
     localStorage.removeItem(STORAGE_KEY);
-    const d = load();
+    const profiles = {};
+    PROFILE_ORDER.forEach((id) => {
+      profiles[id] = profileFromBaked(id);
+    });
+    if (isCalibrateMode()) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ profiles }));
+    }
+    const d = clone(normalizeBlock(profiles[activeProfileId()] || profiles.web));
     apply(d);
     return d;
   }
@@ -556,9 +567,17 @@
     return String(location.hash || '').includes('kalibre');
   }
 
+  /** Kırpma butonu yalnızca ?kalibre=1 — normal kullanıcı görmez. */
   function shouldShowCropButton() {
-    if (isCalibrateMode()) return true;
-    return document.documentElement.classList.contains('web-browser');
+    return isCalibrateMode();
+  }
+
+  /** Git/baked kilitli ölçü — sıfırlama buraya döner (fabrika ayarı). */
+  function profileFromBaked(profileId) {
+    const src = globalThis.__DEX_CROP_BAKED__;
+    const p = src?.profiles?.[profileId];
+    if (p) return clone(normalizeBlock(p));
+    return defaultBlock();
   }
 
   /** ?profil=web|app11|app13|app13pm|app16 ÔÇö link sadece do─şru sekmeyi a├ğar; ├Âl├ğ├╝ler kay─▒tta. */
@@ -718,7 +737,7 @@
     toast(`${PROFILE_META[sourceId].label} -> ${PROFILE_META[editingProfile].label} kopyalandi (Kaydet)`);
   }
 
-  function openPanel() {
+  function   function openPanel() {
     enableCalibrateSession();
     if (!panelBuilt) buildPanel();
     editingProfile = profileFromUrl() || detectProfile();
@@ -871,7 +890,7 @@
       syncSlidersFromCurrent();
       apply(current);
       refreshPreview();
-      toast('Bu profil sifirlandi');
+      toast('Profil kilitli fabrika ayarina dondu');
     });
     document.getElementById('cropResetAllBtn')?.addEventListener('click', () => {
       current = reset();
@@ -880,7 +899,7 @@
       syncSlidersFromCurrent();
       updateProfileTabs();
       refreshPreview();
-      toast('5 profil sifirlandi');
+      toast('5 profil kilitli fabrika ayarina dondu');
     });
     document.getElementById('cropCopyBtn')?.addEventListener('click', async () => {
       const store = loadStore();
@@ -946,10 +965,38 @@
     apply(settings);
   }
 
+  /** Token sayfası — sunucu kilitli profil; panel açmadan paneldeki gibi apply. */
+  async function applyLiveProfile() {
+    if (global.SniperCropProfile?.apply) global.SniperCropProfile.apply();
+    const profileId = activeProfileId();
+    let block = null;
+    try {
+      const r = await fetch(`/api/crop-profiles?v=${Date.now()}`, { cache: 'no-store' });
+      if (r.ok) {
+        const data = await r.json();
+        if (data?.profiles?.[profileId]) block = normalizeBlock(data.profiles[profileId]);
+      }
+    } catch {
+      /* yoksay */
+    }
+    if (!block) block = profileFromBaked(profileId);
+    apply(block);
+  }
+
+  let detailCropGen = 0;
+  function scheduleDetailCrop() {
+    const gen = ++detailCropGen;
+    const run = () => {
+      if (gen !== detailCropGen) return;
+      void applyLiveProfile();
+    };
+    run();
+    [200, 500, 1100, 2200, 4000].forEach((ms) => setTimeout(run, ms));
+  }
+
   async function init() {
     if (global.SniperCropProfile?.apply) global.SniperCropProfile.apply();
     await ensureProfilesReady();
-    apply();
     bindCropObservers();
     addCalibrateButton();
     window.addEventListener('resize', () => {
@@ -970,7 +1017,7 @@
       new MutationObserver(() => {
         if (!vd.classList.contains('hidden')) {
           addCalibrateButton();
-          apply();
+          scheduleDetailCrop();
         }
       }).observe(vd, { attributes: true, attributeFilter: ['class'] });
     }
@@ -990,7 +1037,10 @@
     resetProfile,
     reset,
     apply,
+    applyLiveProfile,
+    scheduleDetailCrop,
     applyAsync,
+    profileFromBaked,
     openPanel,
     closePanel,
     copyProfileFrom,

@@ -1940,20 +1940,13 @@
     }
   }
 
-  function applyDexCrop() {
+  function scheduleDexTradesCrop() {
     if (!globalThis.SniperDexCrop) return;
-    const run = () => SniperDexCrop.apply();
-    if (SniperCropProfile?.apply) SniperCropProfile.apply();
-    if (SniperDexCrop.ensureProfilesReady) {
-      void SniperDexCrop.ensureProfilesReady().then(run);
+    if (SniperDexCrop.scheduleDetailCrop) {
+      void SniperDexCrop.ensureProfilesReady?.().then(() => SniperDexCrop.scheduleDetailCrop());
       return;
     }
-    run();
-  }
-
-  function scheduleDexTradesCrop() {
-    applyDexCrop();
-    [150, 500, 1200, 2500].forEach((ms) => setTimeout(applyDexCrop, ms));
+    SniperDexCrop.apply();
   }
 
   function chartPoolRef(m) {
@@ -2015,11 +2008,8 @@
       fallback.classList.remove('hidden');
     }
     iframe.classList.remove('hidden');
-    applyDexCrop();
     scheduleDexTradesCrop();
-    iframe.onload = () => {
-      applyDexCrop();
-      scheduleDexTradesCrop();
+    iframe.onload = () => scheduleDexTradesCrop();
       if (fallback) fallback.classList.add('hidden');
       if (meta) meta.textContent = 'canlı';
       if (globalThis.SniperDexCrop?.isCalibrateMode?.()) {
@@ -2066,16 +2056,12 @@
       container.innerHTML = `<iframe class="dex-embed-chart" src="${escHtml(embed)}" title="DexScreener canlı grafik" loading="eager" allow="fullscreen" referrerpolicy="no-referrer-when-downgrade"></iframe>`;
       const chartIfr = container.querySelector('iframe.dex-embed-chart');
       if (chartIfr) {
-        chartIfr.addEventListener('load', () => {
-          applyDexCrop();
-          scheduleDexTradesCrop();
-        });
+        chartIfr.addEventListener('load', () => scheduleDexTradesCrop());
       }
       if (note) {
         note.textContent = `${(tf || '15m').toUpperCase()} · DexScreener`;
         note.classList.remove('hidden');
       }
-      applyDexCrop();
       scheduleDexTradesCrop();
       return true;
     }
