@@ -78,6 +78,7 @@
   }
 
   function activeProfileId() {
+    if (document.documentElement.classList.contains('web-browser')) return 'web';
     if (global.SniperCropProfile?.apply) return global.SniperCropProfile.apply();
     const ds = document.documentElement.dataset.dexCropProfile;
     if (PROFILE_META[ds]) return ds;
@@ -403,14 +404,17 @@
     }
     const wrap = document.getElementById('dexTradesWrap');
     const iframe = document.getElementById('dexTradesEmbed');
+    const chartIfr = document.querySelector('iframe.dex-embed-chart');
     const w = wrap ? getComputedStyle(wrap).height : '—';
     const top = iframe ? getComputedStyle(iframe).top : '—';
     const h = iframe ? getComputedStyle(iframe).height : '—';
+    const chartTop = chartIfr ? getComputedStyle(chartIfr).top : '—';
+    const motor = document.documentElement.dataset.dexCropMotor === 'on' ? 'ON' : 'off';
     el.textContent = [
       `profil=${profileId} w=${document.documentElement.dataset.dexCropW || '?'}`,
-      `beklenen viewH=${t.viewH} top=${t.iframeTop + (t.shiftDown || 0)} h=${t.iframeH}`,
-      `gerçek wrap=${w} iframe top=${top} h=${h}`,
-      `rev=runCropLikeButton-v37 motor=simple-interval`,
+      `motor=${motor} beklenen viewH=${t.viewH} top=${t.iframeTop + (t.shiftDown || 0)}`,
+      `trades wrap=${w} top=${top} h=${h}`,
+      `chart top=${chartTop} rev=v38`,
     ].join('\n');
   }
 
@@ -475,13 +479,18 @@ ${sel} iframe.dex-embed-chart{
    */
   function runCropLikeButton() {
     if (isCropPanelInteractive()) return false;
-    if (global.SniperCropProfile?.apply) global.SniperCropProfile.apply();
+    if (document.documentElement.classList.contains('web-browser')) {
+      document.documentElement.dataset.dexCropProfile = 'web';
+    } else if (global.SniperCropProfile?.apply) {
+      global.SniperCropProfile.apply();
+    }
     const profileId = activeProfileId();
     document.documentElement.dataset.dexCropProfile = profileId;
     document.documentElement.classList.add('crop-motor-on');
-    const block = loadForProfile(profileId);
+    const block = isCalibrateMode() ? loadForProfile(profileId) : profileFromBaked(profileId);
     injectCropMotorCss(block, profileId);
     apply(block);
+    requestAnimationFrame(() => apply(block));
     return true;
   }
 
@@ -561,6 +570,22 @@ ${sel} iframe.dex-embed-chart{
     }, true);
   }
 
+  /** Grafik iframe DOM'a eklenince kırp (detay açılışında motor erken çalışıyordu). */
+  function bindChartEmbedCropWatch() {
+    if (global.__sniperChartEmbedCropWatch) return;
+    global.__sniperChartEmbedCropWatch = true;
+    const chartRoot = document.getElementById('priceChart');
+    if (!chartRoot || typeof MutationObserver === 'undefined') return;
+    const onChart = () => {
+      if (!chartRoot.querySelector('iframe.dex-embed-chart')) return;
+      if (!isDetailViewVisible()) return;
+      runCropLikeButton();
+      burstMotorApply();
+    };
+    new MutationObserver(onChart).observe(chartRoot, { childList: true, subtree: true });
+    onChart();
+  }
+
   function bindCropObservers() {
     if (global.__sniperCropObs) return;
     global.__sniperCropObs = true;
@@ -637,7 +662,8 @@ ${sel} iframe.dex-embed-chart{
       tapeEl.style.marginTop = `${tapeDown}px`;
     }
 
-    const stage = document.querySelector('.chart-terminal--dex-embed .chart-stage');
+    const stage = document.querySelector('.chart-terminal--dex-embed .chart-stage')
+      || document.querySelector('.chart-terminal .chart-stage');
     const chartIframe = document.querySelector('iframe.dex-embed-chart');
     if (stage) {
       setImp(stage, 'height', `${c.stageH}px`);
@@ -1176,6 +1202,16 @@ ${sel} iframe.dex-embed-chart{
       else void applyLiveProfile();
     });
     bindIframeCropWatchers();
+    bindChartEmbedCropWatch();
+    if (document.documentElement.classList.contains('web-browser')) {
+      document.documentElement.dataset.dexCropProfile = 'web';
+      const bootWeb = () => {
+        if (isDetailViewVisible()) ensureBackgroundCrop();
+        else runCropLikeButton();
+      };
+      bootWeb();
+      [100, 400, 1200].forEach((ms) => setTimeout(bootWeb, ms));
+    }
     const vd = document.getElementById('view-detail');
     if (vd) {
       const onDetailVisible = () => {

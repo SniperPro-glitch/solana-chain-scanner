@@ -2084,10 +2084,15 @@
       setChartEmbedMode(true);
       container.innerHTML = `<iframe class="dex-embed-chart" src="${escHtml(embed)}" title="DexScreener canlı grafik" loading="eager" allow="fullscreen" referrerpolicy="no-referrer-when-downgrade"></iframe>`;
       const chartIfr = container.querySelector('iframe.dex-embed-chart');
+      const kickChartCrop = () => {
+        globalThis.__sniperRunCrop?.();
+        burstDexEmbedCrop();
+      };
       if (chartIfr) {
-        chartIfr.addEventListener('load', () => burstDexEmbedCrop());
+        chartIfr.addEventListener('load', kickChartCrop);
       }
-      burstDexEmbedCrop();
+      kickChartCrop();
+      requestAnimationFrame(kickChartCrop);
       if (note) {
         note.textContent = `${(tf || '15m').toUpperCase()} · DexScreener`;
         note.classList.remove('hidden');
