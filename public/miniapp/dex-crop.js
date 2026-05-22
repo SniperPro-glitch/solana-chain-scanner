@@ -606,13 +606,115 @@
 
   function getTelegramUserId() {
     const u = global.Telegram?.WebApp?.initDataUnsafe?.user;
-    if (u?.id == null || u.id === '') return '';
-    return String(u.id);
+    if (u?.id != null && u.id !== '') return String(u.id);
+    const raw = String(global.Telegram?.WebApp?.initData || '').trim();
+    if (!raw) return '';
+    try {
+      const userJson = new URLSearchParams(raw).get('user');
+      if (userJson) {
+        const parsed = JSON.parse(userJson);
+        if (parsed?.id != null && parsed.id !== '') return String(parsed.id);
+      }
+    } catch {
+      /* yoksay */
+    }
+    return '';
+  }
+
+  function isFounderOrAdminSession() {
+    try {
+      if (sessionStorage.getItem('sniperSidebarSignedIn') !== '1') return false;
+      const p = JSON.parse(sessionStorage.getItem('sniperAdminProfileV1') || 'null');
+      if (!p) return false;
+      if (p.isFounder) return true;
+      const role = String(p.role || '').toLowerCase();
+      return role === 'admin' || role === 'founder' || role === 'owner';
+    } catch {
+      return false;
+    }
+  }
+
+  function enableCalibrateFromGesture() {
+    try {
+      sessionStorage.setItem('sniperCropCalibrate', '1');
+    } catch {
+      /* yoksay */
+    }
+    document.documentElement.dataset.cropCalibrate = '1';
+    enableCalibrateSession();
+    addCalibrateButton();
+    showCropToast('K\u0131rpma a\u00e7\u0131ld\u0131');
+  }
+
+  function bindCalibrateGesture() {
+    if (global.__sniperCropGesture) return;
+    global.__sniperCropGesture = true;
+    let taps = 0;
+    let tapTimer = null;
+    document.addEventListener(
+      'click',
+      (e) => {
+        if (!e.target.closest('.trades-title, .trades-head')) return;
+        taps += 1;
+        clearTimeout(tapTimer);
+        tapTimer = setTimeout(() => {
+          taps = 0;
+        }, 900);
+        if (taps >= 3) {
+          taps = 0;
+          enableCalibrateFromGesture();
+        }
+      },
+      true,
+    );
+  }
+
+  function layoutWidthPx() {
+    return global.SniperCropProfile?.layoutWidth?.() || Math.round(window.innerWidth || 390);
+  }
+
+  function styleCropFab(fab) {
+    const narrow = layoutWidthPx() <= 430;
+    const top = narrow
+      ? 'calc(var(--tg-content-safe-top, env(safe-area-inset-top, 0px)) + 56px)'
+      : 'auto';
+    const bottom = narrow
+      ? 'auto'
+      : 'calc(var(--trade-bar-h, 76px) + var(--tg-safe-bottom, env(safe-area-inset-bottom, 0px)) + 14px)';
+    fab.style.setProperty('display', 'block', 'important');
+    fab.style.setProperty('position', 'fixed', 'important');
+    fab.style.setProperty('right', '12px', 'important');
+    fab.style.setProperty('top', top, 'important');
+    fab.style.setProperty('bottom', bottom, 'important');
+    fab.style.setProperty('z-index', '10001', 'important');
+    fab.style.setProperty('padding', '10px 14px', 'important');
+    fab.style.setProperty('border-radius', '999px', 'important');
+    fab.style.setProperty('border', '1px solid rgba(0, 229, 255, 0.55)', 'important');
+    fab.style.setProperty('background', 'rgba(0, 40, 48, 0.98)', 'important');
+    fab.style.setProperty('color', '#67e8f9', 'important');
+    fab.style.setProperty('font-size', '12px', 'important');
+    fab.style.setProperty('font-weight', '800', 'important');
+    fab.style.setProperty('box-shadow', '0 4px 24px rgba(0,0,0,.5)', 'important');
+    fab.style.setProperty('pointer-events', 'auto', 'important');
+  }
+
+  function updateCropFabVisibility() {
+    const fab = document.getElementById('cropCalFab');
+    if (!fab) return;
+    const show = shouldShowCropButton() && isDetailOpen();
+    fab.style.setProperty('display', show ? 'block' : 'none', 'important');
+    if (show) styleCropFab(fab);
   }
 
   /** Telegram mini app — ADMIN_USER_ID ile Kırpma (URL ?kalibre=1 şart değil). */
   async function tryEnableAdminCalibrate() {
-    if (!isTelegram()) return false;
+    if (isFounderOrAdminSession()) {
+      document.documentElement.dataset.cropAdmin = '1';
+      enableCalibrateSession();
+      addCalibrateButton();
+      return true;
+    }
+    if (!isTelegram() && !global.Telegram?.WebApp) return false;
     const uid = getTelegramUserId();
     if (!uid) return false;
     try {
@@ -632,6 +734,7 @@
   function shouldShowCropButton() {
     if (calibrateFromUrl()) return true;
     if (document.documentElement.dataset.cropAdmin === '1') return true;
+    if (isFounderOrAdminSession()) return true;
     return isCalibrateMode();
   }
 
@@ -829,8 +932,12 @@
   function onDetailOpen() {
     addCalibrateButton();
     burstApplyOnDetail();
+    updateCropFabVisibility();
     if (!shouldShowCropButton()) {
-      void tryEnableAdminCalibrate().then(() => addCalibrateButton());
+      void tryEnableAdminCalibrate().then(() => {
+        addCalibrateButton();
+        updateCropFabVisibility();
+      });
     }
   }
 
@@ -849,12 +956,13 @@
       n += 1;
       void run().then((ok) => {
         addCalibrateButton();
-        if (!ok && !shouldShowCropButton() && n < 14) setTimeout(tick, 300);
+        updateCropFabVisibility();
+        if (!ok && !shouldShowCropButton() && n < 24) setTimeout(tick, 400);
       });
     };
     const tg = global.Telegram?.WebApp;
     if (typeof tg?.ready === 'function') tg.ready(tick);
-    [0, 120, 400, 900, 1800, 3200].forEach((ms) => setTimeout(tick, ms));
+    [0, 120, 400, 900, 1800, 3200, 5000, 8000].forEach((ms) => setTimeout(tick, ms));
   }
 
   function scheduleMotorCrop() {
@@ -1031,6 +1139,7 @@
     updateProfileTabs();
     panelEl.classList.remove('hidden');
     document.documentElement.classList.add('crop-panel-open');
+    updateCropFabVisibility();
     refreshPreview();
   }
 
@@ -1039,7 +1148,14 @@
     document.documentElement.classList.remove('crop-panel-open');
     const pid = refreshCropProfile();
     apply(loadForProfile(pid));
-    if (!calibrateFromUrl()) clearCalibrateSession();
+    if (
+      !calibrateFromUrl()
+      && document.documentElement.dataset.cropAdmin !== '1'
+      && !isFounderOrAdminSession()
+    ) {
+      clearCalibrateSession();
+    }
+    updateCropFabVisibility();
     if (isDetailOpen()) runHiddenMotor();
   }
 
@@ -1245,6 +1361,7 @@
       wireCropButton(fab);
       document.body.appendChild(fab);
     }
+    updateCropFabVisibility();
   }
 
   function ensureProfilesReady() {
@@ -1274,6 +1391,7 @@
     apply();
     bindCropObservers();
     bindMotorOnEmbedReady();
+    bindCalibrateGesture();
     if (urlCal) {
       enableCalibrateSession();
       addCalibrateButton();
@@ -1298,7 +1416,10 @@
     const vd = document.getElementById('view-detail');
     if (vd) {
       new MutationObserver(() => {
-        if (vd.classList.contains('hidden')) return;
+        if (vd.classList.contains('hidden')) {
+          updateCropFabVisibility();
+          return;
+        }
         onDetailOpen();
         if (!MOTOR_TEMP_DISABLED) ensureMotorOnce();
       }).observe(vd, { attributes: true, attributeFilter: ['class'] });
