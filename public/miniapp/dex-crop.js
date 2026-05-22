@@ -659,8 +659,14 @@
     return !!(panel && !panel.classList.contains('hidden'));
   }
 
+  /** ?kalibre=1 veya kırpma paneli açıkken otomatik apply yok (slider apply(current) kalır). */
+  function shouldSkipAutoCrop() {
+    return isCalibrateMode() || cropPanelIsOpen();
+  }
+
   /** Anlık apply — git-gel beklemeden (iframe hazır olunca tekrar motor). */
   function applyCropNow() {
+    if (shouldSkipAutoCrop()) return refreshCropProfile();
     if (!isCalibrateMode()) clearCalibrateSession();
     const pid = refreshCropProfile();
     apply(profileFromBaked(pid));
@@ -761,6 +767,7 @@
   }
 
   function scheduleMotorCrop() {
+    if (MOTOR_TEMP_DISABLED) return;
     ensureMotorOnce();
   }
 
@@ -1206,6 +1213,8 @@
     applyAsync,
     refreshCropProfile,
     applyCropNow,
+    shouldSkipAutoCrop,
+    cropPanelIsOpen,
     handleCropProfileChange,
     runHiddenMotor,
     ensureMotorOnce,

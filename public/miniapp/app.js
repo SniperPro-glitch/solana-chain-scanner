@@ -2109,7 +2109,9 @@
 
   function scheduleDexTradesCrop() {
     if (!globalThis.SniperDexCrop) return;
+    if (SniperDexCrop.shouldSkipAutoCrop?.()) return;
     const run = () => {
+      if (SniperDexCrop.shouldSkipAutoCrop?.()) return;
       if (SniperCropProfile?.apply) SniperCropProfile.apply();
       if (SniperDexCrop.applyCropNow) SniperDexCrop.applyCropNow();
       else if (SniperDexCrop.apply) SniperDexCrop.apply();
