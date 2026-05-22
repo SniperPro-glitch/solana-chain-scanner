@@ -758,7 +758,7 @@
         if (!t?.matches?.('iframe.dex-embed-chart, #dexTradesEmbed')) return;
         if (!isDetailOpen()) return;
         applyCropNow();
-        ensureMotorOnce();
+        runHiddenMotor();
       },
       true,
     );
