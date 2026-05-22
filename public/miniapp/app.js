@@ -457,6 +457,7 @@
     $('view-detail')?.classList.remove('hidden');
     ensureDetailSpacer();
     refreshTgViewport();
+    if (globalThis.SniperDexCrop?.onDetailOpen) SniperDexCrop.onDetailOpen();
   }
 
   function isSolanaMint(s) {
@@ -2121,7 +2122,7 @@
     };
     const burst = () => {
       run();
-      [150, 500, 1200, 2500].forEach((ms) => setTimeout(run, ms));
+      [150, 500, 1200, 2500, 4000, 6500].forEach((ms) => setTimeout(run, ms));
     };
     if (SniperDexCrop.ensureProfilesReady) {
       void SniperDexCrop.ensureProfilesReady().then(() => {

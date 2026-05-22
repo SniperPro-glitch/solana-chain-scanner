@@ -2366,6 +2366,20 @@ html.scanner-mode .search-box {
   width: 100%;
 }
 
+html.tg-mini-app .trades-tape--dex-embed {
+  min-height: var(--dex-trades-view-h, 302px);
+}
+
+html.tg-mini-app .trades-tape--dex-embed .dex-trades-embed-wrap {
+  height: var(--dex-trades-view-h, 302px) !important;
+  min-height: var(--dex-trades-view-h, 302px) !important;
+  max-height: var(--dex-trades-view-h, 302px) !important;
+}
+
+html.tg-mini-app .dex-trades-embed:not(.hidden) {
+  display: block !important;
+}
+
 html:not([data-dex-crop-profile]) {
   --dex-trades-view-h: 302px;
   --chart-embed-h: 330px;

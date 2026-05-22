@@ -581,8 +581,20 @@
     return document.documentElement.dataset.cropCalibrate === '1';
   }
 
-  /** URL ?kalibre=1 — normal kullanıcıda buton/panel yok, motor gizli. */
+  function calibrateFromStartParam() {
+    try {
+      const sp = String(global.Telegram?.WebApp?.initDataUnsafe?.start_param || '').trim();
+      if (!sp) return false;
+      if (sp === 'kalibre' || sp === 'calibrate' || sp.includes('kalibre')) return true;
+    } catch {
+      /* yoksay */
+    }
+    return false;
+  }
+
+  /** URL ?kalibre=1 veya TG start_param=kalibre */
   function calibrateFromUrl() {
+    if (calibrateFromStartParam()) return true;
     try {
       const q = new URLSearchParams(location.search);
       if (q.get('kalibre') === '1' || q.get('calibrate') === '1') return true;
@@ -592,8 +604,35 @@
     return String(location.hash || '').includes('kalibre');
   }
 
+  function getTelegramUserId() {
+    const u = global.Telegram?.WebApp?.initDataUnsafe?.user;
+    if (u?.id == null || u.id === '') return '';
+    return String(u.id);
+  }
+
+  /** Telegram mini app — ADMIN_USER_ID ile Kırpma (URL ?kalibre=1 şart değil). */
+  async function tryEnableAdminCalibrate() {
+    if (!isTelegram()) return false;
+    const uid = getTelegramUserId();
+    if (!uid) return false;
+    try {
+      const r = await fetch(`/api/miniapp/admin-access?telegramId=${encodeURIComponent(uid)}`);
+      if (!r.ok) return false;
+      const j = await r.json();
+      if (!j?.allowed) return false;
+      document.documentElement.dataset.cropAdmin = '1';
+      enableCalibrateSession();
+      addCalibrateButton();
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
   function shouldShowCropButton() {
-    return calibrateFromUrl();
+    if (calibrateFromUrl()) return true;
+    if (document.documentElement.dataset.cropAdmin === '1') return true;
+    return isCalibrateMode();
   }
 
   function removeCalibrateButton() {
@@ -755,7 +794,6 @@
   }
 
   function bindMotorOnEmbedReady() {
-    if (MOTOR_TEMP_DISABLED) return;
     if (global.__sniperMotorEmbedReady) return;
     global.__sniperMotorEmbedReady = true;
     document.addEventListener(
@@ -765,10 +803,48 @@
         if (!t?.matches?.('iframe.dex-embed-chart, #dexTradesEmbed')) return;
         if (!isDetailOpen()) return;
         applyCropNow();
-        // Geçici kapalı — kalibrasyon sonrası geri aç: runHiddenMotor();
+        [150, 500, 1200].forEach((ms) => setTimeout(applyCropNow, ms));
+        if (!MOTOR_TEMP_DISABLED) runHiddenMotor();
       },
       true,
     );
+  }
+
+  function burstApplyOnDetail() {
+    if (!isDetailOpen() || shouldSkipAutoCrop()) return;
+    applyCropNow();
+    [150, 500, 1200, 2500, 4000, 6500].forEach((ms) => setTimeout(applyCropNow, ms));
+  }
+
+  function onDetailOpen() {
+    addCalibrateButton();
+    burstApplyOnDetail();
+    if (!shouldShowCropButton()) {
+      void tryEnableAdminCalibrate().then(() => addCalibrateButton());
+    }
+  }
+
+  function scheduleCalibrateAccess() {
+    const run = async () => {
+      if (calibrateFromUrl()) {
+        enableCalibrateSession();
+        addCalibrateButton();
+        return true;
+      }
+      return tryEnableAdminCalibrate();
+    };
+    void run();
+    let n = 0;
+    const tick = () => {
+      n += 1;
+      void run().then((ok) => {
+        addCalibrateButton();
+        if (!ok && !shouldShowCropButton() && n < 14) setTimeout(tick, 300);
+      });
+    };
+    const tg = global.Telegram?.WebApp;
+    if (typeof tg?.ready === 'function') tg.ready(tick);
+    [0, 120, 400, 900, 1800, 3200].forEach((ms) => setTimeout(tick, ms));
   }
 
   function scheduleMotorCrop() {
@@ -1166,8 +1242,10 @@
   }
 
   async function init() {
-    if (!calibrateFromUrl()) {
+    const urlCal = calibrateFromUrl();
+    if (!urlCal) {
       clearCalibrateSession();
+      delete document.documentElement.dataset.cropAdmin;
       clearLayoutSession();
     }
     if (global.SniperCropProfile?.apply) global.SniperCropProfile.apply();
@@ -1175,8 +1253,13 @@
     apply();
     bindCropObservers();
     bindMotorOnEmbedReady();
-    if (calibrateFromUrl()) addCalibrateButton();
-    else removeCalibrateButton();
+    if (urlCal) {
+      enableCalibrateSession();
+      addCalibrateButton();
+    } else {
+      removeCalibrateButton();
+      scheduleCalibrateAccess();
+    }
     window.addEventListener('resize', () => {
       if (cropPanelIsOpen()) return;
       if (!isDetailOpen()) return;
@@ -1185,8 +1268,7 @@
       apply(loadForProfile(pid));
       if (!layoutSessionDone(pid)) ensureMotorOnce();
     });
-    if (calibrateFromUrl()) {
-      enableCalibrateSession();
+    if (urlCal) {
       setTimeout(() => {
         addCalibrateButton();
         openPanel();
@@ -1195,9 +1277,14 @@
     const vd = document.getElementById('view-detail');
     if (vd) {
       new MutationObserver(() => {
-        if (!vd.classList.contains('hidden')) ensureMotorOnce();
+        if (vd.classList.contains('hidden')) return;
+        onDetailOpen();
+        if (!MOTOR_TEMP_DISABLED) ensureMotorOnce();
       }).observe(vd, { attributes: true, attributeFilter: ['class'] });
-      if (!vd.classList.contains('hidden')) ensureMotorOnce();
+      if (!vd.classList.contains('hidden')) {
+        onDetailOpen();
+        if (!MOTOR_TEMP_DISABLED) ensureMotorOnce();
+      }
     }
   }
 
@@ -1234,6 +1321,8 @@
     enableCalibrateSession,
     clearCalibrateSession,
     addCalibrateButton,
+    onDetailOpen,
+    scheduleCalibrateAccess,
   };
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => init());
