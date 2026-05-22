@@ -60,6 +60,9 @@
     function scheduleCropApply() {
       clearTimeout(cropTimer);
       cropTimer = setTimeout(() => {
+        if (window.SniperCropProfile?.apply) {
+          window.SniperCropProfile.apply({ force: true });
+        }
         if (window.SniperDexCrop?.ensureMotorOnce) window.SniperDexCrop.ensureMotorOnce();
       }, 220);
     }

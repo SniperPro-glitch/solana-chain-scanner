@@ -15,6 +15,7 @@
     if (tg.initDataUnsafe?.auth_date) return true;
     const p = String(tg.platform || '').toLowerCase();
     if (TG_PLATFORMS.includes(p)) return true;
+    if (p && p !== 'unknown') return true;
     return false;
   }
 
@@ -45,7 +46,9 @@
     const before = document.documentElement.dataset.sniperHost;
     refreshHostClasses();
     const after = document.documentElement.dataset.sniperHost;
-    if (window.SniperCropProfile?.apply) window.SniperCropProfile.apply();
+    if (window.SniperCropProfile?.apply) {
+      window.SniperCropProfile.apply(before !== after ? { force: true } : undefined);
+    }
     if (before !== after && after === 'telegram') {
       window.dispatchEvent(new Event('sniper-host-telegram'));
     }

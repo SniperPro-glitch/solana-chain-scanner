@@ -908,6 +908,10 @@
   function ensureMotorOnce() {
     if (layoutSessionDone()) return false;
     if (!isDetailOpen() || isCropPanelOpen()) return false;
+    if (isTelegram() && global.SniperCropProfile?.viewportReadyForLock
+      && !global.SniperCropProfile.viewportReadyForLock()) {
+      return false;
+    }
     void ensureProfilesReady().then(() => {
       if (layoutSessionDone()) return;
       editingProfile = profileFromUrl() || detectProfile();
