@@ -49,9 +49,18 @@
     return profileFromWidth(layoutWidth());
   }
 
+  let lockedProfileId = null;
+
   function apply() {
     if (window.SniperHost?.refresh) window.SniperHost.refresh();
+    const forced = fromUrl();
+    if (lockedProfileId && !forced) {
+      document.documentElement.dataset.dexCropProfile = lockedProfileId;
+      document.documentElement.dataset.dexCropW = String(layoutWidth());
+      return lockedProfileId;
+    }
     const id = detect();
+    lockedProfileId = id;
     document.documentElement.dataset.dexCropProfile = id;
     document.documentElement.dataset.dexCropW = String(layoutWidth());
     return id;
@@ -70,7 +79,9 @@
     boot();
   }
   document.addEventListener('DOMContentLoaded', boot);
-  window.addEventListener('sniper-host-telegram', boot);
-  setTimeout(boot, 150);
-  setTimeout(boot, 700);
+  window.addEventListener('sniper-host-telegram', () => {
+    lockedProfileId = null;
+    boot();
+  });
+  setTimeout(boot, 400);
 })();

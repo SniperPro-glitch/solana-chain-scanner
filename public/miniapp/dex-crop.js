@@ -4,6 +4,7 @@
  */
 (function (global) {
   const STORAGE_KEY = 'sniperDexCropV4';
+  const LAYOUT_SESSION_KEY = 'sniperCropLayoutDone';
   const LEGACY_KEYS = ['sniperDexCropV3', 'sniperDexCropV2', 'sniperDexCropV1'];
   let serverBaked = null;
   let profilesReady = null;
@@ -422,6 +423,7 @@
     if (global.__sniperCropObs) return;
     global.__sniperCropObs = true;
     const reapply = () => {
+      if (!isCalibrateMode() && !calibrateFromUrl()) return;
       if (isCropPanelOpen()) return;
       if (!isDetailOpen()) return;
       apply(loadProfileForMotor(activeProfileId()));
@@ -430,12 +432,6 @@
     const tg = global.Telegram?.WebApp;
     if (tg && typeof tg.onEvent === 'function') {
       tg.onEvent('viewportChanged', reapply);
-    }
-    for (const id of ['dexTradesWrap', 'dexTradesEmbed']) {
-      const node = document.getElementById(id);
-      if (!node || typeof ResizeObserver === 'undefined') continue;
-      const ro = new ResizeObserver(reapply);
-      ro.observe(node);
     }
   }
 
@@ -877,40 +873,61 @@
     return true;
   }
 
+  function layoutSessionDone() {
+    if (calibrateFromUrl() || isCalibrateMode()) return false;
+    try {
+      return sessionStorage.getItem(LAYOUT_SESSION_KEY) === '1';
+    } catch {
+      return !!global.__sniperCropLayoutDone;
+    }
+  }
+
+  function markLayoutSessionDone() {
+    try {
+      sessionStorage.setItem(LAYOUT_SESSION_KEY, '1');
+    } catch {
+      /* yoksay */
+    }
+    global.__sniperCropLayoutDone = true;
+  }
+
+  function clearLayoutSession() {
+    try {
+      sessionStorage.removeItem(LAYOUT_SESSION_KEY);
+    } catch {
+      /* yoksay */
+    }
+    delete global.__sniperCropLayoutDone;
+  }
+
   function runMotorCrop() {
     return pressKirpmaBot();
   }
 
-  let motorBurstIds = [];
-
-  function scheduleMotorCrop() {
+  /** Oturumda bir kez: profil + kırpma (token değişiminde tekrarlanmaz). */
+  function ensureMotorOnce() {
+    if (layoutSessionDone()) return false;
+    if (!isDetailOpen() || isCropPanelOpen()) return false;
     void ensureProfilesReady().then(() => {
-      runMotorCrop();
-      motorBurstIds.forEach((id) => clearTimeout(id));
-      motorBurstIds = [];
-      [0, 150, 500, 1200, 2500, 4000, 6000, 9000].forEach((ms) => {
-        motorBurstIds.push(setTimeout(runMotorCrop, ms));
-      });
+      if (layoutSessionDone()) return;
+      editingProfile = profileFromUrl() || detectProfile();
+      if (global.SniperCropProfile?.apply) global.SniperCropProfile.apply();
+      document.documentElement.dataset.dexCropProfile = editingProfile;
+      const block = loadProfileForMotor(editingProfile);
+      current = clone(block);
+      apply(block);
+      forceHideCropPanel();
+      markLayoutSessionDone();
     });
+    return true;
   }
 
-  function bindMotorOnEmbed() {
-    if (global.__sniperMotorEmbed) return;
-    global.__sniperMotorEmbed = true;
-    const go = () => scheduleMotorCrop();
-    const chartRoot = document.getElementById('priceChart');
-    if (chartRoot && typeof MutationObserver !== 'undefined') {
-      new MutationObserver(go).observe(chartRoot, { childList: true, subtree: true });
+  function scheduleMotorCrop(force) {
+    if (force || calibrateFromUrl() || isCalibrateMode()) {
+      void ensureProfilesReady().then(() => runMotorCrop());
+      return;
     }
-    document.getElementById('dexTradesEmbed')?.addEventListener('load', go);
-    document.addEventListener(
-      'load',
-      (e) => {
-        const t = e.target;
-        if (t?.matches?.('iframe.dex-embed-chart, #dexTradesEmbed')) go();
-      },
-      true,
-    );
+    ensureMotorOnce();
   }
 
   function refreshPreview() {
@@ -1128,15 +1145,10 @@
     await ensureProfilesReady();
     apply(loadProfileForMotor(activeProfileId()));
     bindCropObservers();
-    bindMotorOnEmbed();
     ensureKirpmaBotButton();
     addCalibrateButton();
-    window.addEventListener('resize', () => {
-      if (isCropPanelOpen()) return;
-      if (!isDetailOpen()) return;
-      apply(loadProfileForMotor(activeProfileId()));
-    });
     if (calibrateFromUrl()) {
+      clearLayoutSession();
       enableCalibrateSession();
       setTimeout(() => {
         addCalibrateButton();
@@ -1148,9 +1160,10 @@
       new MutationObserver(() => {
         if (!vd.classList.contains('hidden')) {
           addCalibrateButton();
-          scheduleMotorCrop();
+          ensureMotorOnce();
         }
       }).observe(vd, { attributes: true, attributeFilter: ['class'] });
+      if (!vd.classList.contains('hidden')) ensureMotorOnce();
     }
   }
 
@@ -1170,7 +1183,9 @@
     apply,
     applyAsync,
     runMotorCrop,
+    ensureMotorOnce,
     scheduleMotorCrop,
+    clearLayoutSession,
     applyLikeKirpmaButton,
     pressKirpmaBot,
     ensureKirpmaBotButton,
