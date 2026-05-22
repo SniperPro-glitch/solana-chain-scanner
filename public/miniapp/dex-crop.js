@@ -43,6 +43,10 @@
   };
 
   function enforceTradesFrame(trades) {
+    if (MOTOR_TEMP_DISABLED) {
+      if (!trades) return { ...LOCKED_TRADES_FRAME };
+      return { ...trades };
+    }
     if (!trades) return { ...LOCKED_TRADES_FRAME };
     return { ...trades, ...LOCKED_TRADES_FRAME };
   }
