@@ -999,7 +999,7 @@
     btn.addEventListener('click', (e) => {
       e.preventDefault();
       e.stopPropagation();
-      if (!applyLikeKirpmaButton()) openPanel();
+      openPanel();
     });
     head.appendChild(btn);
   }
