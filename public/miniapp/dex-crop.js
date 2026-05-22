@@ -449,8 +449,7 @@
       if (!isDetailOpen()) return;
       handleCropProfileChange();
       const pid = refreshCropProfile();
-      apply(isCalibrateMode() ? loadForProfile(pid) : profileFromBaked(pid));
-      if (!layoutSessionDone(pid)) ensureMotorOnce();
+      apply(loadForProfile(pid));
     };
     window.addEventListener('resize', reapply);
     const tg = global.Telegram?.WebApp;
@@ -479,7 +478,7 @@
   function apply(settings) {
     const profileId = activeProfileId();
     document.documentElement.dataset.dexCropProfile = profileId;
-    const s = settings || (isCalibrateMode() ? loadForProfile(profileId) : profileFromBaked(profileId));
+    const s = settings || loadForProfile(profileId);
     const root = document.documentElement;
     const c = s.chart;
     const t = s.trades;
@@ -582,9 +581,16 @@
     document.documentElement.dataset.cropCalibrate = '1';
   }
 
-  /** Yalnızca ?kalibre=1 — motor localStorage açmaz (tek Chrome ayarı diğerlerini bozuyordu). */
+  /** Panel açık veya kalibre oturumu — elle ayar + localStorage (eski manuel akış). */
   function isCalibrateMode() {
-    return calibrateFromUrl();
+    if (calibrateFromUrl()) return true;
+    if (cropPanelIsOpen()) return true;
+    if (document.documentElement.dataset.cropCalibrate === '1') return true;
+    try {
+      return sessionStorage.getItem('sniperCropCalibrate') === '1';
+    } catch {
+      return false;
+    }
   }
 
   /** URL ?kalibre=1 — normal kullanıcıda buton/panel yok, motor gizli. */
@@ -610,7 +616,7 @@
   }
 
   function shouldShowCropButton() {
-    return calibrateFromUrl() || motorTestFromUrl();
+    return isDetailOpen();
   }
 
   function clearCalibrateSession() {
@@ -679,9 +685,8 @@
 
   /** Anlık apply — git-gel beklemeden (iframe hazır olunca tekrar motor). */
   function applyCropNow() {
-    if (!isCalibrateMode()) clearCalibrateSession();
     const pid = refreshCropProfile();
-    apply(profileFromBaked(pid));
+    apply(loadForProfile(pid));
     return pid;
   }
 
@@ -692,8 +697,7 @@
     if (prev && prev !== next) {
       clearLayoutSession();
       if (isDetailOpen() && !cropPanelIsOpen()) {
-        applyCropNow();
-        runHiddenMotor();
+        apply(load());
       }
     }
     lastMotorProfileId = next;
@@ -708,55 +712,34 @@
     );
   }
 
-  /**
-   * Gizli motor = Kırpma apply (panel yok). Her zaman baked/git profil — localStorage değil.
-   */
+  /** Eski manuel apply — paneldeki gibi load() (baked + kayıtlı ölçü). */
   function runHiddenMotor() {
     if (!isDetailOpen()) return false;
-    const panel = document.getElementById('dexCropPanel');
-    if (panel && !panel.classList.contains('hidden')) return false;
-
-    clearCalibrateSession();
-    if (motorTestFromUrl()) document.documentElement.classList.add('crop-motor-on');
-    editingProfile = refreshCropProfile();
-    current = isCalibrateMode() ? loadForProfile(editingProfile) : profileFromBaked(editingProfile);
-    apply(current);
-    if (panel) panel.classList.add('hidden');
-    document.documentElement.classList.remove('crop-panel-open');
-
+    if (cropPanelIsOpen()) return false;
     const finish = () => {
       if (!isDetailOpen()) return;
-      const pid = refreshCropProfile();
-      apply(isCalibrateMode() ? load() : profileFromBaked(pid));
+      apply(load());
     };
     finish();
     [150, 500, 1200, 2500, 4000, 6000].forEach((ms) => setTimeout(finish, ms));
-    if (motorBurstDoneTimer) clearTimeout(motorBurstDoneTimer);
-    motorBurstDoneTimer = setTimeout(() => {
-      markLayoutSessionDone(editingProfile);
-      if (motorTestFromUrl()) document.documentElement.classList.remove('crop-motor-on');
-    }, 6200);
     return true;
   }
 
-  /** Profil başına bir kez — Dex iframe hazır olunca. */
+  /** Iframe hazır olunca bir kez apply(load) — gizli motor yok. */
   function ensureMotorOnce() {
-    handleCropProfileChange();
-    const profileId = refreshCropProfile();
-    if (layoutSessionDone(profileId)) return false;
     if (!isDetailOpen()) return false;
     void ensureProfilesReady().then(() => {
-      if (layoutSessionDone(profileId)) return;
       let tries = 0;
       const attempt = () => {
-        if (layoutSessionDone(refreshCropProfile())) return;
         tries += 1;
         const hasEmbed = !!(
           document.querySelector('iframe.dex-embed-chart')
           || document.getElementById('dexTradesEmbed')?.src
         );
-        if (hasEmbed || tries >= 48) runHiddenMotor();
-        else setTimeout(attempt, 250);
+        if (hasEmbed || tries >= 48) {
+          apply(load());
+          [150, 500, 1200].forEach((ms) => setTimeout(() => apply(load()), ms));
+        } else setTimeout(attempt, 250);
       };
       attempt();
     });
@@ -772,8 +755,7 @@
         const t = e.target;
         if (!t?.matches?.('iframe.dex-embed-chart, #dexTradesEmbed')) return;
         if (!isDetailOpen()) return;
-        applyCropNow();
-        runHiddenMotor();
+        apply(load());
       },
       true,
     );
@@ -941,7 +923,6 @@
   }
 
   function openPanel() {
-    if (!calibrateFromUrl() && !isCalibrateMode()) return;
     enableCalibrateSession();
     if (!panelBuilt) buildPanel();
     editingProfile = profileFromUrl() || detectProfile();
@@ -1152,60 +1133,37 @@
     host.appendChild(btn);
   }
 
-  function runMotorManual() {
-    clearLayoutSession();
-    const ok = runHiddenMotor();
-    toast(ok ? 'Motor çalıştı (6 sn burst)' : 'Motor: önce token detay + grafik bekleyin');
-    return ok;
-  }
-
-  /** Token detayında her zaman — URL / ?motor=1 gerekmez */
-  function ensureMotorFab() {
+  /** Token detayında sabit Kırpma — eski elle manuel panel */
+  function ensureKirpmaFab() {
     if (!isDetailOpen()) {
-      document.getElementById('sniperMotorFab')?.remove();
+      document.getElementById('sniperKirpmaFab')?.remove();
       return;
     }
-    let fab = document.getElementById('sniperMotorFab');
+    let fab = document.getElementById('sniperKirpmaFab');
     if (!fab) {
       fab = document.createElement('div');
-      fab.id = 'sniperMotorFab';
+      fab.id = 'sniperKirpmaFab';
       fab.className = 'sniper-motor-fab';
-      fab.setAttribute('aria-label', 'Kırpma motoru');
+      fab.setAttribute('aria-label', 'Kırpma paneli');
       document.body.appendChild(fab);
     }
-    if (!fab.querySelector('.btn-crop-motor')) {
-      mountCropBtn(fab, 'btn-crop-motor', 'MOTOR', 'Gizli kırpma motorunu çalıştır', () => runMotorManual());
-    }
-    if (calibrateFromUrl() && !fab.querySelector('.btn-crop-cal')) {
-      mountCropBtn(fab, 'btn-crop-cal', 'Kırpma', 'Kalibrasyon paneli', () => openPanel());
+    if (!fab.querySelector('.btn-crop-cal')) {
+      mountCropBtn(fab, 'btn-crop-cal', 'K\u0131rpma', 'Dex embed — elle ayarla ve kaydet', () => openPanel());
     }
   }
 
   function addCalibrateButton() {
-    if (calibrateFromUrl() || motorTestFromUrl()) {
-      const hosts = [
-        document.querySelector('.detail-action-row'),
-        document.querySelector('.trades-head'),
-      ].filter(Boolean);
-      hosts.forEach((host) => {
-        if (calibrateFromUrl()) {
-          mountCropBtn(host, 'btn-crop-cal', 'K\u0131rpma', 'Dex embed — kaydet', () => openPanel());
-        }
-        if (motorTestFromUrl()) {
-          mountCropBtn(host, 'btn-crop-motor', 'Motor', 'Gizli motor', () => runMotorManual());
-        }
-      });
+    if (!shouldShowCropButton()) return;
+    ensureKirpmaFab();
+    const head = document.querySelector('.trades-head');
+    if (head) {
+      mountCropBtn(head, 'btn-crop-cal', 'K\u0131rpma', 'Dex embed — elle ayarla', () => openPanel());
     }
-    ensureMotorFab();
   }
 
   function scheduleCropButtons() {
-    ensureMotorFab();
     addCalibrateButton();
-    [100, 500, 1500, 3000].forEach((ms) => setTimeout(() => {
-      ensureMotorFab();
-      addCalibrateButton();
-    }, ms));
+    [100, 500, 1500, 3000].forEach((ms) => setTimeout(addCalibrateButton, ms));
   }
 
   function ensureProfilesReady() {
@@ -1239,8 +1197,7 @@
       if (!isDetailOpen()) return;
       handleCropProfileChange();
       const pid = refreshCropProfile();
-      apply(isCalibrateMode() ? loadForProfile(pid) : profileFromBaked(pid));
-      if (!layoutSessionDone(pid)) ensureMotorOnce();
+      apply(load());
     });
     if (calibrateFromUrl()) {
       enableCalibrateSession();
@@ -1256,7 +1213,7 @@
           scheduleCropButtons();
           ensureMotorOnce();
         } else {
-          document.getElementById('sniperMotorFab')?.remove();
+          document.getElementById('sniperKirpmaFab')?.remove();
         }
       }).observe(vd, { attributes: true, attributeFilter: ['class'] });
       if (!vd.classList.contains('hidden')) ensureMotorOnce();
@@ -1282,8 +1239,7 @@
     applyCropNow,
     handleCropProfileChange,
     runHiddenMotor,
-    runMotorManual,
-    ensureMotorFab,
+    ensureKirpmaFab,
     ensureMotorOnce,
     scheduleMotorCrop,
     clearLayoutSession,

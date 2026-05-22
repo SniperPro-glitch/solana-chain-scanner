@@ -1953,11 +1953,6 @@
   }
 
   function scheduleDexTradesCrop() {
-    const C = globalThis.SniperDexCrop;
-    if (C?.ensureMotorOnce) {
-      C.ensureMotorOnce();
-      return;
-    }
     applyDexCrop();
     [150, 500, 1200, 2500].forEach((ms) => setTimeout(applyDexCrop, ms));
   }

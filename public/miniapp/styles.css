@@ -1479,23 +1479,16 @@ html.web-browser .token-table-scroll {
   pointer-events: auto;
 }
 
-.sniper-motor-fab .btn-crop-motor {
+.sniper-motor-fab .btn-crop-cal {
   margin-left: 0;
   padding: 14px 18px;
   font-size: 13px;
   font-weight: 800;
-  letter-spacing: 0.04em;
   border-radius: 12px;
   background: rgba(0, 229, 255, 0.22);
   border-color: rgba(0, 229, 255, 0.65);
   color: #7ee8ff;
   box-shadow: 0 6px 24px rgba(0, 229, 255, 0.35);
-}
-
-.sniper-motor-fab .btn-crop-cal:not(.btn-crop-motor) {
-  margin-left: 0;
-  padding: 10px 14px;
-  font-size: 11px;
 }
 
 .btn-crop-cal {
