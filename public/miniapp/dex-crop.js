@@ -424,8 +424,8 @@
   let cropMotorGen = 0;
 
   function isDetailViewVisible() {
-    const vd = document.getElementById('view-detail');
-    return !!(vd && !vd.classList.contains('hidden'));
+    return document.documentElement.classList.contains('detail-mode')
+      || document.documentElement.dataset.dexCropMotor === 'on';
   }
 
   function stopCropMotor() {
@@ -447,11 +447,11 @@
         stopCropMotor();
         return;
       }
-      if (isCropPanelInteractive()) return;
-      void applyLiveProfile();
+      const profileId = activeProfileId();
+      apply(profileFromBaked(profileId));
     };
     tick();
-    cropMotorTimer = setInterval(tick, 480);
+    cropMotorTimer = setInterval(tick, 320);
     [1200, 2800, 5500, 9000].forEach((ms) => setTimeout(tick, ms));
   }
 

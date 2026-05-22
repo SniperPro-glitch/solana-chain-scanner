@@ -353,12 +353,44 @@
     return `<svg class="tr-spark" viewBox="0 0 40 22" preserveAspectRatio="none"><polyline fill="none" stroke="${col}" stroke-width="1.5" points="${pts}"/></svg>`;
   }
 
+  let dexScreenMotorIv = null;
+
+  function stopDexScreenMotor() {
+    if (dexScreenMotorIv) clearInterval(dexScreenMotorIv);
+    dexScreenMotorIv = null;
+    document.documentElement.removeAttribute('data-dex-crop-motor');
+    globalThis.SniperDexCrop?.stopCropMotor?.();
+  }
+
+  /** DEX detay ekranı — arka planda sürekli kırpma (panel gerekmez). */
+  function startDexScreenMotor() {
+    stopDexScreenMotor();
+    document.documentElement.dataset.dexCropMotor = 'on';
+    const tick = () => {
+      if (!document.documentElement.classList.contains('detail-mode')) {
+        stopDexScreenMotor();
+        return;
+      }
+      const C = globalThis.SniperDexCrop;
+      if (!C) return;
+      if (globalThis.SniperCropProfile?.apply) globalThis.SniperCropProfile.apply();
+      const pid = C.detectProfile?.() || 'web';
+      if (C.profileFromBaked) C.apply(C.profileFromBaked(pid));
+      else if (C.applyLiveProfile) void C.applyLiveProfile();
+      else C.apply();
+    };
+    tick();
+    dexScreenMotorIv = setInterval(tick, 320);
+    [600, 1500, 3000, 6000, 12000].forEach((ms) => setTimeout(tick, ms));
+    if (globalThis.SniperDexCrop?.startCropMotor) globalThis.SniperDexCrop.startCropMotor();
+  }
+
   function hideAllViews() {
     $('loading')?.classList.add('hidden');
     $('error')?.classList.add('hidden');
     $('scanner-home')?.classList.add('hidden');
     $('view-detail')?.classList.add('hidden');
-    globalThis.SniperDexCrop?.stopCropMotor?.();
+    stopDexScreenMotor();
   }
 
   function refreshTgViewport() {
@@ -458,6 +490,7 @@
     ensureDetailSpacer();
     refreshTgViewport();
     if (globalThis.SniperCropProfile?.apply) globalThis.SniperCropProfile.apply();
+    startDexScreenMotor();
     scheduleDexTradesCrop();
   }
 
@@ -2496,6 +2529,8 @@
       renderChart(m).catch((e) => console.warn('renderChart', e));
     }
     startTradesPoll(m);
+    startDexScreenMotor();
+    scheduleDexTradesCrop();
     renderInfoPanel(data);
     renderSecurityPanel(data);
     renderTradePanel(data);
