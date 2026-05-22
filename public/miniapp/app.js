@@ -360,7 +360,8 @@
   /** DEX detay — Kırpma butonu ile aynı apply, arka planda otomatik. */
   function startDexScreenMotor() {
     const C = globalThis.SniperDexCrop;
-    if (C?.ensureBackgroundCrop) C.ensureBackgroundCrop();
+    if (C?.scheduleDetailCrop) void C.scheduleDetailCrop();
+    else if (C?.ensureBackgroundCrop) C.ensureBackgroundCrop();
     else if (C?.pressCropButtonBot) C.pressCropButtonBot();
     else scheduleDexTradesCrop();
   }
@@ -1964,14 +1965,14 @@
   function scheduleDexTradesCrop() {
     const C = globalThis.SniperDexCrop;
     if (!C) return;
-    void C.ensureProfilesReady?.();
     if (document.documentElement.classList.contains('detail-mode')) {
-      if (C.ensureBackgroundCrop) C.ensureBackgroundCrop();
+      if (C.scheduleDetailCrop) void C.scheduleDetailCrop();
+      else if (C.ensureBackgroundCrop) C.ensureBackgroundCrop();
       else if (C.pressCropButtonBot) C.pressCropButtonBot();
       return;
     }
     if (C.burstMotorApply) C.burstMotorApply();
-    else if (C.motorApply) C.motorApply();
+    else if (C.pressCropButtonBot) C.pressCropButtonBot();
     else C.apply?.();
   }
   globalThis.__sniperScheduleDexCrop = scheduleDexTradesCrop;

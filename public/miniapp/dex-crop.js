@@ -456,39 +456,52 @@
       styleEl.id = 'dexCropMotorStyle';
       document.head.appendChild(styleEl);
     }
+    /* embed sınıfı geç gelir — #view-detail ile de kilitle */
     styleEl.textContent = `
+${sel} #view-detail .chart-terminal .chart-stage,
 ${sel} .chart-terminal--dex-embed .chart-stage{
   height:${c.stageH}px!important;min-height:${c.stageH}px!important;max-height:${c.stageH}px!important;
 }
+${sel} #view-detail #dexTradesWrap,
 ${sel} #dexTradesWrap{
   height:${t.viewH}px!important;min-height:${t.viewH}px!important;max-height:${t.viewH}px!important;overflow:hidden!important;
 }
+${sel} #view-detail #dexTradesEmbed,
 ${sel} #dexTradesEmbed{
   position:absolute!important;top:${tradeTop}px!important;left:${t.left}%!important;width:${t.width}%!important;height:${t.iframeH}px!important;
   max-width:none!important;margin:0!important;border:0!important;display:block!important;transform:none!important;
 }
+${sel} #view-detail iframe.dex-embed-chart,
 ${sel} iframe.dex-embed-chart{
   position:absolute!important;top:${chartTop}px!important;left:${c.left}%!important;width:${c.width}%!important;height:${chartH}px!important;
   max-width:none!important;margin:0!important;border:0!important;display:block!important;
 }`;
   }
 
-  /**
-   * Kırpma butonuna basınca olan apply — panel GÖRÜNMEZ (openPanel ile birebir, CSS motoru yok).
-   */
+  /** Kırpma butonu / arka plan motoru — tek yol (inline + CSS motor etiketi). */
+  function applyCropMotor(profileId, settings) {
+    const pid = profileId || activeProfileId();
+    if (global.SniperCropProfile?.apply) global.SniperCropProfile.apply();
+    const block = settings || loadForProfile(pid);
+    editingProfile = pid;
+    current = clone(block);
+    document.documentElement.dataset.dexCropProfile = pid;
+    document.documentElement.dataset.dexCropMotor = 'on';
+    document.documentElement.classList.add('crop-motor-on');
+    apply(block);
+    if (isDetailViewVisible()) injectCropMotorCss(block, pid);
+    return true;
+  }
+
+  /** Kırpma butonuna basınca olan apply — panel görünmez, panel DOM şart değil. */
   function openPanelSilent(opts = {}) {
     if (isCropPanelInteractive()) return false;
     if (opts.stopMotor) stopCropEngine();
-    if (!panelBuilt) buildPanel();
-    editingProfile = profileFromUrl() || activeProfileId();
-    current = loadForProfile(editingProfile);
-    syncSlidersFromCurrent();
-    document.documentElement.dataset.dexCropProfile = editingProfile;
-    if (global.SniperCropProfile?.apply) global.SniperCropProfile.apply();
-    apply(current);
+    const pid = profileFromUrl() || activeProfileId();
+    applyCropMotor(pid, loadForProfile(pid));
     panelEl?.classList.add('hidden');
     document.documentElement.classList.remove('crop-panel-open');
-    requestAnimationFrame(() => apply(current));
+    requestAnimationFrame(() => applyCropMotor(pid, loadForProfile(pid)));
     return true;
   }
 
@@ -725,6 +738,7 @@ ${sel} iframe.dex-embed-chart{
     }
     applyMaskEl(maskTop, t.maskTopOn !== false, t.maskTop);
     applyMaskEl(maskFoot, t.maskFootOn !== false, t.maskFoot);
+    if (isDetailViewVisible()) injectCropMotorCss(s, profileId);
     showCropDebug(profileId, t);
   }
 
@@ -944,8 +958,9 @@ ${sel} iframe.dex-embed-chart{
   function closePanel() {
     panelEl?.classList.add('hidden');
     document.documentElement.classList.remove('crop-panel-open');
-    apply(load());
-    if (isDetailViewVisible()) ensureBackgroundCrop();
+    const pid = activeProfileId();
+    applyCropMotor(pid, load());
+    if (isDetailViewVisible()) void scheduleDetailCrop();
   }
 
   function refreshPreview() {
@@ -1145,7 +1160,7 @@ ${sel} iframe.dex-embed-chart{
     btn.addEventListener('click', (e) => {
       e.preventDefault();
       e.stopPropagation();
-      openPanelSilent({ stopMotor: true });
+      openPanelSilent({ stopMotor: false });
     });
     document.body.appendChild(btn);
     return btn;
@@ -1200,7 +1215,9 @@ ${sel} iframe.dex-embed-chart{
     }
   }
 
-  function scheduleDetailCrop() {
+  async function scheduleDetailCrop() {
+    await ensureProfilesReady();
+    if (global.SniperCropProfile?.apply) global.SniperCropProfile.apply();
     ensureBackgroundCrop();
     burstMotorApply();
   }
@@ -1233,19 +1250,19 @@ ${sel} iframe.dex-embed-chart{
     ensureCropBotButton();
     bindIframeCropWatchers();
     bindChartEmbedCropWatch();
+    const bootMotor = () => {
+      if (!isDetailViewVisible()) return;
+      void scheduleDetailCrop();
+    };
     if (document.documentElement.classList.contains('web-browser')) {
       document.documentElement.dataset.dexCropProfile = 'web';
-      const bootWeb = () => {
-        if (isDetailViewVisible()) ensureBackgroundCrop();
-        else runCropLikeButton();
-      };
-      bootWeb();
-      [100, 400, 1200].forEach((ms) => setTimeout(bootWeb, ms));
     }
+    bootMotor();
+    [80, 250, 700, 1500, 3000].forEach((ms) => setTimeout(bootMotor, ms));
     const vd = document.getElementById('view-detail');
     if (vd) {
       const onDetailVisible = () => {
-        if (!vd.classList.contains('hidden')) scheduleDetailCrop();
+        if (!vd.classList.contains('hidden')) void scheduleDetailCrop();
         else stopCropEngine();
       };
       new MutationObserver(onDetailVisible).observe(vd, {
@@ -1270,6 +1287,7 @@ ${sel} iframe.dex-embed-chart{
     resetProfile,
     reset,
     apply,
+    applyCropMotor,
     applyLiveProfile,
     scheduleDetailCrop,
     pressCropButtonBot,
