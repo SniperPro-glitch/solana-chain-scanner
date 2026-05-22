@@ -419,7 +419,7 @@
     global.__sniperCropObs = true;
     const reapply = () => {
       if (document.getElementById('dexCropPanel')?.classList.contains('hidden') === false) return;
-      apply();
+      void applyLiveProfile();
     };
     window.addEventListener('resize', reapply);
     const tg = global.Telegram?.WebApp;
@@ -431,6 +431,11 @@
       if (!node || typeof ResizeObserver === 'undefined') continue;
       const ro = new ResizeObserver(reapply);
       ro.observe(node);
+    }
+    const chartStage = document.querySelector('.chart-terminal--dex-embed .chart-stage');
+    if (chartStage && typeof ResizeObserver !== 'undefined') {
+      const ro = new ResizeObserver(reapply);
+      ro.observe(chartStage);
     }
   }
 
@@ -973,22 +978,22 @@
     apply(settings);
   }
 
-  /** Token sayfası — sunucu kilitli profil; panel açmadan paneldeki gibi apply. */
+  /** Token sayfası — önce kilitli baked (panel ile aynı); sunucu yalnız kalibrasyonda. */
   async function applyLiveProfile() {
     if (global.SniperCropProfile?.apply) global.SniperCropProfile.apply();
     const profileId = activeProfileId();
-    let block = null;
+    const bakedBlock = profileFromBaked(profileId);
+    apply(bakedBlock);
+    if (!isCalibrateMode()) return;
     try {
       const r = await fetch(`/api/crop-profiles?v=${Date.now()}`, { cache: 'no-store' });
       if (r.ok) {
         const data = await r.json();
-        if (data?.profiles?.[profileId]) block = normalizeBlock(data.profiles[profileId]);
+        if (data?.profiles?.[profileId]) apply(normalizeBlock(data.profiles[profileId]));
       }
     } catch {
       /* yoksay */
     }
-    if (!block) block = profileFromBaked(profileId);
-    apply(block);
   }
 
   let detailCropGen = 0;
@@ -1024,15 +1029,18 @@
     bindCropObservers();
     window.addEventListener('resize', () => {
       if (!document.getElementById('dexCropPanel')?.classList.contains('hidden')) return;
-      apply();
+      void applyLiveProfile();
     });
     const vd = document.getElementById('view-detail');
     if (vd) {
-      new MutationObserver(() => {
-        if (!vd.classList.contains('hidden')) {
-          scheduleDetailCrop();
-        }
-      }).observe(vd, { attributes: true, attributeFilter: ['class'] });
+      const onDetailVisible = () => {
+        if (!vd.classList.contains('hidden')) scheduleDetailCrop();
+      };
+      new MutationObserver(onDetailVisible).observe(vd, {
+        attributes: true,
+        attributeFilter: ['class'],
+      });
+      onDetailVisible();
     }
   }
 

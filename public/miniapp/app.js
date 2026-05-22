@@ -1941,13 +1941,18 @@
   }
 
   function scheduleDexTradesCrop() {
-    if (!globalThis.SniperDexCrop) return;
-    if (SniperDexCrop.scheduleDetailCrop) {
-      void SniperDexCrop.ensureProfilesReady?.().then(() => SniperDexCrop.scheduleDetailCrop());
-      return;
-    }
-    SniperDexCrop.apply();
+    const C = globalThis.SniperDexCrop;
+    if (!C) return;
+    const run = () => {
+      if (globalThis.SniperCropProfile?.apply) globalThis.SniperCropProfile.apply();
+      if (C.applyLiveProfile) void C.applyLiveProfile();
+      else C.apply();
+    };
+    void C.ensureProfilesReady?.();
+    if (C.scheduleDetailCrop) C.scheduleDetailCrop();
+    else run();
   }
+  globalThis.__sniperScheduleDexCrop = scheduleDexTradesCrop;
 
   function chartPoolRef(m) {
     const market = m || appData?.market || {};

@@ -58,7 +58,9 @@
     clearTimeout(cropTimer);
     cropTimer = setTimeout(() => {
       if (window.SniperCropProfile?.apply) window.SniperCropProfile.apply();
-      if (window.SniperDexCrop?.apply) window.SniperDexCrop.apply();
+      if (window.SniperDexCrop?.applyLiveProfile) void window.SniperDexCrop.applyLiveProfile();
+      else if (window.SniperDexCrop?.apply) window.SniperDexCrop.apply();
+      if (typeof window.__sniperScheduleDexCrop === 'function') window.__sniperScheduleDexCrop();
     }, 220);
   }
 
