@@ -439,12 +439,12 @@
     document.getElementById('dexCropMotorStyle')?.remove();
   }
 
-  /** Panel openPanel ile aynı yol + CSS motor etiketi. */
+  /** Kilitli baked — panel açmadan aynı ölçüler. */
   function motorApply() {
     if (isCropPanelInteractive()) return;
     if (global.SniperCropProfile?.apply) global.SniperCropProfile.apply();
     const profileId = activeProfileId();
-    const block = loadForProfile(profileId);
+    const block = profileFromBaked(profileId);
     let styleEl = document.getElementById('dexCropMotorStyle');
     if (!styleEl) {
       styleEl = document.createElement('style');
@@ -491,9 +491,6 @@ html.crop-motor-on iframe.dex-embed-chart{
     cropEngineOn = true;
     document.documentElement.classList.add('crop-motor-on');
     document.documentElement.dataset.dexCropMotor = 'on';
-    if (!panelBuilt) buildPanel();
-    panelEl?.classList.add('hidden');
-    document.documentElement.classList.remove('crop-panel-open');
     stopCropMotor();
     const gen = ++cropMotorGen;
     const tick = () => {
