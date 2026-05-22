@@ -559,7 +559,7 @@
   }
 
   function shouldShowCropButton() {
-    return calibrateFromUrl();
+    return isDetailOpen() || calibrateFromUrl();
   }
 
   function clearCalibrateSession() {
@@ -1182,6 +1182,7 @@
     isCalibrateUrl: calibrateFromUrl,
     enableCalibrateSession,
     clearCalibrateSession,
+    addCalibrateButton,
   };
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => init());

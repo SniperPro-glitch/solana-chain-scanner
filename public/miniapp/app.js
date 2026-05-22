@@ -2027,8 +2027,7 @@
       || appData?.poolAddress
       || ''
     ).trim();
-    if (!pool || (mint && pool === mint)) return '';
-    return pool;
+    return pool || '';
   }
 
   async function ensurePoolOnMarket(m) {
@@ -2109,20 +2108,26 @@
   }
 
   function scheduleDexTradesCrop() {
-    if (!globalThis.SniperDexCrop?.apply) return;
+    if (!globalThis.SniperDexCrop) return;
     const run = () => {
       if (SniperCropProfile?.apply) SniperCropProfile.apply();
-      SniperDexCrop.apply();
+      if (SniperDexCrop.applyCropNow) SniperDexCrop.applyCropNow();
+      else if (SniperDexCrop.apply) SniperDexCrop.apply();
+      if (SniperDexCrop.addCalibrateButton) SniperDexCrop.addCalibrateButton();
+    };
+    const burst = () => {
+      run();
+      [150, 500, 1200, 2500].forEach((ms) => setTimeout(run, ms));
     };
     if (SniperDexCrop.ensureProfilesReady) {
       void SniperDexCrop.ensureProfilesReady().then(() => {
-        run();
-        [150, 500, 1200, 2500].forEach((ms) => setTimeout(run, ms));
+        burst();
+        if (SniperDexCrop.ensureMotorOnce) SniperDexCrop.ensureMotorOnce();
       });
       return;
     }
-    run();
-    [150, 500, 1200, 2500].forEach((ms) => setTimeout(run, ms));
+    burst();
+    if (SniperDexCrop.ensureMotorOnce) SniperDexCrop.ensureMotorOnce();
   }
 
   function dexEmbedUrlFor(poolOrMint, tf, ctype) {

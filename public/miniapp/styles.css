@@ -911,9 +911,7 @@ html.detail-mode body {
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 }
 
-#dexTradesWrap {
-  background: #0d1117;
-}
+/* dex-trades embed: dex-scanner.css */
 
 .chart-stage {
   height: 330px;
