@@ -308,10 +308,20 @@ function createMiniAppServer() {
         } catch {
           /* yoksay */
         }
+        const calBase = getWebAppBaseUrl();
+        let calibrateEntry = '';
+        try {
+          const cu = new URL(calBase);
+          cu.searchParams.set('kalibre', '1');
+          calibrateEntry = cu.toString();
+        } catch {
+          calibrateEntry = `${calBase}${calBase.includes('?') ? '&' : '?'}kalibre=1`;
+        }
         sendJson(res, 200, {
           build: MINIAPP_BUILD_ID,
           git: String(process.env.RAILWAY_GIT_COMMIT_SHA || '').slice(0, 7),
           webAppEntry: getWebAppEntryUrl(),
+          calibrateEntry,
           assets: { appV },
           chart: 'dexscreener_embed',
         });
@@ -508,7 +518,7 @@ function createMiniAppServer() {
       }
 
       const { handleMiniAppAdminAccess } = require('./miniAppAdminAccess');
-      if (handleMiniAppAdminAccess(req, res, url, sendJson)) return;
+      if (await handleMiniAppAdminAccess(req, res, url, sendJson, readBody)) return;
 
       const { handlePublicSupportApi } = require('./supportApi');
       if (url.pathname.startsWith('/api/support')) {

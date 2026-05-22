@@ -753,29 +753,52 @@
     syncCropUi();
   }
 
-  /** Telegram mini app — ADMIN_USER_ID ile Kırpma (URL ?kalibre=1 şart değil). */
-  async function tryEnableAdminCalibrate() {
-    if (isFounderOrAdminSession()) {
-      document.documentElement.dataset.cropAdmin = '1';
-      enableCalibrateSession();
-      syncCropUi();
-      return true;
+  async function requestAdminCropAccess() {
+    const initData = String(global.Telegram?.WebApp?.initData || '').trim();
+    if (initData) {
+      try {
+        const r = await fetch('/api/miniapp/admin-access', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ initData }),
+        });
+        if (r.ok) {
+          const j = await r.json();
+          if (j?.allowed) return true;
+        }
+      } catch {
+        /* yoksay */
+      }
     }
-    if (!isTelegram() && !global.Telegram?.WebApp) return false;
     const uid = getTelegramUserId();
     if (!uid) return false;
     try {
       const r = await fetch(`/api/miniapp/admin-access?telegramId=${encodeURIComponent(uid)}`);
       if (!r.ok) return false;
       const j = await r.json();
-      if (!j?.allowed) return false;
-      document.documentElement.dataset.cropAdmin = '1';
-      enableCalibrateSession();
-      syncCropUi();
-      return true;
+      return !!j?.allowed;
     } catch {
       return false;
     }
+  }
+
+  function grantAdminCalibrate() {
+    document.documentElement.dataset.cropAdmin = '1';
+    enableCalibrateSession();
+    syncCropUi();
+  }
+
+  /** Telegram mini app — ADMIN_USER_ID (initData HMAC veya telegramId). */
+  async function tryEnableAdminCalibrate() {
+    if (isFounderOrAdminSession()) {
+      grantAdminCalibrate();
+      return true;
+    }
+    if (!isTelegram() && !global.Telegram?.WebApp) return false;
+    const ok = await requestAdminCropAccess();
+    if (!ok) return false;
+    grantAdminCalibrate();
+    return true;
   }
 
   function shouldShowCropButton() {
