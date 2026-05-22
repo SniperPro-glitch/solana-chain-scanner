@@ -369,6 +369,7 @@ module.exports = {
   enrichMarketForMiniApp,
   fetchOhlcv,
   patchLastCandle,
+  fetchGeckoPoolAddress,
   normalizeTimeframe,
   tokenLogoUrl,
   fmtUsd,

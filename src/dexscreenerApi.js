@@ -115,6 +115,9 @@ async function getPairChart(poolOrMint, timeframe = '15m', opts = {}) {
   }
 
   let pool = pair?.pairAddress || null;
+  if (!pool && ref.length >= 32 && ref.length <= 48) {
+    pool = ref;
+  }
   if (!pool) {
     const { fetchGeckoPoolAddress } = require('./marketData');
     pool = await fetchGeckoPoolAddress(ref);
