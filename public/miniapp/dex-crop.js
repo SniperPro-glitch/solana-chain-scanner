@@ -598,8 +598,18 @@
     return String(location.hash || '').includes('kalibre');
   }
 
+  /** Manuel test: ?motor=1 veya ?debugcrop=1 — gizli motor butonu */
+  function motorTestFromUrl() {
+    try {
+      const q = new URLSearchParams(location.search);
+      return q.get('motor') === '1' || q.get('debugcrop') === '1';
+    } catch {
+      return false;
+    }
+  }
+
   function shouldShowCropButton() {
-    return calibrateFromUrl();
+    return calibrateFromUrl() || motorTestFromUrl();
   }
 
   function clearCalibrateSession() {
@@ -706,6 +716,7 @@
     if (panel && !panel.classList.contains('hidden')) return false;
 
     clearCalibrateSession();
+    if (motorTestFromUrl()) document.documentElement.classList.add('crop-motor-on');
     editingProfile = refreshCropProfile();
     current = isCalibrateMode() ? loadForProfile(editingProfile) : profileFromBaked(editingProfile);
     apply(current);
@@ -720,7 +731,10 @@
     finish();
     [150, 500, 1200, 2500, 4000, 6000].forEach((ms) => setTimeout(finish, ms));
     if (motorBurstDoneTimer) clearTimeout(motorBurstDoneTimer);
-    motorBurstDoneTimer = setTimeout(() => markLayoutSessionDone(editingProfile), 6200);
+    motorBurstDoneTimer = setTimeout(() => {
+      markLayoutSessionDone(editingProfile);
+      if (motorTestFromUrl()) document.documentElement.classList.remove('crop-motor-on');
+    }, 6200);
     return true;
   }
 
@@ -1125,18 +1139,35 @@
   function addCalibrateButton() {
     if (!shouldShowCropButton()) return;
     const head = document.querySelector('.trades-head');
-    if (!head || head.querySelector('.btn-crop-cal')) return;
-    const btn = document.createElement('button');
-    btn.type = 'button';
-    btn.className = 'btn-crop-cal';
-    btn.textContent = 'K\u0131rpma';
-    btn.title = 'Dex embed hizalama — kaydet';
-    btn.addEventListener('click', (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      openPanel();
-    });
-    head.appendChild(btn);
+    if (!head) return;
+    if (calibrateFromUrl() && !head.querySelector('.btn-crop-cal')) {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'btn-crop-cal';
+      btn.textContent = 'K\u0131rpma';
+      btn.title = 'Dex embed hizalama — kaydet';
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        openPanel();
+      });
+      head.appendChild(btn);
+    }
+    if (motorTestFromUrl() && !head.querySelector('.btn-crop-motor')) {
+      const motorBtn = document.createElement('button');
+      motorBtn.type = 'button';
+      motorBtn.className = 'btn-crop-cal btn-crop-motor';
+      motorBtn.textContent = 'Motor';
+      motorBtn.title = 'Gizli motor (runHiddenMotor) — manuel test';
+      motorBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        clearLayoutSession();
+        const ok = runHiddenMotor();
+        toast(ok ? 'Motor çalıştı (6 sn burst)' : 'Motor: detay/embed yok');
+      });
+      head.appendChild(motorBtn);
+    }
   }
 
   function ensureProfilesReady() {
