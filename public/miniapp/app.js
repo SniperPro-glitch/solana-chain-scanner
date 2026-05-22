@@ -2194,7 +2194,11 @@
     let stats = m?.chart?.stats;
 
     try {
-      const live = await fetchChartCandles(m, tf);
+      let live = await fetchChartCandles(m, tf);
+      if (!live.candles.length) {
+        await new Promise((r) => setTimeout(r, 800));
+        live = await fetchChartCandles(m, tf);
+      }
       if (live.candles.length) {
         candles = live.candles;
         stats = live.stats || stats;

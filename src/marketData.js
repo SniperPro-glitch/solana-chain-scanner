@@ -117,8 +117,13 @@ const TIMEFRAMES = {
   '1d': { aggregate: 1, limit: 90, path: 'day' },
 };
 
-const OHLCV_CACHE_MS = 60_000;
+const OHLCV_CACHE_MS = 45_000;
 const ohlcvCache = new Map();
+const ohlcvLastGood = new Map();
+
+function sleep(ms) {
+  return new Promise((r) => setTimeout(r, ms));
+}
 
 function normalizeTimeframe(tf) {
   const key = String(tf || '15m').toLowerCase();
@@ -206,24 +211,16 @@ async function requestGeckoOhlcv(poolAddress, cfg, limit) {
   return parseOhlcvRows(data?.data?.attributes?.ohlcv_list, cfg.path);
 }
 
-async function fetchOhlcv(poolAddress, timeframe = '15m', limitOverride) {
-  if (!poolAddress) return [];
-  const tf = normalizeTimeframe(timeframe);
-  const cacheKey = `${poolAddress}:${tf}`;
-  const hit = ohlcvCache.get(cacheKey);
-  if (hit && Date.now() - hit.at < OHLCV_CACHE_MS) return hit.candles;
-
+async function fetchOhlcvOnce(poolAddress, tf, limitOverride) {
   const cfg = TIMEFRAMES[tf];
   const limit = limitOverride || cfg.limit;
   let candles = [];
-
   try {
     candles = await requestGeckoOhlcv(poolAddress, cfg, limit);
   } catch (e) {
-    if (e.code === 'rate_limit') console.warn('[market] Gecko OHLCV rate limit:', tf);
-    candles = [];
+    if (e.code === 'rate_limit') throw e;
+    return [];
   }
-
   if (!candles.length && (tf === '1h' || tf === '4h' || tf === '1d')) {
     try {
       const base = await requestGeckoOhlcv(poolAddress, TIMEFRAMES['15m'], 200);
@@ -233,13 +230,50 @@ async function fetchOhlcv(poolAddress, timeframe = '15m', limitOverride) {
         bucket,
         cfg.path,
       );
-    } catch {
-      /* yoksay */
+    } catch (e) {
+      if (e.code === 'rate_limit') throw e;
+    }
+  }
+  return candles;
+}
+
+async function fetchOhlcv(poolAddress, timeframe = '15m', limitOverride) {
+  if (!poolAddress) return [];
+  const tf = normalizeTimeframe(timeframe);
+  const cacheKey = `${poolAddress}:${tf}`;
+  const hit = ohlcvCache.get(cacheKey);
+  if (hit?.candles?.length && Date.now() - hit.at < OHLCV_CACHE_MS) return hit.candles;
+
+  const stale = ohlcvLastGood.get(cacheKey);
+  let candles = [];
+  const attempts = 3;
+  for (let i = 0; i < attempts; i += 1) {
+    try {
+      candles = await fetchOhlcvOnce(poolAddress, tf, limitOverride);
+      if (candles.length) break;
+      if (i < attempts - 1) await sleep(600 * (i + 1));
+    } catch (e) {
+      if (e.code === 'rate_limit') {
+        console.warn('[market] Gecko OHLCV rate limit:', tf, `attempt ${i + 1}/${attempts}`);
+        if (i < attempts - 1) await sleep(900 * (i + 1));
+        continue;
+      }
+      candles = [];
+      break;
     }
   }
 
-  ohlcvCache.set(cacheKey, { at: Date.now(), candles });
-  return candles;
+  if (candles.length) {
+    ohlcvCache.set(cacheKey, { at: Date.now(), candles });
+    ohlcvLastGood.set(cacheKey, candles);
+    return candles;
+  }
+
+  if (stale?.length) {
+    console.warn('[market] OHLCV boş — son iyi veri kullanılıyor:', cacheKey);
+    return stale;
+  }
+  return [];
 }
 
 /**
