@@ -2,14 +2,10 @@
 
 :root {
   --app-height: 100dvh;
-  --sniper-bg-bleed-top: env(safe-area-inset-top, 0px);
-  --sniper-bg-bleed-bottom: env(safe-area-inset-bottom, 0px);
-  --sniper-content-top: 0px;
-  --sniper-content-bottom: 0px;
-  --tg-safe-top: var(--sniper-bg-bleed-top, 0px);
-  --tg-safe-bottom: var(--sniper-bg-bleed-bottom, 0px);
-  --tg-content-safe-top: var(--sniper-content-top, 0px);
-  --tg-content-safe-bottom: var(--sniper-content-bottom, 0px);
+  --tg-safe-top: env(safe-area-inset-top, 0px);
+  --tg-safe-bottom: env(safe-area-inset-bottom, 0px);
+  --tg-content-safe-top: 0px;
+  --tg-content-safe-bottom: 0px;
   --tg-content-safe-left: 0px;
   --tg-content-safe-right: 0px;
   --nav-h: 72px;
@@ -24,61 +20,6 @@ html.tg-mini-app body {
   overflow: hidden;
   overscroll-behavior: none;
   background: #060910;
-}
-
-/* Mobilde aşağı çekerek küçültmeyi zorlaştır (X/ok Telegram tam ekranda kalkar) */
-html.tg-sticky-mobile,
-html.tg-sticky-mobile body {
-  overscroll-behavior: none;
-  touch-action: manipulation;
-}
-
-html.tg-sticky-mobile .scanner-home,
-html.tg-sticky-mobile .view-detail {
-  overscroll-behavior-y: contain;
-  -webkit-overflow-scrolling: touch;
-}
-
-/* Arka plan — status bar (5G/batarya) altına uzanır; içerik ayrı padding alır */
-html.tg-mini-app::before,
-html.tg-mini-app body::before {
-  content: '';
-  position: fixed;
-  left: 0;
-  right: 0;
-  top: calc(-1 * var(--sniper-bg-bleed-top, 0px));
-  height: calc(100% + var(--sniper-bg-bleed-top, 0px) + var(--sniper-bg-bleed-bottom, 0px));
-  pointer-events: none;
-  z-index: -2;
-  background: #060910;
-}
-
-/* Telegram: viewport tam yükseklik; üst boşluk yalnızca header satırında (çift offset yok) */
-html.tg-mini-app.tg-expanded .scanner-home,
-html.tg-mini-app.tg-expanded .boot-screen,
-html.tg-mini-app.tg-fullscreen .scanner-home,
-html.tg-mini-app.tg-fullscreen .boot-screen {
-  margin-top: 0;
-  padding-top: 0;
-  min-height: var(--app-height, 100dvh);
-  height: var(--app-height, 100dvh);
-  max-height: var(--app-height, 100dvh);
-  box-sizing: border-box;
-}
-
-html.tg-mini-app.tg-expanded .view-detail,
-html.tg-mini-app.tg-fullscreen .view-detail {
-  top: 0;
-  margin-top: 0;
-  padding-top: 0;
-  height: var(--app-height, 100dvh);
-  max-height: var(--app-height, 100dvh);
-  box-sizing: border-box;
-}
-
-html.tg-mini-app.tg-expanded .scan-header,
-html.tg-mini-app.tg-fullscreen .scan-header {
-  padding-top: calc(8px + var(--sniper-content-top, 0px));
 }
 
 .scanner-home {
@@ -116,10 +57,7 @@ html.tg-mini-app.tg-fullscreen .scan-header {
 .scanner-home::before {
   content: '';
   position: fixed;
-  left: 0;
-  right: 0;
-  top: calc(-1 * var(--sniper-bg-bleed-top, 0px));
-  height: calc(100% + var(--sniper-bg-bleed-top, 0px));
+  inset: 0;
   width: 100%;
   max-width: 100%;
   margin: 0;
@@ -128,9 +66,8 @@ html.tg-mini-app.tg-fullscreen .scan-header {
   background:
     linear-gradient(rgba(0, 229, 255, 0.022) 1px, transparent 1px),
     linear-gradient(90deg, rgba(0, 229, 255, 0.022) 1px, transparent 1px),
-    radial-gradient(ellipse 70% 40% at 50% 0%, rgba(0, 229, 255, 0.055), transparent 55%),
-    #060910;
-  background-size: 20px 20px, 20px 20px, 100% 100%, 100% 100%;
+    radial-gradient(ellipse 70% 40% at 50% 0%, rgba(0, 229, 255, 0.055), transparent 55%);
+  background-size: 20px 20px, 20px 20px, 100% 100%;
 }
 
 .scanner-home > *:not(.bottom-nav):not(.market-footer) {
@@ -602,15 +539,11 @@ html.web-browser .promo-banner-img {
   gap: 10px;
   min-height: 52px;
   padding:
-    10px
+    calc(10px + var(--tg-content-safe-top, 0px))
     calc(12px + var(--tg-content-safe-right, 0px))
     10px
     calc(12px + var(--tg-content-safe-left, 0px));
   box-sizing: border-box;
-}
-
-html.web-browser .scan-header {
-  padding-top: calc(10px + var(--sniper-content-top, env(safe-area-inset-top, 0px)));
 }
 
 .scan-brand {
@@ -668,8 +601,16 @@ html.web-browser .scan-header {
   flex-shrink: 0;
 }
 
+html.tg-fullscreen .btn-connect {
+  max-width: 110px;
+  padding: 8px 10px;
+  font-size: 11px;
+}
+
+/* Expand mod: Telegram üst şeridi — ekstra sol boşluk gerekmez */
 html.tg-expanded .scan-header {
-  padding-left: calc(12px + var(--tg-content-safe-left, 0px));
+  padding-left: 12px;
+  padding-top: calc(6px + var(--tg-content-safe-top, 0px));
 }
 
 .btn-connect {

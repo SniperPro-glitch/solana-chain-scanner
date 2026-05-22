@@ -1,8 +1,6 @@
 (function () {
   const tg = window.Telegram?.WebApp;
-  function isWebBrowser() {
-    return window.SniperHost?.isWebBrowser?.() ?? !tg;
-  }
+  const isWebBrowser = window.SniperHost?.isWebBrowser?.() ?? !tg;
   let apiConfig = { botApiBase: '', webAppBase: '' };
   let apiConfigPromise = null;
   let homeFeedInflight = null;
@@ -58,8 +56,8 @@
   if (tg?.themeParams?.bg_color) {
     document.documentElement.style.setProperty('--bg', tg.themeParams.bg_color);
   }
-  if (typeof window.__tgApplySafeArea === 'function') {
-    window.__tgApplySafeArea();
+  if (typeof window.__tgApplyFullscreen === 'function') {
+    window.__tgApplyFullscreen();
   }
 
   const $ = (id) => document.getElementById(id);
@@ -318,54 +316,13 @@
     </article>`;
   }
 
-  function reportIdFromStartParam(raw) {
-    const s = String(raw || '').trim();
-    if (!s || s === 'dex') return null;
-    if (s.startsWith('r_')) return s.slice(2);
-    return s;
-  }
-
   function reportIdFromUrl() {
-    const qs = new URLSearchParams(location.search);
-    const fromSearch = qs.get('r');
+    const fromSearch = new URLSearchParams(location.search).get('r');
     if (fromSearch) return fromSearch;
-    const fromTgParam = reportIdFromStartParam(qs.get('tgWebAppStartParam'));
-    if (fromTgParam) return fromTgParam;
-    const unsafe = window.Telegram?.WebApp?.initDataUnsafe || {};
-    const fromInit = reportIdFromStartParam(unsafe.start_param);
-    if (fromInit) return fromInit;
     const hash = (location.hash || '').replace(/^#/, '');
     if (!hash || hash.includes('tgWebApp')) return null;
     const params = new URLSearchParams(hash.includes('=') ? hash : `r=${hash}`);
     return params.get('r');
-  }
-
-  function setReportRoute(rid) {
-    const u = new URL(location.href);
-    if (rid) u.searchParams.set('r', String(rid));
-    else u.searchParams.delete('r');
-    const qs = u.searchParams.toString();
-    const tgHash = (location.hash || '').includes('tgWebApp') ? location.hash : '';
-    history.replaceState({ report: rid || null }, '', `${u.pathname}${qs ? `?${qs}` : ''}${tgHash}`);
-  }
-
-  function clearReportRoute() {
-    setReportRoute(null);
-  }
-
-  function onReportRouteChange() {
-    const id = reportIdFromUrl();
-    if (id && id !== reportId) {
-      reportId = id;
-      markReportOpen(false);
-      loadReportFlow();
-      return;
-    }
-    if (!id && reportId) {
-      reportId = null;
-      destroyChart();
-      showScannerHome();
-    }
   }
 
   function scoreColor(score) {
@@ -404,40 +361,8 @@
   }
 
   function refreshTgViewport() {
-    if (typeof window.__tgApplyExpanded === 'function') window.__tgApplyExpanded();
-    else if (typeof window.__tgApplyFullscreen === 'function') window.__tgApplyFullscreen();
-    if (typeof window.SniperSafeArea?.scheduleRetries === 'function') window.SniperSafeArea.scheduleRetries();
+    if (typeof window.__tgApplyFullscreen === 'function') window.__tgApplyFullscreen();
     else if (typeof window.__tgApplySafeArea === 'function') window.__tgApplySafeArea();
-  }
-
-  function syncTgBackButton() {
-    const tg = window.Telegram?.WebApp;
-    if (!tg?.BackButton || window.SniperHost?.isWebBrowser?.()) return;
-    tg.BackButton.hide();
-  }
-
-  function syncDetailBackUi() {
-    $('btnHeroBack')?.classList.add('hidden');
-  }
-
-  function tgNavBack() {
-    if (!$('searchOverlay')?.classList.contains('hidden')) {
-      if (typeof globalThis.closeSearchOverlay === 'function') globalThis.closeSearchOverlay();
-      return;
-    }
-    if (document.body.classList.contains('sidebar-open')) {
-      if (typeof globalThis.closeDexSidebar === 'function') globalThis.closeDexSidebar();
-      return;
-    }
-    if (reportId || !$('view-detail')?.classList.contains('hidden')) {
-      clearReportRoute();
-      reportId = null;
-      destroyChart();
-      showScannerHome();
-      return;
-    }
-    const tg = window.Telegram?.WebApp;
-    if (tg && typeof tg.close === 'function') tg.close();
   }
 
   function showScannerHome() {
@@ -447,9 +372,7 @@
     document.documentElement.classList.remove('detail-mode');
     hideAllViews();
     $('scanner-home')?.classList.remove('hidden');
-    syncDetailBackUi();
     refreshTgViewport();
-    syncTgBackButton();
     bindHomeShell();
     toggleHomeRadarPanels();
     if (!homeFeedBooted) {
@@ -469,7 +392,7 @@
     if (now - lastBottomNavAt < 120) return;
     lastBottomNavAt = now;
     if (nav === 'home') {
-      clearReportRoute();
+      location.hash = '';
       reportId = null;
       feedListMode = 'top';
       setFeedTab('home');
@@ -480,7 +403,7 @@
       return;
     }
     if (nav === 'trend') {
-      clearReportRoute();
+      location.hash = '';
       reportId = null;
       feedListMode = 'top';
       setFeedTab('trending');
@@ -490,7 +413,7 @@
       return;
     }
     if (nav === 'new') {
-      clearReportRoute();
+      location.hash = '';
       reportId = null;
       feedListMode = 'top';
       feedEmptyMessage = '';
@@ -509,7 +432,7 @@
       return;
     }
     if (nav === 'scan') {
-      clearReportRoute();
+      location.hash = '';
       reportId = null;
       setFeedTab('scan');
       showScannerHome();
@@ -533,9 +456,7 @@
     document.documentElement.classList.add('detail-mode');
     $('view-detail')?.classList.remove('hidden');
     ensureDetailSpacer();
-    syncDetailBackUi();
     refreshTgViewport();
-    syncTgBackButton();
   }
 
   function isSolanaMint(s) {
@@ -750,7 +671,7 @@
       if (!scannerPreviewId) return;
       markReportOpen(true);
       reportId = scannerPreviewId;
-      setReportRoute(scannerPreviewId);
+      location.hash = `r=${scannerPreviewId}`;
       loadReportFlow();
     });
     root?.querySelector('[data-action="clear"]')?.addEventListener('click', clearSearch);
@@ -823,7 +744,7 @@
       setRadarProgress(100, 'Complete', 'Opening report…');
       markReportOpen(true);
       reportId = id;
-      setReportRoute(id);
+      location.hash = `r=${id}`;
       hideRadarActive();
       await loadReportFlow();
     } catch (e) {
@@ -1282,7 +1203,7 @@
     };
     el.classList.remove('hidden');
     applyPromoBannerLayout();
-    if (isWebBrowser() && typeof console !== 'undefined') {
+    if (isWebBrowser && typeof console !== 'undefined') {
       requestAnimationFrame(() => {
         const r = el.getBoundingClientRect();
         const ir = img.getBoundingClientRect();
@@ -1318,7 +1239,7 @@
       if (rid) {
         markReportOpen(scannerNavActive);
         reportId = rid;
-        setReportRoute(rid);
+        location.hash = `r=${rid}`;
         loadReportFlow();
         return;
       }
@@ -1654,7 +1575,7 @@
       if (!id) throw new Error('report_missing');
       markReportOpen(scannerNavActive);
       reportId = id;
-      setReportRoute(id);
+      location.hash = `r=${id}`;
       await loadReportFlow();
     } catch (e) {
       showToast(e.message || 'Açılamadı');
@@ -1725,7 +1646,7 @@
       if (rid) {
         markReportOpen(scannerNavActive);
         reportId = rid;
-        setReportRoute(rid);
+        location.hash = `r=${rid}`;
         loadReportFlow();
         return;
       }
@@ -2666,27 +2587,35 @@
   }
 
   function setupShell() {
-    const onDetailBack = () => {
-      clearReportRoute();
+    $('btnBack')?.addEventListener('click', () => {
+      location.hash = '';
       reportId = null;
       destroyChart();
       showScannerHome();
-    };
-    $('btnBack')?.addEventListener('click', onDetailBack);
-    $('btnHeroBack')?.addEventListener('click', onDetailBack);
+    });
     $('btnErrorHome')?.addEventListener('click', () => {
-      clearReportRoute();
+      location.hash = '';
       reportId = null;
       showScannerHome();
     });
-    window.addEventListener('hashchange', onReportRouteChange);
-    window.addEventListener('popstate', onReportRouteChange);
+    window.addEventListener('hashchange', () => {
+      const id = reportIdFromUrl();
+      if (id && id !== reportId) {
+        reportId = id;
+        markReportOpen(false);
+        loadReportFlow();
+      } else if (!id && !$('scanner-home')?.classList.contains('hidden')) {
+        return;
+      } else if (!id) {
+        reportId = null;
+        showScannerHome();
+      }
+    });
   }
 
   async function main() {
     setupShell();
     initWallet();
-    if (window.SniperTgLaunch?.migrateReportHash) window.SniperTgLaunch.migrateReportHash();
     reportId = reportIdFromUrl();
 
     if (!reportId) {
@@ -2710,7 +2639,7 @@
     if (!rid) return;
     markReportOpen(scannerNavActive);
     reportId = rid;
-    setReportRoute(rid);
+    location.hash = `r=${rid}`;
     loadReportFlow();
   };
   globalThis.onBottomNav = onBottomNav;
@@ -2726,8 +2655,6 @@
   globalThis.ingestFeedResponse = ingestFeedResponse;
   globalThis.refreshHomeFeed = () =>
     loadHomeFeed(feedTabForApi(feedTab), feedTab === 'scan' ? 'trending' : feedTab);
-  globalThis.SniperNavBack = tgNavBack;
-  globalThis.syncTgBackButton = syncTgBackButton;
 
   main();
 })();
