@@ -65,6 +65,18 @@
   let appData = null;
   let currentTf = '15m';
   let chartType = 'candle';
+  /** DexScreener dark chart theme (Lightweight Charts). */
+  const CHART_DS = {
+    bg: '#0d1117',
+    grid: '#1a2235',
+    up: '#26a69a',
+    down: '#ef5350',
+    priceLine: '#485c7b',
+    volUp: 'rgba(38, 166, 154, 0.3)',
+    volDown: 'rgba(239, 83, 80, 0.3)',
+    crosshair: 'rgba(255, 255, 255, 0.72)',
+    text: '#8b949e',
+  };
   let chartApi = null;
   let candleSeries = null;
   let lineSeries = null;
@@ -2313,8 +2325,7 @@
         volumeSeries.update({
           time: nextLast.time,
           value: Number(raw.volume) || 0,
-          color: nextLast.close >= nextLast.open
-            ? 'rgba(0, 200, 80, 0.35)' : 'rgba(239, 68, 68, 0.35)',
+          color: nextLast.close >= nextLast.open ? CHART_DS.volUp : CHART_DS.volDown,
         });
       }
       updateOhlc(raw);
@@ -2396,7 +2407,7 @@
       return {
         time: d.time,
         value: Number(raw.volume) || 0,
-        color: d.close >= d.open ? 'rgba(0, 200, 80, 0.35)' : 'rgba(239, 68, 68, 0.35)',
+        color: d.close >= d.open ? CHART_DS.volUp : CHART_DS.volDown,
       };
     });
     lineSeries.setData(seriesData.map((d) => ({ time: d.time, value: d.close })));
@@ -2574,14 +2585,20 @@
         width: w,
         height: h,
         layout: {
-          background: { color: '#080c16' },
-          textColor: '#6b7788',
-          fontFamily: 'Inter, sans-serif',
+          background: { color: CHART_DS.bg },
+          textColor: CHART_DS.text,
+          fontFamily: 'Inter, system-ui, sans-serif',
           fontSize: 11,
+          attributionLogo: false,
         },
         grid: {
-          vertLines: { color: '#1a2035' },
-          horzLines: { color: '#1a2035' },
+          vertLines: { color: CHART_DS.grid },
+          horzLines: { color: CHART_DS.grid },
+        },
+        watermark: {
+          visible: false,
+          color: 'transparent',
+          text: '',
         },
         localization: {
           priceFormatter: chartPriceLabel,
@@ -2599,8 +2616,8 @@
         },
         crosshair: {
           mode: crosshairMode,
-          vertLine: { width: 1, color: 'rgba(0, 229, 255, 0.45)', style: 2 },
-          horzLine: { width: 1, color: 'rgba(0, 229, 255, 0.35)', style: 2 },
+          vertLine: { width: 1, color: CHART_DS.crosshair, style: 0, labelBackgroundColor: CHART_DS.bg },
+          horzLine: { width: 1, color: CHART_DS.crosshair, style: 0, labelBackgroundColor: CHART_DS.bg },
         },
         handleScroll: {
           mouseWheel: true,
@@ -2626,21 +2643,27 @@
       });
 
       candleSeries = addChartSeries(chartApi, 'candle', {
-        upColor: '#00c850',
-        downColor: '#ef4444',
-        borderUpColor: '#00a844',
-        borderDownColor: '#dc2626',
-        wickUpColor: '#00c850',
-        wickDownColor: '#ef4444',
+        upColor: CHART_DS.up,
+        downColor: CHART_DS.down,
+        borderUpColor: CHART_DS.up,
+        borderDownColor: CHART_DS.down,
+        wickUpColor: CHART_DS.up,
+        wickDownColor: CHART_DS.down,
+        borderVisible: true,
         priceFormat: priceFmt,
+        priceLineVisible: true,
+        priceLineColor: CHART_DS.priceLine,
+        priceLineWidth: 1,
         visible: chartType !== 'line',
       });
 
       lineSeries = addChartSeries(chartApi, 'line', {
-        color: '#00e5ff',
+        color: CHART_DS.up,
         lineWidth: 2,
         crosshairMarkerVisible: true,
-        priceLineVisible: false,
+        priceLineVisible: true,
+        priceLineColor: CHART_DS.priceLine,
+        priceLineWidth: 1,
         priceFormat: priceFmt,
         visible: chartType === 'line',
       });
@@ -2658,7 +2681,7 @@
         return {
           time: d.time,
           value: Number(raw.volume) || 0,
-          color: d.close >= d.open ? 'rgba(0, 200, 80, 0.35)' : 'rgba(239, 68, 68, 0.35)',
+          color: d.close >= d.open ? CHART_DS.volUp : CHART_DS.volDown,
         };
       });
 

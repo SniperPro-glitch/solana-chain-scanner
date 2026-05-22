@@ -732,7 +732,7 @@ html.detail-mode body {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(5, 8, 10, 0.8);
+  background: rgba(13, 17, 23, 0.88);
   pointer-events: none;
 }
 
@@ -825,7 +825,7 @@ html.detail-mode body {
 }
 
 #dexTradesWrap {
-  background: #080c16;
+  background: #0d1117;
 }
 
 .chart-stage {
@@ -833,7 +833,7 @@ html.detail-mode body {
   min-height: 330px;
   max-height: 330px;
   overflow: hidden;
-  background: #080c16;
+  background: #0d1117;
   touch-action: none;
   overscroll-behavior: contain;
 }
