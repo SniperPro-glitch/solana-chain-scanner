@@ -366,11 +366,19 @@ function createMiniAppServer() {
           .replace(/^@/, '')
           .trim();
         const { loadConfig: loadTrendConfig } = require('./trendConfigStore');
+        const { isMiniAppOnlyMode } = require('../scripts/railway-env');
+        const hasBotToken = !!String(process.env.BOT_TOKEN || process.env.TELEGRAM_BOT_TOKEN || '').trim();
+        const miniOnly = isMiniAppOnlyMode();
         sendJson(res, 200, {
           webAppBase: getWebAppBaseUrl(),
           webAppEntry: getWebAppEntryUrl(),
           botApiBase: getBotApiBaseUrl(),
           telegramBotUsername: botUser || 'solachainscanbot',
+          bot: {
+            miniAppOnly: miniOnly,
+            tokenConfigured: hasBotToken,
+            listensToStart: !miniOnly || hasBotToken,
+          },
           support: supportStore.loadConfig(),
           trend: loadTrendConfig(),
         });
