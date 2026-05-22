@@ -362,7 +362,7 @@ async function enrichMarketForMiniApp(token, options = {}) {
     poolAddress,
     txnRatio: txnTotal > 0 ? { buys, sells, buyPct: Math.round((buys / txnTotal) * 100) } : null,
     recentTrades,
-    tradesPollMs: 5000,
+    tradesPollMs: 2000,
     chart: {
       timeframe,
       mode: 'lightweight',

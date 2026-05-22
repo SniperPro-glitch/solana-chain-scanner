@@ -14,6 +14,7 @@ const http = axios.create({
 
 const CACHE_MS = 12_000;
 const CACHE_MS_SLOW = 30_000;
+const TRADES_LIVE_CACHE_MS = 2_000;
 const PAIR_RESOLVE_CACHE_MS = 10 * 60 * 1000;
 const TRADES_FEED_MAX = 50;
 const cache = new Map();
@@ -184,7 +185,7 @@ async function fetchPairTradesInner({
 } = {}) {
   const key = `${poolAddress || ''}:${mint || ''}:${limit}`;
   const hit = cache.get(key);
-  const maxAge = fresh ? 8_000 : (hit?.slow ? CACHE_MS_SLOW : CACHE_MS);
+  const maxAge = fresh ? TRADES_LIVE_CACHE_MS : (hit?.slow ? CACHE_MS_SLOW : CACHE_MS);
   if (hit?.trades?.length && Date.now() - hit.at < maxAge) return hit.trades;
 
   let pool = poolAddress;

@@ -172,7 +172,7 @@ async function getTokenTrades(mint, limit = 50, opts = {}) {
   if (fetchMs > 2000) {
     console.warn('[dex/trades] slow', fetchMs, 'ms', String(mint || '').slice(0, 8), String(pool || '').slice(0, 8));
   }
-  return { trades, pair: best, poolAddress: pool, pairs, fetchMs };
+  return { trades, pair: best, poolAddress: pool, pairs, fetchMs, pollMs: 2000 };
 }
 
 module.exports = {

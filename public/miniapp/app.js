@@ -84,7 +84,7 @@
   let resizeHandler = null;
   let chartResizeObs = null;
   let livePollTimer = null;
-  let chartDrawMode = null;
+  let chartDrawMode = 'select';
   let chartDrawings = [];
   let chartTrendPending = null;
   let chartClickUnsub = null;
@@ -105,6 +105,8 @@
   let tradesLastGood = [];
   let tradesDisplayRows = [];
   const TRADES_MAX_ROWS = 50;
+  const TRADES_POLL_MS = 2000;
+  const CHART_LIVE_POLL_MS = 5000;
   let openingMint = false;
   let feedItemsFull = [];
   let feedEmptyMessage = '';
@@ -2175,15 +2177,17 @@
 
   async function fetchTradesFromServer(m, live = false) {
     const mint = tokenMintRef(m) || m;
-    if (!mint) return [];
+    if (!mint) return { trades: [], pollMs: TRADES_POLL_MS };
     const pool = chartPoolRef(m);
     const q = new URLSearchParams({ limit: String(TRADES_MAX_ROWS) });
     if (live) q.set('live', '1');
     if (pool) q.set('pool', pool);
     const res = await fetch(apiPath(`/api/dex/token/${encodeURIComponent(mint)}/trades?${q}`));
-    if (!res.ok) return [];
+    if (!res.ok) return { trades: [], pollMs: TRADES_POLL_MS };
     const body = await res.json();
-    return body?.trades || [];
+    const pollMs = Number(body?.pollMs) || TRADES_POLL_MS;
+    if (appData?.market && pollMs >= 1000) appData.market.tradesPollMs = pollMs;
+    return { trades: body?.trades || [], pollMs };
   }
 
   function applyLivePairToMarket(m, pair, priceUsd) {
@@ -2242,7 +2246,8 @@
     tradesPollInFlight = true;
     try {
       await ensurePoolOnMarket(m);
-      const trades = await fetchTradesFromServer(m, true);
+      const { trades, pollMs } = await fetchTradesFromServer(m, true);
+      if (m && pollMs >= 1000) m.tradesPollMs = pollMs;
       if (trades.length) {
         tradesLastGood = trades;
         saveTradesSession(m, trades);
@@ -2258,7 +2263,8 @@
       });
       if (meta) {
         const n = tradesDisplayRows.length;
-        if (n) meta.textContent = `${n} işlem · canlı 5s`;
+        const sec = Math.max(1, Math.round((m?.tradesPollMs || TRADES_POLL_MS) / 1000));
+        if (n) meta.textContent = `${n} işlem · canlı ${sec}s`;
         else if (tradesLastGood.length) meta.textContent = `${tradesLastGood.length} işlem · canlı`;
         else meta.textContent = 'işlem bekleniyor';
       }
@@ -2273,13 +2279,18 @@
     }
   }
 
+  function tradesPollIntervalMs(m) {
+    const ms = m?.tradesPollMs || TRADES_POLL_MS;
+    return Math.max(1500, Math.min(ms, 8000));
+  }
+
   function startTradesPoll(m) {
     stopTradesPoll();
-    const ms = m?.tradesPollMs || 5000;
+    const ms = tradesPollIntervalMs(m);
     void refreshTrades(m, true);
     tradesPollTimer = setInterval(() => {
       if (reportId && appData?.market) void refreshTrades(appData.market);
-    }, ms);
+    }, tradesPollIntervalMs(appData?.market || m));
   }
 
   function stopLivePoll() {
@@ -2292,16 +2303,16 @@
 
   function startLivePoll(m) {
     stopLivePoll();
-    const tick = async () => {
-      if (!reportId || !appData?.market) return;
-      await refreshChartAndPrice(appData.market);
-      void refreshTrades(appData.market);
-    };
     void (async () => {
       await refreshChartAndPrice(m);
       void refreshTrades(m, true);
     })();
-    livePollTimer = setInterval(() => { void tick(); }, 5000);
+    tradesPollTimer = setInterval(() => {
+      if (reportId && appData?.market) void refreshTrades(appData.market);
+    }, tradesPollIntervalMs(m));
+    livePollTimer = setInterval(() => {
+      if (reportId && appData?.market) void refreshChartAndPrice(appData.market);
+    }, CHART_LIVE_POLL_MS);
   }
 
   function chartsLibReady() {
@@ -2492,16 +2503,21 @@
   }
 
   function setChartDrawMode(mode) {
-    chartDrawMode = mode;
+    chartDrawMode = mode === 'clear' || !mode ? 'select' : mode;
     chartTrendPending = null;
     document.querySelectorAll('.chart-draw-btn').forEach((b) => {
       const draw = b.dataset.draw;
-      b.classList.toggle('active', draw === mode && draw !== 'clear');
+      if (draw === 'clear') {
+        b.classList.remove('active');
+        return;
+      }
+      b.classList.toggle('active', draw === chartDrawMode);
     });
     const stage = document.querySelector('.chart-stage');
     if (stage) {
-      stage.classList.toggle('chart-draw-hline', mode === 'hline');
-      stage.classList.toggle('chart-draw-trend', mode === 'trend');
+      stage.classList.toggle('chart-draw-select', chartDrawMode === 'select');
+      stage.classList.toggle('chart-draw-hline', chartDrawMode === 'hline');
+      stage.classList.toggle('chart-draw-trend', chartDrawMode === 'trend');
     }
   }
 
@@ -2513,7 +2529,7 @@
   }
 
   function onChartDrawClick(param) {
-    if (!chartDrawMode || chartDrawMode === 'clear' || !param.time) return;
+    if (!chartDrawMode || chartDrawMode === 'select' || chartDrawMode === 'clear' || !param.time) return;
     const price = priceFromChartClick(param);
     if (price == null) return;
     const time = param.time;
@@ -2583,17 +2599,21 @@
       const draw = btn.dataset.draw;
       if (draw === 'clear') {
         clearChartDrawings();
-        setChartDrawMode(null);
+        setChartDrawMode('select');
         return;
       }
-      setChartDrawMode(chartDrawMode === draw ? null : draw);
+      if (draw === 'select') {
+        setChartDrawMode('select');
+        return;
+      }
+      setChartDrawMode(chartDrawMode === draw ? 'select' : draw);
     });
   }
 
   function destroyChart() {
     document.documentElement.classList.remove('chart-interacting');
     clearChartDrawings();
-    setChartDrawMode(null);
+    setChartDrawMode('select');
     if (chartClickUnsub) {
       chartClickUnsub();
       chartClickUnsub = null;
@@ -2872,6 +2892,7 @@
       }
 
       attachChartDrawClick();
+      setChartDrawMode('select');
 
     } catch (e) {
       console.warn('chart render', e);

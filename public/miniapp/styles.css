@@ -730,11 +730,11 @@ html.detail-mode body {
 }
 
 .chart-draw-toolbar {
-  flex: 0 0 76px;
+  flex: 0 0 44px;
   display: flex;
   flex-direction: column;
   gap: 6px;
-  padding: 8px 6px;
+  padding: 8px 5px;
   border-right: 1px solid rgba(255, 255, 255, 0.06);
   background: rgba(0, 0, 0, 0.28);
   z-index: 6;
@@ -745,11 +745,7 @@ html.detail-mode body {
   border-radius: 6px;
   background: rgba(13, 17, 23, 0.9);
   color: var(--muted);
-  font-size: 9px;
-  font-weight: 700;
-  line-height: 1.25;
-  padding: 8px 4px;
-  text-align: center;
+  padding: 0;
   cursor: pointer;
   font-family: inherit;
   transition: border-color 0.15s, color 0.15s, background 0.15s;
@@ -766,14 +762,35 @@ html.detail-mode body {
   background: rgba(240, 180, 41, 0.08);
 }
 
-.chart-draw-btn[data-draw="clear"] {
+.chart-draw-btn--icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+}
+
+.chart-draw-ico {
+  display: block;
+  flex-shrink: 0;
+  pointer-events: none;
+}
+
+.chart-draw-btn--clear {
   margin-top: auto;
   color: var(--red);
 }
 
-.chart-draw-btn[data-draw="clear"]:hover {
+.chart-draw-btn--clear:hover {
   border-color: rgba(239, 83, 80, 0.4);
   background: rgba(239, 83, 80, 0.08);
+}
+
+.chart-draw-btn--clear.active {
+  color: var(--red);
+  border-color: rgba(239, 83, 80, 0.35);
+  background: rgba(239, 83, 80, 0.06);
 }
 
 .chart-pane {
@@ -784,6 +801,10 @@ html.detail-mode body {
 }
 
 .chart-canvas { height: 100%; width: 100%; }
+
+.chart-stage.chart-draw-select .chart-pane {
+  cursor: default;
+}
 
 .chart-stage.chart-draw-hline .chart-pane,
 .chart-stage.chart-draw-trend .chart-pane {
