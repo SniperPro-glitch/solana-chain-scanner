@@ -1122,14 +1122,21 @@ bindTextCommand(/^\/start(@\w+)?(\s+(.+))?$/, async (msg, match) => {
   }
 
   const lang = langForMsg(msg);
+  const rows = [];
+  const webEntry = getWebAppEntryUrl();
+  if (/^https:\/\//i.test(webEntry)) {
+    rows.push([{
+      text: t('welcome.openDex', lang),
+      web_app: { url: webEntry },
+    }]);
+  }
+  rows.push([
+    { text: lang === 'tr' ? '⚙️ Ayarlar' : '⚙️ Settings', callback_data: 'startcmd:settings' },
+    { text: lang === 'tr' ? '🏓 Ping' : '🏓 Ping', callback_data: 'startcmd:ping' },
+  ]);
   await bot.sendMessage(msg.chat.id, t('welcome.start', lang), {
     parse_mode: 'Markdown',
-    reply_markup: {
-      inline_keyboard: [[
-        { text: lang === 'tr' ? '⚙️ Ayarlar' : '⚙️ Settings', callback_data: 'startcmd:settings' },
-        { text: lang === 'tr' ? '🏓 Ping' : '🏓 Ping', callback_data: 'startcmd:ping' },
-      ]],
-    },
+    reply_markup: { inline_keyboard: rows },
   });
 });
 

@@ -779,6 +779,11 @@ const STRINGS = {
     tr: '👋 *Solana Chain Scanner*\n\nSolana ağındaki yeni tokenleri otomatik olarak bulup denetler ve eklendiğim kanal/gruplara paylaşırım.\n\n*Hızlı başlangıç:*\n1. Bu botu kanalına admin olarak ekle\n2. Eklendiğimde gelen mesajdaki *“Ayarları aç”* butonuna bas\n3. Buradan ayarları düzenle\n\n*Komutlar:* /settings /ping /stats /post',
     ru: '👋 *Solana Chain Scanner*\n\nЯ автоматически нахожу и проверяю новые токены в сети Solana и делюсь ими в каналах/группах, куда меня добавили.\n\n*Быстрый старт:*\n1. Добавьте меня в канал как администратора\n2. Нажмите кнопку *«Открыть настройки»* в приветственном сообщении\n3. Настройте фильтры\n\n*Команды:* /settings /ping /stats /post',
   },
+  'welcome.openDex': {
+    en: '📊 Open DEX Scanner',
+    tr: '📊 DEX Scanner aç',
+    ru: '📊 Открыть DEX Scanner',
+  },
 
   // ─── Komutlar ───
   'cmd.adminOnly': { en: '⛔ Only admins can use this command.', tr: '⛔ Bu komutu sadece yönetici kullanabilir.', ru: '⛔ Только администраторы могут использовать эту команду.' },
