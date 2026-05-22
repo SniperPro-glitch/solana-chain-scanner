@@ -203,11 +203,10 @@
     }
   }
 
-  /** ├ûnce kod/sunucu varsay─▒lan─▒; senin kaydetti─şin profil varsa localStorage kazan─▒r. */
+  /** Önce baked; Bu profili kaydet ile yazılan localStorage her zaman üstün gelir. */
   function loadStore() {
     migrateLegacy();
     const store = defaultStore();
-    if (!isCalibrateMode()) return store;
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (!raw) return store;
@@ -409,7 +408,7 @@
       if (!isDetailOpen()) return;
       handleCropProfileChange();
       const pid = refreshCropProfile();
-      apply(isCalibrateMode() ? loadForProfile(pid) : profileFromBaked(pid));
+      apply(loadForProfile(pid));
       if (!layoutSessionDone(pid)) ensureMotorOnce();
     };
     window.addEventListener('resize', reapply);
@@ -439,7 +438,7 @@
   function apply(settings) {
     const profileId = activeProfileId();
     document.documentElement.dataset.dexCropProfile = profileId;
-    const s = settings || (isCalibrateMode() ? loadForProfile(profileId) : profileFromBaked(profileId));
+    const s = settings || loadForProfile(profileId);
     const root = document.documentElement;
     const c = s.chart;
     const t = s.trades;
@@ -673,7 +672,7 @@
 
     clearCalibrateSession();
     editingProfile = refreshCropProfile();
-    current = isCalibrateMode() ? loadForProfile(editingProfile) : profileFromBaked(editingProfile);
+    current = loadForProfile(editingProfile);
     apply(current);
     if (panel) panel.classList.add('hidden');
     document.documentElement.classList.remove('crop-panel-open');
@@ -681,7 +680,7 @@
     const finish = () => {
       if (!isDetailOpen()) return;
       const pid = refreshCropProfile();
-      apply(isCalibrateMode() ? load() : profileFromBaked(pid));
+      apply(loadForProfile(pid));
     };
     finish();
     [150, 500, 1200, 2500, 4000, 6000].forEach((ms) => setTimeout(finish, ms));
@@ -909,9 +908,9 @@
   function closePanel() {
     panelEl?.classList.add('hidden');
     document.documentElement.classList.remove('crop-panel-open');
-    if (!calibrateFromUrl()) clearCalibrateSession();
     const pid = refreshCropProfile();
-    apply(profileFromBaked(pid));
+    apply(loadForProfile(pid));
+    if (!calibrateFromUrl()) clearCalibrateSession();
     if (isDetailOpen()) runHiddenMotor();
   }
 
@@ -1139,7 +1138,7 @@
       if (!isDetailOpen()) return;
       handleCropProfileChange();
       const pid = refreshCropProfile();
-      apply(isCalibrateMode() ? loadForProfile(pid) : profileFromBaked(pid));
+      apply(loadForProfile(pid));
       if (!layoutSessionDone(pid)) ensureMotorOnce();
     });
     if (calibrateFromUrl()) {
