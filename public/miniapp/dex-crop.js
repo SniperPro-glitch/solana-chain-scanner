@@ -152,6 +152,11 @@
     return !!global.Telegram?.WebApp?.initData || document.documentElement.classList.contains('tg-mini-app');
   }
 
+  function isTelegramDesktop() {
+    const p = String(global.Telegram?.WebApp?.platform || '').toLowerCase();
+    return ['macos', 'tdesktop', 'weba', 'webk'].includes(p);
+  }
+
   function detectProfileByWidth(w) {
     const width = Math.round(Number(w) || 0);
     if (width >= 429) return 'app16';
@@ -164,7 +169,9 @@
     if (typeof global.SniperCropProfile?.layoutWidth === 'function') {
       return Math.round(global.SniperCropProfile.layoutWidth());
     }
-    return Math.round(window.innerWidth || 390);
+    const inner = Math.round(window.innerWidth || 0);
+    const tgVp = Math.round(global.Telegram?.WebApp?.viewportWidth || 0);
+    return Math.max(inner, tgVp) || 390;
   }
 
   function detectProfile() {
@@ -172,6 +179,7 @@
     if (forced) return forced;
     const w = cropLayoutWidth();
     if (!isTelegram() && w > 500) return 'web';
+    if (isTelegram() && isTelegramDesktop() && w > 500) return 'web';
     return detectProfileByWidth(w);
   }
 

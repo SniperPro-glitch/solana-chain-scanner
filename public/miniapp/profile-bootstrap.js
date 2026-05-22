@@ -1,5 +1,5 @@
 /**
- * Kayıtlı profil — Telegram'da viewportWidth (kalibrasyon ile aynı ölçü).
+ * Kayıtlı profil — genişlik: max(innerWidth, TG viewportWidth).
  */
 (function () {
   const IDS = ['web', 'app11', 'app13', 'app13pm', 'app16'];
@@ -23,9 +23,15 @@
     return ['android', 'ios', 'macos', 'tdesktop', 'weba', 'webk'].includes(p);
   }
 
-  /** Profil tespiti — window.innerWidth (dexCropW dataset değil). */
   function layoutWidth() {
-    return Math.round(window.innerWidth || 390);
+    const inner = Math.round(window.innerWidth || 0);
+    const tgVp = Math.round(window.Telegram?.WebApp?.viewportWidth || 0);
+    return Math.max(inner, tgVp) || 390;
+  }
+
+  function isTelegramDesktop() {
+    const p = String(window.Telegram?.WebApp?.platform || '').toLowerCase();
+    return ['macos', 'tdesktop', 'weba', 'webk'].includes(p);
   }
 
   function detectByWidth(w) {
@@ -40,6 +46,7 @@
     if (forced) return forced;
     const w = layoutWidth();
     if (!isTelegramApp() && w > 500) return 'web';
+    if (isTelegramApp() && isTelegramDesktop() && w > 500) return 'web';
     return detectByWidth(w);
   }
 
