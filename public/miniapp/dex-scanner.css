@@ -40,6 +40,17 @@ html.tg-mini-app body::before {
   background: #060910;
 }
 
+html.tg-mini-app[data-safe-tier="island"] .scanner-home,
+html.tg-mini-app[data-safe-tier="notch"] .scanner-home,
+html.tg-mini-app[data-safe-tier="light"] .scanner-home {
+  padding-top: var(--sniper-content-top, 0px);
+}
+
+html.tg-mini-app[data-safe-tier="island"] .view-detail,
+html.tg-mini-app[data-safe-tier="notch"] .view-detail {
+  padding-top: var(--sniper-content-top, 0px);
+}
+
 .scanner-home {
   --bg: #060910;
   --card: #0b101d;
@@ -561,20 +572,15 @@ html.web-browser .promo-banner-img {
   gap: 10px;
   min-height: 52px;
   padding:
-    calc(10px + var(--sniper-content-top, var(--tg-content-safe-top, 0px)))
+    10px
     calc(12px + var(--tg-content-safe-right, 0px))
     10px
     calc(12px + var(--tg-content-safe-left, 0px));
   box-sizing: border-box;
 }
 
-html[data-safe-tier="none"] .scan-header {
-  padding-top: 10px;
-}
-
-html[data-safe-tier="island"] .scan-header,
-html[data-safe-tier="notch"] .scan-header {
-  padding-top: calc(8px + var(--sniper-content-top, var(--tg-content-safe-top, 0px)));
+html.web-browser .scan-header {
+  padding-top: calc(10px + var(--sniper-content-top, env(safe-area-inset-top, 0px)));
 }
 
 .scan-brand {

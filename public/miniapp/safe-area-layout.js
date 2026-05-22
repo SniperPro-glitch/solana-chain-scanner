@@ -1,6 +1,5 @@
 /**
- * Üst çentik / Dynamic Island — arka plan yukarı, içerik aşağı (cihaza göre otomatik).
- * iPhone 11: API 0 ise ekstra boşluk yok. 16 Pro Max: safeArea + contentSafe kullanılır.
+ * Üst çentik: arka plan yukarı (bg bleed), içerik aşağı (content-top) — cihaza göre.
  */
 (function () {
   function measureEnvInset(prop) {
@@ -26,29 +25,44 @@
     return String(document.documentElement.dataset.dexCropProfile || '').trim();
   }
 
-  function safeTier(bgTop, contentTop) {
+  function layoutWidth() {
+    const tg = window.Telegram?.WebApp;
+    return Math.round(Math.max(window.innerWidth || 0, tg?.viewportWidth || 0)) || 390;
+  }
+
+  function safeTier(bgTop, contentTop, w) {
     const m = Math.max(bgTop, contentTop);
-    if (m >= 52) return 'island';
-    if (m >= 36) return 'notch';
+    const p = cropProfile();
+    if (m >= 52 || (w >= 428 && (p === 'app16' || p === 'app13pm'))) return 'island';
+    if (m >= 36 || w >= 414) return 'notch';
     if (m >= 12) return 'light';
     return 'none';
   }
 
-  /** API boşken yalnızca büyük çentik / island cihazlarda hafif fallback */
-  function profileFallbackContent(bgTop, apiContent) {
-    if (apiContent >= 12) return apiContent;
-    const p = cropProfile();
-    if (bgTop >= 54 || p === 'app16') return Math.max(apiContent, bgTop >= 47 ? 52 : 0);
-    if (bgTop >= 44 || p === 'app13pm') return Math.max(apiContent, bgTop >= 40 ? 44 : 0);
-    if (p === 'app11' || p === 'app13') return 0;
-    if (bgTop >= 36) return Math.max(apiContent, 20);
-    return apiContent;
+  function resolveContentTop(tg, sTop, cTop, bgBleedTop, w) {
+    const p = String(tg?.platform || '').toLowerCase();
+    const ios = p === 'ios' || p === 'android';
+    const expanded = !tg?.isFullscreen;
+
+    if (cTop >= 12) return cTop;
+
+    if (ios && expanded) {
+      if (sTop >= 47 || w >= 428) return Math.max(cTop, sTop, cTop, 56);
+      if (sTop >= 20 || w >= 414) return Math.max(cTop, 44);
+      if (cropProfile() === 'app11' || (w < 400 && sTop < 12)) return Math.max(cTop, 0);
+      return Math.max(cTop, 40);
+    }
+
+    if (sTop >= 47) return Math.max(cTop, sTop);
+    if (bgBleedTop >= 36) return Math.max(cTop, 20);
+    return cTop;
   }
 
   function apply() {
     const root = document.documentElement;
     const tg = window.Telegram?.WebApp;
     const inTg = isTelegramHost() && tg;
+    const w = layoutWidth();
 
     let sTop = 0;
     let sBottom = 0;
@@ -71,24 +85,22 @@
     const envTop = measureEnvInset('env(safe-area-inset-top)');
     const envBottom = measureEnvInset('env(safe-area-inset-bottom)');
 
-    const bgBleedTop = Math.max(sTop, envTop);
-    const bgBleedBottom = Math.max(sBottom, envBottom);
+    let bgBleedTop = Math.max(sTop, envTop);
+    let contentTop = inTg ? resolveContentTop(tg, sTop, cTop, bgBleedTop, w) : envTop;
 
-    let contentTop = cTop;
-    if (inTg) {
-      contentTop = profileFallbackContent(bgBleedTop, cTop);
-    } else {
-      contentTop = envTop;
+    if (bgBleedTop < contentTop && contentTop >= 40) {
+      bgBleedTop = Math.max(bgBleedTop, contentTop - 8, sTop);
     }
+    if (inTg && sTop >= 47) bgBleedTop = Math.max(bgBleedTop, sTop);
 
-    const tier = safeTier(bgBleedTop, contentTop);
+    const tier = safeTier(bgBleedTop, contentTop, w);
 
     root.style.setProperty('--sniper-bg-bleed-top', `${bgBleedTop}px`);
-    root.style.setProperty('--sniper-bg-bleed-bottom', `${bgBleedBottom}px`);
+    root.style.setProperty('--sniper-bg-bleed-bottom', `${Math.max(sBottom, envBottom)}px`);
     root.style.setProperty('--sniper-content-top', `${contentTop}px`);
     root.style.setProperty('--sniper-content-bottom', `${cBottom}px`);
     root.style.setProperty('--tg-safe-top', `${bgBleedTop}px`);
-    root.style.setProperty('--tg-safe-bottom', `${bgBleedBottom}px`);
+    root.style.setProperty('--tg-safe-bottom', `${Math.max(sBottom, envBottom)}px`);
     root.style.setProperty('--tg-content-safe-top', `${contentTop}px`);
     root.style.setProperty('--tg-content-safe-bottom', `${cBottom}px`);
     root.style.setProperty('--tg-content-safe-left', `${cLeft}px`);
@@ -98,12 +110,30 @@
     root.dataset.safeContentTop = String(contentTop);
   }
 
-  window.SniperSafeArea = { apply, measureEnvInset };
+  function scheduleRetries() {
+    let n = 0;
+    const tick = () => {
+      n += 1;
+      apply();
+      if (n < 12) setTimeout(tick, n < 4 ? 80 : 200);
+    };
+    tick();
+  }
+
+  window.SniperSafeArea = { apply, measureEnvInset, scheduleRetries };
 
   apply();
-  window.addEventListener('sniper-host-changed', () => apply());
+  scheduleRetries();
+  window.addEventListener('sniper-host-changed', scheduleRetries);
   window.addEventListener('resize', () => {
     clearTimeout(window.__sniperSafeAreaResize);
     window.__sniperSafeAreaResize = setTimeout(apply, 80);
   });
+
+  const tg = window.Telegram?.WebApp;
+  if (tg && typeof tg.onEvent === 'function') {
+    ['viewportChanged', 'safeAreaChanged', 'contentSafeAreaChanged', 'fullscreenChanged'].forEach((ev) => {
+      tg.onEvent(ev, apply);
+    });
+  }
 })();

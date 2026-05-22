@@ -9,7 +9,9 @@
   const root = document.documentElement;
 
   function applySafeArea() {
-    if (typeof window.SniperSafeArea?.apply === 'function') {
+    if (typeof window.SniperSafeArea?.scheduleRetries === 'function') {
+      window.SniperSafeArea.scheduleRetries();
+    } else if (typeof window.SniperSafeArea?.apply === 'function') {
       window.SniperSafeArea.apply();
     }
 
