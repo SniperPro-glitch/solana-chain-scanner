@@ -2,10 +2,14 @@
 
 :root {
   --app-height: 100dvh;
-  --tg-safe-top: env(safe-area-inset-top, 0px);
-  --tg-safe-bottom: env(safe-area-inset-bottom, 0px);
-  --tg-content-safe-top: 0px;
-  --tg-content-safe-bottom: 0px;
+  --sniper-bg-bleed-top: env(safe-area-inset-top, 0px);
+  --sniper-bg-bleed-bottom: env(safe-area-inset-bottom, 0px);
+  --sniper-content-top: 0px;
+  --sniper-content-bottom: 0px;
+  --tg-safe-top: var(--sniper-bg-bleed-top, 0px);
+  --tg-safe-bottom: var(--sniper-bg-bleed-bottom, 0px);
+  --tg-content-safe-top: var(--sniper-content-top, 0px);
+  --tg-content-safe-bottom: var(--sniper-content-bottom, 0px);
   --tg-content-safe-left: 0px;
   --tg-content-safe-right: 0px;
   --nav-h: 72px;
@@ -20,6 +24,75 @@ html.tg-mini-app body {
   overflow: hidden;
   overscroll-behavior: none;
   background: #060910;
+}
+
+/* Mobilde aşağı çekerek küçültmeyi zorlaştır (X/ok Telegram tam ekranda kalkar) */
+html.tg-sticky-mobile,
+html.tg-sticky-mobile body {
+  overscroll-behavior: none;
+  touch-action: manipulation;
+}
+
+html.tg-sticky-mobile .scanner-home,
+html.tg-sticky-mobile .view-detail {
+  overscroll-behavior-y: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Arka plan — status bar (5G/batarya) altına uzanır; içerik ayrı padding alır */
+html.tg-mini-app::before,
+html.tg-mini-app body::before {
+  content: '';
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: calc(-1 * var(--sniper-bg-bleed-top, 0px));
+  height: calc(100% + var(--sniper-bg-bleed-top, 0px) + var(--sniper-bg-bleed-bottom, 0px));
+  pointer-events: none;
+  z-index: -2;
+  background: #060910;
+}
+
+/* Telegram: viewport tam yükseklik; üst boşluk yalnızca header satırında (çift offset yok) */
+html.tg-mini-app.tg-maxed .scanner-home,
+html.tg-mini-app.tg-maxed .boot-screen,
+html.tg-mini-app.tg-expanded .scanner-home,
+html.tg-mini-app.tg-expanded .boot-screen,
+html.tg-mini-app.tg-fullscreen .scanner-home,
+html.tg-mini-app.tg-fullscreen .boot-screen {
+  margin-top: 0;
+  padding-top: 0;
+  min-height: var(--app-height, 100dvh);
+  height: var(--app-height, 100dvh);
+  max-height: var(--app-height, 100dvh);
+  box-sizing: border-box;
+}
+
+html.tg-mini-app.tg-maxed .view-detail,
+html.tg-mini-app.tg-expanded .view-detail,
+html.tg-mini-app.tg-fullscreen .view-detail {
+  top: 0;
+  margin-top: 0;
+  padding-top: 0;
+  height: var(--app-height, 100dvh);
+  max-height: var(--app-height, 100dvh);
+  box-sizing: border-box;
+}
+
+/* Expanded — X Kapat barı altında; ekstra safe-area padding yok */
+html.tg-mini-app.tg-expanded .scan-header,
+html.tg-expanded .scan-header {
+  padding-left: 12px;
+  padding-right: 12px;
+  padding-top: 10px;
+}
+
+/* Tam ekran — Dynamic Island / notch */
+html.tg-mini-app.tg-fullscreen .scan-header,
+html.tg-fullscreen .scan-header {
+  padding-top: calc(10px + var(--tg-safe-top, env(safe-area-inset-top, 0px)));
+  padding-left: 16px;
+  padding-right: 16px;
 }
 
 .scanner-home {
@@ -46,18 +119,35 @@ html.tg-mini-app body {
   color: var(--text);
   font-family: 'Inter', system-ui, sans-serif;
   padding-top: 0;
-  padding-bottom: var(--footer-stack);
+  padding-bottom: 0;
   box-sizing: border-box;
   position: relative;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.scan-header {
+  flex: 0 0 auto;
+}
+
+.home-feed-panel {
+  flex: 1 1 auto;
+  min-height: 0;
   overflow-x: hidden;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
+  padding-bottom: var(--footer-stack);
+  box-sizing: border-box;
 }
 
 .scanner-home::before {
   content: '';
   position: fixed;
-  inset: 0;
+  left: 0;
+  right: 0;
+  top: calc(-1 * var(--sniper-bg-bleed-top, 0px));
+  height: calc(100% + var(--sniper-bg-bleed-top, 0px));
   width: 100%;
   max-width: 100%;
   margin: 0;
@@ -66,8 +156,9 @@ html.tg-mini-app body {
   background:
     linear-gradient(rgba(0, 229, 255, 0.022) 1px, transparent 1px),
     linear-gradient(90deg, rgba(0, 229, 255, 0.022) 1px, transparent 1px),
-    radial-gradient(ellipse 70% 40% at 50% 0%, rgba(0, 229, 255, 0.055), transparent 55%);
-  background-size: 20px 20px, 20px 20px, 100% 100%;
+    radial-gradient(ellipse 70% 40% at 50% 0%, rgba(0, 229, 255, 0.055), transparent 55%),
+    #060910;
+  background-size: 20px 20px, 20px 20px, 100% 100%, 100% 100%;
 }
 
 .scanner-home > *:not(.bottom-nav):not(.market-footer) {
@@ -515,6 +606,15 @@ html.web-browser .promo-banner-img {
   color: var(--muted);
 }
 
+/* Üst meta satırı kapalı (TG yan sekme / telefon); geliştirici: ?showmeta=1 */
+.feed-meta-bar {
+  display: none !important;
+}
+
+html[data-show-feed-meta="1"] .feed-meta-bar {
+  display: flex !important;
+}
+
 .feed-meta-dot {
   width: 8px;
   height: 8px;
@@ -539,11 +639,15 @@ html.web-browser .promo-banner-img {
   gap: 10px;
   min-height: 52px;
   padding:
-    calc(10px + var(--tg-content-safe-top, 0px))
+    10px
     calc(12px + var(--tg-content-safe-right, 0px))
     10px
     calc(12px + var(--tg-content-safe-left, 0px));
   box-sizing: border-box;
+}
+
+html.web-browser .scan-header {
+  padding-top: calc(10px + var(--sniper-content-top, env(safe-area-inset-top, 0px)));
 }
 
 .scan-brand {
@@ -601,16 +705,8 @@ html.web-browser .promo-banner-img {
   flex-shrink: 0;
 }
 
-html.tg-fullscreen .btn-connect {
-  max-width: 110px;
-  padding: 8px 10px;
-  font-size: 11px;
-}
-
-/* Expanded mod: Telegram bar'ın altından başla — contentSafeAreaInset.top = bar yüksekliği */
-html.tg-expanded .scan-header {
-  padding-left: 12px;
-  /* padding-top base'deki calc(10px + --tg-content-safe-top) zaten doğru değeri kullanıyor */
+html.tg-expanded .scan-header .btn-sidebar-open {
+  margin-left: 0;
 }
 
 .btn-connect {
@@ -1095,7 +1191,7 @@ html.scanner-mode .search-box {
 .tr-dex-badge.dex-meteora { color: var(--yellow); border-color: rgba(245, 166, 35, 0.35); }
 .tr-dex-badge.dex-orca { color: var(--cyan); border-color: rgba(0, 229, 255, 0.35); }
 
-/* Token table */
+/* Token table — doğal yükseklik (flex-grow ortadaki boşluğu yapıyordu) */
 .token-table-scroll {
   overflow-x: hidden;
   margin: 0 0 8px;
@@ -1647,7 +1743,7 @@ html.scanner-mode .search-box {
 
 .feed-loading {
   text-align: center;
-  padding: 20px;
+  padding: 16px 20px;
   font-size: 12px;
   color: var(--muted);
 }
@@ -1656,6 +1752,7 @@ html.scanner-mode .search-box {
 
 /* Market overview */
 .market-overview-label {
+  flex: 0 0 auto;
   padding: 8px 16px 6px;
   font-size: 9px;
   font-weight: 700;
