@@ -318,9 +318,22 @@
     </article>`;
   }
 
+  function reportIdFromStartParam(raw) {
+    const s = String(raw || '').trim();
+    if (!s || s === 'dex') return null;
+    if (s.startsWith('r_')) return s.slice(2);
+    return s;
+  }
+
   function reportIdFromUrl() {
-    const fromSearch = new URLSearchParams(location.search).get('r');
+    const qs = new URLSearchParams(location.search);
+    const fromSearch = qs.get('r');
     if (fromSearch) return fromSearch;
+    const fromTgParam = reportIdFromStartParam(qs.get('tgWebAppStartParam'));
+    if (fromTgParam) return fromTgParam;
+    const unsafe = window.Telegram?.WebApp?.initDataUnsafe || {};
+    const fromInit = reportIdFromStartParam(unsafe.start_param);
+    if (fromInit) return fromInit;
     const hash = (location.hash || '').replace(/^#/, '');
     if (!hash || hash.includes('tgWebApp')) return null;
     const params = new URLSearchParams(hash.includes('=') ? hash : `r=${hash}`);
@@ -402,8 +415,7 @@
   }
 
   function syncDetailBackUi() {
-    const tgMode = !isWebBrowser();
-    $('btnHeroBack')?.classList.toggle('hidden', !tgMode);
+    $('btnHeroBack')?.classList.add('hidden');
   }
 
   function tgNavBack() {

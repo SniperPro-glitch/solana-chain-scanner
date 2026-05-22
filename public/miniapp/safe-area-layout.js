@@ -43,6 +43,7 @@
     const p = String(tg?.platform || '').toLowerCase();
     const ios = p === 'ios' || p === 'android';
     const fullscreen = !!tg?.isFullscreen;
+    const tgHeader = 46;
 
     if (fullscreen) {
       if (cTop >= 8) return Math.max(cTop, sTop);
@@ -53,16 +54,19 @@
 
     if (cTop >= 12) return cTop;
 
+    /* Genişletilmiş mod: Telegram X/ok/menü barı + status bar */
     if (ios) {
-      if (sTop >= 47 || w >= 428) return Math.max(cTop, sTop, 56);
-      if (sTop >= 20 || w >= 414) return Math.max(cTop, 44);
-      if (cropProfile() === 'app11' || (w < 400 && sTop < 12)) return Math.max(cTop, 0);
-      return Math.max(cTop, 40);
+      if (sTop >= 47 || w >= 428) return Math.max(cTop, sTop + tgHeader, 96);
+      if (sTop >= 20 || w >= 414) return Math.max(cTop, sTop + tgHeader, 88);
+      if (cropProfile() === 'app11' || (w < 400 && sTop < 12)) {
+        return Math.max(cTop, sTop + tgHeader, 72);
+      }
+      return Math.max(cTop, sTop + tgHeader, 80);
     }
 
-    if (sTop >= 47) return Math.max(cTop, sTop);
-    if (bgBleedTop >= 36) return Math.max(cTop, 20);
-    return cTop;
+    if (sTop >= 47) return Math.max(cTop, sTop + tgHeader);
+    if (bgBleedTop >= 36) return Math.max(cTop, sTop + tgHeader, 64);
+    return Math.max(cTop, sTop + tgHeader, 56);
   }
 
   function apply() {

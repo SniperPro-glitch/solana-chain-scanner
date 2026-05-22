@@ -512,13 +512,13 @@ html.detail-mode body {
   z-index: -1;
 }
 
-/* Telegram: üst siyah bar + çift Geri yok — tam ekran + hero içi geri */
-html.tg-mini-app .view-detail .detail-top {
+/* Telegram: detail-top ‹ Geri (referans); hero içi fab kullanılmaz */
+html.tg-mini-app .hero-back-fab {
   display: none !important;
 }
 
-html.tg-mini-app .hero-back-fab {
-  display: inline-flex;
+html.tg-mini-app .view-detail .detail-top {
+  display: flex;
 }
 
 .hero-back-fab {
@@ -1462,6 +1462,7 @@ html.tg-expanded .detail-top {
   padding-top: 10px;
   padding-left: calc(12px + var(--tg-content-safe-left, 0px));
   padding-right: calc(12px + var(--tg-content-safe-right, 0px));
+  top: 0;
 }
 
 html.web-browser .detail-top {

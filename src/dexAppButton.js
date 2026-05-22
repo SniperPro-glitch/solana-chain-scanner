@@ -1,7 +1,7 @@
 const { t } = require('./i18n');
 const { getWebAppEntryUrl } = require('./miniAppServer');
 
-/** Telegram inline / menü — Mini App (web_app, tarayıcı değil). */
+/** Telegram inline / menü — HTTPS Mini App (expand modu, üst X/ok/menü referans gibi). */
 function buildSniperDexWebAppButton(lang) {
   const webEntry = getWebAppEntryUrl();
   if (!/^https:\/\//i.test(webEntry)) return null;
