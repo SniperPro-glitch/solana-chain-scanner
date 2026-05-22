@@ -709,7 +709,7 @@
       apply(loadForProfile(pid));
     };
     finish();
-    [150, 500, 1200, 2500, 4000, 6000].forEach((ms) => setTimeout(finish, ms));
+    // Geçici kapalı — kalibrasyon sonrası geri aç: [150, 500, 1200, 2500, 4000, 6000].forEach((ms) => setTimeout(finish, ms));
     if (motorBurstDoneTimer) clearTimeout(motorBurstDoneTimer);
     motorBurstDoneTimer = setTimeout(() => markLayoutSessionDone(editingProfile), 6200);
     return true;
