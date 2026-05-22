@@ -353,32 +353,11 @@
     return `<svg class="tr-spark" viewBox="0 0 40 22" preserveAspectRatio="none"><polyline fill="none" stroke="${col}" stroke-width="1.5" points="${pts}"/></svg>`;
   }
 
-  function stopDexScreenMotor() {
-    globalThis.SniperDexCrop?.stopCropEngine?.();
-  }
-
-  /** DEX detay — Kırpma butonu ile aynı apply, arka planda otomatik. */
-  function startDexScreenMotor() {
-    const C = globalThis.SniperDexCrop;
-    if (C?.scheduleDetailCrop) void C.scheduleDetailCrop();
-    else if (C?.ensureBackgroundCrop) C.ensureBackgroundCrop();
-    else if (C?.pressCropButtonBot) C.pressCropButtonBot();
-    else scheduleDexTradesCrop();
-  }
-
-  function burstDexEmbedCrop() {
-    const C = globalThis.SniperDexCrop;
-    if (C?.burstMotorApply) C.burstMotorApply();
-    else if (C?.pressCropButtonBot) C.pressCropButtonBot();
-    else scheduleDexTradesCrop();
-  }
-
   function hideAllViews() {
     $('loading')?.classList.add('hidden');
     $('error')?.classList.add('hidden');
     $('scanner-home')?.classList.add('hidden');
     $('view-detail')?.classList.add('hidden');
-    stopDexScreenMotor();
   }
 
   function refreshTgViewport() {
@@ -478,7 +457,6 @@
     ensureDetailSpacer();
     refreshTgViewport();
     if (globalThis.SniperCropProfile?.apply) globalThis.SniperCropProfile.apply();
-    startDexScreenMotor();
     scheduleDexTradesCrop();
   }
 
@@ -1962,21 +1940,26 @@
     }
   }
 
-  function scheduleDexTradesCrop() {
-    const C = globalThis.SniperDexCrop;
-    if (!C) return;
-    if (document.documentElement.classList.contains('detail-mode')) {
-      if (C.scheduleDetailCrop) void C.scheduleDetailCrop();
-      else if (C.ensureBackgroundCrop) C.ensureBackgroundCrop();
-      else if (C.pressCropButtonBot) C.pressCropButtonBot();
+  function applyDexCrop() {
+    if (!globalThis.SniperDexCrop) return;
+    const run = () => SniperDexCrop.apply();
+    if (SniperCropProfile?.apply) SniperCropProfile.apply();
+    if (SniperDexCrop.ensureProfilesReady) {
+      void SniperDexCrop.ensureProfilesReady().then(run);
       return;
     }
-    if (C.burstMotorApply) C.burstMotorApply();
-    else if (C.pressCropButtonBot) C.pressCropButtonBot();
-    else C.apply?.();
+    run();
   }
-  globalThis.__sniperScheduleDexCrop = scheduleDexTradesCrop;
-  globalThis.__sniperRunCrop = () => globalThis.SniperDexCrop?.pressCropButtonBot?.();
+
+  function scheduleDexTradesCrop() {
+    const C = globalThis.SniperDexCrop;
+    if (C?.scheduleMotorCrop) {
+      C.scheduleMotorCrop();
+      return;
+    }
+    applyDexCrop();
+    [150, 500, 1200, 2500].forEach((ms) => setTimeout(applyDexCrop, ms));
+  }
 
   function chartPoolRef(m) {
     const market = m || appData?.market || {};
@@ -2037,9 +2020,11 @@
       fallback.classList.remove('hidden');
     }
     iframe.classList.remove('hidden');
-    burstDexEmbedCrop();
+    applyDexCrop();
+    scheduleDexTradesCrop();
     iframe.onload = () => {
-      burstDexEmbedCrop();
+      applyDexCrop();
+      scheduleDexTradesCrop();
       if (fallback) fallback.classList.add('hidden');
       if (meta) meta.textContent = 'canlı';
       if (globalThis.SniperDexCrop?.isCalibrateMode?.()) {
@@ -2085,19 +2070,17 @@
       setChartEmbedMode(true);
       container.innerHTML = `<iframe class="dex-embed-chart" src="${escHtml(embed)}" title="DexScreener canlı grafik" loading="eager" allow="fullscreen" referrerpolicy="no-referrer-when-downgrade"></iframe>`;
       const chartIfr = container.querySelector('iframe.dex-embed-chart');
-      const kickChartCrop = () => {
-        globalThis.__sniperRunCrop?.();
-        burstDexEmbedCrop();
-      };
       if (chartIfr) {
-        chartIfr.addEventListener('load', kickChartCrop);
+        chartIfr.addEventListener('load', () => {
+          applyDexCrop();
+          scheduleDexTradesCrop();
+        });
       }
-      kickChartCrop();
-      requestAnimationFrame(kickChartCrop);
       if (note) {
         note.textContent = `${(tf || '15m').toUpperCase()} · DexScreener`;
         note.classList.remove('hidden');
       }
+      applyDexCrop();
       scheduleDexTradesCrop();
       return true;
     }
@@ -2525,8 +2508,6 @@
       renderChart(m).catch((e) => console.warn('renderChart', e));
     }
     startTradesPoll(m);
-    startDexScreenMotor();
-    scheduleDexTradesCrop();
     renderInfoPanel(data);
     renderSecurityPanel(data);
     renderTradePanel(data);

@@ -78,7 +78,6 @@
   }
 
   function activeProfileId() {
-    if (document.documentElement.classList.contains('web-browser')) return 'web';
     if (global.SniperCropProfile?.apply) return global.SniperCropProfile.apply();
     const ds = document.documentElement.dataset.dexCropProfile;
     if (PROFILE_META[ds]) return ds;
@@ -330,27 +329,16 @@
   }
 
   function resetProfile(profileId) {
-    const block = profileFromBaked(profileId);
-    if (isCalibrateMode()) {
-      const store = loadStore();
-      store.profiles[profileId] = clone(block);
-      saveStore(store);
-    }
-    if (profileId === activeProfileId()) apply(block);
-    return clone(block);
+    const store = loadStore();
+    store.profiles[profileId] = defaultBlock();
+    saveStore(store);
+    return clone(store.profiles[profileId]);
   }
 
   function reset() {
     LEGACY_KEYS.forEach((k) => localStorage.removeItem(k));
     localStorage.removeItem(STORAGE_KEY);
-    const profiles = {};
-    PROFILE_ORDER.forEach((id) => {
-      profiles[id] = profileFromBaked(id);
-    });
-    if (isCalibrateMode()) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ profiles }));
-    }
-    const d = clone(normalizeBlock(profiles[activeProfileId()] || profiles.web));
+    const d = load();
     apply(d);
     return d;
   }
@@ -404,215 +392,23 @@
     }
     const wrap = document.getElementById('dexTradesWrap');
     const iframe = document.getElementById('dexTradesEmbed');
-    const chartIfr = document.querySelector('iframe.dex-embed-chart');
     const w = wrap ? getComputedStyle(wrap).height : '—';
     const top = iframe ? getComputedStyle(iframe).top : '—';
     const h = iframe ? getComputedStyle(iframe).height : '—';
-    const chartTop = chartIfr ? getComputedStyle(chartIfr).top : '—';
-    const motor = document.documentElement.dataset.dexCropMotor === 'on' ? 'ON' : 'off';
     el.textContent = [
       `profil=${profileId} w=${document.documentElement.dataset.dexCropW || '?'}`,
-      `motor=${motor} beklenen viewH=${t.viewH} top=${t.iframeTop + (t.shiftDown || 0)}`,
-      `trades wrap=${w} top=${top} h=${h}`,
-      `chart top=${chartTop} bot=openPanelSilent`,
+      `beklenen viewH=${t.viewH} top=${t.iframeTop + (t.shiftDown || 0)} h=${t.iframeH}`,
+      `gerçek wrap=${w} iframe top=${top} h=${h}`,
+      `rev=dex-crop-v36 layout=2026-05`,
     ].join('\n');
-  }
-
-  /** Panel DOM yokken veya kapalıyken motor çalışır; açık panel slider yönetir. */
-  function isCropPanelInteractive() {
-    const p = document.getElementById('dexCropPanel');
-    return !!(p && !p.classList.contains('hidden'));
-  }
-
-  let bgCropTimer = null;
-  let bgCropBurstTimers = [];
-  let cropEngineOn = false;
-
-  function isDetailViewVisible() {
-    const vd = document.getElementById('view-detail');
-    return (
-      document.documentElement.classList.contains('detail-mode')
-      || (vd && !vd.classList.contains('hidden'))
-    );
-  }
-
-  function clearMotorStyleTag() {
-    document.getElementById('dexCropMotorStyle')?.remove();
-  }
-
-  function injectCropMotorCss(block, profileId) {
-    const c = block.chart;
-    const t = block.trades;
-    const brandCrop = Number(c.brandCrop) || CHART_BRAND_CROP;
-    const chartDown = Number(c.shiftDown) || 0;
-    const tradesDown = Number(t.shiftDown) || 0;
-    const chartTop = c.top - brandCrop + chartDown;
-    const chartH = c.stageH + c.heightExtra + brandCrop;
-    const tradeTop = t.iframeTop + tradesDown;
-    const sel = `html[data-dex-crop-profile="${profileId}"]`;
-    let styleEl = document.getElementById('dexCropMotorStyle');
-    if (!styleEl) {
-      styleEl = document.createElement('style');
-      styleEl.id = 'dexCropMotorStyle';
-      document.head.appendChild(styleEl);
-    }
-    /* embed sınıfı geç gelir — #view-detail ile de kilitle */
-    styleEl.textContent = `
-${sel} #view-detail .chart-terminal .chart-stage,
-${sel} .chart-terminal--dex-embed .chart-stage{
-  height:${c.stageH}px!important;min-height:${c.stageH}px!important;max-height:${c.stageH}px!important;
-}
-${sel} #view-detail #dexTradesWrap,
-${sel} #dexTradesWrap{
-  height:${t.viewH}px!important;min-height:${t.viewH}px!important;max-height:${t.viewH}px!important;overflow:hidden!important;
-}
-${sel} #view-detail #dexTradesEmbed,
-${sel} #dexTradesEmbed{
-  position:absolute!important;top:${tradeTop}px!important;left:${t.left}%!important;width:${t.width}%!important;height:${t.iframeH}px!important;
-  max-width:none!important;margin:0!important;border:0!important;display:block!important;transform:none!important;
-}
-${sel} #view-detail iframe.dex-embed-chart,
-${sel} iframe.dex-embed-chart{
-  position:absolute!important;top:${chartTop}px!important;left:${c.left}%!important;width:${c.width}%!important;height:${chartH}px!important;
-  max-width:none!important;margin:0!important;border:0!important;display:block!important;
-}`;
-  }
-
-  /** Kırpma butonu / arka plan motoru — tek yol (inline + CSS motor etiketi). */
-  function applyCropMotor(profileId, settings) {
-    const pid = profileId || activeProfileId();
-    if (global.SniperCropProfile?.apply) global.SniperCropProfile.apply();
-    const block = settings || loadForProfile(pid);
-    editingProfile = pid;
-    current = clone(block);
-    document.documentElement.dataset.dexCropProfile = pid;
-    document.documentElement.dataset.dexCropMotor = 'on';
-    document.documentElement.classList.add('crop-motor-on');
-    apply(block);
-    if (isDetailViewVisible()) injectCropMotorCss(block, pid);
-    return true;
-  }
-
-  /** Kırpma butonuna basınca olan apply — panel görünmez, panel DOM şart değil. */
-  function openPanelSilent(opts = {}) {
-    if (isCropPanelInteractive()) return false;
-    if (opts.stopMotor) stopCropEngine();
-    const pid = profileFromUrl() || activeProfileId();
-    applyCropMotor(pid, loadForProfile(pid));
-    panelEl?.classList.add('hidden');
-    document.documentElement.classList.remove('crop-panel-open');
-    requestAnimationFrame(() => applyCropMotor(pid, loadForProfile(pid)));
-    return true;
-  }
-
-  /** Arka plan botu — sanal "Kırpma" tıklaması (= openPanelSilent). */
-  function pressCropButtonBot() {
-    return openPanelSilent({ stopMotor: false });
-  }
-
-  function runCropLikeButton() {
-    return pressCropButtonBot();
-  }
-
-  function applyDetailCrop() {
-    runCropLikeButton();
-  }
-
-  function motorApply() {
-    runCropLikeButton();
-  }
-
-  function burstMotorApply() {
-    runCropLikeButton();
-    bgCropBurstTimers.forEach((id) => clearTimeout(id));
-    bgCropBurstTimers = [];
-    [0, 80, 200, 450, 900, 1500, 2500, 4000, 6000, 10000, 15000].forEach((ms) => {
-      bgCropBurstTimers.push(setTimeout(runCropLikeButton, ms));
-    });
-  }
-
-  /** Tek interval — yeniden başlatınca motoru öldürmez (eski hata buydu). */
-  function ensureBackgroundCrop() {
-    if (!isDetailViewVisible()) {
-      stopCropEngine();
-      return;
-    }
-    cropEngineOn = true;
-    document.documentElement.dataset.dexCropMotor = 'on';
-    runCropLikeButton();
-    if (bgCropTimer) return;
-    bgCropTimer = setInterval(() => {
-      if (!isDetailViewVisible()) {
-        stopCropEngine();
-        return;
-      }
-      runCropLikeButton();
-    }, 280);
-  }
-
-  function startCropEngine() {
-    ensureBackgroundCrop();
-    burstMotorApply();
-  }
-
-  function stopCropEngine() {
-    cropEngineOn = false;
-    if (bgCropTimer) clearInterval(bgCropTimer);
-    bgCropTimer = null;
-    bgCropBurstTimers.forEach((id) => clearTimeout(id));
-    bgCropBurstTimers = [];
-    document.documentElement.classList.remove('crop-motor-on');
-    document.documentElement.removeAttribute('data-dex-crop-motor');
-    if (!isDetailViewVisible()) clearMotorStyleTag();
-  }
-
-  function startCropMotor() {
-    ensureBackgroundCrop();
-  }
-
-  function bindIframeCropWatchers() {
-    if (global.__sniperIframeCropWatch) return;
-    global.__sniperIframeCropWatch = true;
-    const burst = () => {
-      if (!isDetailViewVisible()) return;
-      burstMotorApply();
-    };
-    const watch = (root) => {
-      if (!root || typeof MutationObserver === 'undefined') return;
-      const mo = new MutationObserver(burst);
-      mo.observe(root, { childList: true, subtree: true, attributes: true, attributeFilter: ['src', 'class'] });
-    };
-    watch(document.getElementById('priceChart'));
-    watch(document.getElementById('dexTradesWrap'));
-    document.addEventListener('load', (e) => {
-      const t = e.target;
-      if (t?.matches?.('iframe.dex-embed-chart, #dexTradesEmbed')) burst();
-    }, true);
-  }
-
-  /** Grafik iframe DOM'a eklenince kırp (detay açılışında motor erken çalışıyordu). */
-  function bindChartEmbedCropWatch() {
-    if (global.__sniperChartEmbedCropWatch) return;
-    global.__sniperChartEmbedCropWatch = true;
-    const chartRoot = document.getElementById('priceChart');
-    if (!chartRoot || typeof MutationObserver === 'undefined') return;
-    const onChart = () => {
-      if (!chartRoot.querySelector('iframe.dex-embed-chart')) return;
-      if (!isDetailViewVisible()) return;
-      runCropLikeButton();
-      burstMotorApply();
-    };
-    new MutationObserver(onChart).observe(chartRoot, { childList: true, subtree: true });
-    onChart();
   }
 
   function bindCropObservers() {
     if (global.__sniperCropObs) return;
     global.__sniperCropObs = true;
     const reapply = () => {
-      if (isCropPanelInteractive()) return;
-      if (isDetailViewVisible()) runCropLikeButton();
-      else void applyLiveProfile();
+      if (document.getElementById('dexCropPanel')?.classList.contains('hidden') === false) return;
+      apply();
     };
     window.addEventListener('resize', reapply);
     const tg = global.Telegram?.WebApp;
@@ -624,11 +420,6 @@ ${sel} iframe.dex-embed-chart{
       if (!node || typeof ResizeObserver === 'undefined') continue;
       const ro = new ResizeObserver(reapply);
       ro.observe(node);
-    }
-    const chartStage = document.querySelector('.chart-terminal--dex-embed .chart-stage');
-    if (chartStage && typeof ResizeObserver !== 'undefined') {
-      const ro = new ResizeObserver(reapply);
-      ro.observe(chartStage);
     }
   }
 
@@ -683,7 +474,7 @@ ${sel} iframe.dex-embed-chart{
     }
 
     const stage = document.querySelector('.chart-terminal--dex-embed .chart-stage')
-      || document.querySelector('.chart-terminal .chart-stage');
+      || document.querySelector('#view-detail .chart-terminal .chart-stage');
     const chartIframe = document.querySelector('iframe.dex-embed-chart');
     if (stage) {
       setImp(stage, 'height', `${c.stageH}px`);
@@ -738,7 +529,6 @@ ${sel} iframe.dex-embed-chart{
     }
     applyMaskEl(maskTop, t.maskTopOn !== false, t.maskTop);
     applyMaskEl(maskFoot, t.maskFootOn !== false, t.maskFoot);
-    if (isDetailViewVisible()) injectCropMotorCss(s, profileId);
     showCropDebug(profileId, t);
   }
 
@@ -751,7 +541,13 @@ ${sel} iframe.dex-embed-chart{
     document.documentElement.dataset.cropCalibrate = '1';
   }
 
-  function calibrateFromUrl() {
+  function isCalibrateMode() {
+    if (document.documentElement.dataset.cropCalibrate === '1') return true;
+    try {
+      if (sessionStorage.getItem('sniperCropCalibrate') === '1') return true;
+    } catch {
+      /* yoksay */
+    }
     try {
       const q = new URLSearchParams(location.search);
       if (q.get('kalibre') === '1' || q.get('calibrate') === '1') return true;
@@ -761,31 +557,9 @@ ${sel} iframe.dex-embed-chart{
     return String(location.hash || '').includes('kalibre');
   }
 
-  /** Kalibrasyon yalnızca URL ile — eski sessionStorage panel/buton açmasın. */
-  function isCalibrateMode() {
-    return calibrateFromUrl();
-  }
-
-  function clearCalibrateSession() {
-    try {
-      sessionStorage.removeItem('sniperCropCalibrate');
-    } catch {
-      /* yoksay */
-    }
-    delete document.documentElement.dataset.cropCalibrate;
-  }
-
-  /** Kırpma butonu kapalı — yönetim panelinden açılacak. Motor arka planda çalışır. */
   function shouldShowCropButton() {
-    return false;
-  }
-
-  /** Git/baked kilitli ölçü — sıfırlama buraya döner (fabrika ayarı). */
-  function profileFromBaked(profileId) {
-    const src = globalThis.__DEX_CROP_BAKED__;
-    const p = src?.profiles?.[profileId];
-    if (p) return clone(normalizeBlock(p));
-    return defaultBlock();
+    if (isCalibrateMode()) return true;
+    return document.documentElement.classList.contains('web-browser');
   }
 
   /** ?profil=web|app11|app13|app13pm|app16 ÔÇö link sadece do─şru sekmeyi a├ğar; ├Âl├ğ├╝ler kay─▒tta. */
@@ -947,10 +721,14 @@ ${sel} iframe.dex-embed-chart{
 
   function openPanel() {
     enableCalibrateSession();
+    if (!panelBuilt) buildPanel();
+    editingProfile = profileFromUrl() || detectProfile();
     baselineProfiles = clone(loadStore().profiles);
-    openPanelSilent({ stopMotor: true });
+    current = loadForProfile(editingProfile);
+    syncSlidersFromCurrent();
+    apply(current);
     updateProfileTabs();
-    panelEl?.classList.remove('hidden');
+    panelEl.classList.remove('hidden');
     document.documentElement.classList.add('crop-panel-open');
     refreshPreview();
   }
@@ -958,9 +736,61 @@ ${sel} iframe.dex-embed-chart{
   function closePanel() {
     panelEl?.classList.add('hidden');
     document.documentElement.classList.remove('crop-panel-open');
-    const pid = activeProfileId();
-    applyCropMotor(pid, load());
-    if (isDetailViewVisible()) void scheduleDetailCrop();
+    apply(load());
+  }
+
+  function isDetailOpen() {
+    const vd = document.getElementById('view-detail');
+    return (
+      document.documentElement.classList.contains('detail-mode')
+      || (vd && !vd.classList.contains('hidden'))
+    );
+  }
+
+  function isCropPanelOpen() {
+    const p = document.getElementById('dexCropPanel');
+    return !!(p && !p.classList.contains('hidden'));
+  }
+
+  /** Arka plan motoru — Kırpma panelini kapatınca olan apply(load()), panel açık değil. */
+  function runMotorCrop() {
+    if (!isDetailOpen() || isCropPanelOpen()) return;
+    if (global.SniperCropProfile?.apply) global.SniperCropProfile.apply();
+    const pid = profileFromUrl() || detectProfile();
+    document.documentElement.dataset.dexCropProfile = pid;
+    apply(loadForProfile(pid));
+  }
+
+  let motorBurstIds = [];
+
+  function scheduleMotorCrop() {
+    void ensureProfilesReady().then(() => {
+      runMotorCrop();
+      motorBurstIds.forEach((id) => clearTimeout(id));
+      motorBurstIds = [];
+      [0, 150, 500, 1200, 2500, 4000, 6000, 9000].forEach((ms) => {
+        motorBurstIds.push(setTimeout(runMotorCrop, ms));
+      });
+    });
+  }
+
+  function bindMotorOnEmbed() {
+    if (global.__sniperMotorEmbed) return;
+    global.__sniperMotorEmbed = true;
+    const go = () => scheduleMotorCrop();
+    const chartRoot = document.getElementById('priceChart');
+    if (chartRoot && typeof MutationObserver !== 'undefined') {
+      new MutationObserver(go).observe(chartRoot, { childList: true, subtree: true });
+    }
+    document.getElementById('dexTradesEmbed')?.addEventListener('load', go);
+    document.addEventListener(
+      'load',
+      (e) => {
+        const t = e.target;
+        if (t?.matches?.('iframe.dex-embed-chart, #dexTradesEmbed')) go();
+      },
+      true,
+    );
   }
 
   function refreshPreview() {
@@ -1096,7 +926,7 @@ ${sel} iframe.dex-embed-chart{
       syncSlidersFromCurrent();
       apply(current);
       refreshPreview();
-      toast('Profil kilitli fabrika ayarina dondu');
+      toast('Bu profil sifirlandi');
     });
     document.getElementById('cropResetAllBtn')?.addEventListener('click', () => {
       current = reset();
@@ -1105,7 +935,7 @@ ${sel} iframe.dex-embed-chart{
       syncSlidersFromCurrent();
       updateProfileTabs();
       refreshPreview();
-      toast('5 profil kilitli fabrika ayarina dondu');
+      toast('5 profil sifirlandi');
     });
     document.getElementById('cropCopyBtn')?.addEventListener('click', async () => {
       const store = loadStore();
@@ -1137,33 +967,6 @@ ${sel} iframe.dex-embed-chart{
     el.textContent = msg;
     el.classList.add('show');
     setTimeout(() => el.classList.remove('show'), 2200);
-  }
-
-  /** Görünmez bot düğmesi — programatik .click() = Kırpma butonu. */
-  function ensureCropBotButton() {
-    let btn = document.getElementById('sniperCropBotBtn');
-    if (btn) return btn;
-    btn = document.createElement('button');
-    btn.id = 'sniperCropBotBtn';
-    btn.type = 'button';
-    btn.setAttribute('aria-hidden', 'true');
-    btn.tabIndex = -1;
-    btn.textContent = 'K\u0131rpma';
-    Object.assign(btn.style, {
-      position: 'fixed',
-      left: '-9999px',
-      width: '1px',
-      height: '1px',
-      opacity: '0',
-      pointerEvents: 'none',
-    });
-    btn.addEventListener('click', (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      openPanelSilent({ stopMotor: false });
-    });
-    document.body.appendChild(btn);
-    return btn;
   }
 
   function addCalibrateButton() {
@@ -1198,78 +1001,34 @@ ${sel} iframe.dex-embed-chart{
     apply(settings);
   }
 
-  /** Token sayfası — önce kilitli baked (panel ile aynı); sunucu yalnız kalibrasyonda. */
-  async function applyLiveProfile() {
-    if (global.SniperCropProfile?.apply) global.SniperCropProfile.apply();
-    const profileId = activeProfileId();
-    apply(loadForProfile(profileId));
-    if (!isCalibrateMode()) return;
-    try {
-      const r = await fetch(`/api/crop-profiles?v=${Date.now()}`, { cache: 'no-store' });
-      if (r.ok) {
-        const data = await r.json();
-        if (data?.profiles?.[profileId]) apply(normalizeBlock(data.profiles[profileId]));
-      }
-    } catch {
-      /* yoksay */
-    }
-  }
-
-  async function scheduleDetailCrop() {
-    await ensureProfilesReady();
-    if (global.SniperCropProfile?.apply) global.SniperCropProfile.apply();
-    ensureBackgroundCrop();
-    burstMotorApply();
-  }
-
   async function init() {
     if (global.SniperCropProfile?.apply) global.SniperCropProfile.apply();
     await ensureProfilesReady();
-    if (!calibrateFromUrl()) {
-      clearCalibrateSession();
-      document.getElementById('dexCropPanel')?.classList.add('hidden');
-      document.documentElement.classList.remove('crop-panel-open');
-      document.querySelectorAll('.btn-crop-cal').forEach((el) => el.remove());
-    } else {
-      try {
-        const q = new URLSearchParams(location.search);
-        if (q.get('cropPanel') === '1') {
-          enableCalibrateSession();
-          setTimeout(() => openPanel(), 400);
-        }
-      } catch {
-        /* yoksay */
-      }
-    }
+    apply();
     bindCropObservers();
+    bindMotorOnEmbed();
+    addCalibrateButton();
     window.addEventListener('resize', () => {
-      if (isCropPanelInteractive()) return;
-      if (isDetailViewVisible()) ensureBackgroundCrop();
-      else void applyLiveProfile();
+      if (!document.getElementById('dexCropPanel')?.classList.contains('hidden')) return;
+      apply();
     });
-    ensureCropBotButton();
-    bindIframeCropWatchers();
-    bindChartEmbedCropWatch();
-    const bootMotor = () => {
-      if (!isDetailViewVisible()) return;
-      void scheduleDetailCrop();
-    };
-    if (document.documentElement.classList.contains('web-browser')) {
-      document.documentElement.dataset.dexCropProfile = 'web';
+    if (isCalibrateMode()) {
+      enableCalibrateSession();
+      setTimeout(() => {
+        addCalibrateButton();
+        openPanel();
+      }, 1200);
+    } else {
+      addCalibrateButton();
     }
-    bootMotor();
-    [80, 250, 700, 1500, 3000].forEach((ms) => setTimeout(bootMotor, ms));
     const vd = document.getElementById('view-detail');
     if (vd) {
-      const onDetailVisible = () => {
-        if (!vd.classList.contains('hidden')) void scheduleDetailCrop();
-        else stopCropEngine();
-      };
-      new MutationObserver(onDetailVisible).observe(vd, {
-        attributes: true,
-        attributeFilter: ['class'],
-      });
-      onDetailVisible();
+      new MutationObserver(() => {
+        if (!vd.classList.contains('hidden')) {
+          addCalibrateButton();
+          scheduleMotorCrop();
+        }
+      }).observe(vd, { attributes: true, attributeFilter: ['class'] });
     }
   }
 
@@ -1287,30 +1046,15 @@ ${sel} iframe.dex-embed-chart{
     resetProfile,
     reset,
     apply,
-    applyCropMotor,
-    applyLiveProfile,
-    scheduleDetailCrop,
-    pressCropButtonBot,
-    openPanelSilent,
-    runCropLikeButton,
-    applyDetailCrop,
-    motorApply,
-    burstMotorApply,
-    ensureBackgroundCrop,
-    startCropEngine,
-    stopCropEngine,
-    startCropMotor,
     applyAsync,
-    profileFromBaked,
+    runMotorCrop,
+    scheduleMotorCrop,
     openPanel,
     closePanel,
-    ensureCropBotButton,
     copyProfileFrom,
     isCalibrateMode,
     enableCalibrateSession,
   };
-
-  global.__sniperRunCrop = pressCropButtonBot;
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => init());
   else init();
