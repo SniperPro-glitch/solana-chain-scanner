@@ -357,18 +357,18 @@
     globalThis.SniperDexCrop?.stopCropEngine?.();
   }
 
-  /** DEX detay ekranı — panel apply + arka plan motoru. */
+  /** DEX detay — Kırpma butonu ile aynı apply, arka planda otomatik. */
   function startDexScreenMotor() {
     const C = globalThis.SniperDexCrop;
-    if (C?.applyDetailCrop) C.applyDetailCrop();
-    if (C?.startCropEngine) C.startCropEngine();
-    else if (C?.burstMotorApply) C.burstMotorApply();
+    if (C?.ensureBackgroundCrop) C.ensureBackgroundCrop();
+    else if (C?.runCropLikeButton) C.runCropLikeButton();
     else scheduleDexTradesCrop();
   }
 
   function burstDexEmbedCrop() {
     const C = globalThis.SniperDexCrop;
     if (C?.burstMotorApply) C.burstMotorApply();
+    else if (C?.runCropLikeButton) C.runCropLikeButton();
     else scheduleDexTradesCrop();
   }
 
@@ -1966,10 +1966,8 @@
     if (!C) return;
     void C.ensureProfilesReady?.();
     if (document.documentElement.classList.contains('detail-mode')) {
-      if (C.applyDetailCrop) C.applyDetailCrop();
-      if (C.motorApply) C.motorApply();
-      if (C.startCropEngine) C.startCropEngine();
-      else if (C.burstMotorApply) C.burstMotorApply();
+      if (C.ensureBackgroundCrop) C.ensureBackgroundCrop();
+      else if (C.runCropLikeButton) C.runCropLikeButton();
       return;
     }
     if (C.burstMotorApply) C.burstMotorApply();
@@ -1977,6 +1975,7 @@
     else C.apply?.();
   }
   globalThis.__sniperScheduleDexCrop = scheduleDexTradesCrop;
+  globalThis.__sniperRunCrop = () => globalThis.SniperDexCrop?.runCropLikeButton?.();
 
   function chartPoolRef(m) {
     const market = m || appData?.market || {};
