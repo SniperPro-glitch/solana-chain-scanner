@@ -40,7 +40,85 @@ body.account-login-open {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.account-login-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
   margin-bottom: 14px;
+}
+
+.account-login-tab {
+  padding: 10px 8px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.04);
+  color: #9aa8c4;
+  font-size: 12px;
+  font-weight: 800;
+  font-family: inherit;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+
+.account-login-tab:hover {
+  color: #eef2ff;
+  border-color: rgba(255, 255, 255, 0.18);
+}
+
+.account-login-tab.active {
+  color: #041018;
+  border-color: transparent;
+  background: linear-gradient(135deg, #00e5ff 0%, #00b8d4 100%);
+  box-shadow: 0 0 16px rgba(0, 229, 255, 0.2);
+}
+
+.account-login-lang {
+  margin-bottom: 14px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.account-login-lang-label {
+  display: block;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted, #8b949e);
+  margin-bottom: 8px;
+}
+
+.account-login-lang-btns {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+
+.account-login-lang-btn {
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.12));
+  border-radius: 8px;
+  background: rgba(13, 17, 23, 0.85);
+  color: var(--muted, #8b949e);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 8px 4px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+
+.account-login-lang-btn:hover {
+  color: var(--text, #e6edf3);
+  border-color: var(--border-strong, rgba(255, 255, 255, 0.2));
+}
+
+.account-login-lang-btn.active {
+  color: #f0b429;
+  border-color: rgba(240, 180, 41, 0.45);
+  background: rgba(240, 180, 41, 0.08);
 }
 
 .account-login-head strong {

@@ -8,6 +8,7 @@ const MUTATION_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 
 const ACTION_AUTH_EXEMPT = new Set([
   '/api/admin/login',
+  '/api/admin/register',
   '/api/admin/verify-action',
   '/api/admin/session',
   '/api/admin/feed/preview',

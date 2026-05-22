@@ -7,6 +7,7 @@
   const TOKEN_KEY = 'sniperAdminTokenV2';
   const USER_KEY = 'sniperAdminUserV2';
   const PROFILE_KEY = 'sniperAdminProfileV1';
+  let accountModalMode = 'login';
 
   function $(id) {
     return document.getElementById(id);
@@ -64,16 +65,20 @@
     }
   }
 
+  function t(key) {
+    return window.MiniAppI18n?.t?.(key) ?? key;
+  }
+
   function setGuestUi() {
     const ava = $('sidebarUserAva');
     const name = $('sidebarUserName');
     const sub = $('sidebarUserSub');
     const btn = $('sidebarSignIn');
     if (ava) ava.textContent = '👤';
-    if (name) name.textContent = 'anon';
-    if (sub) sub.textContent = 'Misafir';
+    if (name) name.textContent = t('sidebar.anon');
+    if (sub) sub.textContent = t('sidebar.guest');
     if (btn) {
-      btn.textContent = 'Giriş yap';
+      btn.textContent = t('sidebar.signIn');
       btn.hidden = false;
     }
     hideAdminButton();
@@ -90,7 +95,7 @@
     if (name) name.textContent = title;
     if (sub) sub.textContent = line2;
     if (btn) {
-      btn.textContent = 'Çıkış';
+      btn.textContent = t('sidebar.signOut');
       btn.hidden = false;
     }
     showAdminButton();
@@ -118,9 +123,19 @@
     }
   }
 
-  function openLoginModal() {
+  function setAccountModalMode(mode) {
+    accountModalMode = mode === 'register' ? 'register' : 'login';
+    window.MiniAppI18n?.applyAccountModal?.(accountModalMode);
+  }
+
+  function getModalMode() {
+    return accountModalMode;
+  }
+
+  function openLoginModal(mode) {
     const modal = $('accountLoginModal');
     if (!modal) return;
+    setAccountModalMode(mode || 'login');
     showLoginError('');
     const user = $('accountLoginUser');
     const pass = $('accountLoginPass');
@@ -129,6 +144,7 @@
     modal.classList.remove('hidden');
     modal.setAttribute('aria-hidden', 'false');
     document.body.classList.add('account-login-open');
+    window.MiniAppI18n?.applyLogin?.();
     if (typeof window.closeDexSidebar === 'function') window.closeDexSidebar();
     setTimeout(() => user?.focus(), 80);
   }
@@ -142,20 +158,21 @@
     showLoginError('');
   }
 
-  async function submitLogin() {
+  async function submitAccountForm() {
     const username = ($('accountLoginUser')?.value || '').trim();
     const password = $('accountLoginPass')?.value || '';
     if (!username || !password) {
-      showLoginError('Kullanıcı adı ve şifre gerekli.');
+      showLoginError(t('account.login.errRequired'));
       return;
     }
 
+    const isRegister = accountModalMode === 'register';
     const btn = $('accountLoginSubmit');
     if (btn) btn.disabled = true;
     showLoginError('');
 
     try {
-      const res = await fetch('/api/admin/login', {
+      const res = await fetch(isRegister ? '/api/admin/register' : '/api/admin/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
         body: JSON.stringify({ username, password }),
@@ -165,11 +182,17 @@
       const body = await res.json().catch(() => ({}));
       if (!res.ok) {
         if (res.status === 503) {
-          showLoginError('Giriş sunucuda kapalı. ADMIN_USERNAME ve ADMIN_PASSWORD tanımlayın.');
+          showLoginError(t('account.login.err503'));
         } else if (res.status === 401) {
-          showLoginError('Kullanıcı adı veya şifre hatalı.');
+          showLoginError(t('account.login.err401'));
+        } else if (isRegister && res.status === 409) {
+          showLoginError(t('account.register.err409'));
+        } else if (isRegister && res.status === 400) {
+          showLoginError(body.message || t('account.register.err400'));
+        } else if (isRegister) {
+          showLoginError(t('account.register.errGeneric'));
         } else {
-          showLoginError('Giriş başarısız. Tekrar deneyin.');
+          showLoginError(t('account.login.errGeneric'));
         }
         return;
       }
@@ -177,7 +200,7 @@
       setSignedInUi(getProfile());
       closeLoginModal();
     } catch {
-      showLoginError('Bağlantı hatası. İnterneti kontrol edin.');
+      showLoginError(t('account.login.errNetwork'));
     } finally {
       if (btn) btn.disabled = false;
     }
@@ -255,7 +278,14 @@
 
     $('accountLoginForm')?.addEventListener('submit', (e) => {
       e.preventDefault();
-      void submitLogin();
+      void submitAccountForm();
+    });
+
+    $('accountLoginTabs')?.addEventListener('click', (e) => {
+      const tab = e.target.closest('.account-login-tab');
+      if (!tab?.dataset.mode) return;
+      setAccountModalMode(tab.dataset.mode);
+      showLoginError('');
     });
 
     $('accountLoginBackdrop')?.addEventListener('click', closeLoginModal);
@@ -272,11 +302,14 @@
   }
 
   window.SniperSidebarAccount = {
+    isSignedIn,
     signIn: openLoginModal,
     signOut,
     restoreSession,
     openLoginModal,
     closeLoginModal,
+    getModalMode,
+    setAccountModalMode,
   };
   window.openSniperAdminPanel = openAdminPanel;
 

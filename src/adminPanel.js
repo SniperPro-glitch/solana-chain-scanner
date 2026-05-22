@@ -541,6 +541,48 @@ async function handleAdminApi(req, res, url, helpers) {
     return true;
   }
 
+  if (req.method === 'POST' && url.pathname === '/api/admin/register') {
+    if (!isAdminEnabled()) {
+      sendJson(res, 503, { ok: false, error: 'admin_disabled' });
+      return true;
+    }
+    const body = await readJsonBody(req);
+    const username = String(body.username || '').trim();
+    const password = String(body.password || '');
+    const cred = getAdminCredentials();
+    if (cred.username && timingSafeEqual(username, cred.username)) {
+      sendJson(res, 409, { ok: false, error: 'username_taken' });
+      return true;
+    }
+    const adminUsersStore = require('./adminUsersStore');
+    try {
+      adminUsersStore.createUser({ username, password, role: 'viewer' });
+    } catch (e) {
+      const code = e.code === 'duplicate' ? 409 : 400;
+      sendJson(res, code, { ok: false, error: e.code || 'register_failed', message: e.message });
+      return true;
+    }
+    const auth = verifyLogin(username, password);
+    if (!auth.ok) {
+      sendJson(res, 500, { ok: false, error: 'register_failed' });
+      return true;
+    }
+    const session = issueSessionToken(auth.username);
+    sendJson(res, 200, {
+      ok: true,
+      registered: true,
+      ...session,
+      role: auth.role,
+      roleLabel: auth.roleLabel,
+      displayName: auth.displayName,
+      displayTitle: auth.displayTitle,
+      isFounder: !!auth.isFounder,
+      permissions: auth.permissions || [],
+      id: auth.id,
+    });
+    return true;
+  }
+
   if (req.method === 'POST' && url.pathname === '/api/admin/session') {
     const auth = verifyAdmin(req);
     if (!auth.ok) {
