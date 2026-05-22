@@ -295,11 +295,17 @@ function createMiniAppServer() {
         const live = url.searchParams.get('live') === '1';
         const poolQ = url.searchParams.get('pool') || '';
         try {
+          const t0 = Date.now();
           const out = await getTokenTrades(dexTradesMatch[1], limit, {
             fresh: live,
             poolAddress: poolQ,
           });
-          sendJson(res, 200, { ...out, live });
+          const serverMs = Date.now() - t0;
+          if (serverMs > 2000) {
+            console.warn('[miniApp] dex trades slow', serverMs, 'ms', dexTradesMatch[1].slice(0, 8));
+          }
+          res.setHeader('Server-Timing', `trades;dur=${serverMs}`);
+          sendJson(res, 200, { ...out, live, serverMs });
         } catch (e) {
           console.warn('[miniApp] dex trades:', e.message);
           sendJson(res, 502, { error: 'dex_trades_failed', message: e.message });

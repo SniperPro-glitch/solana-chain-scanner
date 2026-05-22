@@ -864,6 +864,26 @@ html.chart-interacting .view-detail {
   grid-column: 1 / -1;
 }
 
+.trade-row--skeleton {
+  pointer-events: none;
+  animation: none;
+}
+
+.trade-row--skeleton .sk-bar {
+  display: block;
+  height: 10px;
+  border-radius: 4px;
+  background: linear-gradient(90deg, var(--bg2), var(--glass), var(--bg2));
+  background-size: 200% 100%;
+  animation: shimmer 1.2s infinite;
+}
+
+.trade-row--skeleton .sk-w1 { width: 70%; }
+.trade-row--skeleton .sk-w2 { width: 55%; margin: 0 auto; }
+.trade-row--skeleton .sk-w3 { width: 85%; margin-left: auto; }
+.trade-row--skeleton .sk-w4 { width: 75%; margin-left: auto; }
+.trade-row--skeleton .sk-w5 { width: 60%; margin-left: auto; }
+
 .trades-title { font-weight: 700; color: var(--text); }
 
 .trades-live {

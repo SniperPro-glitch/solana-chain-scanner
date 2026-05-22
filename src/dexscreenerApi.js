@@ -147,20 +147,32 @@ async function getPairChart(poolOrMint, timeframe = '15m', opts = {}) {
   return { pair, candles, poolAddress: pool, priceUsd: Number.isFinite(priceUsd) ? priceUsd : null };
 }
 
-/** Token mint → canlı işlemler (DS token + pool trades). */
+/** Token mint → canlı işlemler (Gecko pool trades; pool varsa DS token atlanır). */
 async function getTokenTrades(mint, limit = 50, opts = {}) {
-  const pairOpts = opts.fresh ? { fresh: true, maxAge: LIVE_CACHE_MS } : {};
-  const token = await fetchTokenData(mint, pairOpts);
-  const best = token?.best;
+  const t0 = Date.now();
+  const poolQ = String(opts.poolAddress || '').trim() || null;
+  let best = null;
+  let pairs = [];
+  if (!poolQ) {
+    const pairOpts = opts.fresh ? { fresh: true, maxAge: LIVE_CACHE_MS } : {};
+    const token = await fetchTokenData(mint, pairOpts);
+    best = token?.best;
+    pairs = token?.pairs || [];
+  }
+  const pool = poolQ || best?.pairAddress || null;
   const { fetchPairTrades } = require('./pairTrades');
-  const pool = opts.poolAddress || best?.pairAddress || null;
   const trades = await fetchPairTrades({
     poolAddress: pool,
     mint,
     limit,
     fresh: !!opts.fresh,
+    skipDexOrders: !!(poolQ || opts.fresh),
   });
-  return { trades, pair: best, poolAddress: pool, pairs: token?.pairs || [] };
+  const fetchMs = Date.now() - t0;
+  if (fetchMs > 2000) {
+    console.warn('[dex/trades] slow', fetchMs, 'ms', String(mint || '').slice(0, 8), String(pool || '').slice(0, 8));
+  }
+  return { trades, pair: best, poolAddress: pool, pairs, fetchMs };
 }
 
 module.exports = {

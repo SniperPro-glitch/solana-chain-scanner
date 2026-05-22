@@ -2045,8 +2045,47 @@
       </li>`;
   }
 
+  function tradesSessionKey(m) {
+    const mint = tokenMintRef(m) || m;
+    const pool = chartPoolRef(m);
+    if (!mint) return '';
+    return `trades:${mint}:${pool || ''}`;
+  }
+
+  function loadTradesSession(m) {
+    try {
+      const raw = sessionStorage.getItem(tradesSessionKey(m));
+      const arr = raw ? JSON.parse(raw) : [];
+      return Array.isArray(arr) ? arr.slice(0, TRADES_MAX_ROWS) : [];
+    } catch {
+      return [];
+    }
+  }
+
+  function saveTradesSession(m, trades) {
+    try {
+      if (!trades?.length) return;
+      sessionStorage.setItem(tradesSessionKey(m), JSON.stringify(trades.slice(0, TRADES_MAX_ROWS)));
+    } catch {
+      /* quota */
+    }
+  }
+
+  function showTradesSkeleton(n = 6) {
+    const list = $('tradesList');
+    if (!list) return;
+    const row = `<li class="trade-row trade-row--skeleton" aria-hidden="true">
+        <span class="sk-bar sk-w1"></span>
+        <span class="sk-bar sk-w2"></span>
+        <span class="sk-bar sk-w3"></span>
+        <span class="sk-bar sk-w4"></span>
+        <span class="sk-bar sk-w5"></span>
+      </li>`;
+    list.innerHTML = row.repeat(n);
+  }
+
   function trimTradesDom(list) {
-    const rows = [...list.querySelectorAll('.trade-row:not(.trade-placeholder)')];
+    const rows = [...list.querySelectorAll('.trade-row:not(.trade-placeholder):not(.trade-row--skeleton)')];
     while (rows.length > TRADES_MAX_ROWS) {
       rows[rows.length - 1].remove();
       rows.pop();
@@ -2072,6 +2111,7 @@
 
     const placeholder = list.querySelector('.trade-placeholder');
     if (placeholder) placeholder.remove();
+    list.querySelectorAll('.trade-row--skeleton').forEach((el) => el.remove());
 
     if (opts.fullRender || !list.querySelector('.trade-row[data-trade-key]')) {
       list.innerHTML = merged.map((t) => buildTradeRowHtml(t, false)).join('');
@@ -2139,7 +2179,7 @@
   }
 
   async function refreshTrades(m, initial = false) {
-    if (tradesPollInFlight) return;
+    if (tradesPollInFlight && !initial) return;
     const tape = $('tradesTape');
     const meta = $('tradesMeta');
     const mint = tokenMintRef(m);
@@ -2150,19 +2190,25 @@
       if (meta) meta.textContent = 'mint yok';
       return;
     }
-    if (initial && meta) meta.textContent = 'yükleniyor…';
+    if (initial) {
+      tradesDisplayRows = [];
+      const cached = loadTradesSession(m);
+      const seeded = cached.length ? cached : seedTradesFromMarket(m);
+      tradesLastGood = seeded;
+      if (seeded.length) {
+        renderTradesList(seeded, m?.symbol, { fullRender: true });
+        if (meta) meta.textContent = `${seeded.length} işlem · güncelleniyor`;
+      } else {
+        showTradesSkeleton();
+        if (meta) meta.textContent = 'yükleniyor…';
+      }
+    }
     tradesPollInFlight = true;
     try {
-      if (initial) {
-        tradesDisplayRows = [];
-        tradesLastGood = seedTradesFromMarket(m);
-        if (tradesLastGood.length) {
-          renderTradesList(tradesLastGood, m?.symbol, { fullRender: true });
-        }
-      }
       const trades = await fetchTradesFromServer(m, true);
       if (trades.length) {
         tradesLastGood = trades;
+        saveTradesSession(m, trades);
       } else if (!tradesLastGood.length) {
         tradesLastGood = seedTradesFromMarket(m);
       }

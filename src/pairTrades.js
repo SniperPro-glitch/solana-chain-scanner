@@ -12,10 +12,12 @@ const http = axios.create({
   },
 });
 
-const CACHE_MS = 5_000;
+const CACHE_MS = 12_000;
+const CACHE_MS_SLOW = 30_000;
 const TRADES_FEED_MAX = 50;
 const cache = new Map();
 const tradesLastGood = new Map();
+const inFlight = new Map();
 
 function sleep(ms) {
   return new Promise((r) => setTimeout(r, ms));
@@ -140,10 +142,16 @@ async function fetchDexOrders(mint, limit = TRADES_FEED_MAX) {
   }).filter((t) => t.usd > 0 || t.wallet !== '—');
 }
 
-async function fetchPairTrades({ poolAddress, mint, limit = TRADES_FEED_MAX, fresh = false } = {}) {
+async function fetchPairTradesInner({
+  poolAddress,
+  mint,
+  limit = TRADES_FEED_MAX,
+  fresh = false,
+  skipDexOrders = false,
+} = {}) {
   const key = `${poolAddress || ''}:${mint || ''}:${limit}`;
   const hit = cache.get(key);
-  const maxAge = fresh ? 2_500 : CACHE_MS;
+  const maxAge = fresh ? 8_000 : (hit?.slow ? CACHE_MS_SLOW : CACHE_MS);
   if (hit?.trades?.length && Date.now() - hit.at < maxAge) return hit.trades;
 
   let pool = poolAddress;
@@ -154,17 +162,18 @@ async function fetchPairTrades({ poolAddress, mint, limit = TRADES_FEED_MAX, fre
     baseMint = pair?.baseToken?.address || mint;
   }
 
+  const t0 = Date.now();
   let trades = [];
-  const attempts = fresh ? 3 : 2;
+  const attempts = poolAddress ? (fresh ? 2 : 1) : (fresh ? 3 : 2);
   for (let i = 0; i < attempts && pool; i += 1) {
     try {
       trades = await fetchGeckoTrades(pool, baseMint, limit);
       if (trades.length) break;
-      if (i < attempts - 1) await sleep(500 * (i + 1));
+      if (i < attempts - 1) await sleep(400 * (i + 1));
     } catch (e) {
       if (e.code === 'rate_limit') {
         console.warn('[trades] gecko rate limit:', `attempt ${i + 1}/${attempts}`);
-        if (i < attempts - 1) await sleep(800 * (i + 1));
+        if (i < attempts - 1) await sleep(600 * (i + 1));
         continue;
       }
       console.warn('[trades] gecko:', e.message);
@@ -172,25 +181,33 @@ async function fetchPairTrades({ poolAddress, mint, limit = TRADES_FEED_MAX, fre
     }
   }
 
-  if (!trades.length && mint) {
-    try {
-      const ds = await fetchDexOrders(mint, limit);
-      if (ds.length) trades = ds;
-    } catch {
-      /* yoksay */
-    }
-  } else if (trades.length < limit && mint) {
-    try {
-      const ds = await fetchDexOrders(mint, limit);
-      trades = mergeTrades(trades, ds, limit);
-    } catch {
-      /* yoksay */
+  const elapsed = Date.now() - t0;
+  const slow = elapsed > 2000;
+  if (slow) {
+    console.warn('[trades] gecko slow', elapsed, 'ms', key);
+  }
+
+  if (!skipDexOrders && mint) {
+    if (!trades.length) {
+      try {
+        const ds = await fetchDexOrders(mint, limit);
+        if (ds.length) trades = ds;
+      } catch {
+        /* yoksay */
+      }
+    } else if (trades.length < limit) {
+      try {
+        const ds = await fetchDexOrders(mint, limit);
+        trades = mergeTrades(trades, ds, limit);
+      } catch {
+        /* yoksay */
+      }
     }
   }
 
   const out = mergeTrades(trades, [], limit);
   if (out.length) {
-    cache.set(key, { at: Date.now(), trades: out });
+    cache.set(key, { at: Date.now(), trades: out, slow: slow || hit?.slow });
     tradesLastGood.set(key, out);
     return out;
   }
@@ -201,6 +218,19 @@ async function fetchPairTrades({ poolAddress, mint, limit = TRADES_FEED_MAX, fre
     return stale;
   }
   return [];
+}
+
+async function fetchPairTrades(opts = {}) {
+  const key = `${opts.poolAddress || ''}:${opts.mint || ''}:${opts.limit || TRADES_FEED_MAX}`;
+  const pending = inFlight.get(key);
+  if (pending) return pending;
+  const promise = fetchPairTradesInner(opts);
+  inFlight.set(key, promise);
+  try {
+    return await promise;
+  } finally {
+    inFlight.delete(key);
+  }
 }
 
 module.exports = {
