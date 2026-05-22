@@ -4,6 +4,7 @@ const axios = require('axios');
 const { fmtUsd, fmtPriceUsd } = require('./formatUsd');
 
 const BIRDEYE_BASE = 'https://public-api.birdeye.so';
+const BIRDEYE_WS_RELAY_PATH = '/api/dex/ws/trades';
 const OHLCV_CACHE_MS_BY_TF = {
   '1m': 10_000,
   '5m': 30_000,
@@ -37,10 +38,25 @@ function isBirdeyeEnabled() {
 }
 
 function birdeyeHeaders() {
-  const h = { 'x-chain': 'solana' };
   const key = getApiKey();
-  if (key) h['X-API-KEY'] = key;
+  const h = { 'x-chain': 'solana' };
+  if (key) h['x-api-key'] = key;
   return h;
+}
+
+/** WS: token mint ile işlem akışı (Birdeye dokümanı: SUBSCRIBE_TXS). */
+function buildTradesSubscribeMessage(mint) {
+  const address = String(mint || '').trim();
+  const sub = String(process.env.BIRDEYE_WS_SUBSCRIBE || 'SUBSCRIBE_TXS').trim();
+  const type = sub === 'SUBSCRIBE_TRANSACTION' ? 'SUBSCRIBE_TXS' : sub;
+  return {
+    type,
+    data: {
+      queryType: 'simple',
+      address,
+      txsType: 'swap',
+    },
+  };
 }
 
 function normalizeAppTf(tf) {
@@ -107,14 +123,13 @@ async function fetchOhlcvByMint(mint, tf, opts = {}) {
   if (!live && hit && Date.now() - hit.at < ohlcvCacheMs(tf)) return hit.candles;
 
   const { time_from, time_to } = ohlcvTimeRange(tf);
+  const params = { address: mint, type, currency: 'usd' };
+  if (time_from && time_to) {
+    params.time_from = time_from;
+    params.time_to = time_to;
+  }
   const { data, status } = await http.get(`${BIRDEYE_BASE}/defi/ohlcv`, {
-    params: {
-      address: mint,
-      type,
-      currency: 'usd',
-      time_from,
-      time_to,
-    },
+    params,
     headers: birdeyeHeaders(),
     validateStatus: () => true,
   });
@@ -224,19 +239,21 @@ function publicConfig() {
   const key = getApiKey();
   return {
     enabled: !!key,
-    wsUrl: 'wss://public-api.birdeye.so/socket/solana',
+    wsRelay: BIRDEYE_WS_RELAY_PATH,
     hasApiKey: !!key,
-    apiKey: key,
   };
 }
 
 module.exports = {
+  BIRDEYE_WS_RELAY_PATH,
   isBirdeyeEnabled,
   getApiKey,
   birdeyeType,
+  birdeyeHeaders,
   ohlcvCacheMs,
   fetchOhlcvByMint,
   fetchTokenTrades,
   normalizeBirdeyeTrade,
+  buildTradesSubscribeMessage,
   publicConfig,
 };

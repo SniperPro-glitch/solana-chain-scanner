@@ -631,6 +631,12 @@ function startMiniAppServer() {
 
   const port = parseInt(process.env.MINI_APP_PORT || process.env.PORT || '3080', 10);
   const server = createMiniAppServer();
+  try {
+    const { attachBirdeyeTradesWs } = require('./birdeyeTradesWs');
+    attachBirdeyeTradesWs(server);
+  } catch (e) {
+    console.warn('[miniApp] Birdeye WS köprüsü yüklenemedi:', e.message);
+  }
   server.on('error', (err) => {
     console.error('[miniApp] HTTP dinleme hatası:', err.message);
     if (err.code === 'EADDRINUSE') {

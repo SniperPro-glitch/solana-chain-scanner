@@ -343,7 +343,7 @@ async function enrichMarketForMiniApp(token, options = {}) {
     candles = await fetchOhlcvByMint(merged.address, timeframe);
     if (candles.length) chartSource = 'birdeye';
   }
-  if (!candles.length && poolAddress) {
+  if (!candles.length && poolAddress && !isBirdeyeEnabled()) {
     candles = await fetchOhlcv(poolAddress, timeframe);
     if (candles.length) chartSource = 'geckoterminal';
   }
@@ -358,7 +358,7 @@ async function enrichMarketForMiniApp(token, options = {}) {
     if (isBirdeyeEnabled() && merged.address) {
       recentTrades = await fetchBirdeyeTrades(merged.address, 28);
     }
-    if (!recentTrades.length) {
+    if (!recentTrades.length && !isBirdeyeEnabled()) {
       const { fetchPairTrades } = require('./pairTrades');
       recentTrades = await fetchPairTrades({
         poolAddress,

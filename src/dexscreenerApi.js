@@ -135,7 +135,7 @@ async function getPairChart(poolOrMint, timeframe = '15m', opts = {}) {
     if (candles.length) source = 'birdeye';
   }
 
-  if (!candles.length && pool) {
+  if (!candles.length && pool && !isBirdeyeEnabled()) {
     const ohlcvKey = `${pool}:${tf}`;
     const needFull = !live
       || !ohlcvLiveFetchAt.has(ohlcvKey)
@@ -178,16 +178,16 @@ async function getTokenTrades(mint, limit = 50, opts = {}) {
   }
   const pool = poolQ || best?.pairAddress || null;
   const { isBirdeyeEnabled, fetchTokenTrades: fetchBirdeyeTrades } = require('./birdeyeApi');
-  const { fetchPairTrades, parseSinceMs, filterTradesAfterSince } = require('./pairTrades');
+  const { parseSinceMs, filterTradesAfterSince } = require('./pairTrades');
   const sinceMs = opts.sinceMs != null ? parseSinceMs(opts.sinceMs) : 0;
   let trades = [];
-  let source = 'geckoterminal';
+  let source = 'birdeye';
 
   if (isBirdeyeEnabled()) {
     trades = await fetchBirdeyeTrades(mint, limit);
-    if (trades.length) source = 'birdeye';
-  }
-  if (!trades.length) {
+    if (sinceMs > 0) trades = filterTradesAfterSince(trades, sinceMs);
+  } else {
+    const { fetchPairTrades } = require('./pairTrades');
     trades = await fetchPairTrades({
       poolAddress: pool,
       mint,
@@ -197,8 +197,6 @@ async function getTokenTrades(mint, limit = 50, opts = {}) {
       sinceMs,
     });
     source = 'geckoterminal';
-  } else if (sinceMs > 0) {
-    trades = filterTradesAfterSince(trades, sinceMs);
   }
   const fetchMs = Date.now() - t0;
   if (fetchMs > 2000) {

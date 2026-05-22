@@ -1988,13 +1988,16 @@
     if (counts) counts.textContent = `${ratio.buys} alım · ${ratio.sells} satım (${ratio.buyPct}% alım)`;
   }
 
-  function birdeyeWsUrl() {
+  function birdeyeWsUrl(mint) {
     const be = apiConfig?.birdeye || {};
-    const base = be.wsUrl || 'wss://public-api.birdeye.so/socket/solana';
-    const key = String(be.apiKey || '').trim();
-    if (!key) return base;
-    const sep = base.includes('?') ? '&' : '?';
-    return `${base}${sep}x-api-key=${encodeURIComponent(key)}`;
+    const relay = be.wsRelay || '/api/dex/ws/trades';
+    const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+    return `${proto}//${location.host}${relay}?mint=${encodeURIComponent(mint)}`;
+  }
+
+  function isBirdeyeTradeEvent(type) {
+    const t = String(type || '');
+    return t === 'TXS_DATA' || t === 'TRANSACTION_DATA' || t === 'TRANSACTION_EVENT';
   }
 
   function fmtTradeUsd(usd) {
@@ -2077,40 +2080,30 @@
     const mint = tokenMintRef(m);
     if (!mint || !reportId) return;
     const be = apiConfig?.birdeye;
-    if (!be?.apiKey) {
-      startTradesPollFallback(m);
+    if (!be?.enabled && !be?.hasApiKey) {
+      const meta = $('tradesMeta');
+      if (meta) meta.textContent = 'Birdeye API key yok';
       return;
     }
     if (birdeyeTradesWs && birdeyeTradesMint === mint) return;
     stopBirdeyeTradesWs();
     birdeyeTradesMint = mint;
-    if (tradesPollTimer) {
-      clearInterval(tradesPollTimer);
-      tradesPollTimer = null;
-    }
 
     let ws;
     try {
-      ws = new WebSocket(birdeyeWsUrl(), 'echo-protocol');
+      ws = new WebSocket(birdeyeWsUrl(mint));
     } catch (e) {
       console.warn('birdeye ws', e);
-      startTradesPollFallback(m);
+      scheduleBirdeyeWsReconnect(m);
       return;
     }
     birdeyeTradesWs = ws;
 
     ws.onopen = () => {
       birdeyeWsFailCount = 0;
-      try {
-        ws.send(JSON.stringify({
-          type: 'SUBSCRIBE_TXS',
-          data: { queryType: 'simple', address: mint, txsType: 'swap' },
-        }));
-      } catch (e) {
-        console.warn('birdeye subscribe', e);
-      }
       const meta = $('tradesMeta');
       if (meta && tradesDisplayRows.length) meta.textContent = `${tradesDisplayRows.length} işlem · canlı WS`;
+      else if (meta) meta.textContent = 'canlı WS · işlem bekleniyor';
     };
 
     ws.onmessage = (ev) => {
@@ -2122,7 +2115,7 @@
       } catch {
         return;
       }
-      if (msg?.type !== 'TXS_DATA') return;
+      if (!isBirdeyeTradeEvent(msg?.type)) return;
       const trade = normalizeBirdeyeWsTrade(msg, mint);
       if (!trade) return;
       tradesLastGood = mergeTradesDisplay([trade], tradesLastGood);
@@ -2142,12 +2135,8 @@
     };
   }
 
-  function startTradesPollFallback(m) {
-    if (tradesPollTimer) return;
-    const ms = tradesPollIntervalMs(m);
-    tradesPollTimer = setInterval(() => {
-      if (reportId && appData?.market) void refreshTrades(appData.market);
-    }, ms);
+  async function bootstrapTrades(m) {
+    await refreshTrades(m, true);
   }
 
   function stopTradesPoll() {
@@ -2429,47 +2418,36 @@
         if (meta) meta.textContent = 'yükleniyor…';
       }
     }
+    if (!initial) return;
+
     tradesPollInFlight = true;
     try {
-      if (initial || !chartPoolRef(m)) await ensurePoolOnMarket(m);
-      const sinceMs = initial ? 0 : (m.tradesUpdatedAtMs || tradesWatermarkMs(tradesLastGood) || 0);
-      const { trades, pollMs, incremental } = await fetchTradesFromServer(m, true, sinceMs);
+      const { trades } = await fetchTradesFromServer(m, true, 0);
       if (fetchGen !== tradesFetchGen) return;
-      if (m && pollMs >= 1000) m.tradesPollMs = pollMs;
 
-      if (initial || !sinceMs) {
-        if (trades.length) {
-          tradesLastGood = trades;
-          saveTradesSession(m, trades);
-        } else if (!tradesLastGood.length) {
-          tradesLastGood = seedTradesFromMarket(m);
-        }
-        const display = trades.length ? trades : tradesLastGood;
-        const list = $('tradesList');
-        const needsFull = initial || !list?.querySelector('.trade-row[data-trade-key]');
-        renderTradesList(display, m?.symbol, {
-          keepPrevious: !needsFull && !display.length,
-          fullRender: needsFull && !!display.length,
-        });
-      } else if (trades.length) {
-        tradesLastGood = mergeTradesDisplay(trades, tradesLastGood);
-        saveTradesSession(m, tradesLastGood);
-        renderTradesList(tradesLastGood, m?.symbol, {
-          keepPrevious: false,
-          fullRender: false,
-        });
+      if (trades.length) {
+        tradesLastGood = trades;
+        saveTradesSession(m, trades);
+      } else if (!tradesLastGood.length) {
+        tradesLastGood = seedTradesFromMarket(m);
       }
+      const display = trades.length ? trades : tradesLastGood;
+      const list = $('tradesList');
+      const needsFull = initial || !list?.querySelector('.trade-row[data-trade-key]');
+      renderTradesList(display, m?.symbol, {
+        keepPrevious: !needsFull && !display.length,
+        fullRender: needsFull && !!display.length,
+      });
 
       m.tradesUpdatedAtMs = tradesWatermarkMs(tradesLastGood);
       if (meta) {
         const n = tradesDisplayRows.length;
-        const liveTag = birdeyeTradesWs ? 'canlı WS' : `canlı ${Math.max(1, Math.round((m?.tradesPollMs || TRADES_POLL_MS) / 1000))}s`;
-        if (n) meta.textContent = `${n} işlem · ${liveTag}`;
-        else if (tradesLastGood.length) meta.textContent = `${tradesLastGood.length} işlem · ${liveTag}`;
+        if (n) meta.textContent = `${n} işlem · WS bağlanıyor`;
+        else if (tradesLastGood.length) meta.textContent = `${tradesLastGood.length} işlem · WS`;
         else meta.textContent = 'işlem bekleniyor';
       }
     } catch (e) {
-      console.warn('trades poll', e);
+      console.warn('trades bootstrap', e);
       if (tradesLastGood.length) {
         renderTradesList(tradesLastGood, m?.symbol, { keepPrevious: true });
         if (meta) meta.textContent = `${tradesLastGood.length} işlem · canlı`;
@@ -2479,15 +2457,10 @@
     }
   }
 
-  function tradesPollIntervalMs(m) {
-    const ms = m?.tradesPollMs || TRADES_POLL_MS;
-    return Math.max(1000, Math.min(ms, 5000));
-  }
-
   function startTradesPoll(m) {
     stopTradesPoll();
-    void refreshTrades(m, true);
-    void startBirdeyeTradesWs(m);
+    tradesFetchGen += 1;
+    void bootstrapTrades(m).then(() => startBirdeyeTradesWs(m));
   }
 
   function stopLivePoll() {
@@ -2501,7 +2474,7 @@
   function startLivePoll(m) {
     stopLivePoll();
     tradesFetchGen += 1;
-    void refreshTrades(m, true).then(() => startBirdeyeTradesWs(m));
+    void bootstrapTrades(m).then(() => startBirdeyeTradesWs(m));
     void refreshChartAndPrice(m);
     livePollTimer = setInterval(() => {
       if (reportId && appData?.market) void refreshChartAndPrice(appData.market);
