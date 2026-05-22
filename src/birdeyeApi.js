@@ -156,25 +156,57 @@ function timeAgoFromUnix(sec) {
   return `${Math.floor(s / 3600)}h`;
 }
 
-function tradeAmountFromLegs(item, side, baseMint) {
-  const base = String(baseMint || '').toLowerCase();
-  const from = item?.from;
-  const to = item?.to;
-  if (!from && !to) {
-    const leg = item?.base || item?.quote;
-    return Math.abs(parseFloat(leg?.uiAmount) || 0) || null;
+function legAddress(leg) {
+  return String(leg?.address || leg?.mint || '').toLowerCase();
+}
+
+function legUiAmount(leg) {
+  if (!leg) return 0;
+  const uiChange = parseFloat(leg.uiChangeAmount);
+  if (Number.isFinite(uiChange) && uiChange !== 0) return Math.abs(uiChange);
+  const ui = parseFloat(leg.uiAmount);
+  if (Number.isFinite(ui) && ui !== 0) return Math.abs(ui);
+  const scaledChange = parseFloat(leg.scaledUiChangeAmount);
+  if (Number.isFinite(scaledChange) && scaledChange !== 0) return Math.abs(scaledChange);
+  const scaled = parseFloat(leg.scaledUiAmount);
+  if (Number.isFinite(scaled) && scaled !== 0) return Math.abs(scaled);
+  const dec = parseInt(leg.decimals, 10);
+  const change = parseFloat(leg.changeAmount);
+  if (Number.isFinite(change) && change !== 0 && Number.isFinite(dec)) {
+    return Math.abs(change) / 10 ** dec;
   }
-  const fromMint = String(from?.address || '').toLowerCase();
-  const toMint = String(to?.address || '').toLowerCase();
+  const amt = parseFloat(leg.amount);
+  if (Number.isFinite(amt) && amt !== 0 && Number.isFinite(dec)) {
+    return Math.abs(amt) / 10 ** dec;
+  }
+  return 0;
+}
+
+/** TXS_DATA / REST: izlenen mint'in token adedi (ui). */
+function tradeAmountFromLegs(item, side, baseMint) {
+  const mint = String(baseMint || item?.tokenAddress || '').trim().toLowerCase();
+  if (!mint) return null;
+
+  const legs = [item?.from, item?.to, item?.base, item?.quote].filter(Boolean);
+  for (const leg of legs) {
+    if (legAddress(leg) === mint) {
+      const n = legUiAmount(leg);
+      if (n > 0) return n;
+    }
+  }
+
   if (side === 'buy') {
-    if (base && toMint === base) return Math.abs(parseFloat(to?.uiAmount) || 0);
-    return Math.abs(parseFloat(to?.uiChangeAmount ?? to?.uiAmount) || 0);
+    const n = legUiAmount(item?.to) || legUiAmount(item?.quote);
+    if (n > 0) return n;
   }
   if (side === 'sell') {
-    if (base && fromMint === base) return Math.abs(parseFloat(from?.uiAmount) || 0);
-    return Math.abs(parseFloat(from?.uiChangeAmount ?? from?.uiAmount) || 0);
+    const n = legUiAmount(item?.from) || legUiAmount(item?.base);
+    if (n > 0) return n;
   }
-  return Math.abs(parseFloat(from?.uiAmount) || parseFloat(to?.uiAmount) || 0) || null;
+
+  const fallback = legUiAmount(item?.from) || legUiAmount(item?.to)
+    || legUiAmount(item?.base) || legUiAmount(item?.quote);
+  return fallback > 0 ? fallback : null;
 }
 
 /** WS TXS_DATA veya REST /defi/txs/token satırı → mini app trade objesi. */

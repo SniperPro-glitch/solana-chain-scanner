@@ -2008,7 +2008,53 @@
     return `$${n.toExponential(2)}`;
   }
 
+  function birdeyeLegAddr(leg) {
+    return String(leg?.address || leg?.mint || '').toLowerCase();
+  }
+
+  function birdeyeLegUiAmount(leg) {
+    if (!leg) return 0;
+    const uiChange = parseFloat(leg.uiChangeAmount);
+    if (Number.isFinite(uiChange) && uiChange !== 0) return Math.abs(uiChange);
+    const ui = parseFloat(leg.uiAmount);
+    if (Number.isFinite(ui) && ui !== 0) return Math.abs(ui);
+    const dec = parseInt(leg.decimals, 10);
+    const change = parseFloat(leg.changeAmount);
+    if (Number.isFinite(change) && change !== 0 && Number.isFinite(dec)) {
+      return Math.abs(change) / 10 ** dec;
+    }
+    const amt = parseFloat(leg.amount);
+    if (Number.isFinite(amt) && amt !== 0 && Number.isFinite(dec)) {
+      return Math.abs(amt) / 10 ** dec;
+    }
+    return 0;
+  }
+
+  function birdeyeTokenAmount(item, side, baseMint) {
+    const mint = String(baseMint || item?.tokenAddress || '').trim().toLowerCase();
+    if (!mint) return null;
+    const legs = [item?.from, item?.to, item?.base, item?.quote].filter(Boolean);
+    for (const leg of legs) {
+      if (birdeyeLegAddr(leg) === mint) {
+        const n = birdeyeLegUiAmount(leg);
+        if (n > 0) return n;
+      }
+    }
+    if (side === 'buy') {
+      const n = birdeyeLegUiAmount(item?.to) || birdeyeLegUiAmount(item?.quote);
+      if (n > 0) return n;
+    }
+    if (side === 'sell') {
+      const n = birdeyeLegUiAmount(item?.from) || birdeyeLegUiAmount(item?.base);
+      if (n > 0) return n;
+    }
+    const fb = birdeyeLegUiAmount(item?.from) || birdeyeLegUiAmount(item?.to)
+      || birdeyeLegUiAmount(item?.base) || birdeyeLegUiAmount(item?.quote);
+    return fb > 0 ? fb : null;
+  }
+
   function normalizeBirdeyeWsTrade(msg, baseMint) {
+    if (msg?.type === 'SNIPER_TRADE' && msg.trade) return msg.trade;
     const item = msg?.data || msg;
     if (!item) return null;
     let side = String(item.side || '').toLowerCase();
@@ -2019,19 +2065,7 @@
     const usd = Math.abs(parseFloat(item.volumeUSD) || 0);
     const txHash = item.txHash || null;
     const at = new Date(unix * 1000).toISOString();
-    const base = String(baseMint || '').toLowerCase();
-    const from = item.from;
-    const to = item.to;
-    let amount = null;
-    if (side === 'buy' && to) {
-      amount = Math.abs(parseFloat(to.uiChangeAmount ?? to.uiAmount) || 0) || null;
-    } else if (side === 'sell' && from) {
-      amount = Math.abs(parseFloat(from.uiChangeAmount ?? from.uiAmount) || 0) || null;
-    }
-    if (amount == null && base && from) {
-      const fromMint = String(from.address || '').toLowerCase();
-      if (fromMint === base) amount = Math.abs(parseFloat(from.uiAmount) || 0);
-    }
+    const amount = birdeyeTokenAmount(item, side, baseMint);
     return {
       id: txHash || `be-${unix}-${item.owner || ''}`,
       side,
@@ -2115,7 +2149,7 @@
       } catch {
         return;
       }
-      if (!isBirdeyeTradeEvent(msg?.type)) return;
+      if (msg?.type !== 'SNIPER_TRADE' && !isBirdeyeTradeEvent(msg?.type)) return;
       const trade = normalizeBirdeyeWsTrade(msg, mint);
       if (!trade) return;
       tradesLastGood = mergeTradesDisplay([trade], tradesLastGood);

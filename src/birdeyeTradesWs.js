@@ -4,6 +4,7 @@ const { WebSocketServer, WebSocket } = require('ws');
 const {
   getApiKey,
   buildTradesSubscribeMessage,
+  normalizeBirdeyeTrade,
   BIRDEYE_WS_RELAY_PATH,
 } = require('./birdeyeApi');
 
@@ -97,7 +98,23 @@ function bridgeBirdeyeTrades(clientWs, mint) {
   upstream.on('message', (raw) => {
     if (clientWs.readyState !== WebSocket.OPEN) return;
     try {
-      clientWs.send(raw.toString());
+      const text = raw.toString();
+      let msg;
+      try {
+        msg = JSON.parse(text);
+      } catch {
+        clientWs.send(text);
+        return;
+      }
+      const t = String(msg?.type || '');
+      if (t === 'TXS_DATA' || t === 'TRANSACTION_DATA' || t === 'TRANSACTION_EVENT') {
+        const trade = normalizeBirdeyeTrade(msg.data, mint);
+        if (trade) {
+          clientWs.send(JSON.stringify({ type: 'SNIPER_TRADE', trade }));
+          return;
+        }
+      }
+      clientWs.send(text);
     } catch {
       /* yoksay */
     }
