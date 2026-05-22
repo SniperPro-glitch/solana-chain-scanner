@@ -25,10 +25,16 @@ function writeJsonFile(filePath, data) {
   fs.writeFileSync(filePath, `${JSON.stringify(data, null, 2)}\n`, 'utf8');
 }
 
+function isLockedPublic(pub) {
+  return !!pub?.profiles && String(pub.note || '').includes('LOCKED');
+}
+
+/** Git’teki kilitli profil, volume’daki yanlış kalibrasyonun önüne geçer. */
 function loadBakedProfiles() {
+  const pub = readJsonFile(PUBLIC_FALLBACK);
+  if (isLockedPublic(pub)) return pub;
   const data = readJsonFile(DATA_FILE);
   if (data?.profiles) return data;
-  const pub = readJsonFile(PUBLIC_FALLBACK);
   if (pub?.profiles) return pub;
   return null;
 }
@@ -50,8 +56,8 @@ function saveBakedProfiles(payload) {
   if (!payload?.profiles || typeof payload.profiles !== 'object') {
     throw new Error('profiles gerekli');
   }
-  const existing = loadBakedProfiles();
   const fallback = readJsonFile(PUBLIC_FALLBACK);
+  const existing = isLockedPublic(fallback) ? fallback : loadBakedProfiles();
   const profiles = {};
   PROFILE_ORDER.forEach((id) => {
     const next = payload.profiles[id];

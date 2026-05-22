@@ -514,6 +514,26 @@ function createMiniAppServer() {
 
       let rel = url.pathname === '/' ? '/index.html' : url.pathname;
       if (rel.startsWith('/miniapp')) rel = rel.slice('/miniapp'.length) || '/index.html';
+
+      if (rel === '/dex-crop-baked.js' || rel.endsWith('/dex-crop-baked.js')) {
+        try {
+          const cropProfiles = require('./cropProfiles');
+          const baked = cropProfiles.loadBakedProfiles();
+          if (baked?.profiles) {
+            const stamp = baked.updatedAt || '';
+            const js = `/** server · ${stamp} */\nglobalThis.__DEX_CROP_BAKED__=${JSON.stringify(baked)};\n`;
+            res.writeHead(200, {
+              'Content-Type': 'application/javascript; charset=utf-8',
+              'Cache-Control': 'no-store',
+            });
+            res.end(js);
+            return;
+          }
+        } catch (e) {
+          console.warn('[miniApp] dex-crop-baked dynamic:', e.message);
+        }
+      }
+
       const safe = path.normalize(rel).replace(/^(\.\.[/\\])+/, '');
       const filePath = path.join(PUBLIC_DIR, safe);
       if (!filePath.startsWith(PUBLIC_DIR)) {
