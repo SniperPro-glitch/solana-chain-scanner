@@ -2027,7 +2027,7 @@
       scheduleDexTradesCrop();
       if (fallback) fallback.classList.add('hidden');
       if (meta) meta.textContent = 'canlı';
-      if (globalThis.SniperDexCrop?.isCalibrateMode?.()) {
+      if (globalThis.SniperDexCrop?.isCalibrateUrl?.()) {
         setTimeout(() => SniperDexCrop.openPanel(), 300);
       }
     };

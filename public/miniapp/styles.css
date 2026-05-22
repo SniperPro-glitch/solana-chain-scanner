@@ -1473,12 +1473,15 @@ html.web-browser .token-table-scroll {
   cursor: pointer;
 }
 
+/* Kırpma paneli — yalnızca ?kalibre=1 (motor gizli çalışır) */
 .dex-crop-panel {
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
   position: fixed;
   top: 0;
   right: 0;
   z-index: 9999;
-  pointer-events: auto;
   width: min(100vw, 340px);
   height: var(--app-height, 100dvh);
   overflow-y: auto;
@@ -1487,6 +1490,12 @@ html.web-browser .token-table-scroll {
   box-shadow: -12px 0 40px rgba(0, 0, 0, 0.5);
   padding: 12px 12px 24px;
   box-sizing: border-box;
+}
+
+html[data-crop-panel-ui="1"] .dex-crop-panel:not(.hidden) {
+  display: block !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
 }
 
 .dex-crop-head {

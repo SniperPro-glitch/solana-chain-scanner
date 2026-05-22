@@ -562,6 +562,41 @@
     return calibrateFromUrl();
   }
 
+  function clearCalibrateSession() {
+    try {
+      sessionStorage.removeItem('sniperCropCalibrate');
+    } catch {
+      /* yoksay */
+    }
+    delete document.documentElement.dataset.cropCalibrate;
+    delete document.documentElement.dataset.cropPanelUi;
+  }
+
+  /** Panel ve oturum — yalnızca ?kalibre=1; motor asla açmaz. */
+  function forceHideCropPanel() {
+    const p = document.getElementById('dexCropPanel');
+    if (p) p.classList.add('hidden');
+    document.documentElement.classList.remove('crop-panel-open');
+    delete document.documentElement.dataset.cropPanelUi;
+  }
+
+  /** Web localStorage ölçüsü — enableCalibrateSession olmadan (panel açılmaz). */
+  function loadProfileForMotor(profileId) {
+    const id = profileId || detectProfile();
+    if (document.documentElement.classList.contains('web-browser')) {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (parsed?.profiles?.[id]) return normalizeBlock(parsed.profiles[id]);
+        }
+      } catch {
+        /* yoksay */
+      }
+    }
+    return profileFromBaked(id);
+  }
+
   /** ?profil=web|app11|app13|app13pm|app16 ÔÇö link sadece do─şru sekmeyi a├ğar; ├Âl├ğ├╝ler kay─▒tta. */
   function profileFromUrl() {
     try {
@@ -720,7 +755,9 @@
   }
 
   function openPanel() {
+    if (!calibrateFromUrl()) return;
     enableCalibrateSession();
+    document.documentElement.dataset.cropPanelUi = '1';
     if (!panelBuilt) buildPanel();
     editingProfile = profileFromUrl() || detectProfile();
     baselineProfiles = clone(loadStore().profiles);
@@ -736,6 +773,7 @@
   function closePanel() {
     panelEl?.classList.add('hidden');
     document.documentElement.classList.remove('crop-panel-open');
+    delete document.documentElement.dataset.cropPanelUi;
     apply(load());
   }
 
@@ -760,17 +798,15 @@
   function applyLikeKirpmaButton() {
     if (!isDetailOpen() || isCropPanelOpen()) return false;
     editingProfile = profileFromUrl() || detectProfile();
-    const onWeb = document.documentElement.classList.contains('web-browser');
-    if (onWeb) enableCalibrateSession();
-    current = onWeb ? loadForProfile(editingProfile) : profileFromBaked(editingProfile);
+    current = loadProfileForMotor(editingProfile);
     if (global.SniperCropProfile?.apply) global.SniperCropProfile.apply();
     document.documentElement.dataset.dexCropProfile = editingProfile;
     apply(current);
-    panelEl?.classList.add('hidden');
-    document.documentElement.classList.remove('crop-panel-open');
+    forceHideCropPanel();
     requestAnimationFrame(() => {
       apply(current);
-      apply(load());
+      apply(loadForProfile(editingProfile));
+      forceHideCropPanel();
     });
     return true;
   }
@@ -1054,6 +1090,8 @@
   }
 
   async function init() {
+    if (!calibrateFromUrl()) clearCalibrateSession();
+    forceHideCropPanel();
     if (global.SniperCropProfile?.apply) global.SniperCropProfile.apply();
     await ensureProfilesReady();
     apply();
@@ -1065,14 +1103,12 @@
       if (!document.getElementById('dexCropPanel')?.classList.contains('hidden')) return;
       apply();
     });
-    if (isCalibrateMode()) {
+    if (calibrateFromUrl()) {
       enableCalibrateSession();
       setTimeout(() => {
         addCalibrateButton();
         openPanel();
       }, 1200);
-    } else {
-      addCalibrateButton();
     }
     const vd = document.getElementById('view-detail');
     if (vd) {
@@ -1109,7 +1145,10 @@
     closePanel,
     copyProfileFrom,
     isCalibrateMode,
+    calibrateFromUrl,
+    isCalibrateUrl: calibrateFromUrl,
     enableCalibrateSession,
+    forceHideCropPanel,
   };
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => init());
