@@ -303,7 +303,16 @@
   }
 
   function load() {
-    return loadForProfile(activeProfileId());
+    return loadProfileForMotor(activeProfileId());
+  }
+
+  /** Kilitli baked profil (Telegram / motor — localStorage yok). */
+  function profileFromBaked(profileId) {
+    const id = profileId || detectProfile();
+    const baked = globalThis.__DEX_CROP_BAKED__?.profiles?.[id];
+    if (baked) return clone(normalizeBlock(baked));
+    const store = defaultStore();
+    return clone(normalizeBlock(store.profiles[id] || store.profiles.web));
   }
 
   function saveBlock(profileId, block) {
@@ -407,8 +416,9 @@
     if (global.__sniperCropObs) return;
     global.__sniperCropObs = true;
     const reapply = () => {
-      if (document.getElementById('dexCropPanel')?.classList.contains('hidden') === false) return;
-      apply();
+      if (isCropPanelOpen()) return;
+      if (!isDetailOpen()) return;
+      apply(loadProfileForMotor(activeProfileId()));
     };
     window.addEventListener('resize', reapply);
     const tg = global.Telegram?.WebApp;
@@ -437,7 +447,7 @@
   function apply(settings) {
     const profileId = activeProfileId();
     document.documentElement.dataset.dexCropProfile = profileId;
-    const s = settings || loadForProfile(profileId);
+    const s = settings || loadProfileForMotor(profileId);
     const root = document.documentElement;
     const c = s.chart;
     const t = s.trades;
@@ -809,15 +819,18 @@
   function applyLikeKirpmaButton() {
     if (!isDetailOpen() || isCropPanelOpen()) return false;
     editingProfile = profileFromUrl() || detectProfile();
-    current = loadProfileForMotor(editingProfile);
     if (global.SniperCropProfile?.apply) global.SniperCropProfile.apply();
     document.documentElement.dataset.dexCropProfile = editingProfile;
-    apply(current);
+    const block = loadProfileForMotor(editingProfile);
+    current = clone(block);
+    apply(block);
     forceHideCropPanel();
     requestAnimationFrame(() => {
-      apply(current);
-      apply(loadForProfile(editingProfile));
-      forceHideCropPanel();
+      apply(clone(block));
+      requestAnimationFrame(() => {
+        apply(load());
+        forceHideCropPanel();
+      });
     });
     return true;
   }
@@ -1105,14 +1118,15 @@
     forceHideCropPanel();
     if (global.SniperCropProfile?.apply) global.SniperCropProfile.apply();
     await ensureProfilesReady();
-    apply();
+    apply(loadProfileForMotor(activeProfileId()));
     bindCropObservers();
     bindMotorOnEmbed();
     ensureKirpmaBotButton();
     addCalibrateButton();
     window.addEventListener('resize', () => {
-      if (!document.getElementById('dexCropPanel')?.classList.contains('hidden')) return;
-      apply();
+      if (isCropPanelOpen()) return;
+      if (!isDetailOpen()) return;
+      apply(loadProfileForMotor(activeProfileId()));
     });
     if (calibrateFromUrl()) {
       enableCalibrateSession();
