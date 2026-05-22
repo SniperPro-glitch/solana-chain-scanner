@@ -1,13 +1,14 @@
 /**
- * Safe area — bir kez ölç, kilitle (kayma yok).
- * Arka plan bleed yukarı; header padding = contentSafeArea (TG) veya tek sabit taban.
+ * Safe area — expanded: content-top 0 (TG bar altı); fullscreen: notch → --tg-safe-top.
+ * Bir kez kilitle, kayma yok.
  */
 (function () {
-  const TG_CHROME_FALLBACK = 52;
   let locked = false;
   let lockedContentTop = 0;
   let lockedBgTop = 0;
   let lockedBottom = 0;
+  let lockedLeft = 0;
+  let lockedRight = 0;
 
   function measureEnvInset(prop) {
     try {
@@ -28,57 +29,7 @@
       || !!String(window.Telegram?.WebApp?.initData || '').trim();
   }
 
-  function layoutWidth() {
-    const tg = window.Telegram?.WebApp;
-    return Math.round(Math.max(window.innerWidth || 0, tg?.viewportWidth || 0)) || 390;
-  }
-
-  function resolveContentTop(tg, sTop, cTop) {
-    if (!window.SniperHost?.isTelegram?.()) {
-      return Math.min(measureEnvInset('env(safe-area-inset-top)') || 0, 12);
-    }
-
-    if (cTop >= 8 && cTop <= 72) return cTop;
-
-    const w = layoutWidth();
-    if (w >= 429) return 56;
-    if (w >= 426) return 52;
-    if (w >= 400) return 48;
-    if (sTop >= 8) return Math.min(sTop + 44, 72);
-    return TG_CHROME_FALLBACK;
-  }
-
-  function resolveBgBleedTop(sTop, envTop, inTg) {
-    if (!inTg) return Math.max(envTop, 0);
-    return Math.max(sTop, envTop, 0);
-  }
-
-  function paint(root, bgBleedTop, contentTop, bottom, cLeft, cRight) {
-    root.style.setProperty('--sniper-bg-bleed-top', `${bgBleedTop}px`);
-    root.style.setProperty('--sniper-bg-bleed-bottom', `${bottom}px`);
-    root.style.setProperty('--sniper-content-top', `${contentTop}px`);
-    root.style.setProperty('--sniper-content-bottom', '0px');
-    root.style.setProperty('--tg-safe-top', `${bgBleedTop}px`);
-    root.style.setProperty('--tg-safe-bottom', `${bottom}px`);
-    root.style.setProperty('--tg-content-safe-top', `${contentTop}px`);
-    root.style.setProperty('--tg-content-safe-bottom', '0px');
-    root.style.setProperty('--tg-content-safe-left', `${cLeft}px`);
-    root.style.setProperty('--tg-content-safe-right', `${cRight}px`);
-    root.style.setProperty('--tg-chrome-left', `${Math.max(cLeft, 48)}px`);
-    root.dataset.safeContentTop = String(contentTop);
-    root.dataset.safeBgTop = String(bgBleedTop);
-  }
-
-  function apply() {
-    const root = document.documentElement;
-    if (locked) {
-      paint(root, lockedBgTop, lockedContentTop, lockedBottom, 0, 0);
-      return;
-    }
-
-    const tg = window.Telegram?.WebApp;
-    const inTg = isTelegramHost() && tg;
-
+  function resolveInsets(tg, inTg) {
     let sTop = 0;
     let sBottom = 0;
     let cTop = 0;
@@ -97,24 +48,101 @@
 
     const envTop = measureEnvInset('env(safe-area-inset-top)');
     const envBottom = measureEnvInset('env(safe-area-inset-bottom)');
-    const bgBleedTop = resolveBgBleedTop(sTop, envTop, inTg);
-    const contentTop = inTg ? resolveContentTop(tg, sTop, cTop) : Math.min(envTop, 12);
+    const bgBleedTop = inTg ? Math.max(sTop, envTop, 0) : Math.max(envTop, 0);
     const bottom = Math.max(sBottom, envBottom);
 
-    paint(root, bgBleedTop, contentTop, bottom, cLeft, cRight);
+    if (!inTg) {
+      return {
+        bgBleedTop,
+        contentTop: Math.min(envTop, 12),
+        bottom,
+        cLeft: 0,
+        cRight: 0,
+      };
+    }
+
+    const fullscreen = !!tg.isFullscreen;
+
+    if (fullscreen) {
+      let contentTop = 0;
+      if (cTop >= 8 && cTop <= 72) contentTop = cTop;
+      else if (sTop >= 8) contentTop = sTop;
+      return {
+        bgBleedTop,
+        contentTop,
+        bottom,
+        cLeft,
+        cRight,
+      };
+    }
+
+    /* Expanded — Telegram bar görünür; notch header padding'e eklenmez */
+    return {
+      bgBleedTop,
+      contentTop: 0,
+      bottom,
+      cLeft: 0,
+      cRight: 0,
+    };
+  }
+
+  function paint(root, vals) {
+    root.style.setProperty('--sniper-bg-bleed-top', `${vals.bgBleedTop}px`);
+    root.style.setProperty('--sniper-bg-bleed-bottom', `${vals.bottom}px`);
+    root.style.setProperty('--sniper-content-top', `${vals.contentTop}px`);
+    root.style.setProperty('--sniper-content-bottom', '0px');
+    root.style.setProperty('--tg-safe-top', `${vals.bgBleedTop}px`);
+    root.style.setProperty('--tg-safe-bottom', `${vals.bottom}px`);
+    root.style.setProperty('--tg-content-safe-top', `${vals.contentTop}px`);
+    root.style.setProperty('--tg-content-safe-bottom', '0px');
+    root.style.setProperty('--tg-content-safe-left', `${vals.cLeft}px`);
+    root.style.setProperty('--tg-content-safe-right', `${vals.cRight}px`);
+    root.dataset.safeContentTop = String(vals.contentTop);
+    root.dataset.safeBgTop = String(vals.bgBleedTop);
+  }
+
+  function apply() {
+    const root = document.documentElement;
+    if (locked) {
+      paint(root, {
+        bgBleedTop: lockedBgTop,
+        contentTop: lockedContentTop,
+        bottom: lockedBottom,
+        cLeft: lockedLeft,
+        cRight: lockedRight,
+      });
+      return;
+    }
+
+    const tg = window.Telegram?.WebApp;
+    const inTg = isTelegramHost() && tg;
+    paint(root, resolveInsets(tg, inTg));
+  }
+
+  function unlockLayout() {
+    locked = false;
+    apply();
   }
 
   function lockLayout() {
     if (locked) return;
     const root = document.documentElement;
-    lockedContentTop = parseInt(root.dataset.safeContentTop || '0', 10) || TG_CHROME_FALLBACK;
+    lockedContentTop = parseInt(root.dataset.safeContentTop || '0', 10) || 0;
     lockedBgTop = parseInt(root.dataset.safeBgTop || '0', 10) || 0;
     lockedBottom = parseInt(
       getComputedStyle(root).getPropertyValue('--tg-safe-bottom') || '0',
       10,
     ) || 0;
+    lockedLeft = parseInt(
+      getComputedStyle(root).getPropertyValue('--tg-content-safe-left') || '0',
+      10,
+    ) || 0;
+    lockedRight = parseInt(
+      getComputedStyle(root).getPropertyValue('--tg-content-safe-right') || '0',
+      10,
+    ) || 0;
     locked = true;
-    paint(root, lockedBgTop, lockedContentTop, lockedBottom, 0, 0);
+    apply();
   }
 
   function scheduleRetries() {
@@ -123,13 +151,13 @@
     setTimeout(() => {
       apply();
       lockLayout();
-    }, 450);
+    }, 500);
   }
 
-  window.SniperSafeArea = { apply, lockLayout, measureEnvInset, scheduleRetries };
+  window.SniperSafeArea = { apply, lockLayout, unlockLayout, measureEnvInset, scheduleRetries };
 
   apply();
-  setTimeout(lockLayout, 600);
+  setTimeout(lockLayout, 700);
 
   window.addEventListener('sniper-host-changed', () => {
     if (!window.SniperHost?.isWebBrowser?.()) scheduleRetries();
@@ -137,6 +165,11 @@
 
   const tg = window.Telegram?.WebApp;
   if (tg && typeof tg.onEvent === 'function') {
+    tg.onEvent('fullscreenChanged', () => {
+      unlockLayout();
+      apply();
+      setTimeout(lockLayout, 500);
+    });
     tg.onEvent('viewportChanged', () => {
       if (!locked) apply();
     });

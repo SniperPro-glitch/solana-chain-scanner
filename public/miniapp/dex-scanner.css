@@ -79,18 +79,20 @@ html.tg-mini-app.tg-fullscreen .view-detail {
   box-sizing: border-box;
 }
 
+/* Expanded — X Kapat barı altında; ekstra safe-area padding yok */
 html.tg-mini-app.tg-expanded .scan-header,
-html.tg-mini-app.tg-fullscreen .scan-header {
-  padding-top: calc(8px + var(--sniper-content-top, 0px));
+html.tg-expanded .scan-header {
+  padding-left: 12px;
+  padding-right: 12px;
+  padding-top: 10px;
 }
 
-/* X Kapat sol üst — hamburger/logo TG ile çakışmasın (16 PM / island) */
-html.tg-mini-app.tg-expanded .scan-header {
-  padding-left: calc(12px + max(var(--tg-content-safe-left, 0px), 48px));
-}
-
-html.tg-mini-app.tg-fullscreen .scan-header {
-  padding-left: calc(12px + var(--tg-content-safe-left, 0px));
+/* Tam ekran — Dynamic Island / notch */
+html.tg-mini-app.tg-fullscreen .scan-header,
+html.tg-fullscreen .scan-header {
+  padding-top: calc(10px + var(--tg-safe-top, env(safe-area-inset-top, 0px)));
+  padding-left: 16px;
+  padding-right: 16px;
 }
 
 .scanner-home {

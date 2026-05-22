@@ -1,5 +1,5 @@
 /**
- * Telegram — expand + sabit viewport yüksekliği (kilitle, kayma yok).
+ * Telegram — expand + requestFullscreen (retry) + sabit viewport.
  */
 (function () {
   const tg = window.Telegram?.WebApp;
@@ -10,6 +10,41 @@
   const MOBILE_PLATFORMS = ['android', 'ios', 'android_x', 'unigram'];
   let heightLocked = false;
   let lockedHeight = 0;
+
+  function skipFullscreen() {
+    try {
+      return /(?:^|[?&])nofs=1(?:&|$)/.test(location.search || '');
+    } catch (_) {
+      return false;
+    }
+  }
+
+  function enterFullscreen() {
+    if (skipFullscreen() || typeof tg.requestFullscreen !== 'function') return;
+    try {
+      tg.requestFullscreen();
+    } catch (_) {
+      /* yoksay */
+    }
+    setTimeout(() => {
+      if (!tg.isFullscreen && typeof tg.requestFullscreen === 'function') {
+        try {
+          tg.requestFullscreen();
+        } catch (_) {
+          /* yoksay */
+        }
+      }
+    }, 300);
+    setTimeout(() => {
+      if (!tg.isFullscreen && typeof tg.requestFullscreen === 'function') {
+        try {
+          tg.requestFullscreen();
+        } catch (_) {
+          /* yoksay */
+        }
+      }
+    }, 1000);
+  }
 
   function applySafeArea() {
     if (typeof window.SniperSafeArea?.apply === 'function') {
@@ -24,9 +59,6 @@
       lockedHeight = next;
       heightLocked = true;
       root.style.setProperty('--app-height', `${lockedHeight}px`);
-      if (typeof window.SniperSafeArea?.lockLayout === 'function') {
-        setTimeout(() => window.SniperSafeArea.lockLayout(), 80);
-      }
     } else if (heightLocked && lockedHeight > 0) {
       root.style.setProperty('--app-height', `${lockedHeight}px`);
     }
@@ -36,6 +68,7 @@
     root.classList.toggle('tg-fullscreen', fs);
     root.classList.toggle('tg-expanded', !fs && expanded);
     root.classList.toggle('tg-sheet', !fs && !expanded);
+    root.classList.toggle('tg-chrome-hidden', fs);
     root.classList.toggle('tg-maxed', fs || expanded || heightLocked);
   }
 
@@ -90,9 +123,16 @@
       }
 
       ensureMaxViewport();
+      enterFullscreen();
       setTimeout(ensureMaxViewport, 300);
       applySafeArea();
-      setTimeout(applySafeArea, 400);
+      setTimeout(applySafeArea, 450);
+      setTimeout(() => {
+        applySafeArea();
+        if (typeof window.SniperSafeArea?.lockLayout === 'function') {
+          window.SniperSafeArea.lockLayout();
+        }
+      }, 1200);
 
       if (window.SniperCropProfile?.applyWhenReady) window.SniperCropProfile.applyWhenReady();
 
@@ -117,6 +157,12 @@
     }
   }
 
+  function onFullscreenChanged() {
+    applySafeArea();
+    if (window.SniperCropProfile?.apply) window.SniperCropProfile.apply();
+    if (typeof window.syncTgBackButton === 'function') window.syncTgBackButton();
+  }
+
   function startTelegramHost() {
     if (window.SniperHost?.isWebBrowser?.()) return;
     if (document.documentElement.__sniperTgBooted) return;
@@ -129,19 +175,21 @@
     tg.onEvent('viewportChanged', () => {
       if (!heightLocked) applySafeArea();
     });
-    tg.onEvent('safeAreaChanged', () => {
-      if (!heightLocked) applySafeArea();
+    tg.onEvent('safeAreaChanged', applySafeArea);
+    tg.onEvent('contentSafeAreaChanged', applySafeArea);
+    tg.onEvent('fullscreenChanged', onFullscreenChanged);
+    tg.onEvent('fullscreenFailed', () => {
+      ensureMaxViewport();
+      enterFullscreen();
+      applySafeArea();
     });
-    tg.onEvent('contentSafeAreaChanged', () => {
-      if (!heightLocked) applySafeArea();
-    });
-    tg.onEvent('fullscreenChanged', applySafeArea);
   }
 
   document.addEventListener('visibilitychange', () => {
     if (document.hidden || window.SniperHost?.isWebBrowser?.()) return;
     disableSwipeClose();
     ensureMaxViewport();
+    enterFullscreen();
     applySafeArea();
   });
 
@@ -156,6 +204,8 @@
   window.__tgApplySafeArea = applySafeArea;
   window.__tgApplyExpanded = () => {
     ensureMaxViewport();
+    enterFullscreen();
     applySafeArea();
   };
+  window.__tgEnterFullscreen = enterFullscreen;
 })();
