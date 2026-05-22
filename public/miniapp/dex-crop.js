@@ -737,7 +737,7 @@
     toast(`${PROFILE_META[sourceId].label} -> ${PROFILE_META[editingProfile].label} kopyalandi (Kaydet)`);
   }
 
-  function   function openPanel() {
+  function openPanel() {
     enableCalibrateSession();
     if (!panelBuilt) buildPanel();
     editingProfile = profileFromUrl() || detectProfile();

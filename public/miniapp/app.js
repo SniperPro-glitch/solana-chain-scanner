@@ -2009,7 +2009,8 @@
     }
     iframe.classList.remove('hidden');
     scheduleDexTradesCrop();
-    iframe.onload = () => scheduleDexTradesCrop();
+    iframe.onload = () => {
+      scheduleDexTradesCrop();
       if (fallback) fallback.classList.add('hidden');
       if (meta) meta.textContent = 'canlı';
       if (globalThis.SniperDexCrop?.isCalibrateMode?.()) {
