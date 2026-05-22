@@ -567,9 +567,9 @@
     return String(location.hash || '').includes('kalibre');
   }
 
-  /** Kırpma butonu yalnızca ?kalibre=1 — normal kullanıcı görmez. */
+  /** Kırpma butonu kapalı — yönetim panelinden açılacak. Motor arka planda çalışır. */
   function shouldShowCropButton() {
-    return isCalibrateMode();
+    return false;
   }
 
   /** Git/baked kilitli ölçü — sıfırlama buraya döner (fabrika ayarı). */
