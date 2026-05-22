@@ -2024,19 +2024,41 @@
     }, ms);
   }
 
+  function isLightweightChartsV4() {
+    const L = window.LightweightCharts;
+    return !!(L?.createChart && !L.CandlestickSeries);
+  }
+
+  function addChartSeries(chart, kind, opts) {
+    const L = LightweightCharts;
+    if (kind === 'candle' && typeof chart.addCandlestickSeries === 'function') {
+      return chart.addCandlestickSeries(opts);
+    }
+    if (kind === 'line' && typeof chart.addLineSeries === 'function') {
+      return chart.addLineSeries(opts);
+    }
+    if (kind === 'hist' && typeof chart.addHistogramSeries === 'function') {
+      return chart.addHistogramSeries(opts);
+    }
+    if (kind === 'candle' && L.CandlestickSeries) return chart.addSeries(L.CandlestickSeries, opts);
+    if (kind === 'line' && L.LineSeries) return chart.addSeries(L.LineSeries, opts);
+    if (kind === 'hist' && L.HistogramSeries) return chart.addSeries(L.HistogramSeries, opts);
+    throw new Error('unsupported chart library version');
+  }
+
   function loadChartLibrary() {
     return new Promise((resolve) => {
-      if (window.LightweightCharts) {
+      if (isLightweightChartsV4()) {
         resolve(true);
         return;
       }
       const urls = [
-        'https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js',
         '/vendor/lightweight-charts.js?v=3',
+        'https://unpkg.com/lightweight-charts@4.2.0/dist/lightweight-charts.standalone.production.js',
       ];
       let i = 0;
       const next = () => {
-        if (window.LightweightCharts) {
+        if (isLightweightChartsV4()) {
           resolve(true);
           return;
         }
@@ -2047,7 +2069,7 @@
         const s = document.createElement('script');
         s.src = urls[i];
         i += 1;
-        s.onload = () => resolve(!!window.LightweightCharts);
+        s.onload = () => resolve(isLightweightChartsV4());
         s.onerror = next;
         document.head.appendChild(s);
       };
@@ -2207,7 +2229,7 @@
         },
       });
 
-      candleSeries = chartApi.addCandlestickSeries({
+      candleSeries = addChartSeries(chartApi, 'candle', {
         upColor: '#00c850',
         downColor: '#ef4444',
         borderUpColor: '#00a844',
@@ -2217,7 +2239,7 @@
         visible: chartType !== 'line',
       });
 
-      lineSeries = chartApi.addLineSeries({
+      lineSeries = addChartSeries(chartApi, 'line', {
         color: '#00e5ff',
         lineWidth: 2,
         crosshairMarkerVisible: true,
@@ -2225,7 +2247,7 @@
         visible: chartType === 'line',
       });
 
-      volumeSeries = chartApi.addHistogramSeries({
+      volumeSeries = addChartSeries(chartApi, 'hist', {
         priceFormat: { type: 'volume' },
         priceScaleId: '',
       });
