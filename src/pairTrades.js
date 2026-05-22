@@ -112,10 +112,11 @@ async function fetchDexOrders(mint, limit = 24) {
   }).filter((t) => t.usd > 0 || t.wallet !== '—');
 }
 
-async function fetchPairTrades({ poolAddress, mint, limit = 24 } = {}) {
+async function fetchPairTrades({ poolAddress, mint, limit = 24, fresh = false } = {}) {
   const key = `${poolAddress || ''}:${mint || ''}:${limit}`;
   const hit = cache.get(key);
-  if (hit && Date.now() - hit.at < CACHE_MS) return hit.trades;
+  const maxAge = fresh ? 2_500 : CACHE_MS;
+  if (hit && Date.now() - hit.at < maxAge) return hit.trades;
 
   let pool = poolAddress;
   let baseMint = mint;

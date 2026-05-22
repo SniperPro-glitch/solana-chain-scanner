@@ -237,12 +237,33 @@ async function fetchOhlcvOnce(poolAddress, tf, limitOverride) {
   return candles;
 }
 
-async function fetchOhlcv(poolAddress, timeframe = '15m', limitOverride) {
+function patchLastCandle(candles, priceUsd) {
+  if (!candles?.length || !Number.isFinite(priceUsd)) return candles || [];
+  const out = candles.map((c) => ({ ...c }));
+  const last = out[out.length - 1];
+  last.close = priceUsd;
+  last.high = Math.max(Number(last.high) || priceUsd, priceUsd);
+  last.low = Math.min(Number(last.low) || priceUsd, priceUsd);
+  return out;
+}
+
+async function fetchOhlcv(poolAddress, timeframe = '15m', third, fourth) {
+  let limitOverride;
+  let opts = {};
+  if (third && typeof third === 'object') {
+    opts = third;
+  } else {
+    limitOverride = third;
+    opts = fourth || {};
+  }
   if (!poolAddress) return [];
   const tf = normalizeTimeframe(timeframe);
   const cacheKey = `${poolAddress}:${tf}`;
   const hit = ohlcvCache.get(cacheKey);
-  if (hit?.candles?.length && Date.now() - hit.at < OHLCV_CACHE_MS) return hit.candles;
+  if (!opts.fresh && hit?.candles?.length && Date.now() - hit.at < OHLCV_CACHE_MS) return hit.candles;
+  if (opts.allowStale && hit?.candles?.length) return hit.candles;
+  const staleOnly = ohlcvLastGood.get(cacheKey);
+  if (opts.allowStale && staleOnly?.length) return staleOnly;
 
   const stale = ohlcvLastGood.get(cacheKey);
   let candles = [];
@@ -347,6 +368,7 @@ module.exports = {
   buildMarketFromToken,
   enrichMarketForMiniApp,
   fetchOhlcv,
+  patchLastCandle,
   normalizeTimeframe,
   tokenLogoUrl,
   fmtUsd,

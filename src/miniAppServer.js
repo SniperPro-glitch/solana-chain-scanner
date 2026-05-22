@@ -269,14 +269,17 @@ function createMiniAppServer() {
         const { getPairChart } = require('./dexscreenerApi');
         const { chartStatsFromCandles } = require('./tokenLogo');
         const tf = url.searchParams.get('tf') || '15m';
+        const live = url.searchParams.get('live') === '1';
         try {
-          const { pair, candles, poolAddress } = await getPairChart(dexPairMatch[1], tf);
+          const { pair, candles, poolAddress, priceUsd } = await getPairChart(dexPairMatch[1], tf, { fresh: live });
           sendJson(res, 200, {
             pair,
             poolAddress,
             timeframe: tf,
             candles,
+            priceUsd,
             stats: chartStatsFromCandles(candles),
+            live,
           });
         } catch (e) {
           console.warn('[miniApp] dex pair:', e.message);
@@ -289,9 +292,10 @@ function createMiniAppServer() {
       if (req.method === 'GET' && dexTradesMatch) {
         const { getTokenTrades } = require('./dexscreenerApi');
         const limit = Math.min(40, Math.max(8, parseInt(url.searchParams.get('limit') || '28', 10) || 28));
+        const live = url.searchParams.get('live') === '1';
         try {
-          const out = await getTokenTrades(dexTradesMatch[1], limit);
-          sendJson(res, 200, out);
+          const out = await getTokenTrades(dexTradesMatch[1], limit, { fresh: live });
+          sendJson(res, 200, { ...out, live });
         } catch (e) {
           console.warn('[miniApp] dex trades:', e.message);
           sendJson(res, 502, { error: 'dex_trades_failed', message: e.message });

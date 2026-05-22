@@ -71,7 +71,7 @@
   let volumeSeries = null;
   let resizeHandler = null;
   let chartResizeObs = null;
-  let chartPollTimer = null;
+  let livePollTimer = null;
 
   let feedTab = 'trending';
   let dexFilter = 'all';
@@ -372,7 +372,7 @@
 
   function showScannerHome() {
     stopTradesPoll();
-    stopChartPoll();
+    stopLivePoll();
     if (typeof globalThis.closeSearchOverlay === 'function') globalThis.closeSearchOverlay();
     document.documentElement.classList.remove('detail-mode');
     hideAllViews();
@@ -2028,12 +2028,41 @@
     list.innerHTML = rows.join('');
   }
 
-  async function fetchTradesFromServer(mint) {
+  async function fetchTradesFromServer(mint, live = false) {
     if (!mint) return [];
-    const res = await fetch(apiPath(`/api/dex/token/${encodeURIComponent(mint)}/trades`));
+    const q = live ? '?live=1' : '';
+    const res = await fetch(apiPath(`/api/dex/token/${encodeURIComponent(mint)}/trades${q}`));
     if (!res.ok) return [];
     const body = await res.json();
     return body?.trades || [];
+  }
+
+  function applyLivePairToMarket(m, pair, priceUsd) {
+    if (!m) return;
+    if (Number.isFinite(priceUsd)) {
+      m.priceUsd = priceUsd;
+      m.priceUsdFmt = null;
+    }
+    if (!pair) return;
+    const px = parseFloat(pair.priceUsd);
+    if (Number.isFinite(px)) {
+      m.priceUsd = px;
+      m.priceUsdFmt = null;
+    }
+    m.priceChange5m = parseFloat(pair.priceChange?.m5) ?? m.priceChange5m;
+    m.priceChange1h = parseFloat(pair.priceChange?.h1) ?? m.priceChange1h;
+    m.priceChange6h = parseFloat(pair.priceChange?.h6) ?? m.priceChange6h;
+    m.priceChange24h = parseFloat(pair.priceChange?.h24) ?? m.priceChange24h;
+    m.buys24h = pair.txns?.h24?.buys ?? m.buys24h;
+    m.sells24h = pair.txns?.h24?.sells ?? m.sells24h;
+    m.liquidityUsd = parseFloat(pair.liquidity?.usd) || m.liquidityUsd;
+    m.volume24h = parseFloat(pair.volume?.h24) || m.volume24h;
+    if (pair.pairAddress) m.poolAddress = pair.pairAddress;
+  }
+
+  function renderLivePrice(m) {
+    $('priceUsd').textContent = fmtPriceDisplay({ priceUsd: m.priceUsd, priceUsdFmt: m.priceUsdFmt });
+    renderQuoteChanges(m);
   }
 
   async function refreshTrades(m, initial = false) {
@@ -2051,13 +2080,13 @@
     if (initial && meta) meta.textContent = 'yükleniyor…';
     tradesPollInFlight = true;
     try {
-      const trades = await fetchTradesFromServer(mint);
+      const trades = await fetchTradesFromServer(mint, true);
       if (initial) lastTradeIds = new Set();
       if (trades.length) tradesLastGood = trades;
       const display = trades.length ? trades : tradesLastGood;
       renderTradesList(display, m?.symbol, { keepPrevious: !initial });
       if (meta) {
-        if (trades.length) meta.textContent = `${trades.length} işlem · 5s`;
+        if (trades.length) meta.textContent = `${trades.length} işlem · canlı 5s`;
         else if (tradesLastGood.length) meta.textContent = `${tradesLastGood.length} işlem · canlı`;
         else meta.textContent = 'işlem bekleniyor';
       }
@@ -2081,6 +2110,26 @@
     }, ms);
   }
 
+  function stopLivePoll() {
+    stopTradesPoll();
+    if (livePollTimer) {
+      clearInterval(livePollTimer);
+      livePollTimer = null;
+    }
+  }
+
+  function startLivePoll(m) {
+    stopLivePoll();
+    const tick = () => {
+      if (!reportId || !appData?.market) return;
+      void refreshTrades(appData.market);
+      void refreshChartAndPrice(appData.market);
+    };
+    void refreshTrades(m, true);
+    void refreshChartAndPrice(m);
+    livePollTimer = setInterval(tick, 5000);
+  }
+
   function chartsLibReady() {
     return typeof window.LightweightCharts?.createChart === 'function';
   }
@@ -2095,19 +2144,52 @@
     return { w: Math.max(container?.clientWidth || 320, 320), h: chartStageHeight() };
   }
 
-  async function fetchChartCandles(m, tf) {
+  async function fetchChartCandles(m, tf, opts = {}) {
     const pool = m?.poolAddress;
     const mint = tokenMintRef(m);
     const ref = pool || mint;
-    if (!ref) return { candles: [], stats: null, poolAddress: null };
-    const res = await fetch(apiPath(`/api/dex/pair/${encodeURIComponent(ref)}?tf=${encodeURIComponent(tf)}`));
-    if (!res.ok) return { candles: [], stats: null, poolAddress: null };
+    if (!ref) return { candles: [], stats: null, poolAddress: null, priceUsd: null, pair: null };
+    const q = new URLSearchParams({ tf });
+    if (opts.live) q.set('live', '1');
+    const res = await fetch(apiPath(`/api/dex/pair/${encodeURIComponent(ref)}?${q}`));
+    if (!res.ok) return { candles: [], stats: null, poolAddress: null, priceUsd: null, pair: null };
     const body = await res.json();
     return {
       candles: body.candles || [],
       stats: body.stats || null,
       poolAddress: body.poolAddress || pool || null,
+      priceUsd: body.priceUsd ?? null,
+      pair: body.pair || null,
     };
+  }
+
+  function pushChartLiveUpdate(candles, stats, tf) {
+    if (!chartApi || !candleSeries || !candles?.length) return false;
+    const seriesData = buildChartData(candles);
+    if (!seriesData.length) return false;
+    const prev = buildChartData(appData?.market?.chart?.candles || []);
+    const prevLast = prev[prev.length - 1];
+    const nextLast = seriesData[seriesData.length - 1];
+    if (prev.length === seriesData.length && prevLast?.time === nextLast?.time) {
+      if (chartType !== 'line') candleSeries.update(nextLast);
+      lineSeries?.update({ time: nextLast.time, value: nextLast.close });
+      const raw = candles[candles.length - 1];
+      if (volumeSeries) {
+        volumeSeries.update({
+          time: nextLast.time,
+          value: Number(raw.volume) || 0,
+          color: nextLast.close >= nextLast.open
+            ? 'rgba(0, 200, 80, 0.35)' : 'rgba(239, 68, 68, 0.35)',
+        });
+      }
+      updateOhlc(raw);
+      renderChartPeriodChg(stats, tf);
+      return true;
+    }
+    applyChartSeriesData(candles);
+    renderChartPeriodChg(stats, tf);
+    chartApi.timeScale().fitContent();
+    return true;
   }
 
   function addChartSeries(chart, kind, opts) {
@@ -2158,20 +2240,6 @@
     });
   }
 
-  function stopChartPoll() {
-    if (chartPollTimer) {
-      clearInterval(chartPollTimer);
-      chartPollTimer = null;
-    }
-  }
-
-  function startChartPoll(m) {
-    stopChartPoll();
-    chartPollTimer = setInterval(() => {
-      if (reportId && appData?.market) void refreshChartLive(appData.market);
-    }, 30_000);
-  }
-
   function bindChartTouchGuard(stage) {
     if (!stage || stage.dataset.chartTouchBound) return;
     stage.dataset.chartTouchBound = '1';
@@ -2209,27 +2277,29 @@
     volumeSeries?.setData(volData);
   }
 
-  async function refreshChartLive(m) {
-    if (!chartApi || !candleSeries || !m) return;
+  async function refreshChartAndPrice(m) {
+    if (!m) return;
     const tf = currentTf;
     try {
-      const live = await fetchChartCandles(m, tf);
+      const live = await fetchChartCandles(m, tf, { live: true });
+      applyLivePairToMarket(m, live.pair, live.priceUsd);
+      renderLivePrice(m);
+      if (live.poolAddress) m.poolAddress = live.poolAddress;
       if (!live.candles.length) return;
       if (appData?.market?.chart) {
         appData.market.chart.candles = live.candles;
         appData.market.chart.stats = live.stats || appData.market.chart.stats;
         appData.market.chart.timeframe = tf;
       }
-      applyChartSeriesData(live.candles);
-      renderChartPeriodChg(live.stats || appData.market.chart.stats, tf);
-      updateOhlc(live.candles[live.candles.length - 1]);
+      if (chartApi && candleSeries) {
+        pushChartLiveUpdate(live.candles, live.stats, tf);
+      }
     } catch (e) {
-      console.warn('chart refresh', e);
+      console.warn('live refresh', e);
     }
   }
 
   function destroyChart() {
-    stopChartPoll();
     document.documentElement.classList.remove('chart-interacting');
     if (chartResizeObs) {
       chartResizeObs.disconnect();
@@ -2492,7 +2562,6 @@
         chartResizeObs.observe(container);
       }
 
-      startChartPoll(m);
     } catch (e) {
       console.warn('chart render', e);
       destroyChart();
@@ -2773,7 +2842,7 @@
       chartSection?.classList.remove('hidden');
       renderChart(m).catch((e) => console.warn('renderChart', e));
     }
-    startTradesPoll(m);
+    startLivePoll(m);
     renderInfoPanel(data);
     renderSecurityPanel(data);
     renderTradePanel(data);

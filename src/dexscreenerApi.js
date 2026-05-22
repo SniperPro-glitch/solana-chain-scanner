@@ -4,7 +4,10 @@ const axios = require('axios');
 const config = require('./chains/solana/config');
 
 const CACHE_MS = 30_000;
+const LIVE_CACHE_MS = 4_000;
 const cache = new Map();
+const ohlcvLiveFetchAt = new Map();
+const OHLCV_LIVE_FULL_MS = 25_000;
 
 const http = axios.create({
   timeout: 14_000,
@@ -15,10 +18,11 @@ function cacheKey(url) {
   return url;
 }
 
-async function cachedGet(url) {
+async function cachedGet(url, opts = {}) {
+  const maxAge = opts.maxAge ?? (opts.fresh ? LIVE_CACHE_MS : CACHE_MS);
   const key = cacheKey(url);
   const hit = cache.get(key);
-  if (hit && Date.now() - hit.at < CACHE_MS) return hit.data;
+  if (!opts.bypassCache && hit && Date.now() - hit.at < maxAge) return hit.data;
   const { data } = await http.get(url);
   cache.set(key, { at: Date.now(), data });
   return data;
@@ -30,11 +34,12 @@ function pickBestSolanaPair(pairs) {
   return list[0] || null;
 }
 
-async function fetchPairByPool(poolAddr) {
+async function fetchPairByPool(poolAddr, opts = {}) {
   if (!poolAddr) return null;
   try {
     const data = await cachedGet(
       `${config.api.dexScreenerBase}/latest/dex/pairs/solana/${poolAddr}`,
+      opts,
     );
     return data?.pairs?.[0] || data?.pair || null;
   } catch {
@@ -42,11 +47,12 @@ async function fetchPairByPool(poolAddr) {
   }
 }
 
-async function fetchTokenData(mint) {
+async function fetchTokenData(mint, opts = {}) {
   if (!mint) return null;
   try {
     const data = await cachedGet(
       `${config.api.dexScreenerBase}/latest/dex/tokens/${mint}`,
+      opts,
     );
     const pairs = data?.pairs || [];
     return { pairs, best: pickBestSolanaPair(pairs) };
@@ -92,13 +98,20 @@ function dexScreenerPageUrl(poolOrMint) {
 }
 
 /** Pool veya mint → pair + OHLCV (Dex pair meta, Gecko mumlar). */
-async function getPairChart(poolOrMint, timeframe = '15m') {
+async function getPairChart(poolOrMint, timeframe = '15m', opts = {}) {
   const ref = String(poolOrMint || '').trim();
-  if (!ref) return { pair: null, candles: [], poolAddress: null };
+  if (!ref) return { pair: null, candles: [], poolAddress: null, priceUsd: null };
 
-  let pair = await fetchPairByPool(ref);
+  const live = !!opts.fresh;
+  const pairOpts = live ? { fresh: true, maxAge: LIVE_CACHE_MS } : {};
+
+  let pair = await fetchPairByPool(ref, pairOpts);
   if (!pair) {
     pair = await resolveDexScreenerPair({ mint: ref, poolAddress: ref });
+    if (live && pair?.pairAddress) {
+      const freshPair = await fetchPairByPool(pair.pairAddress, pairOpts);
+      if (freshPair) pair = freshPair;
+    }
   }
 
   let pool = pair?.pairAddress || null;
@@ -107,23 +120,41 @@ async function getPairChart(poolOrMint, timeframe = '15m') {
     pool = await fetchGeckoPoolAddress(ref);
   }
 
+  const { fetchOhlcv, normalizeTimeframe, patchLastCandle } = require('./marketData');
+  const tf = normalizeTimeframe(timeframe);
   let candles = [];
   if (pool) {
-    const { fetchOhlcv, normalizeTimeframe } = require('./marketData');
-    candles = await fetchOhlcv(pool, normalizeTimeframe(timeframe));
+    const ohlcvKey = `${pool}:${tf}`;
+    const needFull = !live
+      || !ohlcvLiveFetchAt.has(ohlcvKey)
+      || Date.now() - ohlcvLiveFetchAt.get(ohlcvKey) >= OHLCV_LIVE_FULL_MS;
+    if (needFull) {
+      candles = await fetchOhlcv(pool, tf, { fresh: live });
+      if (candles.length) ohlcvLiveFetchAt.set(ohlcvKey, Date.now());
+    } else {
+      candles = await fetchOhlcv(pool, tf, { allowStale: true });
+    }
   }
-  return { pair, candles, poolAddress: pool };
+
+  const priceUsd = parseFloat(pair?.priceUsd);
+  if (Number.isFinite(priceUsd) && candles.length) {
+    candles = patchLastCandle(candles, priceUsd);
+  }
+
+  return { pair, candles, poolAddress: pool, priceUsd: Number.isFinite(priceUsd) ? priceUsd : null };
 }
 
 /** Token mint → canlı işlemler (DS token + pool trades). */
-async function getTokenTrades(mint, limit = 28) {
-  const token = await fetchTokenData(mint);
+async function getTokenTrades(mint, limit = 28, opts = {}) {
+  const pairOpts = opts.fresh ? { fresh: true, maxAge: LIVE_CACHE_MS } : {};
+  const token = await fetchTokenData(mint, pairOpts);
   const best = token?.best;
   const { fetchPairTrades } = require('./pairTrades');
   const trades = await fetchPairTrades({
     poolAddress: best?.pairAddress,
     mint,
     limit,
+    fresh: !!opts.fresh,
   });
   return { trades, pair: best, pairs: token?.pairs || [] };
 }
