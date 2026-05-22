@@ -757,7 +757,9 @@
     const det = document.getElementById('cropDetectLabel');
     if (det) {
       const auto = detectProfile();
-      det.textContent = `Otomatik: ${PROFILE_META[auto]?.label || auto} (${window.innerWidth}x${window.innerHeight})`;
+      const vw = global.SniperCropProfile?.layoutWidth?.() || window.innerWidth;
+      const host = document.documentElement.dataset.sniperHost || '?';
+      det.textContent = `Otomatik: ${PROFILE_META[auto]?.label || auto} (vw=${vw}px host=${host} ${window.innerWidth}x${window.innerHeight})`;
     }
   }
 

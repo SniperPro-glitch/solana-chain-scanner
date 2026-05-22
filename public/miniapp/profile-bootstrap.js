@@ -22,6 +22,7 @@
     if (String(tg.initData || '').trim().length > 0) return true;
     const uid = tg.initDataUnsafe?.user?.id;
     if (uid != null && String(uid) !== '0') return true;
+    if (tg.initDataUnsafe?.auth_date) return true;
     const p = String(tg.platform || '').toLowerCase();
     return ['android', 'ios', 'macos', 'tdesktop', 'weba', 'webk'].includes(p);
   }
@@ -29,29 +30,47 @@
   /** Kalibrasyonda kullanılan genişlik — innerWidth değil, TG viewportWidth. */
   function layoutWidth() {
     const tg = window.Telegram?.WebApp;
-    if (tg?.viewportWidth) return Math.round(tg.viewportWidth);
+    if (tg?.viewportWidth && tg.viewportWidth > 0) return Math.round(tg.viewportWidth);
     if (window.visualViewport?.width) return Math.round(window.visualViewport.width);
     return Math.round(window.innerWidth || 390);
   }
 
-  function detect() {
-    const forced = fromUrl();
-    if (forced) return forced;
-    if (!isTelegramApp()) return 'web';
-    const w = layoutWidth();
+  function profileFromWidth(w) {
     if (w >= 429) return 'app16';
     if (w >= 426) return 'app13pm';
     if (w >= 400) return 'app11';
     return 'app13';
   }
 
+  function detect() {
+    const forced = fromUrl();
+    if (forced) return forced;
+    if (!isTelegramApp()) return 'web';
+    return profileFromWidth(layoutWidth());
+  }
+
   function apply() {
+    if (window.SniperHost?.refresh) window.SniperHost.refresh();
     const id = detect();
     document.documentElement.dataset.dexCropProfile = id;
     document.documentElement.dataset.dexCropW = String(layoutWidth());
     return id;
   }
 
-  apply();
-  window.SniperCropProfile = { detect, apply, layoutWidth, IDS };
+  function boot() {
+    apply();
+  }
+
+  window.SniperCropProfile = { detect, apply, layoutWidth, profileFromWidth, IDS };
+
+  const tg = window.Telegram?.WebApp;
+  if (tg && typeof tg.ready === 'function') {
+    tg.ready(boot);
+  } else {
+    boot();
+  }
+  document.addEventListener('DOMContentLoaded', boot);
+  window.addEventListener('sniper-host-telegram', boot);
+  setTimeout(boot, 150);
+  setTimeout(boot, 700);
 })();
