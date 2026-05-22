@@ -268,6 +268,36 @@ function createMiniAppServer() {
         }
       }
 
+      if (url.pathname === '/api/crop-profiles') {
+        const cropProfiles = require('./cropProfiles');
+        if (req.method === 'GET') {
+          const baked = cropProfiles.loadBakedProfiles();
+          if (!baked) {
+            sendJson(res, 404, { error: 'no_baked_profiles' });
+            return;
+          }
+          sendJson(res, 200, baked);
+          return;
+        }
+        if (req.method === 'POST') {
+          if (!cropProfiles.isPublishAuthorized(req)) {
+            sendJson(res, 403, { error: 'forbidden', message: 'CROP_PUBLISH_KEY gerekli veya CROP_LOCK_PROFILES=1' });
+            return;
+          }
+          try {
+            const raw = await readBody(req);
+            const payload = JSON.parse(raw.toString('utf8') || '{}');
+            const saved = cropProfiles.saveBakedProfiles(payload);
+            console.log('[miniApp] crop-profiles kaydedildi:', cropProfiles.DATA_FILE);
+            sendJson(res, 200, { ok: true, saved });
+          } catch (e) {
+            console.warn('[miniApp] crop-profiles POST:', e.message);
+            sendJson(res, 400, { error: 'crop_save_failed', message: e.message });
+          }
+          return;
+        }
+      }
+
       if (url.pathname === '/api/miniapp-version' && req.method === 'GET') {
         let appV = '';
         try {
