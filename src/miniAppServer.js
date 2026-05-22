@@ -291,7 +291,7 @@ function createMiniAppServer() {
       const dexTradesMatch = url.pathname.match(/^\/api\/dex\/token\/([A-Za-z0-9]+)\/trades$/);
       if (req.method === 'GET' && dexTradesMatch) {
         const { getTokenTrades } = require('./dexscreenerApi');
-        const limit = Math.min(40, Math.max(8, parseInt(url.searchParams.get('limit') || '28', 10) || 28));
+        const limit = Math.min(50, Math.max(8, parseInt(url.searchParams.get('limit') || '50', 10) || 50));
         const live = url.searchParams.get('live') === '1';
         try {
           const out = await getTokenTrades(dexTradesMatch[1], limit, { fresh: live });

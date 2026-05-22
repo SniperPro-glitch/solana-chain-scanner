@@ -148,7 +148,7 @@ async function getPairChart(poolOrMint, timeframe = '15m', opts = {}) {
 }
 
 /** Token mint → canlı işlemler (DS token + pool trades). */
-async function getTokenTrades(mint, limit = 28, opts = {}) {
+async function getTokenTrades(mint, limit = 50, opts = {}) {
   const pairOpts = opts.fresh ? { fresh: true, maxAge: LIVE_CACHE_MS } : {};
   const token = await fetchTokenData(mint, pairOpts);
   const best = token?.best;

@@ -86,7 +86,8 @@
   let tradesPollTimer = null;
   let tradesPollInFlight = false;
   let tradesLastGood = [];
-  let lastTradeIds = new Set();
+  let tradesDisplayRows = [];
+  const TRADES_MAX_ROWS = 50;
   let openingMint = false;
   let feedItemsFull = [];
   let feedEmptyMessage = '';
@@ -1967,7 +1968,7 @@
       clearInterval(tradesPollTimer);
       tradesPollTimer = null;
     }
-    lastTradeIds = new Set();
+    tradesDisplayRows = [];
     tradesLastGood = [];
     tradesPollInFlight = false;
   }
@@ -1998,34 +1999,97 @@
     return `${Math.floor(sec / 3600)}h`;
   }
 
+  function tradeTimeMs(t) {
+    const ms = new Date(t?.at || 0).getTime();
+    return Number.isFinite(ms) ? ms : 0;
+  }
+
+  function tradeDedupeKey(t) {
+    const tx = String(t?.txHash || t?.id || '').trim();
+    if (tx) return `tx:${tx}`;
+    return `t:${tradeTimeMs(t)}:${String(t?.wallet || '')}:${t?.usd ?? ''}`;
+  }
+
+  function mergeTradesDisplay(incoming, existing) {
+    const byKey = new Map();
+    for (const t of [...(incoming || []), ...(existing || [])]) {
+      if (!t) continue;
+      const k = tradeDedupeKey(t);
+      const prev = byKey.get(k);
+      if (!prev || tradeTimeMs(t) >= tradeTimeMs(prev)) byKey.set(k, t);
+    }
+    return [...byKey.values()]
+      .sort((a, b) => tradeTimeMs(b) - tradeTimeMs(a))
+      .slice(0, TRADES_MAX_ROWS);
+  }
+
+  function formatTradeAmount(t) {
+    const v = t?.amount;
+    if (v == null || !Number.isFinite(Number(v))) return '—';
+    const n = Number(v);
+    if (n >= 1e6) return `${(n / 1e6).toFixed(2)}M`;
+    if (n >= 1e3) return `${(n / 1e3).toFixed(1)}K`;
+    return n.toFixed(2);
+  }
+
+  function buildTradeRowHtml(t, isNew) {
+    const side = t.side === 'sell' ? 'sell' : 'buy';
+    const ago = tradeAgoLabel(t.at) || t.ago || '—';
+    const key = tradeDedupeKey(t);
+    return `<li class="trade-row trade-row--${side}${isNew ? ' trade-row--new' : ''}" data-trade-key="${escHtml(key)}">
+        <span class="trade-ago">${escHtml(ago)}</span>
+        <span class="trade-side ${side}">${side === 'buy' ? 'AL' : 'SAT'}</span>
+        <span class="trade-usd">${escHtml(t.usdFmt || '—')}</span>
+        <span class="trade-amt">${escHtml(formatTradeAmount(t))}</span>
+        <span class="trade-wallet">${escHtml(t.wallet || '—')}</span>
+      </li>`;
+  }
+
+  function trimTradesDom(list) {
+    const rows = [...list.querySelectorAll('.trade-row:not(.trade-placeholder)')];
+    while (rows.length > TRADES_MAX_ROWS) {
+      rows[rows.length - 1].remove();
+      rows.pop();
+    }
+  }
+
   function renderTradesList(trades, symbol, opts = {}) {
     const list = $('tradesList');
     const col = $('tradesColToken');
     if (col) col.textContent = symbol || 'Token';
     if (!list) return;
+
     if (!trades?.length) {
-      if (opts.keepPrevious && list.children.length && !list.querySelector('.trade-placeholder')) return;
+      if (opts.keepPrevious && tradesDisplayRows.length) return;
+      tradesDisplayRows = [];
       list.innerHTML = '<li class="trade-row trade-placeholder">Henüz işlem yok</li>';
       return;
     }
-    const rows = trades.map((t) => {
-      const side = t.side === 'sell' ? 'sell' : 'buy';
-      const key = t.txHash || t.id || `${t.at || ''}:${t.wallet || ''}`;
-      const isNew = key && !lastTradeIds.has(key);
-      if (key) lastTradeIds.add(key);
-      const amt = t.amount != null && Number.isFinite(t.amount)
-        ? (t.amount >= 1e6 ? `${(t.amount / 1e6).toFixed(2)}M` : t.amount >= 1e3 ? `${(t.amount / 1e3).toFixed(1)}K` : t.amount.toFixed(2))
-        : '—';
-      const ago = tradeAgoLabel(t.at) || t.ago || '—';
-      return `<li class="trade-row trade-row--${side}${isNew ? ' trade-row--new' : ''}">
-        <span class="trade-ago">${escHtml(ago)}</span>
-        <span class="trade-side ${side}">${side === 'buy' ? 'AL' : 'SAT'}</span>
-        <span class="trade-usd">${escHtml(t.usdFmt || '—')}</span>
-        <span class="trade-amt">${escHtml(amt)}</span>
-        <span class="trade-wallet">${escHtml(t.wallet || '—')}</span>
-      </li>`;
-    });
-    list.innerHTML = rows.join('');
+
+    const prevKeys = new Set(tradesDisplayRows.map(tradeDedupeKey));
+    const merged = mergeTradesDisplay(trades, tradesDisplayRows);
+    tradesDisplayRows = merged;
+
+    const placeholder = list.querySelector('.trade-placeholder');
+    if (placeholder) placeholder.remove();
+
+    if (opts.fullRender || !list.querySelector('.trade-row[data-trade-key]')) {
+      list.innerHTML = merged.map((t) => buildTradeRowHtml(t, false)).join('');
+      trimTradesDom(list);
+      return;
+    }
+
+    const added = merged.filter((t) => !prevKeys.has(tradeDedupeKey(t)));
+    if (!added.length) {
+      trimTradesDom(list);
+      return;
+    }
+
+    added.sort((a, b) => tradeTimeMs(a) - tradeTimeMs(b));
+    for (const t of added) {
+      list.insertAdjacentHTML('afterbegin', buildTradeRowHtml(t, true));
+    }
+    trimTradesDom(list);
   }
 
   async function fetchTradesFromServer(mint, live = false) {
@@ -2081,12 +2145,19 @@
     tradesPollInFlight = true;
     try {
       const trades = await fetchTradesFromServer(mint, true);
-      if (initial) lastTradeIds = new Set();
+      if (initial) {
+        tradesDisplayRows = [];
+        tradesLastGood = [];
+      }
       if (trades.length) tradesLastGood = trades;
       const display = trades.length ? trades : tradesLastGood;
-      renderTradesList(display, m?.symbol, { keepPrevious: !initial });
+      renderTradesList(display, m?.symbol, {
+        keepPrevious: !initial && !trades.length,
+        fullRender: initial,
+      });
       if (meta) {
-        if (trades.length) meta.textContent = `${trades.length} işlem · canlı 5s`;
+        const n = tradesDisplayRows.length;
+        if (n) meta.textContent = `${n} işlem · canlı 5s`;
         else if (tradesLastGood.length) meta.textContent = `${tradesLastGood.length} işlem · canlı`;
         else meta.textContent = 'işlem bekleniyor';
       }

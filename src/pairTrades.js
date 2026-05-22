@@ -13,22 +13,36 @@ const http = axios.create({
 });
 
 const CACHE_MS = 5_000;
+const TRADES_FEED_MAX = 50;
 const cache = new Map();
+
+function tradeTimeMs(t) {
+  const ms = new Date(t?.at || 0).getTime();
+  return Number.isFinite(ms) ? ms : 0;
+}
 
 function tradeKey(t) {
   return String(t?.txHash || t?.id || '').trim();
 }
 
-function mergeTrades(primary, extra, limit) {
-  const seen = new Set();
-  const out = [];
+/** Zaman damgası + tx — aynı işlem iki kez gelmesin. */
+function tradeDedupeKey(t) {
+  const tx = tradeKey(t);
+  if (tx) return `tx:${tx}`;
+  return `t:${tradeTimeMs(t)}:${String(t?.wallet || '')}:${t?.usd ?? ''}`;
+}
+
+function mergeTrades(primary, extra, limit = TRADES_FEED_MAX) {
+  const byKey = new Map();
   for (const t of [...(primary || []), ...(extra || [])]) {
-    const key = tradeKey(t) || `${t?.at || ''}:${t?.wallet || ''}:${t?.usd || ''}`;
-    if (seen.has(key)) continue;
-    seen.add(key);
-    out.push(t);
+    if (!t) continue;
+    const k = tradeDedupeKey(t);
+    const prev = byKey.get(k);
+    if (!prev || tradeTimeMs(t) >= tradeTimeMs(prev)) byKey.set(k, t);
   }
-  return out.slice(0, limit);
+  return [...byKey.values()]
+    .sort((a, b) => tradeTimeMs(b) - tradeTimeMs(a))
+    .slice(0, limit);
 }
 
 function shortAddr(a) {
@@ -73,7 +87,7 @@ function normalizeGeckoTrade(row, baseMint) {
   };
 }
 
-async function fetchGeckoTrades(poolAddress, baseMint, limit = 24) {
+async function fetchGeckoTrades(poolAddress, baseMint, limit = TRADES_FEED_MAX) {
   if (!poolAddress) return [];
   const { data, status } = await http.get(
     `https://api.geckoterminal.com/api/v2/networks/solana/pools/${poolAddress}/trades`,
@@ -86,7 +100,7 @@ async function fetchGeckoTrades(poolAddress, baseMint, limit = 24) {
     .slice(0, limit);
 }
 
-async function fetchDexOrders(mint, limit = 24) {
+async function fetchDexOrders(mint, limit = TRADES_FEED_MAX) {
   if (!mint) return [];
   const { data, status } = await http.get(
     `https://api.dexscreener.com/orders/v1/solana/${mint}`,
@@ -112,7 +126,7 @@ async function fetchDexOrders(mint, limit = 24) {
   }).filter((t) => t.usd > 0 || t.wallet !== '—');
 }
 
-async function fetchPairTrades({ poolAddress, mint, limit = 24, fresh = false } = {}) {
+async function fetchPairTrades({ poolAddress, mint, limit = TRADES_FEED_MAX, fresh = false } = {}) {
   const key = `${poolAddress || ''}:${mint || ''}:${limit}`;
   const hit = cache.get(key);
   const maxAge = fresh ? 2_500 : CACHE_MS;
@@ -157,5 +171,9 @@ async function fetchPairTrades({ poolAddress, mint, limit = 24, fresh = false } 
 
 module.exports = {
   fetchPairTrades,
+  mergeTrades,
+  tradeDedupeKey,
+  tradeTimeMs,
+  TRADES_FEED_MAX,
   timeAgo,
 };
