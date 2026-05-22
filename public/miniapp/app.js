@@ -362,13 +362,6 @@
     else if (typeof window.__tgApplySafeArea === 'function') window.__tgApplySafeArea();
   }
 
-  function canTgNavBack() {
-    if (!$('searchOverlay')?.classList.contains('hidden')) return true;
-    if (document.body.classList.contains('sidebar-open')) return true;
-    if (reportId || !$('view-detail')?.classList.contains('hidden')) return true;
-    return false;
-  }
-
   function syncTgBackButton() {
     const tg = window.Telegram?.WebApp;
     if (!tg?.BackButton || window.SniperHost?.isWebBrowser?.()) return;
