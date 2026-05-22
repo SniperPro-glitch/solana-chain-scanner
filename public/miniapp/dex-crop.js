@@ -1,6 +1,6 @@
 ﻿/**
  * DexScreener kirpma — 5 profil: Web, iPhone 11, 13, 13 Pro Max, 16 Pro Max
- * ?kalibre=1 — admin UI (normal kullanıcıda görünmez)
+ * ?kalibre=1 veya "Kirpma" butonu
  */
 (function (global) {
   const STORAGE_KEY = 'sniperDexCropV4';
@@ -84,14 +84,11 @@
     return detectProfile();
   }
 
-  /** Koddaki ölçüler + sunucu (normal kullanıcı: git/baked dosyası her zaman kazanır). */
+  /** Koddaki ├Âl├ğ├╝ler + sunucudaki g├╝ncel profiller birle┼şir (bo┼ş sunucu varsay─▒lan─▒ ezmez). */
   function getBakedSource() {
     const file = globalThis.__DEX_CROP_BAKED__;
+    if (!isCalibrateMode()) return file?.profiles ? file : null;
     const server = serverBaked;
-    if (!isCalibrateMode()) {
-      if (file?.profiles) return file;
-      return server?.profiles ? server : null;
-    }
     if (!file?.profiles) return server || null;
     if (!server?.profiles) return file;
     const profiles = {};
@@ -125,6 +122,7 @@
   }
 
   async function fetchServerBaked() {
+    if (!isCalibrateMode()) return null;
     try {
       const r = await fetch(`/api/crop-profiles?v=${Date.now()}`, { cache: 'no-store' });
       if (r.ok) {
@@ -405,85 +403,12 @@
     ].join('\n');
   }
 
-  const APPLY_BURST_MS = [0, 150, 500, 1200, 2500, 4000, 6000, 9000];
-  let applyBurstGen = 0;
-
-  function isDetailActive() {
-    const vd = document.getElementById('view-detail');
-    return !!vd && !vd.classList.contains('hidden');
-  }
-
-  function forceApply() {
-    if (!isDetailActive() && !isCalibrateUrl()) return;
-    if (global.SniperCropProfile?.apply) global.SniperCropProfile.apply();
-    apply(load());
-  }
-
-  function scheduleApplyBurst() {
-    const gen = ++applyBurstGen;
-    void ensureProfilesReady().then(() => {
-      APPLY_BURST_MS.forEach((ms) => {
-        setTimeout(() => {
-          if (gen !== applyBurstGen) return;
-          forceApply();
-        }, ms);
-      });
-    });
-  }
-
-  function applyWhenDetailReady() {
-    if (!isDetailActive()) return;
-    void ensureProfilesReady().then(() => {
-      forceApply();
-      scheduleApplyBurst();
-    });
-  }
-
-  function watchDetailEmbeds() {
-    if (global.__sniperCropEmbedObs) return;
-    global.__sniperCropEmbedObs = true;
-    const onEmbed = () => {
-      if (!isDetailActive()) return;
-      void ensureProfilesReady().then(() => {
-        forceApply();
-        scheduleApplyBurst();
-      });
-    };
-    const hook = (root) => {
-      if (!root || typeof MutationObserver === 'undefined') return;
-      const mo = new MutationObserver((list) => {
-        for (const rec of list) {
-          for (const node of rec.addedNodes) {
-            if (node.nodeType !== 1) continue;
-            const el = node;
-            if (
-              el.matches?.('iframe.dex-embed-chart, iframe.dex-trades-embed')
-              || el.querySelector?.('iframe.dex-embed-chart, iframe.dex-trades-embed')
-            ) {
-              onEmbed();
-              return;
-            }
-          }
-        }
-      });
-      mo.observe(root, { childList: true, subtree: true });
-    };
-    hook(document.getElementById('priceChart'));
-    hook(document.getElementById('dexTradesWrap'));
-    for (const id of ['dexTradesEmbed']) {
-      const node = document.getElementById(id);
-      if (!node) continue;
-      node.addEventListener('load', onEmbed);
-    }
-  }
-
   function bindCropObservers() {
     if (global.__sniperCropObs) return;
     global.__sniperCropObs = true;
     const reapply = () => {
-      const panel = document.getElementById('dexCropPanel');
-      if (panel && !panel.classList.contains('hidden')) return;
-      forceApply();
+      if (document.getElementById('dexCropPanel')?.classList.contains('hidden') === false) return;
+      apply();
     };
     window.addEventListener('resize', reapply);
     const tg = global.Telegram?.WebApp;
@@ -548,13 +473,8 @@
       tapeEl.style.marginTop = `${tapeDown}px`;
     }
 
-    const inDetail = document.documentElement.classList.contains('detail-mode');
-    const stage = inDetail
-      ? document.querySelector('#view-detail .chart-terminal .chart-stage')
-      : document.querySelector('.chart-terminal--dex-embed .chart-stage');
-    const chartIframe = inDetail
-      ? document.querySelector('#view-detail iframe.dex-embed-chart')
-      : document.querySelector('iframe.dex-embed-chart');
+    const stage = document.querySelector('.chart-terminal--dex-embed .chart-stage');
+    const chartIframe = document.querySelector('iframe.dex-embed-chart');
     if (stage) {
       setImp(stage, 'height', `${c.stageH}px`);
       setImp(stage, 'min-height', `${c.stageH}px`);
@@ -652,21 +572,6 @@
 
   function removeCalibrateButton() {
     document.querySelectorAll('.btn-crop-cal').forEach((el) => el.remove());
-  }
-
-  /** Kullanıcıya görünen kırpma UI — motor apply() etkilenmez. */
-  function purgeCropUi() {
-    removeCalibrateButton();
-    document.getElementById('dexCropPanel')?.remove();
-    panelBuilt = false;
-    panelEl = null;
-    document.getElementById('cropToast')?.remove();
-    document.getElementById('dexCropDebug')?.remove();
-    document.documentElement.classList.remove('crop-panel-open');
-    document.querySelectorAll('.trades-head button, .trades-head a').forEach((el) => {
-      const t = (el.textContent || '').trim();
-      if (/k[ıi]rpma/i.test(t)) el.remove();
-    });
   }
 
   /** ?profil=web|app11|app13|app13pm|app16 ÔÇö link sadece do─şru sekmeyi a├ğar; ├Âl├ğ├╝ler kay─▒tta. */
@@ -872,7 +777,6 @@
   }
 
   function buildPanel() {
-    if (!isCalibrateUrl()) return;
     const c = DEFAULT_BLOCK.chart;
     const tp = DEFAULT_BLOCK.tape;
     const t = DEFAULT_BLOCK.trades;
@@ -880,7 +784,7 @@
     panelEl.id = 'dexCropPanel';
     panelEl.className = 'dex-crop-panel hidden';
     panelEl.innerHTML = [
-      '<header class="dex-crop-head"><strong>DEX hizalama \u2014 5 ekran</strong>',
+      '<header class="dex-crop-head"><strong>K\u0131rpma \u2014 5 ekran</strong>',
       '<button type="button" class="crop-close" id="cropCloseBtn" aria-label="Kapat">\u00d7</button></header>',
       '<p class="crop-intro"><b>Bu profili kaydet</b> = \u00f6l\u00e7\u00fcler kal\u0131r + sunucuya gider. <b>Sunucuya sabitle</b> = 5 cihaz + baked.js.</p>',
       '<p class="crop-detect" id="cropDetectLabel"></p>',
@@ -1026,7 +930,7 @@
 
   function addCalibrateButton() {
     if (!shouldShowCropButton()) {
-      purgeCropUi();
+      removeCalibrateButton();
       return;
     }
     const head = document.querySelector('.trades-head');
@@ -1034,9 +938,8 @@
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.className = 'btn-crop-cal';
-    btn.textContent = '\u2699';
-    btn.setAttribute('aria-label', 'DEX hizalama');
-    btn.title = 'DEX hizalama (admin)';
+    btn.textContent = 'K\u0131rpma';
+    btn.title = 'Dex embed hizalama — kaydet';
     btn.addEventListener('click', (e) => {
       e.preventDefault();
       e.stopPropagation();
@@ -1049,18 +952,10 @@
     if (!profilesReady) {
       profilesReady = (async () => {
         await fetchServerBaked();
-        const merged = getBakedSource();
-        if (merged?.profiles) globalThis.__DEX_CROP_BAKED__ = merged;
-        if (isCalibrateMode()) absorbLocalStorageToBaked();
+        absorbLocalStorageToBaked();
       })();
     }
     return profilesReady;
-  }
-
-  function refreshProfilesFromServer() {
-    profilesReady = null;
-    serverBaked = null;
-    return ensureProfilesReady();
   }
 
   async function applyAsync(settings) {
@@ -1070,33 +965,27 @@
 
   async function init() {
     if (isCalibrateUrl()) enableCalibrateSession();
-    else {
-      clearCalibrateSessionArtifacts();
-      purgeCropUi();
-    }
+    else clearCalibrateSessionArtifacts();
     if (global.SniperCropProfile?.apply) global.SniperCropProfile.apply();
     await ensureProfilesReady();
-    forceApply();
-    scheduleApplyBurst();
+    apply();
     bindCropObservers();
-    watchDetailEmbeds();
-    if (!isCalibrateUrl()) purgeCropUi();
-    else {
+    removeCalibrateButton();
+    if (isCalibrateUrl()) {
       addCalibrateButton();
       setTimeout(() => openPanel(), 1200);
     }
     window.addEventListener('resize', () => {
-      const panel = document.getElementById('dexCropPanel');
-      if (panel && !panel.classList.contains('hidden')) return;
-      forceApply();
+      if (!document.getElementById('dexCropPanel')?.classList.contains('hidden')) return;
+      apply();
     });
     const vd = document.getElementById('view-detail');
     if (vd) {
       new MutationObserver(() => {
         if (!vd.classList.contains('hidden')) {
           if (shouldShowCropButton()) addCalibrateButton();
-          else purgeCropUi();
-          void refreshProfilesFromServer().then(() => applyWhenDetailReady());
+          else removeCalibrateButton();
+          apply();
         }
       }).observe(vd, { attributes: true, attributeFilter: ['class'] });
     }
@@ -1117,10 +1006,6 @@
     reset,
     apply,
     applyAsync,
-    forceApply,
-    scheduleApplyBurst,
-    applyWhenDetailReady,
-    refreshProfilesFromServer,
     openPanel,
     closePanel,
     copyProfileFrom,
