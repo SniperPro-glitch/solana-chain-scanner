@@ -781,18 +781,11 @@ async function canManageChat(msg) {
   return false;
 }
 
-function buildDexWebAppButton(lang) {
-  const webEntry = getWebAppEntryUrl();
-  if (!/^https:\/\//i.test(webEntry)) {
-    console.warn('[start] DEX butonu yok — WEB_APP_URL HTTPS olmalı:', webEntry);
-    return null;
-  }
-  return { text: t('welcome.openDex', lang), web_app: { url: webEntry } };
-}
+const { buildSniperDexWebAppButton, sniperDexMenuButton } = require('./dexAppButton');
 
 function buildStartKeyboard(lang) {
   const rows = [];
-  const dexBtn = buildDexWebAppButton(lang);
+  const dexBtn = buildSniperDexWebAppButton(lang);
   if (dexBtn) rows.push([dexBtn]);
   rows.push([
     { text: lang === 'tr' ? '⚙️ Ayarlar' : '⚙️ Settings', callback_data: 'startcmd:settings' },
@@ -803,7 +796,7 @@ function buildStartKeyboard(lang) {
 
 function buildLangPickKeyboard() {
   const rows = [];
-  const dexBtn = buildDexWebAppButton('tr');
+  const dexBtn = buildSniperDexWebAppButton('tr');
   if (dexBtn) rows.push([dexBtn]);
   rows.push([
     { text: '🇬🇧 English', callback_data: 'startlang:en' },
@@ -1094,6 +1087,23 @@ async function handleSettings(msg) {
 }
 
 bindTextCommand(/^\/settings(@\w+)?$/i, handleSettings);
+
+bindTextCommand(/^\/dex(@\w+)?$/i, async (msg) => {
+  const lang = langForMsg(msg);
+  const dexBtn = buildSniperDexWebAppButton(lang);
+  if (!dexBtn) {
+    return bot.sendMessage(
+      msg.chat.id,
+      lang === 'tr'
+        ? '❌ Sniper DEX henüz yapılandırılmadı. Railway → WEB_APP_URL (HTTPS) ayarlayın.'
+        : '❌ Sniper DEX is not configured. Set WEB_APP_URL (HTTPS) on Railway.',
+    );
+  }
+  return bot.sendMessage(msg.chat.id, t('dex.openHint', lang), {
+    parse_mode: 'Markdown',
+    reply_markup: { inline_keyboard: [[dexBtn]] },
+  });
+});
 
 bindTextCommand(/^\/channelid(@\w+)?$/i, async (msg) => {
   const lang = langForMsg(msg);
@@ -1620,17 +1630,14 @@ async function main() {
   const webEntry = getWebAppEntryUrl();
   if (/^https:\/\//i.test(webEntry)) {
     await bot.setChatMenuButton({
-      menu_button: {
-        type: 'web_app',
-        text: 'Risk Raporu',
-        web_app: { url: webEntry },
-      },
+      menu_button: sniperDexMenuButton(),
     }).catch((e) => console.warn('setChatMenuButton:', e?.message));
     console.log(`   Mini App menü URL: ${webEntry}`);
   }
 
   await bot.setMyCommands([
     { command: 'start', description: 'Başlangıç / dil' },
+    { command: 'dex', description: 'Sniper DEX Mini App' },
     { command: 'settings', description: 'Kanal ayarları' },
     { command: 'post', description: 'Manuel token paylaş (DM)' },
     { command: 'channelid', description: 'Kanal ID (Railway yedek)' },

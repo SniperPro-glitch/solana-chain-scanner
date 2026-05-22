@@ -619,7 +619,7 @@ function getBotApiBaseUrl() {
 function buildWebAppUrl(reportId) {
   const base = getWebAppEntryUrl();
   const u = new URL(base);
-  u.hash = `r=${encodeURIComponent(reportId)}`;
+  u.searchParams.set('r', String(reportId));
   return u.toString();
 }
 

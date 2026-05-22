@@ -3,6 +3,7 @@
 
 const channels = require('./channels');
 const { t, normalizeLang, langName, SUPPORTED } = require('./i18n');
+const { buildSniperDexWebAppButton } = require('./dexAppButton');
 
 // Helper: get effective lang for chat
 // Caption modunda fotoğraf zaten sabit genişlik veriyor, dolguya gerek yok
@@ -144,8 +145,12 @@ ${PANEL_RULE}
     : `⚠️ ${t('settings.chain', lang)}: ${chainLabel}`;
   const langBtnLbl = `${t('settings.language', lang)}: ${langName(lang)}`;
 
+  const dexBtn = buildSniperDexWebAppButton(lang);
+  const dexRow = dexBtn ? [[dexBtn]] : [];
+
   const keyboard = chainSet
     ? [
+      ...dexRow,
       [
         { text: langBtnLbl, callback_data: 'menu:lang' },
         { text: chainBtnLbl, callback_data: 'menu:chain' },
@@ -173,6 +178,7 @@ ${PANEL_RULE}
       ],
     ]
     : [
+      ...dexRow,
       [
         { text: langBtnLbl, callback_data: 'menu:lang' },
         { text: chainBtnLbl, callback_data: 'menu:chain' },

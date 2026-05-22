@@ -775,14 +775,19 @@ const STRINGS = {
     ru: '✅ *{name}* — успешно добавлен.\n\nНастройки управляются кнопкой ниже.',
   },
   'welcome.start': {
-    en: '👋 *Solana Chain Scanner*\n\nI automatically discover and audit new tokens on the Solana network and share them with the channels/groups I am added to.\n\n*Quick start:*\n1. Add me to your channel as admin\n2. Tap the *“Open Settings”* button when I send the welcome message\n3. Configure your filters there\n\n*Commands:* /settings /ping /stats /post',
-    tr: '👋 *Solana Chain Scanner*\n\nSolana ağındaki yeni tokenleri otomatik olarak bulup denetler ve eklendiğim kanal/gruplara paylaşırım.\n\n*Hızlı başlangıç:*\n1. Bu botu kanalına admin olarak ekle\n2. Eklendiğimde gelen mesajdaki *“Ayarları aç”* butonuna bas\n3. Buradan ayarları düzenle\n\n*Komutlar:* /settings /ping /stats /post',
-    ru: '👋 *Solana Chain Scanner*\n\nЯ автоматически нахожу и проверяю новые токены в сети Solana и делюсь ими в каналах/группах, куда меня добавили.\n\n*Быстрый старт:*\n1. Добавьте меня в канал как администратора\n2. Нажмите кнопку *«Открыть настройки»* в приветственном сообщении\n3. Настройте фильтры\n\n*Команды:* /settings /ping /stats /post',
+    en: '👋 *Solana Chain Scanner*\n\nI automatically discover and audit new tokens on the Solana network and share them with the channels/groups I am added to.\n\n*Open the scanner:* tap *🎯 Sniper DEX* below (Mini App inside Telegram).\n\n*Quick start:*\n1. Add me to your channel as admin\n2. Tap *“Open Settings”* in the welcome message on the channel\n3. Configure your filters\n\n*Commands:* /dex /settings /ping /stats /post',
+    tr: '👋 *Solana Chain Scanner*\n\nSolana ağındaki yeni tokenleri otomatik bulup denetler, eklendiğim kanal/gruplara paylaşırım.\n\n*Tarayıcı:* Aşağıdaki *🎯 Sniper DEX* düğmesine bas (Telegram içi Mini App).\n\n*Hızlı başlangıç:*\n1. Botu kanalına admin ekle\n2. Kanaldaki hoş geldin mesajında *Ayarları aç*\n3. Filtreleri ayarla\n\n*Komutlar:* /dex /settings /ping /stats /post',
+    ru: '👋 *Solana Chain Scanner*\n\nЯ нахожу и проверяю новые токены Solana и делюсь ими в каналах/группах.\n\n*Сканер:* кнопка *🎯 Sniper DEX* ниже (Mini App в Telegram).\n\n*Быстрый старт:*\n1. Добавьте бота в канал как админа\n2. *«Открыть настройки»* в приветствии канала\n3. Настройте фильтры\n\n*Команды:* /dex /settings /ping /stats /post',
   },
   'welcome.openDex': {
-    en: '📊 Open DEX Scanner',
-    tr: '📊 DEX Scanner\'ı aç',
-    ru: '📊 Открыть DEX Scanner',
+    en: '🎯 Sniper DEX',
+    tr: '🎯 Sniper DEX',
+    ru: '🎯 Sniper DEX',
+  },
+  'dex.openHint': {
+    en: '🎯 Tap *Sniper DEX* to open the scanner inside Telegram (not in an external browser).',
+    tr: '🎯 *Sniper DEX* düğmesine bas — tarayıcıda değil, Telegram içinde Mini App açılır.',
+    ru: '🎯 Нажмите *Sniper DEX* — Mini App откроется внутри Telegram.',
   },
 
   // ─── Komutlar ───

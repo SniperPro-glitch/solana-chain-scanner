@@ -1,6 +1,8 @@
 (function () {
   const tg = window.Telegram?.WebApp;
-  const isWebBrowser = window.SniperHost?.isWebBrowser?.() ?? !tg;
+  function isWebBrowser() {
+    return window.SniperHost?.isWebBrowser?.() ?? !tg;
+  }
   let apiConfig = { botApiBase: '', webAppBase: '' };
   let apiConfigPromise = null;
   let homeFeedInflight = null;
@@ -56,8 +58,8 @@
   if (tg?.themeParams?.bg_color) {
     document.documentElement.style.setProperty('--bg', tg.themeParams.bg_color);
   }
-  if (typeof window.__tgApplyFullscreen === 'function') {
-    window.__tgApplyFullscreen();
+  if (typeof window.__tgApplySafeArea === 'function') {
+    window.__tgApplySafeArea();
   }
 
   const $ = (id) => document.getElementById(id);
@@ -317,9 +319,40 @@
   }
 
   function reportIdFromUrl() {
+    const fromSearch = new URLSearchParams(location.search).get('r');
+    if (fromSearch) return fromSearch;
     const hash = (location.hash || '').replace(/^#/, '');
+    if (!hash || hash.includes('tgWebApp')) return null;
     const params = new URLSearchParams(hash.includes('=') ? hash : `r=${hash}`);
-    return params.get('r') || new URLSearchParams(location.search).get('r');
+    return params.get('r');
+  }
+
+  function setReportRoute(rid) {
+    const u = new URL(location.href);
+    if (rid) u.searchParams.set('r', String(rid));
+    else u.searchParams.delete('r');
+    const qs = u.searchParams.toString();
+    const tgHash = (location.hash || '').includes('tgWebApp') ? location.hash : '';
+    history.replaceState({ report: rid || null }, '', `${u.pathname}${qs ? `?${qs}` : ''}${tgHash}`);
+  }
+
+  function clearReportRoute() {
+    setReportRoute(null);
+  }
+
+  function onReportRouteChange() {
+    const id = reportIdFromUrl();
+    if (id && id !== reportId) {
+      reportId = id;
+      markReportOpen(false);
+      loadReportFlow();
+      return;
+    }
+    if (!id && reportId) {
+      reportId = null;
+      destroyChart();
+      showScannerHome();
+    }
   }
 
   function scoreColor(score) {
@@ -358,14 +391,15 @@
   }
 
   function refreshTgViewport() {
-    if (typeof window.__tgApplyFullscreen === 'function') window.__tgApplyFullscreen();
-    else if (typeof window.__tgApplySafeArea === 'function') window.__tgApplySafeArea();
+    if (typeof window.__tgApplySafeArea === 'function') window.__tgApplySafeArea();
   }
 
   function syncTgBackButton() {
     const tg = window.Telegram?.WebApp;
     if (!tg?.BackButton || window.SniperHost?.isWebBrowser?.()) return;
-    tg.BackButton.show();
+    const onDetail = document.documentElement.classList.contains('detail-mode');
+    if (onDetail) tg.BackButton.show();
+    else tg.BackButton.hide();
   }
 
   function tgNavBack() {
@@ -378,7 +412,7 @@
       return;
     }
     if (reportId || !$('view-detail')?.classList.contains('hidden')) {
-      location.hash = '';
+      clearReportRoute();
       reportId = null;
       destroyChart();
       showScannerHome();
@@ -416,7 +450,7 @@
     if (now - lastBottomNavAt < 120) return;
     lastBottomNavAt = now;
     if (nav === 'home') {
-      location.hash = '';
+      clearReportRoute();
       reportId = null;
       feedListMode = 'top';
       setFeedTab('home');
@@ -427,7 +461,7 @@
       return;
     }
     if (nav === 'trend') {
-      location.hash = '';
+      clearReportRoute();
       reportId = null;
       feedListMode = 'top';
       setFeedTab('trending');
@@ -437,7 +471,7 @@
       return;
     }
     if (nav === 'new') {
-      location.hash = '';
+      clearReportRoute();
       reportId = null;
       feedListMode = 'top';
       feedEmptyMessage = '';
@@ -456,7 +490,7 @@
       return;
     }
     if (nav === 'scan') {
-      location.hash = '';
+      clearReportRoute();
       reportId = null;
       setFeedTab('scan');
       showScannerHome();
@@ -696,7 +730,7 @@
       if (!scannerPreviewId) return;
       markReportOpen(true);
       reportId = scannerPreviewId;
-      location.hash = `r=${scannerPreviewId}`;
+      setReportRoute(scannerPreviewId);
       loadReportFlow();
     });
     root?.querySelector('[data-action="clear"]')?.addEventListener('click', clearSearch);
@@ -769,7 +803,7 @@
       setRadarProgress(100, 'Complete', 'Opening report…');
       markReportOpen(true);
       reportId = id;
-      location.hash = `r=${id}`;
+      setReportRoute(id);
       hideRadarActive();
       await loadReportFlow();
     } catch (e) {
@@ -1228,7 +1262,7 @@
     };
     el.classList.remove('hidden');
     applyPromoBannerLayout();
-    if (isWebBrowser && typeof console !== 'undefined') {
+    if (isWebBrowser() && typeof console !== 'undefined') {
       requestAnimationFrame(() => {
         const r = el.getBoundingClientRect();
         const ir = img.getBoundingClientRect();
@@ -1264,7 +1298,7 @@
       if (rid) {
         markReportOpen(scannerNavActive);
         reportId = rid;
-        location.hash = `r=${rid}`;
+        setReportRoute(rid);
         loadReportFlow();
         return;
       }
@@ -1600,7 +1634,7 @@
       if (!id) throw new Error('report_missing');
       markReportOpen(scannerNavActive);
       reportId = id;
-      location.hash = `r=${id}`;
+      setReportRoute(id);
       await loadReportFlow();
     } catch (e) {
       showToast(e.message || 'Açılamadı');
@@ -1671,7 +1705,7 @@
       if (rid) {
         markReportOpen(scannerNavActive);
         reportId = rid;
-        location.hash = `r=${rid}`;
+        setReportRoute(rid);
         loadReportFlow();
         return;
       }
@@ -2613,34 +2647,24 @@
 
   function setupShell() {
     $('btnBack')?.addEventListener('click', () => {
-      location.hash = '';
+      clearReportRoute();
       reportId = null;
       destroyChart();
       showScannerHome();
     });
     $('btnErrorHome')?.addEventListener('click', () => {
-      location.hash = '';
+      clearReportRoute();
       reportId = null;
       showScannerHome();
     });
-    window.addEventListener('hashchange', () => {
-      const id = reportIdFromUrl();
-      if (id && id !== reportId) {
-        reportId = id;
-        markReportOpen(false);
-        loadReportFlow();
-      } else if (!id && !$('scanner-home')?.classList.contains('hidden')) {
-        return;
-      } else if (!id) {
-        reportId = null;
-        showScannerHome();
-      }
-    });
+    window.addEventListener('hashchange', onReportRouteChange);
+    window.addEventListener('popstate', onReportRouteChange);
   }
 
   async function main() {
     setupShell();
     initWallet();
+    if (window.SniperTgLaunch?.migrateReportHash) window.SniperTgLaunch.migrateReportHash();
     reportId = reportIdFromUrl();
 
     if (!reportId) {
@@ -2664,7 +2688,7 @@
     if (!rid) return;
     markReportOpen(scannerNavActive);
     reportId = rid;
-    location.hash = `r=${rid}`;
+    setReportRoute(rid);
     loadReportFlow();
   };
   globalThis.onBottomNav = onBottomNav;

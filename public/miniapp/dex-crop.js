@@ -1,4 +1,4 @@
-﻿/**
+/**
  * DexScreener kirpma — 5 profil: Web, iPhone 11, 13, 13 Pro Max, 16 Pro Max
  * ?kalibre=1 veya "Kirpma" butonu
  */
@@ -155,6 +155,8 @@
   }
 
   function isTelegram() {
+    if (global.SniperHost?.isTelegram?.()) return true;
+    if (global.SniperTgLaunch?.hasLaunchData?.()) return true;
     return !!global.Telegram?.WebApp?.initData || document.documentElement.classList.contains('tg-mini-app');
   }
 
@@ -185,7 +187,6 @@
     if (forced) return forced;
     const w = cropLayoutWidth();
     if (!isTelegram() && w > 500) return 'web';
-    if (isTelegram() && isTelegramDesktop() && w > 500) return 'web';
     return detectProfileByWidth(w);
   }
 

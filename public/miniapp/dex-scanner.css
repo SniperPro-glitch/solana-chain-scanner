@@ -2,10 +2,14 @@
 
 :root {
   --app-height: 100dvh;
-  --tg-safe-top: env(safe-area-inset-top, 0px);
-  --tg-safe-bottom: env(safe-area-inset-bottom, 0px);
-  --tg-content-safe-top: 0px;
-  --tg-content-safe-bottom: 0px;
+  --sniper-bg-bleed-top: env(safe-area-inset-top, 0px);
+  --sniper-bg-bleed-bottom: env(safe-area-inset-bottom, 0px);
+  --sniper-content-top: 0px;
+  --sniper-content-bottom: 0px;
+  --tg-safe-top: var(--sniper-bg-bleed-top, 0px);
+  --tg-safe-bottom: var(--sniper-bg-bleed-bottom, 0px);
+  --tg-content-safe-top: var(--sniper-content-top, 0px);
+  --tg-content-safe-bottom: var(--sniper-content-bottom, 0px);
   --tg-content-safe-left: 0px;
   --tg-content-safe-right: 0px;
   --nav-h: 72px;
@@ -19,6 +23,20 @@ html.tg-mini-app body {
   margin: 0;
   overflow: hidden;
   overscroll-behavior: none;
+  background: #060910;
+}
+
+/* Arka plan — status bar (5G/batarya) altına uzanır; içerik ayrı padding alır */
+html.tg-mini-app::before,
+html.tg-mini-app body::before {
+  content: '';
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: calc(-1 * var(--sniper-bg-bleed-top, 0px));
+  height: calc(100% + var(--sniper-bg-bleed-top, 0px) + var(--sniper-bg-bleed-bottom, 0px));
+  pointer-events: none;
+  z-index: -2;
   background: #060910;
 }
 
@@ -57,7 +75,10 @@ html.tg-mini-app body {
 .scanner-home::before {
   content: '';
   position: fixed;
-  inset: 0;
+  left: 0;
+  right: 0;
+  top: calc(-1 * var(--sniper-bg-bleed-top, 0px));
+  height: calc(100% + var(--sniper-bg-bleed-top, 0px));
   width: 100%;
   max-width: 100%;
   margin: 0;
@@ -66,8 +87,9 @@ html.tg-mini-app body {
   background:
     linear-gradient(rgba(0, 229, 255, 0.022) 1px, transparent 1px),
     linear-gradient(90deg, rgba(0, 229, 255, 0.022) 1px, transparent 1px),
-    radial-gradient(ellipse 70% 40% at 50% 0%, rgba(0, 229, 255, 0.055), transparent 55%);
-  background-size: 20px 20px, 20px 20px, 100% 100%;
+    radial-gradient(ellipse 70% 40% at 50% 0%, rgba(0, 229, 255, 0.055), transparent 55%),
+    #060910;
+  background-size: 20px 20px, 20px 20px, 100% 100%, 100% 100%;
 }
 
 .scanner-home > *:not(.bottom-nav):not(.market-footer) {
@@ -539,11 +561,20 @@ html.web-browser .promo-banner-img {
   gap: 10px;
   min-height: 52px;
   padding:
-    calc(10px + var(--tg-content-safe-top, 0px))
+    calc(10px + var(--sniper-content-top, var(--tg-content-safe-top, 0px)))
     calc(12px + var(--tg-content-safe-right, 0px))
     10px
     calc(12px + var(--tg-content-safe-left, 0px));
   box-sizing: border-box;
+}
+
+html[data-safe-tier="none"] .scan-header {
+  padding-top: 10px;
+}
+
+html[data-safe-tier="island"] .scan-header,
+html[data-safe-tier="notch"] .scan-header {
+  padding-top: calc(8px + var(--sniper-content-top, var(--tg-content-safe-top, 0px)));
 }
 
 .scan-brand {
@@ -607,10 +638,8 @@ html.tg-fullscreen .btn-connect {
   font-size: 11px;
 }
 
-/* Expand mod: Telegram üst şeridi — ekstra sol boşluk gerekmez */
 html.tg-expanded .scan-header {
   padding-left: 12px;
-  padding-top: calc(6px + var(--tg-content-safe-top, 0px));
 }
 
 .btn-connect {

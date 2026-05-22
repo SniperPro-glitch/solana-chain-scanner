@@ -16,22 +16,19 @@
   }
 
   function isTelegramApp() {
+    if (window.SniperHost?.isTelegram?.()) return true;
+    if (window.SniperTgLaunch?.hasLaunchData?.()) return true;
     const tg = window.Telegram?.WebApp;
     if (!tg) return false;
     if (String(tg.initData || '').trim().length > 0) return true;
     const p = String(tg.platform || '').toLowerCase();
-    return ['android', 'ios', 'macos', 'tdesktop', 'weba', 'webk'].includes(p);
+    return ['android', 'ios', 'macos', 'tdesktop', 'weba', 'webk', 'unigram'].includes(p);
   }
 
   function layoutWidth() {
     const inner = Math.round(window.innerWidth || 0);
     const tgVp = Math.round(window.Telegram?.WebApp?.viewportWidth || 0);
     return Math.max(inner, tgVp) || 390;
-  }
-
-  function isTelegramDesktop() {
-    const p = String(window.Telegram?.WebApp?.platform || '').toLowerCase();
-    return ['macos', 'tdesktop', 'weba', 'webk'].includes(p);
   }
 
   function detectByWidth(w) {
@@ -46,7 +43,6 @@
     if (forced) return forced;
     const w = layoutWidth();
     if (!isTelegramApp() && w > 500) return 'web';
-    if (isTelegramApp() && isTelegramDesktop() && w > 500) return 'web';
     return detectByWidth(w);
   }
 
@@ -54,10 +50,10 @@
     const id = detect();
     document.documentElement.dataset.dexCropProfile = id;
     document.documentElement.dataset.dexCropW = String(layoutWidth());
+    if (typeof window.SniperSafeArea?.apply === 'function') window.SniperSafeArea.apply();
     return id;
   }
 
-  /** TG: viewportWidth gelene kadar tekrar dene (erken app13 kilidi önlenir). */
   function applyWhenReady() {
     apply();
     if (document.documentElement.classList.contains('web-browser')) return;
@@ -77,5 +73,9 @@
   }
 
   applyWhenReady();
+  if (typeof window.SniperSafeArea?.apply === 'function') window.SniperSafeArea.apply();
+  window.addEventListener('sniper-host-changed', (ev) => {
+    if (!ev.detail?.web) applyWhenReady();
+  });
   window.SniperCropProfile = { detect, apply, applyWhenReady, layoutWidth, IDS };
 })();
