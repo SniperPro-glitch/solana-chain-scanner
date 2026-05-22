@@ -361,7 +361,7 @@
   function startDexScreenMotor() {
     const C = globalThis.SniperDexCrop;
     if (C?.ensureBackgroundCrop) C.ensureBackgroundCrop();
-    else if (C?.runCropLikeButton) C.runCropLikeButton();
+    else if (C?.pressCropButtonBot) C.pressCropButtonBot();
     else scheduleDexTradesCrop();
   }
 
@@ -1975,7 +1975,7 @@
     else C.apply?.();
   }
   globalThis.__sniperScheduleDexCrop = scheduleDexTradesCrop;
-  globalThis.__sniperRunCrop = () => globalThis.SniperDexCrop?.runCropLikeButton?.();
+  globalThis.__sniperRunCrop = () => globalThis.SniperDexCrop?.pressCropButtonBot?.();
 
   function chartPoolRef(m) {
     const market = m || appData?.market || {};
