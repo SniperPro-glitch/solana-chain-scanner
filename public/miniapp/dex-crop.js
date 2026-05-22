@@ -422,6 +422,7 @@
 
   let cropMotorTimer = null;
   let cropMotorGen = 0;
+  let cropEngineOn = false;
 
   function isDetailViewVisible() {
     return document.documentElement.classList.contains('detail-mode')
@@ -434,25 +435,109 @@
     cropMotorTimer = null;
   }
 
-  /** Görünmez arka plan motoru — panel açıkken apply tekrarlar (Dex iframe stilleri sıfırlar). */
-  function startCropMotor() {
+  function clearMotorStyleTag() {
+    document.getElementById('dexCropMotorStyle')?.remove();
+  }
+
+  /** Panel openPanel ile aynı yol + CSS motor etiketi. */
+  function motorApply() {
+    if (isCropPanelInteractive()) return;
+    if (global.SniperCropProfile?.apply) global.SniperCropProfile.apply();
+    const profileId = activeProfileId();
+    const block = loadForProfile(profileId);
+    let styleEl = document.getElementById('dexCropMotorStyle');
+    if (!styleEl) {
+      styleEl = document.createElement('style');
+      styleEl.id = 'dexCropMotorStyle';
+      document.head.appendChild(styleEl);
+    }
+    const c = block.chart;
+    const t = block.trades;
+    const brandCrop = Number(c.brandCrop) || CHART_BRAND_CROP;
+    const chartDown = Number(c.shiftDown) || 0;
+    const tradesDown = Number(t.shiftDown) || 0;
+    const chartTop = c.top - brandCrop + chartDown;
+    const chartH = c.stageH + c.heightExtra + brandCrop;
+    const tradeTop = t.iframeTop + tradesDown;
+    styleEl.textContent = `
+html.crop-motor-on .chart-terminal--dex-embed .chart-stage{
+  height:${c.stageH}px!important;min-height:${c.stageH}px!important;max-height:${c.stageH}px!important;
+}
+html.crop-motor-on #dexTradesWrap{
+  height:${t.viewH}px!important;min-height:${t.viewH}px!important;max-height:${t.viewH}px!important;overflow:hidden!important;
+}
+html.crop-motor-on #dexTradesEmbed{
+  position:absolute!important;top:${tradeTop}px!important;left:${t.left}%!important;width:${t.width}%!important;height:${t.iframeH}px!important;
+  max-width:none!important;margin:0!important;border:0!important;display:block!important;transform:none!important;
+}
+html.crop-motor-on iframe.dex-embed-chart{
+  position:absolute!important;top:${chartTop}px!important;left:${c.left}%!important;width:${c.width}%!important;height:${chartH}px!important;
+  max-width:none!important;margin:0!important;border:0!important;display:block!important;
+}`;
+    apply(block);
+  }
+
+  function burstMotorApply() {
+    motorApply();
+    [80, 200, 450, 900, 1800, 3500, 6000, 10000].forEach((ms) => setTimeout(motorApply, ms));
+  }
+
+  /** DEX detay — görünmez motor (panel açık gibi sürekli apply). */
+  function startCropEngine() {
     if (!isDetailViewVisible()) {
-      stopCropMotor();
+      stopCropEngine();
       return;
     }
+    cropEngineOn = true;
+    document.documentElement.classList.add('crop-motor-on');
+    document.documentElement.dataset.dexCropMotor = 'on';
+    if (!panelBuilt) buildPanel();
+    panelEl?.classList.add('hidden');
+    document.documentElement.classList.remove('crop-panel-open');
     stopCropMotor();
-    const gen = cropMotorGen;
+    const gen = ++cropMotorGen;
     const tick = () => {
-      if (gen !== cropMotorGen || !isDetailViewVisible()) {
-        stopCropMotor();
+      if (!cropEngineOn || gen !== cropMotorGen || !isDetailViewVisible()) {
+        stopCropEngine();
         return;
       }
-      const profileId = activeProfileId();
-      apply(profileFromBaked(profileId));
+      motorApply();
     };
     tick();
-    cropMotorTimer = setInterval(tick, 320);
-    [1200, 2800, 5500, 9000].forEach((ms) => setTimeout(tick, ms));
+    cropMotorTimer = setInterval(tick, 250);
+    [500, 1500, 4000, 8000].forEach((ms) => setTimeout(tick, ms));
+  }
+
+  function stopCropEngine() {
+    cropEngineOn = false;
+    document.documentElement.classList.remove('crop-motor-on');
+    document.documentElement.removeAttribute('data-dex-crop-motor');
+    clearMotorStyleTag();
+    stopCropMotor();
+  }
+
+  function startCropMotor() {
+    startCropEngine();
+  }
+
+  function bindIframeCropWatchers() {
+    if (global.__sniperIframeCropWatch) return;
+    global.__sniperIframeCropWatch = true;
+    const burst = () => {
+      if (!isDetailViewVisible()) return;
+      burstMotorApply();
+    };
+    const watch = (root) => {
+      if (!root || typeof MutationObserver === 'undefined') return;
+      const mo = new MutationObserver(burst);
+      mo.observe(root, { childList: true, subtree: true, attributes: true, attributeFilter: ['src', 'class'] });
+    };
+    watch(document.getElementById('priceChart'));
+    watch(document.getElementById('dexTradesWrap'));
+    document.addEventListener('load', (e) => {
+      const t = e.target;
+      if (t?.matches?.('iframe.dex-embed-chart, #dexTradesEmbed')) burst();
+    }, true);
   }
 
   function bindCropObservers() {
@@ -460,7 +545,8 @@
     global.__sniperCropObs = true;
     const reapply = () => {
       if (isCropPanelInteractive()) return;
-      void applyLiveProfile();
+      if (cropEngineOn) motorApply();
+      else void applyLiveProfile();
     };
     window.addEventListener('resize', reapply);
     const tg = global.Telegram?.WebApp;
@@ -792,6 +878,7 @@
   }
 
   function openPanel() {
+    stopCropEngine();
     enableCalibrateSession();
     if (!panelBuilt) buildPanel();
     editingProfile = profileFromUrl() || detectProfile();
@@ -809,6 +896,7 @@
     panelEl?.classList.add('hidden');
     document.documentElement.classList.remove('crop-panel-open');
     apply(load());
+    if (isDetailViewVisible()) startCropEngine();
   }
 
   function refreshPreview() {
@@ -1046,7 +1134,7 @@
     };
     run();
     [200, 500, 1100, 2200, 4000].forEach((ms) => setTimeout(run, ms));
-    startCropMotor();
+    startCropEngine();
   }
 
   async function init() {
@@ -1072,8 +1160,9 @@
     window.addEventListener('resize', () => {
       if (isCropPanelInteractive()) return;
       void applyLiveProfile();
-      if (isDetailViewVisible()) startCropMotor();
+      if (isDetailViewVisible()) startCropEngine();
     });
+    bindIframeCropWatchers();
     const vd = document.getElementById('view-detail');
     if (vd) {
       const onDetailVisible = () => {
@@ -1104,6 +1193,10 @@
     apply,
     applyLiveProfile,
     scheduleDetailCrop,
+    motorApply,
+    burstMotorApply,
+    startCropEngine,
+    stopCropEngine,
     startCropMotor,
     stopCropMotor,
     applyAsync,

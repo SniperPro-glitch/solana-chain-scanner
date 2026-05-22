@@ -353,36 +353,22 @@
     return `<svg class="tr-spark" viewBox="0 0 40 22" preserveAspectRatio="none"><polyline fill="none" stroke="${col}" stroke-width="1.5" points="${pts}"/></svg>`;
   }
 
-  let dexScreenMotorIv = null;
-
   function stopDexScreenMotor() {
-    if (dexScreenMotorIv) clearInterval(dexScreenMotorIv);
-    dexScreenMotorIv = null;
-    document.documentElement.removeAttribute('data-dex-crop-motor');
-    globalThis.SniperDexCrop?.stopCropMotor?.();
+    globalThis.SniperDexCrop?.stopCropEngine?.();
   }
 
-  /** DEX detay ekranı — arka planda sürekli kırpma (panel gerekmez). */
+  /** DEX detay ekranı — kırpma motoru arka planda (panel gerekmez). */
   function startDexScreenMotor() {
-    stopDexScreenMotor();
-    document.documentElement.dataset.dexCropMotor = 'on';
-    const tick = () => {
-      if (!document.documentElement.classList.contains('detail-mode')) {
-        stopDexScreenMotor();
-        return;
-      }
-      const C = globalThis.SniperDexCrop;
-      if (!C) return;
-      if (globalThis.SniperCropProfile?.apply) globalThis.SniperCropProfile.apply();
-      const pid = C.detectProfile?.() || 'web';
-      if (C.profileFromBaked) C.apply(C.profileFromBaked(pid));
-      else if (C.applyLiveProfile) void C.applyLiveProfile();
-      else C.apply();
-    };
-    tick();
-    dexScreenMotorIv = setInterval(tick, 320);
-    [600, 1500, 3000, 6000, 12000].forEach((ms) => setTimeout(tick, ms));
-    if (globalThis.SniperDexCrop?.startCropMotor) globalThis.SniperDexCrop.startCropMotor();
+    const C = globalThis.SniperDexCrop;
+    if (C?.startCropEngine) C.startCropEngine();
+    else if (C?.burstMotorApply) C.burstMotorApply();
+    else scheduleDexTradesCrop();
+  }
+
+  function burstDexEmbedCrop() {
+    const C = globalThis.SniperDexCrop;
+    if (C?.burstMotorApply) C.burstMotorApply();
+    else scheduleDexTradesCrop();
   }
 
   function hideAllViews() {
@@ -1977,14 +1963,15 @@
   function scheduleDexTradesCrop() {
     const C = globalThis.SniperDexCrop;
     if (!C) return;
-    const run = () => {
-      if (globalThis.SniperCropProfile?.apply) globalThis.SniperCropProfile.apply();
-      if (C.applyLiveProfile) void C.applyLiveProfile();
-      else C.apply();
-    };
     void C.ensureProfilesReady?.();
-    if (C.scheduleDetailCrop) C.scheduleDetailCrop();
-    else run();
+    if (document.documentElement.classList.contains('detail-mode')) {
+      if (C.startCropEngine) C.startCropEngine();
+      else if (C.burstMotorApply) C.burstMotorApply();
+      return;
+    }
+    if (C.burstMotorApply) C.burstMotorApply();
+    else if (C.motorApply) C.motorApply();
+    else C.apply?.();
   }
   globalThis.__sniperScheduleDexCrop = scheduleDexTradesCrop;
 
@@ -2047,9 +2034,9 @@
       fallback.classList.remove('hidden');
     }
     iframe.classList.remove('hidden');
-    scheduleDexTradesCrop();
+    burstDexEmbedCrop();
     iframe.onload = () => {
-      scheduleDexTradesCrop();
+      burstDexEmbedCrop();
       if (fallback) fallback.classList.add('hidden');
       if (meta) meta.textContent = 'canlı';
       if (globalThis.SniperDexCrop?.isCalibrateMode?.()) {
@@ -2096,8 +2083,9 @@
       container.innerHTML = `<iframe class="dex-embed-chart" src="${escHtml(embed)}" title="DexScreener canlı grafik" loading="eager" allow="fullscreen" referrerpolicy="no-referrer-when-downgrade"></iframe>`;
       const chartIfr = container.querySelector('iframe.dex-embed-chart');
       if (chartIfr) {
-        chartIfr.addEventListener('load', () => scheduleDexTradesCrop());
+        chartIfr.addEventListener('load', () => burstDexEmbedCrop());
       }
+      burstDexEmbedCrop();
       if (note) {
         note.textContent = `${(tf || '15m').toUpperCase()} · DexScreener`;
         note.classList.remove('hidden');
