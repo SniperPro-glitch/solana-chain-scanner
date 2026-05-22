@@ -114,7 +114,7 @@
     root.setAttribute('aria-hidden', 'false');
     open = true;
     document.body.classList.add('sidebar-open');
-    /* Arama paneli yalnızca arama kutusuna tıklanınca açılır (search-overlay.js). */
+    if (typeof global.syncTgBackButton === 'function') global.syncTgBackButton();
   }
 
   function closeSidebar() {
@@ -124,6 +124,7 @@
     root.setAttribute('aria-hidden', 'true');
     open = false;
     document.body.classList.remove('sidebar-open');
+    if (typeof global.syncTgBackButton === 'function') global.syncTgBackButton();
   }
 
   function toggleSidebar() {

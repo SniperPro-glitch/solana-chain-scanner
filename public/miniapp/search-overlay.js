@@ -218,6 +218,7 @@
 
     scheduleSearch();
     setTimeout(() => inp?.focus({ preventScroll: true }), 80);
+    if (typeof global.syncTgBackButton === 'function') global.syncTgBackButton();
   }
 
   function closeSearchOverlay() {
@@ -230,6 +231,7 @@
     inflight = null;
     activeIdx = -1;
     lastItems = [];
+    if (typeof global.syncTgBackButton === 'function') global.syncTgBackButton();
   }
 
   function moveActive(delta) {

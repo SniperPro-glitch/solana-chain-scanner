@@ -362,6 +362,37 @@
     else if (typeof window.__tgApplySafeArea === 'function') window.__tgApplySafeArea();
   }
 
+  function syncTgBackButton() {
+    const tg = window.Telegram?.WebApp;
+    if (!tg?.BackButton || window.SniperHost?.isWebBrowser?.()) return;
+    const searchOpen = !$('searchOverlay')?.classList.contains('hidden');
+    const sidebarOpen = document.body.classList.contains('sidebar-open');
+    const onDetail = !!reportId || !$('view-detail')?.classList.contains('hidden');
+    const show = searchOpen || sidebarOpen || onDetail;
+    if (show) tg.BackButton.show();
+    else tg.BackButton.hide();
+  }
+
+  function tgNavBack() {
+    if (!$('searchOverlay')?.classList.contains('hidden')) {
+      if (typeof globalThis.closeSearchOverlay === 'function') globalThis.closeSearchOverlay();
+      syncTgBackButton();
+      return;
+    }
+    if (document.body.classList.contains('sidebar-open')) {
+      if (typeof globalThis.closeDexSidebar === 'function') globalThis.closeDexSidebar();
+      syncTgBackButton();
+      return;
+    }
+    if (reportId || !$('view-detail')?.classList.contains('hidden')) {
+      location.hash = '';
+      reportId = null;
+      destroyChart();
+      showScannerHome();
+      syncTgBackButton();
+    }
+  }
+
   function showScannerHome() {
     stopTradesPoll();
     stopLivePoll();
@@ -370,6 +401,7 @@
     hideAllViews();
     $('scanner-home')?.classList.remove('hidden');
     refreshTgViewport();
+    syncTgBackButton();
     bindHomeShell();
     toggleHomeRadarPanels();
     if (!homeFeedBooted) {
@@ -454,6 +486,7 @@
     $('view-detail')?.classList.remove('hidden');
     ensureDetailSpacer();
     refreshTgViewport();
+    syncTgBackButton();
   }
 
   function isSolanaMint(s) {
@@ -2652,6 +2685,8 @@
   globalThis.ingestFeedResponse = ingestFeedResponse;
   globalThis.refreshHomeFeed = () =>
     loadHomeFeed(feedTabForApi(feedTab), feedTab === 'scan' ? 'trending' : feedTab);
+  globalThis.SniperNavBack = tgNavBack;
+  globalThis.syncTgBackButton = syncTgBackButton;
 
   main();
 })();

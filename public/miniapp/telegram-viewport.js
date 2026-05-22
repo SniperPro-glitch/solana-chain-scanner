@@ -1,6 +1,5 @@
 /**
- * Telegram Mini App — genişletilmiş mod (expand), üstte ↓ ile küçültme.
- * requestFullscreen KULLANILMAZ: o modda sol üstte X çıkar ve logoyla çakışır.
+ * Telegram Mini App — açılışta tam ekran + expand, geri butonu (app.js ile).
  */
 (function () {
   const tg = window.Telegram?.WebApp;
@@ -21,12 +20,10 @@
     const sTop = Number(sa.top) || 0;
     const sBottom = Number(sa.bottom) || 0;
 
-    /* Yanlışlıkla fullscreen açıldıysa X boşluğu (normalde exitFullscreen çağrılır) */
     if (fullscreen) {
       if (cLeft < 44) cLeft = 56;
       if (cTop < 36) cTop = Math.max(sTop, 52);
     } else {
-      /* Expand mod: fazla üst inset grafikte boşluk bırakmasın */
       if (cTop < 8) cTop = Math.max(sTop, 0);
       else if (cTop > 20) cTop = 20;
       cLeft = 0;
@@ -61,22 +58,28 @@
     }, 60);
   }
 
+  function enterFullscreen() {
+    if (typeof tg.requestFullscreen === 'function') {
+      try {
+        tg.requestFullscreen();
+      } catch (_) {
+        /* eski TG sürümü */
+      }
+    }
+  }
+
   function applyViewport() {
     tg.ready();
-
-    /* X’li tam ekrandan çık → üstte aşağı ok (küçült) modu */
-    if (tg.isFullscreen && typeof tg.exitFullscreen === 'function') {
-      try {
-        tg.exitFullscreen();
-      } catch (_) { /* */ }
-    }
 
     try {
       if (typeof tg.setHeaderColor === 'function') tg.setHeaderColor(BG);
       if (typeof tg.setBackgroundColor === 'function') tg.setBackgroundColor(BG);
-    } catch (_) { /* */ }
+    } catch (_) {
+      /* yoksay */
+    }
 
     if (typeof tg.expand === 'function') tg.expand();
+    enterFullscreen();
 
     applySafeArea();
     scheduleProfileApply();
@@ -87,8 +90,18 @@
     }, 180);
   }
 
+  function bindBackButton() {
+    if (!tg.BackButton || tg.__sniperBackBound) return;
+    tg.__sniperBackBound = true;
+    tg.BackButton.onClick(() => {
+      if (typeof window.SniperNavBack === 'function') window.SniperNavBack();
+      else if (typeof window.SniperNavBack?.back === 'function') window.SniperNavBack.back();
+    });
+  }
+
   document.documentElement.classList.add('tg-mini-app');
   applyViewport();
+  bindBackButton();
 
   if (typeof tg.onEvent === 'function') {
     tg.onEvent('viewportChanged', applyViewport);
@@ -101,12 +114,9 @@
       scheduleProfileApply();
     });
     tg.onEvent('fullscreenChanged', () => {
-      if (tg.isFullscreen && typeof tg.exitFullscreen === 'function') {
-        try {
-          tg.exitFullscreen();
-        } catch (_) { /* */ }
-      }
       applySafeArea();
+      scheduleProfileApply();
+      if (typeof window.SniperNavBack?.sync === 'function') window.SniperNavBack.sync();
     });
   }
 
@@ -116,4 +126,5 @@
 
   window.__tgApplyFullscreen = applyViewport;
   window.__tgApplySafeArea = applySafeArea;
+  window.__tgEnterFullscreen = enterFullscreen;
 })();
