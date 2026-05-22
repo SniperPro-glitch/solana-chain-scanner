@@ -40,17 +40,20 @@
   }
 
   function resolveContentTop(tg, sTop, cTop) {
-    const fullscreen = !!tg?.isFullscreen;
-    const tgChrome = 44;
-
-    if (fullscreen) {
-      if (cTop >= 8) return Math.max(cTop, sTop);
-      return Math.max(sTop, 48);
+    if (!window.SniperHost?.isTelegram?.()) {
+      return Math.min(measureEnvInset('env(safe-area-inset-top)') || 0, 12);
     }
 
-    /* Genişletilmiş mod (X Kapat görünür): Telegram contentSafeArea öncelikli */
-    if (cTop >= 8) return cTop;
-    return Math.max(sTop + tgChrome, 52);
+    const fullscreen = !!tg?.isFullscreen;
+    if (fullscreen) {
+      if (cTop >= 8) return Math.min(Math.max(cTop, sTop), 72);
+      return Math.min(Math.max(sTop, 44), 72);
+    }
+
+    /* Genişletilmiş: TG viewport zaten X Kapat altında — sadece makul contentSafeArea */
+    if (cTop >= 8 && cTop <= 72) return cTop;
+    if (cTop > 72) return 72;
+    return 0;
   }
 
   function apply() {

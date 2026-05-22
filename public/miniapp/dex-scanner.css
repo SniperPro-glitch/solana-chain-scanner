@@ -53,33 +53,32 @@ html.tg-mini-app body::before {
   background: #060910;
 }
 
-/* Telegram genişletilmiş: içerik X Kapat çubuğunun altında, tam yükseklik (referans) */
+/* Telegram: viewport tam yükseklik; üst boşluk yalnızca header satırında (çift offset yok) */
 html.tg-mini-app.tg-expanded .scanner-home,
-html.tg-mini-app.tg-expanded .boot-screen {
-  margin-top: var(--sniper-content-top, 0px);
-  min-height: calc(var(--app-height, 100dvh) - var(--sniper-content-top, 0px));
-  height: calc(var(--app-height, 100dvh) - var(--sniper-content-top, 0px));
-  max-height: calc(var(--app-height, 100dvh) - var(--sniper-content-top, 0px));
+html.tg-mini-app.tg-expanded .boot-screen,
+html.tg-mini-app.tg-fullscreen .scanner-home,
+html.tg-mini-app.tg-fullscreen .boot-screen {
+  margin-top: 0;
   padding-top: 0;
+  min-height: var(--app-height, 100dvh);
+  height: var(--app-height, 100dvh);
+  max-height: var(--app-height, 100dvh);
   box-sizing: border-box;
 }
 
 html.tg-mini-app.tg-expanded .view-detail,
 html.tg-mini-app.tg-fullscreen .view-detail {
-  top: var(--sniper-content-top, 0px);
-  height: calc(var(--app-height, 100dvh) - var(--sniper-content-top, 0px));
-  max-height: calc(var(--app-height, 100dvh) - var(--sniper-content-top, 0px));
+  top: 0;
+  margin-top: 0;
   padding-top: 0;
+  height: var(--app-height, 100dvh);
+  max-height: var(--app-height, 100dvh);
   box-sizing: border-box;
 }
 
-html.tg-mini-app.tg-fullscreen .scanner-home,
-html.tg-mini-app.tg-fullscreen .boot-screen {
-  margin-top: var(--sniper-content-top, 0px);
-  min-height: calc(var(--app-height, 100dvh) - var(--sniper-content-top, 0px));
-  height: calc(var(--app-height, 100dvh) - var(--sniper-content-top, 0px));
-  max-height: calc(var(--app-height, 100dvh) - var(--sniper-content-top, 0px));
-  padding-top: 0;
+html.tg-mini-app.tg-expanded .scan-header,
+html.tg-mini-app.tg-fullscreen .scan-header {
+  padding-top: calc(8px + var(--sniper-content-top, 0px));
 }
 
 .scanner-home {
@@ -667,11 +666,6 @@ html.web-browser .scan-header {
   align-items: center;
   gap: 8px;
   flex-shrink: 0;
-}
-
-html.tg-mini-app.tg-expanded .scan-header,
-html.tg-mini-app.tg-fullscreen .scan-header {
-  padding-top: 10px;
 }
 
 html.tg-expanded .scan-header {

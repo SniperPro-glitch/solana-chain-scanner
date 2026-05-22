@@ -1459,15 +1459,10 @@ html.web-browser .detail-body {
 
 html.tg-mini-app .detail-top,
 html.tg-expanded .detail-top {
-  padding-top: 8px;
+  padding-top: calc(8px + var(--sniper-content-top, 0px));
   padding-left: calc(12px + var(--tg-content-safe-left, 0px));
   padding-right: calc(12px + var(--tg-content-safe-right, 0px));
   top: 0;
-}
-
-html.tg-mini-app.tg-expanded .scan-header,
-html.tg-mini-app.tg-fullscreen .scan-header {
-  padding-top: 8px;
 }
 
 html.web-browser .detail-top {
