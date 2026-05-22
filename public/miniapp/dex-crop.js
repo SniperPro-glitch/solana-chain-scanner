@@ -420,7 +420,7 @@
       `profil=${profileId} w=${document.documentElement.dataset.dexCropW || '?'}`,
       `beklenen viewH=${t.viewH} top=${t.iframeTop + (t.shiftDown || 0)} h=${t.iframeH}`,
       `gerçek wrap=${w} iframe top=${top} h=${h}`,
-      `rev=dex-crop-v36 layout=2026-05`,
+      `kaynak=${isCalibrateMode() ? 'localStorage' : 'baked'} rev=v39`,
     ].join('\n');
   }
 
@@ -462,7 +462,7 @@
   function apply(settings) {
     const profileId = activeProfileId();
     document.documentElement.dataset.dexCropProfile = profileId;
-    const s = settings || loadForProfile(profileId);
+    const s = settings || (isCalibrateMode() ? loadForProfile(profileId) : profileFromBaked(profileId));
     const root = document.documentElement;
     const c = s.chart;
     const t = s.trades;
@@ -1153,7 +1153,7 @@
       if (!isDetailOpen()) return;
       handleCropProfileChange();
       const pid = refreshCropProfile();
-      apply(loadForProfile(pid));
+      apply(isCalibrateMode() ? loadForProfile(pid) : profileFromBaked(pid));
       if (!layoutSessionDone(pid)) ensureMotorOnce();
     });
     if (calibrateFromUrl()) {
