@@ -1159,12 +1159,12 @@
     bindMotorOnEmbedReady();
     addCalibrateButton();
     window.addEventListener('resize', () => {
-      if (!document.getElementById('dexCropPanel')?.classList.contains('hidden')) return;
+      if (cropPanelIsOpen()) return;
       if (!isDetailOpen()) return;
       handleCropProfileChange();
       const pid = refreshCropProfile();
+      apply(loadForProfile(pid));
       if (!layoutSessionDone(pid)) ensureMotorOnce();
-      else apply(loadForProfile(pid));
     });
     if (calibrateFromUrl()) {
       enableCalibrateSession();
