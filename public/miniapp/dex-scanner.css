@@ -2546,6 +2546,32 @@ html.detail-mode.crop-motor-on .dex-trades-embed-wrap {
 }
 
 
+/* Kırpma — html.crop-ui-visible + detail-mode */
+.btn-crop-detail {
+  display: none;
+  margin-left: auto;
+  flex-shrink: 0;
+  padding: 6px 11px;
+  border-radius: 8px;
+  border: 1px solid rgba(0, 229, 255, 0.45);
+  background: rgba(0, 229, 255, 0.12);
+  color: var(--cyan);
+  font-size: 10px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+html.crop-ui-visible.detail-mode #btnCropDetail:not(.hidden),
+html.crop-ui-visible.detail-mode #btnCropInline:not(.hidden) {
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+}
+
+html.crop-ui-visible.detail-mode #cropCalFab:not(.hidden) {
+  display: block !important;
+}
+
 /* Manuel kırpma paneli (?kalibre=1 / admin) */
 .trades-head {
   flex-wrap: wrap;

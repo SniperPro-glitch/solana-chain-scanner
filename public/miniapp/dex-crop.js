@@ -4,6 +4,7 @@
  */
 (function (global) {
   const STORAGE_KEY = 'sniperDexCropV4';
+  const CROP_UNLOCK_KEY = 'sniperCropDevUnlock';
   const LEGACY_KEYS = ['sniperDexCropV3', 'sniperDexCropV2', 'sniperDexCropV1'];
   let serverBaked = null;
   let profilesReady = null;
@@ -634,16 +635,25 @@
     }
   }
 
+  function isCropDevUnlocked() {
+    try {
+      return localStorage.getItem(CROP_UNLOCK_KEY) === '1';
+    } catch {
+      return false;
+    }
+  }
+
   function enableCalibrateFromGesture() {
     try {
       sessionStorage.setItem('sniperCropCalibrate', '1');
+      localStorage.setItem(CROP_UNLOCK_KEY, '1');
     } catch {
       /* yoksay */
     }
     document.documentElement.dataset.cropCalibrate = '1';
     enableCalibrateSession();
-    addCalibrateButton();
-    showCropToast('K\u0131rpma a\u00e7\u0131ld\u0131');
+    syncCropUi();
+    toast('K\u0131rpma a\u00e7\u0131ld\u0131');
   }
 
   function bindCalibrateGesture() {
@@ -651,22 +661,63 @@
     global.__sniperCropGesture = true;
     let taps = 0;
     let tapTimer = null;
-    document.addEventListener(
-      'click',
-      (e) => {
-        if (!e.target.closest('.trades-title, .trades-head')) return;
-        taps += 1;
-        clearTimeout(tapTimer);
-        tapTimer = setTimeout(() => {
-          taps = 0;
-        }, 900);
-        if (taps >= 3) {
-          taps = 0;
-          enableCalibrateFromGesture();
-        }
-      },
-      true,
-    );
+    const onTap = (e) => {
+      if (
+        !e.target.closest?.(
+          '.trades-title, .trades-live, .trades-head, #btnBack, .detail-title',
+        )
+      ) {
+        return;
+      }
+      taps += 1;
+      clearTimeout(tapTimer);
+      tapTimer = setTimeout(() => {
+        taps = 0;
+      }, 1000);
+      if (taps >= 3) {
+        taps = 0;
+        enableCalibrateFromGesture();
+      }
+    };
+    document.addEventListener('touchend', onTap, { passive: true });
+    document.addEventListener('click', onTap, true);
+  }
+
+  function bindStaticCropButtons() {
+    ['btnCropDetail', 'btnCropInline', 'cropCalFab'].forEach((id) => {
+      const el = document.getElementById(id);
+      if (!el || el.dataset.cropBound === '1') return;
+      el.dataset.cropBound = '1';
+      wireCropButton(el);
+    });
+  }
+
+  function syncCropUi() {
+    const on = shouldShowCropButton();
+    document.documentElement.classList.toggle('crop-ui-visible', on);
+    if (on) document.documentElement.dataset.cropUiOn = '1';
+    else delete document.documentElement.dataset.cropUiOn;
+
+    const detailOpen = isDetailOpen();
+    ['btnCropDetail', 'btnCropInline', 'cropCalFab'].forEach((id) => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      if (on && detailOpen) {
+        el.classList.remove('hidden');
+        if (id === 'cropCalFab') styleCropFab(el);
+      } else {
+        el.classList.add('hidden');
+        if (id === 'cropCalFab') el.style.setProperty('display', 'none', 'important');
+      }
+    });
+  }
+
+  let cropHintShown = false;
+  function maybeCropUnlockHint() {
+    if (cropHintShown || shouldShowCropButton() || !isDetailOpen()) return;
+    if (!global.Telegram?.WebApp) return;
+    cropHintShown = true;
+    toast('K\u0131rpma: \u2190 veya Canl\u0131 sat\u0131\u015fa 3 kez dokun');
   }
 
   function layoutWidthPx() {
@@ -699,11 +750,7 @@
   }
 
   function updateCropFabVisibility() {
-    const fab = document.getElementById('cropCalFab');
-    if (!fab) return;
-    const show = shouldShowCropButton() && isDetailOpen();
-    fab.style.setProperty('display', show ? 'block' : 'none', 'important');
-    if (show) styleCropFab(fab);
+    syncCropUi();
   }
 
   /** Telegram mini app — ADMIN_USER_ID ile Kırpma (URL ?kalibre=1 şart değil). */
@@ -711,7 +758,7 @@
     if (isFounderOrAdminSession()) {
       document.documentElement.dataset.cropAdmin = '1';
       enableCalibrateSession();
-      addCalibrateButton();
+      syncCropUi();
       return true;
     }
     if (!isTelegram() && !global.Telegram?.WebApp) return false;
@@ -724,7 +771,7 @@
       if (!j?.allowed) return false;
       document.documentElement.dataset.cropAdmin = '1';
       enableCalibrateSession();
-      addCalibrateButton();
+      syncCropUi();
       return true;
     } catch {
       return false;
@@ -735,13 +782,13 @@
     if (calibrateFromUrl()) return true;
     if (document.documentElement.dataset.cropAdmin === '1') return true;
     if (isFounderOrAdminSession()) return true;
+    if (isCropDevUnlocked()) return true;
     return isCalibrateMode();
   }
 
   function removeCalibrateButton() {
-    document.querySelectorAll('.btn-crop-cal').forEach((el) => el.remove());
-    document.getElementById('cropCalFab')?.remove();
-    delete document.documentElement.dataset.cropUiOn;
+    document.querySelectorAll('.trades-head .btn-crop-cal:not(#btnCropInline)').forEach((el) => el.remove());
+    syncCropUi();
   }
 
   function wireCropButton(btn) {
@@ -930,14 +977,11 @@
   }
 
   function onDetailOpen() {
-    addCalibrateButton();
+    syncCropUi();
     burstApplyOnDetail();
-    updateCropFabVisibility();
+    setTimeout(maybeCropUnlockHint, 1800);
     if (!shouldShowCropButton()) {
-      void tryEnableAdminCalibrate().then(() => {
-        addCalibrateButton();
-        updateCropFabVisibility();
-      });
+      void tryEnableAdminCalibrate().then(() => syncCropUi());
     }
   }
 
@@ -945,7 +989,7 @@
     const run = async () => {
       if (calibrateFromUrl()) {
         enableCalibrateSession();
-        addCalibrateButton();
+        syncCropUi();
         return true;
       }
       return tryEnableAdminCalibrate();
@@ -955,8 +999,7 @@
     const tick = () => {
       n += 1;
       void run().then((ok) => {
-        addCalibrateButton();
-        updateCropFabVisibility();
+        syncCropUi();
         if (!ok && !shouldShowCropButton() && n < 24) setTimeout(tick, 400);
       });
     };
@@ -1336,32 +1379,7 @@
   }
 
   function addCalibrateButton() {
-    if (!shouldShowCropButton()) return;
-    document.documentElement.dataset.cropUiOn = '1';
-
-    const head = document.querySelector('.trades-head');
-    if (head && !head.querySelector('.btn-crop-cal')) {
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      btn.className = 'btn-crop-cal';
-      btn.textContent = 'K\u0131rpma';
-      btn.title = 'Dex embed hizalama — kaydet';
-      wireCropButton(btn);
-      head.appendChild(btn);
-    }
-
-    /* iPhone 11 / dar ekran — başlık satırında kırpılıyordu; sabit FAB her zaman görünür */
-    if (!document.getElementById('cropCalFab')) {
-      const fab = document.createElement('button');
-      fab.type = 'button';
-      fab.id = 'cropCalFab';
-      fab.className = 'btn-crop-cal-fab';
-      fab.textContent = 'K\u0131rpma';
-      fab.setAttribute('aria-label', 'K\u0131rpma ayar');
-      wireCropButton(fab);
-      document.body.appendChild(fab);
-    }
-    updateCropFabVisibility();
+    syncCropUi();
   }
 
   function ensureProfilesReady() {
@@ -1392,9 +1410,11 @@
     bindCropObservers();
     bindMotorOnEmbedReady();
     bindCalibrateGesture();
+    bindStaticCropButtons();
+    if (isCropDevUnlocked()) enableCalibrateSession();
     if (urlCal) {
       enableCalibrateSession();
-      addCalibrateButton();
+      syncCropUi();
     } else {
       removeCalibrateButton();
       scheduleCalibrateAccess();
@@ -1409,7 +1429,7 @@
     });
     if (urlCal) {
       setTimeout(() => {
-        addCalibrateButton();
+        syncCropUi();
         openPanel();
       }, 1200);
     }
