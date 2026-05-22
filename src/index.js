@@ -781,6 +781,38 @@ async function canManageChat(msg) {
   return false;
 }
 
+function buildDexWebAppButton(lang) {
+  const webEntry = getWebAppEntryUrl();
+  if (!/^https:\/\//i.test(webEntry)) {
+    console.warn('[start] DEX butonu yok — WEB_APP_URL HTTPS olmalı:', webEntry);
+    return null;
+  }
+  return { text: t('welcome.openDex', lang), web_app: { url: webEntry } };
+}
+
+function buildStartKeyboard(lang) {
+  const rows = [];
+  const dexBtn = buildDexWebAppButton(lang);
+  if (dexBtn) rows.push([dexBtn]);
+  rows.push([
+    { text: lang === 'tr' ? '⚙️ Ayarlar' : '⚙️ Settings', callback_data: 'startcmd:settings' },
+    { text: '🏓 Ping', callback_data: 'startcmd:ping' },
+  ]);
+  return { inline_keyboard: rows };
+}
+
+function buildLangPickKeyboard() {
+  const rows = [];
+  const dexBtn = buildDexWebAppButton('tr');
+  if (dexBtn) rows.push([dexBtn]);
+  rows.push([
+    { text: '🇬🇧 English', callback_data: 'startlang:en' },
+    { text: '🇹🇷 Türkçe', callback_data: 'startlang:tr' },
+    { text: '🇷🇺 Русский', callback_data: 'startlang:ru' },
+  ]);
+  return { inline_keyboard: rows };
+}
+
 /** Hem DM/grup message hem kanal channel_post için komut bağla */
 function bindTextCommand(regex, handler) {
   const run = async (msg, match) => {
@@ -1096,13 +1128,7 @@ bindTextCommand(/^\/start(@\w+)?(\s+(.+))?$/, async (msg, match) => {
       if (!users.hasChosenLang(msg.from.id)) {
         pendingChannelAfterLang.set(String(msg.from.id), targetId);
         return bot.sendMessage(msg.chat.id, t('welcome.langPick', 'en'), {
-          reply_markup: {
-            inline_keyboard: [[
-              { text: '🇬🇧 English', callback_data: 'startlang:en' },
-              { text: '🇹🇷 Türkçe', callback_data: 'startlang:tr' },
-              { text: '🇷🇺 Русский', callback_data: 'startlang:ru' },
-            ]],
-          },
+          reply_markup: buildLangPickKeyboard(),
         });
       }
       return openDmChannelSettings(msg.chat.id, msg.from.id, targetId);
@@ -1111,32 +1137,14 @@ bindTextCommand(/^\/start(@\w+)?(\s+(.+))?$/, async (msg, match) => {
 
   if (msg.chat.type === 'private' && !users.hasChosenLang(msg.from.id)) {
     return bot.sendMessage(msg.chat.id, t('welcome.langPick', 'en'), {
-      reply_markup: {
-        inline_keyboard: [[
-          { text: '🇬🇧 English', callback_data: 'startlang:en' },
-          { text: '🇹🇷 Türkçe', callback_data: 'startlang:tr' },
-          { text: '🇷🇺 Русский', callback_data: 'startlang:ru' },
-        ]],
-      },
+      reply_markup: buildLangPickKeyboard(),
     });
   }
 
   const lang = langForMsg(msg);
-  const rows = [];
-  const webEntry = getWebAppEntryUrl();
-  if (/^https:\/\//i.test(webEntry)) {
-    rows.push([{
-      text: t('welcome.openDex', lang),
-      web_app: { url: webEntry },
-    }]);
-  }
-  rows.push([
-    { text: lang === 'tr' ? '⚙️ Ayarlar' : '⚙️ Settings', callback_data: 'startcmd:settings' },
-    { text: lang === 'tr' ? '🏓 Ping' : '🏓 Ping', callback_data: 'startcmd:ping' },
-  ]);
   await bot.sendMessage(msg.chat.id, t('welcome.start', lang), {
     parse_mode: 'Markdown',
-    reply_markup: { inline_keyboard: rows },
+    reply_markup: buildStartKeyboard(lang),
   });
 });
 
@@ -1381,11 +1389,19 @@ bot.on('callback_query', async (cb) => {
       return openDmChannelSettings(fromChatId, userId, pendingCh);
     }
     const newText = `${t('welcome.langSet', code)}\n\n${t('welcome.start', code)}`;
-    await bot.editMessageText(newText, {
+    const markup = buildStartKeyboard(code);
+    const edited = await bot.editMessageText(newText, {
       chat_id: fromChatId,
       message_id: cb.message.message_id,
       parse_mode: 'Markdown',
-    }).catch(() => {});
+      reply_markup: markup,
+    }).catch(() => null);
+    if (!edited) {
+      await bot.sendMessage(fromChatId, newText, {
+        parse_mode: 'Markdown',
+        reply_markup: markup,
+      });
+    }
     return bot.answerCallbackQuery(cb.id, { text: t('welcome.langSet', code) });
   }
 

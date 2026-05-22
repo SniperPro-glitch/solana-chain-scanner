@@ -781,7 +781,7 @@ const STRINGS = {
   },
   'welcome.openDex': {
     en: '📊 Open DEX Scanner',
-    tr: '📊 DEX Scanner aç',
+    tr: '📊 DEX Scanner\'ı aç',
     ru: '📊 Открыть DEX Scanner',
   },
 
