@@ -2113,7 +2113,6 @@
       if (SniperCropProfile?.apply) SniperCropProfile.apply();
       if (SniperDexCrop.applyCropNow) SniperDexCrop.applyCropNow();
       else if (SniperDexCrop.apply) SniperDexCrop.apply();
-      if (SniperDexCrop.addCalibrateButton) SniperDexCrop.addCalibrateButton();
     };
     const burst = () => {
       run();

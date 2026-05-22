@@ -564,7 +564,11 @@
   }
 
   function shouldShowCropButton() {
-    return isDetailOpen() || calibrateFromUrl();
+    return calibrateFromUrl();
+  }
+
+  function removeCalibrateButton() {
+    document.querySelector('.btn-crop-cal')?.remove();
   }
 
   function clearCalibrateSession() {
@@ -1132,7 +1136,8 @@
     apply();
     bindCropObservers();
     bindMotorOnEmbedReady();
-    addCalibrateButton();
+    if (calibrateFromUrl()) addCalibrateButton();
+    else removeCalibrateButton();
     window.addEventListener('resize', () => {
       if (cropPanelIsOpen()) return;
       if (!isDetailOpen()) return;
@@ -1151,10 +1156,7 @@
     const vd = document.getElementById('view-detail');
     if (vd) {
       new MutationObserver(() => {
-        if (!vd.classList.contains('hidden')) {
-          addCalibrateButton();
-          ensureMotorOnce();
-        }
+        if (!vd.classList.contains('hidden')) ensureMotorOnce();
       }).observe(vd, { attributes: true, attributeFilter: ['class'] });
       if (!vd.classList.contains('hidden')) ensureMotorOnce();
     }
