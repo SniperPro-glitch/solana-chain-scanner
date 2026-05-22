@@ -106,7 +106,7 @@
   let tradesLastGood = [];
   let tradesDisplayRows = [];
   const TRADES_MAX_ROWS = 50;
-  const TRADES_POLL_MS = 800;
+  const TRADES_POLL_MS = 1000;
   const CHART_LIVE_POLL_MS = 5000;
   let openingMint = false;
   let feedItemsFull = [];
@@ -2176,9 +2176,18 @@
     return Array.isArray(raw) ? raw.slice(0, TRADES_MAX_ROWS) : [];
   }
 
-  async function fetchTradesFromServer(m, live = false) {
+  function tradesWatermarkMs(rows) {
+    let max = 0;
+    for (const t of rows || []) {
+      const ms = tradeTimeMs(t);
+      if (ms > max) max = ms;
+    }
+    return max;
+  }
+
+  async function fetchTradesFromServer(m, live = false, sinceMs = 0) {
     const mint = tokenMintRef(m) || m;
-    if (!mint) return { trades: [], pollMs: TRADES_POLL_MS };
+    if (!mint) return { trades: [], pollMs: TRADES_POLL_MS, incremental: false };
     const pool = chartPoolRef(m);
     const q = new URLSearchParams({ limit: String(TRADES_MAX_ROWS) });
     if (live) {
@@ -2186,12 +2195,18 @@
       q.set('t', String(Date.now()));
     }
     if (pool) q.set('pool', pool);
+    if (sinceMs > 0) q.set('since', String(sinceMs));
     const res = await fetch(apiPath(`/api/dex/token/${encodeURIComponent(mint)}/trades?${q}`), { cache: 'no-store' });
-    if (!res.ok) return { trades: [], pollMs: TRADES_POLL_MS };
+    if (!res.ok) return { trades: [], pollMs: TRADES_POLL_MS, incremental: sinceMs > 0 };
     const body = await res.json();
     const pollMs = Number(body?.pollMs) || TRADES_POLL_MS;
-    if (appData?.market && pollMs >= 800) appData.market.tradesPollMs = pollMs;
-    return { trades: body?.trades || [], pollMs };
+    if (appData?.market && pollMs >= 1000) appData.market.tradesPollMs = pollMs;
+    return {
+      trades: body?.trades || [],
+      pollMs,
+      incremental: !!body?.incremental || sinceMs > 0,
+      latestUpdatedAt: body?.latestUpdatedAt || null,
+    };
   }
 
   function applyLivePairToMarket(m, pair, priceUsd) {
@@ -2250,22 +2265,35 @@
     tradesPollInFlight = true;
     try {
       if (initial || !chartPoolRef(m)) await ensurePoolOnMarket(m);
-      const { trades, pollMs } = await fetchTradesFromServer(m, true);
+      const sinceMs = initial ? 0 : (m.tradesUpdatedAtMs || tradesWatermarkMs(tradesLastGood) || 0);
+      const { trades, pollMs, incremental } = await fetchTradesFromServer(m, true, sinceMs);
       if (fetchGen !== tradesFetchGen) return;
-      if (m && pollMs >= 800) m.tradesPollMs = pollMs;
-      if (trades.length) {
-        tradesLastGood = trades;
-        saveTradesSession(m, trades);
-      } else if (!tradesLastGood.length) {
-        tradesLastGood = seedTradesFromMarket(m);
+      if (m && pollMs >= 1000) m.tradesPollMs = pollMs;
+
+      if (initial || !sinceMs) {
+        if (trades.length) {
+          tradesLastGood = trades;
+          saveTradesSession(m, trades);
+        } else if (!tradesLastGood.length) {
+          tradesLastGood = seedTradesFromMarket(m);
+        }
+        const display = trades.length ? trades : tradesLastGood;
+        const list = $('tradesList');
+        const needsFull = initial || !list?.querySelector('.trade-row[data-trade-key]');
+        renderTradesList(display, m?.symbol, {
+          keepPrevious: !needsFull && !display.length,
+          fullRender: needsFull && !!display.length,
+        });
+      } else if (trades.length) {
+        tradesLastGood = mergeTradesDisplay(trades, tradesLastGood);
+        saveTradesSession(m, tradesLastGood);
+        renderTradesList(tradesLastGood, m?.symbol, {
+          keepPrevious: false,
+          fullRender: false,
+        });
       }
-      const display = trades.length ? trades : tradesLastGood;
-      const list = $('tradesList');
-      const needsFull = initial || !list?.querySelector('.trade-row[data-trade-key]');
-      renderTradesList(display, m?.symbol, {
-        keepPrevious: !needsFull && !display.length,
-        fullRender: needsFull && !!display.length,
-      });
+
+      m.tradesUpdatedAtMs = tradesWatermarkMs(tradesLastGood);
       if (meta) {
         const n = tradesDisplayRows.length;
         const sec = Math.max(1, Math.round((m?.tradesPollMs || TRADES_POLL_MS) / 1000));
@@ -2286,7 +2314,7 @@
 
   function tradesPollIntervalMs(m) {
     const ms = m?.tradesPollMs || TRADES_POLL_MS;
-    return Math.max(800, Math.min(ms, 5000));
+    return Math.max(1000, Math.min(ms, 5000));
   }
 
   function startTradesPoll(m) {

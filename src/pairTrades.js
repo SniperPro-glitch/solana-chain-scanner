@@ -124,6 +124,7 @@ function normalizeGeckoTrade(row, baseMint) {
     wallet: shortAddr(a.tx_from_address),
     txHash: a.tx_hash || null,
     at: a.block_timestamp,
+    updatedAt: a.block_timestamp,
     ago: timeAgo(a.block_timestamp),
     isBaseSold,
     source: 'geckoterminal',
@@ -172,10 +173,24 @@ async function fetchDexOrders(mint, limit = TRADES_FEED_MAX) {
       wallet: shortAddr(o.maker || o.trader || o.wallet),
       txHash,
       at,
+      updatedAt: at,
       ago: timeAgo(at),
       source: 'dexscreener',
     };
   }).filter((t) => t.usd > 0 || t.wallet !== '—');
+}
+
+function parseSinceMs(raw) {
+  if (raw == null || raw === '') return 0;
+  const n = Number(raw);
+  if (Number.isFinite(n) && n > 0) return Math.floor(n);
+  const t = new Date(String(raw)).getTime();
+  return Number.isFinite(t) && t > 0 ? t : 0;
+}
+
+function filterTradesAfterSince(trades, sinceMs) {
+  if (!sinceMs || !trades?.length) return trades || [];
+  return trades.filter((t) => tradeTimeMs(t) > sinceMs);
 }
 
 async function fetchPairTradesInner({
@@ -184,12 +199,17 @@ async function fetchPairTradesInner({
   limit = TRADES_FEED_MAX,
   fresh = false,
   skipDexOrders = false,
+  sinceMs = 0,
 } = {}) {
+  const since = parseSinceMs(sinceMs);
+  const incremental = since > 0;
   const key = `${poolAddress || ''}:${mint || ''}:${limit}`;
   const hit = cache.get(key);
   const liveMaxAge = poolAddress ? TRADES_LIVE_CACHE_MS : TRADES_LIVE_CACHE_MS_NOPOOL;
   const maxAge = fresh ? liveMaxAge : (hit?.slow ? CACHE_MS_SLOW : CACHE_MS);
-  if (maxAge > 0 && hit?.trades?.length && Date.now() - hit.at < maxAge) return hit.trades;
+  if (!incremental && maxAge > 0 && hit?.trades?.length && Date.now() - hit.at < maxAge) {
+    return hit.trades;
+  }
 
   let pool = poolAddress;
   let baseMint = mint;
@@ -240,12 +260,15 @@ async function fetchPairTradesInner({
     }
   }
 
-  const out = mergeTrades(trades, [], limit);
-  if (out.length) {
-    cache.set(key, { at: Date.now(), trades: out, slow: slow || hit?.slow });
-    tradesLastGood.set(key, out);
-    return out;
+  const batch = mergeTrades(trades, [], limit);
+  if (batch.length) {
+    const full = mergeTrades(batch, tradesLastGood.get(key) || [], limit);
+    cache.set(key, { at: Date.now(), trades: full, slow: slow || hit?.slow });
+    tradesLastGood.set(key, full);
+    return incremental ? filterTradesAfterSince(batch, since) : full;
   }
+
+  if (incremental) return [];
 
   const stale = tradesLastGood.get(key);
   if (stale?.length) {
@@ -256,19 +279,21 @@ async function fetchPairTradesInner({
 }
 
 async function fetchPairTrades(opts = {}) {
-  const key = `${opts.poolAddress || ''}:${opts.mint || ''}:${opts.limit || TRADES_FEED_MAX}`;
-  const pending = inFlight.get(key);
+  const since = parseSinceMs(opts.sinceMs);
+  const inflightKey = `${opts.poolAddress || ''}:${opts.mint || ''}:${opts.limit || TRADES_FEED_MAX}:${since || 0}`;
+  const pending = inFlight.get(inflightKey);
   if (pending) return pending;
   const promise = fetchPairTradesInner(opts);
-  inFlight.set(key, promise);
+  inFlight.set(inflightKey, promise);
   try {
     return await promise;
   } finally {
-    inFlight.delete(key);
+    inFlight.delete(inflightKey);
   }
 }
 
 module.exports = {
+  parseSinceMs,
   fetchPairTrades,
   mergeTrades,
   tradeDedupeKey,

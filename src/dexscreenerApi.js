@@ -161,18 +161,34 @@ async function getTokenTrades(mint, limit = 50, opts = {}) {
   }
   const pool = poolQ || best?.pairAddress || null;
   const { fetchPairTrades } = require('./pairTrades');
+  const sinceMs = opts.sinceMs != null ? require('./pairTrades').parseSinceMs(opts.sinceMs) : 0;
   const trades = await fetchPairTrades({
     poolAddress: pool,
     mint,
     limit,
     fresh: !!opts.fresh,
     skipDexOrders: !!poolQ,
+    sinceMs,
   });
   const fetchMs = Date.now() - t0;
   if (fetchMs > 2000) {
     console.warn('[dex/trades] slow', fetchMs, 'ms', String(mint || '').slice(0, 8), String(pool || '').slice(0, 8));
   }
-  return { trades, pair: best, poolAddress: pool, pairs, fetchMs, pollMs: 800 };
+  let latestUpdatedAt = sinceMs || null;
+  for (const tr of trades) {
+    const ms = new Date(tr?.updatedAt || tr?.at || 0).getTime();
+    if (Number.isFinite(ms) && ms > (latestUpdatedAt || 0)) latestUpdatedAt = ms;
+  }
+  return {
+    trades,
+    pair: best,
+    poolAddress: pool,
+    pairs,
+    fetchMs,
+    pollMs: 1000,
+    incremental: sinceMs > 0,
+    latestUpdatedAt: latestUpdatedAt ? new Date(latestUpdatedAt).toISOString() : null,
+  };
 }
 
 module.exports = {

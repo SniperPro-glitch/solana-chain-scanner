@@ -317,11 +317,13 @@ function createMiniAppServer() {
         const limit = Math.min(50, Math.max(8, parseInt(url.searchParams.get('limit') || '50', 10) || 50));
         const live = url.searchParams.get('live') === '1';
         const poolQ = url.searchParams.get('pool') || '';
+        const sinceQ = url.searchParams.get('since') || url.searchParams.get('updatedAfter') || '';
         try {
           const t0 = Date.now();
           const out = await getTokenTrades(dexTradesMatch[1], limit, {
             fresh: live,
             poolAddress: poolQ,
+            sinceMs: sinceQ,
           });
           const serverMs = Date.now() - t0;
           if (serverMs > 2000) {
