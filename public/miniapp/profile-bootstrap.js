@@ -23,11 +23,8 @@
     return ['android', 'ios', 'macos', 'tdesktop', 'weba', 'webk'].includes(p);
   }
 
-  /** Kalibrasyonda kullanılan genişlik — innerWidth değil, TG viewportWidth. */
+  /** Profil tespiti — window.innerWidth (dexCropW dataset değil). */
   function layoutWidth() {
-    const tg = window.Telegram?.WebApp;
-    if (tg?.viewportWidth) return Math.round(tg.viewportWidth);
-    if (window.visualViewport?.width) return Math.round(window.visualViewport.width);
     return Math.round(window.innerWidth || 390);
   }
 
@@ -42,11 +39,7 @@
     const forced = fromUrl();
     if (forced) return forced;
     const w = layoutWidth();
-    const inBrowser = window.SniperHost?.isWebBrowser?.() || document.documentElement.classList.contains('web-browser');
-    /* Geniş masaüstü Chrome = web; dar pencere / mobil emülasyon = TG ile aynı genişlik kovaları */
-    if (inBrowser && w >= 500) return 'web';
-    if (!isTelegramApp() && inBrowser) return detectByWidth(w);
-    if (!isTelegramApp()) return 'web';
+    if (!isTelegramApp() && w > 500) return 'web';
     return detectByWidth(w);
   }
 
