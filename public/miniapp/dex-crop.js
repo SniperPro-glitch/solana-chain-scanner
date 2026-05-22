@@ -432,7 +432,7 @@
       if (!isDetailOpen()) return;
       handleCropProfileChange();
       const pid = refreshCropProfile();
-      apply(loadForProfile(pid));
+      apply(isCalibrateMode() ? loadForProfile(pid) : profileFromBaked(pid));
       if (!layoutSessionDone(pid)) ensureMotorOnce();
     };
     window.addEventListener('resize', reapply);
@@ -565,20 +565,9 @@
     document.documentElement.dataset.cropCalibrate = '1';
   }
 
+  /** Yalnızca ?kalibre=1 — motor localStorage açmaz (tek Chrome ayarı diğerlerini bozuyordu). */
   function isCalibrateMode() {
-    if (document.documentElement.dataset.cropCalibrate === '1') return true;
-    try {
-      if (sessionStorage.getItem('sniperCropCalibrate') === '1') return true;
-    } catch {
-      /* yoksay */
-    }
-    try {
-      const q = new URLSearchParams(location.search);
-      if (q.get('kalibre') === '1' || q.get('calibrate') === '1') return true;
-    } catch {
-      /* yoksay */
-    }
-    return String(location.hash || '').includes('kalibre');
+    return calibrateFromUrl();
   }
 
   /** URL ?kalibre=1 — normal kullanıcıda buton/panel yok, motor gizli. */
@@ -662,8 +651,9 @@
 
   /** Anlık apply — git-gel beklemeden (iframe hazır olunca tekrar motor). */
   function applyCropNow() {
+    if (!isCalibrateMode()) clearCalibrateSession();
     const pid = refreshCropProfile();
-    apply(loadForProfile(pid));
+    apply(profileFromBaked(pid));
     return pid;
   }
 
@@ -691,24 +681,24 @@
   }
 
   /**
-   * Gizli motor = Kırpma aç-kapat (panel görünmez).
-   * Web: enableCalibrateSession → localStorage ölçüleri; TG: baked profil.
+   * Gizli motor = Kırpma apply (panel yok). Her zaman baked/git profil — localStorage değil.
    */
   function runHiddenMotor() {
     if (!isDetailOpen()) return false;
     const panel = document.getElementById('dexCropPanel');
     if (panel && !panel.classList.contains('hidden')) return false;
 
-    enableCalibrateSession();
+    clearCalibrateSession();
     editingProfile = refreshCropProfile();
-    current = loadForProfile(editingProfile);
+    current = isCalibrateMode() ? loadForProfile(editingProfile) : profileFromBaked(editingProfile);
     apply(current);
     if (panel) panel.classList.add('hidden');
     document.documentElement.classList.remove('crop-panel-open');
 
     const finish = () => {
       if (!isDetailOpen()) return;
-      apply(load());
+      const pid = refreshCropProfile();
+      apply(isCalibrateMode() ? load() : profileFromBaked(pid));
     };
     finish();
     [150, 500, 1200, 2500, 4000, 6000].forEach((ms) => setTimeout(finish, ms));
