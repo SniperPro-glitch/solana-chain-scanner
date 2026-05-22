@@ -42,12 +42,19 @@
   function resolveContentTop(tg, sTop, cTop, bgBleedTop, w) {
     const p = String(tg?.platform || '').toLowerCase();
     const ios = p === 'ios' || p === 'android';
-    const expanded = !tg?.isFullscreen;
+    const fullscreen = !!tg?.isFullscreen;
+
+    if (fullscreen) {
+      if (cTop >= 8) return Math.max(cTop, sTop);
+      if (sTop >= 47 || w >= 428) return Math.max(cTop, sTop, 56);
+      if (sTop >= 20 || w >= 414) return Math.max(cTop, sTop, 48);
+      return Math.max(cTop, sTop, 44);
+    }
 
     if (cTop >= 12) return cTop;
 
-    if (ios && expanded) {
-      if (sTop >= 47 || w >= 428) return Math.max(cTop, sTop, cTop, 56);
+    if (ios) {
+      if (sTop >= 47 || w >= 428) return Math.max(cTop, sTop, 56);
       if (sTop >= 20 || w >= 414) return Math.max(cTop, 44);
       if (cropProfile() === 'app11' || (w < 400 && sTop < 12)) return Math.max(cTop, 0);
       return Math.max(cTop, 40);

@@ -1,5 +1,5 @@
 /**
- * Telegram Mini App — expand, güvenli alan safe-area-layout.js ile.
+ * Telegram Mini App — expand + requestFullscreen (tam ekran).
  */
 (function () {
   const tg = window.Telegram?.WebApp;
@@ -36,12 +36,13 @@
     }, 60);
   }
 
-  function leaveFullscreenIfNeeded() {
-    if (!tg.isFullscreen || typeof tg.exitFullscreen !== 'function') return;
+  function enterFullscreen() {
+    if (window.SniperHost?.isWebBrowser?.()) return;
+    if (typeof tg.requestFullscreen !== 'function') return;
     try {
-      tg.exitFullscreen();
+      tg.requestFullscreen();
     } catch (_) {
-      /* yoksay */
+      /* eski Telegram */
     }
   }
 
@@ -49,7 +50,6 @@
     if (window.SniperHost?.isWebBrowser?.()) return;
 
     tg.ready();
-    leaveFullscreenIfNeeded();
 
     try {
       if (typeof tg.setHeaderColor === 'function') tg.setHeaderColor(BG);
@@ -59,6 +59,7 @@
     }
 
     if (typeof tg.expand === 'function') tg.expand();
+    enterFullscreen();
 
     if (typeof tg.disableVerticalSwipes === 'function') {
       try {
@@ -100,7 +101,7 @@
     tg.onEvent('safeAreaChanged', applySafeArea);
     tg.onEvent('contentSafeAreaChanged', applySafeArea);
     tg.onEvent('fullscreenChanged', () => {
-      if (tg.isFullscreen) leaveFullscreenIfNeeded();
+      if (!tg.isFullscreen) enterFullscreen();
       applySafeArea();
       scheduleProfileApply();
       if (typeof window.syncTgBackButton === 'function') window.syncTgBackButton();
@@ -110,7 +111,7 @@
   document.addEventListener('visibilitychange', () => {
     if (document.hidden || window.SniperHost?.isWebBrowser?.()) return;
     if (typeof tg.expand === 'function') tg.expand();
-    leaveFullscreenIfNeeded();
+    if (!tg.isFullscreen) enterFullscreen();
     applySafeArea();
   });
 
@@ -123,5 +124,9 @@
 
   window.__tgBootUi = bootTelegramUi;
   window.__tgApplySafeArea = applySafeArea;
-  window.__tgApplyFullscreen = applySafeArea;
+  window.__tgEnterFullscreen = enterFullscreen;
+  window.__tgApplyFullscreen = () => {
+    enterFullscreen();
+    applySafeArea();
+  };
 })();

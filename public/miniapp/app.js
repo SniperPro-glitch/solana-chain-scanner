@@ -391,7 +391,8 @@
   }
 
   function refreshTgViewport() {
-    if (typeof window.__tgApplySafeArea === 'function') window.__tgApplySafeArea();
+    if (typeof window.__tgApplyFullscreen === 'function') window.__tgApplyFullscreen();
+    else if (typeof window.__tgApplySafeArea === 'function') window.__tgApplySafeArea();
   }
 
   function syncTgBackButton() {

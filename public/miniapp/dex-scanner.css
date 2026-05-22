@@ -40,14 +40,19 @@ html.tg-mini-app body::before {
   background: #060910;
 }
 
-html.tg-mini-app[data-safe-tier="island"] .scanner-home,
-html.tg-mini-app[data-safe-tier="notch"] .scanner-home,
-html.tg-mini-app[data-safe-tier="light"] .scanner-home {
+html.tg-mini-app.tg-fullscreen .scanner-home,
+html.tg-mini-app.tg-fullscreen .view-detail {
   padding-top: var(--sniper-content-top, 0px);
 }
 
-html.tg-mini-app[data-safe-tier="island"] .view-detail,
-html.tg-mini-app[data-safe-tier="notch"] .view-detail {
+html.tg-mini-app.tg-expanded[data-safe-tier="island"] .scanner-home,
+html.tg-mini-app.tg-expanded[data-safe-tier="notch"] .scanner-home,
+html.tg-mini-app.tg-expanded[data-safe-tier="light"] .scanner-home {
+  padding-top: var(--sniper-content-top, 0px);
+}
+
+html.tg-mini-app.tg-expanded[data-safe-tier="island"] .view-detail,
+html.tg-mini-app.tg-expanded[data-safe-tier="notch"] .view-detail {
   padding-top: var(--sniper-content-top, 0px);
 }
 
@@ -642,6 +647,11 @@ html.tg-fullscreen .btn-connect {
   max-width: 110px;
   padding: 8px 10px;
   font-size: 11px;
+}
+
+html.tg-fullscreen .scan-header,
+html.tg-fullscreen .detail-top {
+  padding-top: 10px;
 }
 
 html.tg-expanded .scan-header {
