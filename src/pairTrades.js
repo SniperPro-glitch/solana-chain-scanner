@@ -12,8 +12,24 @@ const http = axios.create({
   },
 });
 
-const CACHE_MS = 2_500;
+const CACHE_MS = 5_000;
 const cache = new Map();
+
+function tradeKey(t) {
+  return String(t?.txHash || t?.id || '').trim();
+}
+
+function mergeTrades(primary, extra, limit) {
+  const seen = new Set();
+  const out = [];
+  for (const t of [...(primary || []), ...(extra || [])]) {
+    const key = tradeKey(t) || `${t?.at || ''}:${t?.wallet || ''}:${t?.usd || ''}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(t);
+  }
+  return out.slice(0, limit);
+}
 
 function shortAddr(a) {
   if (!a || a.length < 10) return a || '—';
@@ -80,14 +96,17 @@ async function fetchDexOrders(mint, limit = 24) {
   return data.slice(0, limit).map((o, i) => {
     const side = String(o.type || o.side || '').toLowerCase().includes('sell') ? 'sell' : 'buy';
     const usd = Math.abs(parseFloat(o.usdAmount || o.amountUsd || o.volumeUsd || 0));
+    const txHash = o.txHash || o.transactionHash || o.hash || null;
+    const at = o.timestamp || o.blockTimestamp || null;
     return {
-      id: o.id || `ds-${i}`,
+      id: txHash || o.id || `ds-${at || i}-${o.maker || o.trader || ''}`,
       side,
       usd,
       usdFmt: usd ? fmtUsd(usd) : '—',
       wallet: shortAddr(o.maker || o.trader || o.wallet),
-      at: o.timestamp || o.blockTimestamp || null,
-      ago: timeAgo(o.timestamp || o.blockTimestamp),
+      txHash,
+      at,
+      ago: timeAgo(at),
       source: 'dexscreener',
     };
   }).filter((t) => t.usd > 0 || t.wallet !== '—');
@@ -114,16 +133,23 @@ async function fetchPairTrades({ poolAddress, mint, limit = 24 } = {}) {
       console.warn('[trades] gecko:', e.message);
     }
   }
-  if (trades.length < 3 && mint) {
+  if (!trades.length && mint) {
     try {
       const ds = await fetchDexOrders(mint, limit);
       if (ds.length) trades = ds;
     } catch {
       /* yoksay */
     }
+  } else if (trades.length < limit && mint) {
+    try {
+      const ds = await fetchDexOrders(mint, limit);
+      trades = mergeTrades(trades, ds, limit);
+    } catch {
+      /* yoksay */
+    }
   }
 
-  const out = trades.slice(0, limit);
+  const out = mergeTrades(trades, [], limit);
   cache.set(key, { at: Date.now(), trades: out });
   return out;
 }

@@ -82,6 +82,8 @@
   let feedPollTimer = null;
   let feedRefreshSec = 45;
   let tradesPollTimer = null;
+  let tradesPollInFlight = false;
+  let tradesLastGood = [];
   let lastTradeIds = new Set();
   let openingMint = false;
   let feedItemsFull = [];
@@ -1938,6 +1940,8 @@
       tradesPollTimer = null;
     }
     lastTradeIds = new Set();
+    tradesLastGood = [];
+    tradesPollInFlight = false;
   }
 
   function chartPoolRef(m) {
@@ -1957,24 +1961,36 @@
     return (market.address || appData?.address || '').trim();
   }
 
-  function renderTradesList(trades, symbol) {
+  function tradeAgoLabel(at) {
+    const t = new Date(at).getTime();
+    if (!t) return '';
+    const sec = Math.max(0, Math.floor((Date.now() - t) / 1000));
+    if (sec < 60) return `${sec}s`;
+    if (sec < 3600) return `${Math.floor(sec / 60)}m`;
+    return `${Math.floor(sec / 3600)}h`;
+  }
+
+  function renderTradesList(trades, symbol, opts = {}) {
     const list = $('tradesList');
     const col = $('tradesColToken');
     if (col) col.textContent = symbol || 'Token';
     if (!list) return;
     if (!trades?.length) {
+      if (opts.keepPrevious && list.children.length && !list.querySelector('.trade-placeholder')) return;
       list.innerHTML = '<li class="trade-row trade-placeholder">Henüz işlem yok</li>';
       return;
     }
     const rows = trades.map((t) => {
       const side = t.side === 'sell' ? 'sell' : 'buy';
-      const isNew = t.id && !lastTradeIds.has(t.id);
-      if (t.id) lastTradeIds.add(t.id);
+      const key = t.txHash || t.id || `${t.at || ''}:${t.wallet || ''}`;
+      const isNew = key && !lastTradeIds.has(key);
+      if (key) lastTradeIds.add(key);
       const amt = t.amount != null && Number.isFinite(t.amount)
         ? (t.amount >= 1e6 ? `${(t.amount / 1e6).toFixed(2)}M` : t.amount >= 1e3 ? `${(t.amount / 1e3).toFixed(1)}K` : t.amount.toFixed(2))
         : '—';
+      const ago = tradeAgoLabel(t.at) || t.ago || '—';
       return `<li class="trade-row trade-row--${side}${isNew ? ' trade-row--new' : ''}">
-        <span class="trade-ago">${escHtml(t.ago || '—')}</span>
+        <span class="trade-ago">${escHtml(ago)}</span>
         <span class="trade-side ${side}">${side === 'buy' ? 'AL' : 'SAT'}</span>
         <span class="trade-usd">${escHtml(t.usdFmt || '—')}</span>
         <span class="trade-amt">${escHtml(amt)}</span>
@@ -1993,6 +2009,7 @@
   }
 
   async function refreshTrades(m, initial = false) {
+    if (tradesPollInFlight) return;
     const tape = $('tradesTape');
     const meta = $('tradesMeta');
     const mint = tokenMintRef(m);
@@ -2004,14 +2021,26 @@
       return;
     }
     if (initial && meta) meta.textContent = 'yükleniyor…';
+    tradesPollInFlight = true;
     try {
       const trades = await fetchTradesFromServer(mint);
       if (initial) lastTradeIds = new Set();
-      renderTradesList(trades, m?.symbol);
-      if (meta) meta.textContent = `${trades.length} işlem · 5s`;
+      if (trades.length) tradesLastGood = trades;
+      const display = trades.length ? trades : tradesLastGood;
+      renderTradesList(display, m?.symbol, { keepPrevious: !initial });
+      if (meta) {
+        if (trades.length) meta.textContent = `${trades.length} işlem · 5s`;
+        else if (tradesLastGood.length) meta.textContent = `${tradesLastGood.length} işlem · canlı`;
+        else meta.textContent = 'işlem bekleniyor';
+      }
     } catch (e) {
       console.warn('trades poll', e);
-      if (meta) meta.textContent = 'bağlantı hatası';
+      if (tradesLastGood.length) {
+        renderTradesList(tradesLastGood, m?.symbol, { keepPrevious: true });
+        if (meta) meta.textContent = `${tradesLastGood.length} işlem · canlı`;
+      } else if (meta) meta.textContent = 'bağlantı hatası';
+    } finally {
+      tradesPollInFlight = false;
     }
   }
 
