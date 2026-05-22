@@ -551,13 +551,7 @@
     document.documentElement.dataset.cropCalibrate = '1';
   }
 
-  function isCalibrateMode() {
-    if (document.documentElement.dataset.cropCalibrate === '1') return true;
-    try {
-      if (sessionStorage.getItem('sniperCropCalibrate') === '1') return true;
-    } catch {
-      /* yoksay */
-    }
+  function calibrateFromUrl() {
     try {
       const q = new URLSearchParams(location.search);
       if (q.get('kalibre') === '1' || q.get('calibrate') === '1') return true;
@@ -565,6 +559,20 @@
       /* yoksay */
     }
     return String(location.hash || '').includes('kalibre');
+  }
+
+  /** Kalibrasyon yalnızca URL ile — eski sessionStorage panel/buton açmasın. */
+  function isCalibrateMode() {
+    return calibrateFromUrl();
+  }
+
+  function clearCalibrateSession() {
+    try {
+      sessionStorage.removeItem('sniperCropCalibrate');
+    } catch {
+      /* yoksay */
+    }
+    delete document.documentElement.dataset.cropCalibrate;
   }
 
   /** Kırpma butonu kapalı — yönetim panelinden açılacak. Motor arka planda çalışır. */
@@ -997,26 +1005,31 @@
   async function init() {
     if (global.SniperCropProfile?.apply) global.SniperCropProfile.apply();
     await ensureProfilesReady();
+    if (!calibrateFromUrl()) {
+      clearCalibrateSession();
+      document.getElementById('dexCropPanel')?.classList.add('hidden');
+      document.documentElement.classList.remove('crop-panel-open');
+      document.querySelectorAll('.btn-crop-cal').forEach((el) => el.remove());
+    } else {
+      try {
+        const q = new URLSearchParams(location.search);
+        if (q.get('cropPanel') === '1') {
+          enableCalibrateSession();
+          setTimeout(() => openPanel(), 400);
+        }
+      } catch {
+        /* yoksay */
+      }
+    }
     bindCropObservers();
-    addCalibrateButton();
     window.addEventListener('resize', () => {
       if (!document.getElementById('dexCropPanel')?.classList.contains('hidden')) return;
       apply();
     });
-    if (isCalibrateMode()) {
-      enableCalibrateSession();
-      setTimeout(() => {
-        addCalibrateButton();
-        openPanel();
-      }, 1200);
-    } else {
-      addCalibrateButton();
-    }
     const vd = document.getElementById('view-detail');
     if (vd) {
       new MutationObserver(() => {
         if (!vd.classList.contains('hidden')) {
-          addCalibrateButton();
           scheduleDetailCrop();
         }
       }).observe(vd, { attributes: true, attributeFilter: ['class'] });
