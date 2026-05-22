@@ -78,6 +78,13 @@
         /* yoksay */
       }
     }
+    if (typeof tg.requestViewport === 'function') {
+      try {
+        tg.requestViewport({ height: 10000 });
+      } catch (_) {
+        /* yoksay */
+      }
+    }
   }
 
   function scheduleExpandRetries() {

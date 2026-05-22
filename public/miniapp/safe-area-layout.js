@@ -39,34 +39,18 @@
     return 'none';
   }
 
-  function resolveContentTop(tg, sTop, cTop, bgBleedTop, w) {
-    const p = String(tg?.platform || '').toLowerCase();
-    const ios = p === 'ios' || p === 'android';
+  function resolveContentTop(tg, sTop, cTop) {
     const fullscreen = !!tg?.isFullscreen;
-    const tgHeader = 46;
+    const tgChrome = 44;
 
     if (fullscreen) {
       if (cTop >= 8) return Math.max(cTop, sTop);
-      if (sTop >= 47 || w >= 428) return Math.max(cTop, sTop, 56);
-      if (sTop >= 20 || w >= 414) return Math.max(cTop, sTop, 48);
-      return Math.max(cTop, sTop, 44);
+      return Math.max(sTop, 48);
     }
 
-    if (cTop >= 12) return cTop;
-
-    /* Genişletilmiş mod: Telegram X/ok/menü barı + status bar */
-    if (ios) {
-      if (sTop >= 47 || w >= 428) return Math.max(cTop, sTop + tgHeader, 96);
-      if (sTop >= 20 || w >= 414) return Math.max(cTop, sTop + tgHeader, 88);
-      if (cropProfile() === 'app11' || (w < 400 && sTop < 12)) {
-        return Math.max(cTop, sTop + tgHeader, 72);
-      }
-      return Math.max(cTop, sTop + tgHeader, 80);
-    }
-
-    if (sTop >= 47) return Math.max(cTop, sTop + tgHeader);
-    if (bgBleedTop >= 36) return Math.max(cTop, sTop + tgHeader, 64);
-    return Math.max(cTop, sTop + tgHeader, 56);
+    /* Genişletilmiş mod (X Kapat görünür): Telegram contentSafeArea öncelikli */
+    if (cTop >= 8) return cTop;
+    return Math.max(sTop + tgChrome, 52);
   }
 
   function apply() {
@@ -97,12 +81,9 @@
     const envBottom = measureEnvInset('env(safe-area-inset-bottom)');
 
     let bgBleedTop = Math.max(sTop, envTop);
-    let contentTop = inTg ? resolveContentTop(tg, sTop, cTop, bgBleedTop, w) : envTop;
+    let contentTop = inTg ? resolveContentTop(tg, sTop, cTop) : envTop;
 
-    if (bgBleedTop < contentTop && contentTop >= 40) {
-      bgBleedTop = Math.max(bgBleedTop, contentTop - 8, sTop);
-    }
-    if (inTg && sTop >= 47) bgBleedTop = Math.max(bgBleedTop, sTop);
+    if (inTg && sTop > 0) bgBleedTop = Math.max(bgBleedTop, sTop);
 
     const tier = safeTier(bgBleedTop, contentTop, w);
 

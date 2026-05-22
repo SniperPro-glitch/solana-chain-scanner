@@ -404,7 +404,9 @@
   }
 
   function refreshTgViewport() {
-    if (typeof window.__tgApplyFullscreen === 'function') window.__tgApplyFullscreen();
+    if (typeof window.__tgApplyExpanded === 'function') window.__tgApplyExpanded();
+    else if (typeof window.__tgApplyFullscreen === 'function') window.__tgApplyFullscreen();
+    if (typeof window.SniperSafeArea?.scheduleRetries === 'function') window.SniperSafeArea.scheduleRetries();
     else if (typeof window.__tgApplySafeArea === 'function') window.__tgApplySafeArea();
   }
 
