@@ -48,12 +48,12 @@ function sendJson(res, code, obj, extraHeaders = {}) {
 async function sendDexChartJson(res, ref, tf, live) {
   const { getPairChart } = require('./dexscreenerApi');
   const { chartStatsFromCandles } = require('./tokenLogo');
-  const { ohlcvCacheMs, normalizeTimeframe } = require('./marketData');
+  const { normalizeTimeframe } = require('./marketData');
   const t0 = Date.now();
   const timeframe = normalizeTimeframe(tf);
   const { pair, candles, poolAddress, priceUsd, source, mint } = await getPairChart(ref, timeframe, { fresh: live });
   const serverMs = Date.now() - t0;
-  const cacheMs = ohlcvCacheMs(timeframe);
+  const cacheMs = live ? 4000 : 30000;
   sendJson(res, 200, {
     pair,
     poolAddress,
@@ -327,33 +327,6 @@ function createMiniAppServer() {
         return;
       }
 
-      const dexTradesMatch = url.pathname.match(/^\/api\/dex\/token\/([A-Za-z0-9]+)\/trades$/);
-      if (req.method === 'GET' && dexTradesMatch) {
-        const { getTokenTrades } = require('./dexscreenerApi');
-        const limit = Math.min(50, Math.max(8, parseInt(url.searchParams.get('limit') || '50', 10) || 50));
-        const live = url.searchParams.get('live') === '1';
-        const poolQ = url.searchParams.get('pool') || '';
-        const sinceQ = url.searchParams.get('since') || url.searchParams.get('updatedAfter') || '';
-        try {
-          const t0 = Date.now();
-          const out = await getTokenTrades(dexTradesMatch[1], limit, {
-            fresh: live,
-            poolAddress: poolQ,
-            sinceMs: sinceQ,
-          });
-          const serverMs = Date.now() - t0;
-          if (serverMs > 2000) {
-            console.warn('[miniApp] dex trades slow', serverMs, 'ms', dexTradesMatch[1].slice(0, 8));
-          }
-          res.setHeader('Server-Timing', `trades;dur=${serverMs}`);
-          sendJson(res, 200, { ...out, live, serverMs });
-        } catch (e) {
-          console.warn('[miniApp] dex trades:', e.message);
-          sendJson(res, 502, { error: 'dex_trades_failed', message: e.message });
-        }
-        return;
-      }
-
       if (req.method === 'GET' && shouldProxyToBot(url.pathname, url.searchParams)) {
         if (shouldUseBotHttpProxy(req)) {
           if (await proxyBotApi(res, url)) return;
@@ -488,24 +461,6 @@ function createMiniAppServer() {
         } catch (e) {
           console.warn('[miniApp] search:', e.message);
           sendJson(res, 502, { error: 'search_failed', message: e.message });
-        }
-        return;
-      }
-
-      const tradesMatch = url.pathname.match(/^\/api\/trades\/([1-9A-HJ-NP-Za-km-z]{32,44})$/);
-      if (req.method === 'GET' && tradesMatch) {
-        try {
-          const { fetchPairTrades } = require('./pairTrades');
-          const limit = Math.min(40, parseInt(url.searchParams.get('limit') || '28', 10));
-          const trades = await fetchPairTrades({
-            mint: tradesMatch[1],
-            poolAddress: url.searchParams.get('pool') || '',
-            limit,
-          });
-          sendJson(res, 200, { trades, pollMs: 3000, mint: tradesMatch[1] });
-        } catch (e) {
-          console.warn('[miniApp] trades:', e.message);
-          sendJson(res, 502, { error: 'trades_failed', message: e.message });
         }
         return;
       }

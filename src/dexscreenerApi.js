@@ -1,4 +1,4 @@
-// DexScreener REST — 30s in-memory cache; pair, token, OHLCV (Gecko yedek).
+// DexScreener REST — pair çözümleme + embed URL (grafik/işlemler iframe).
 
 const axios = require('axios');
 const config = require('./chains/solana/config');
@@ -6,8 +6,6 @@ const config = require('./chains/solana/config');
 const CACHE_MS = 30_000;
 const LIVE_CACHE_MS = 4_000;
 const cache = new Map();
-const ohlcvLiveFetchAt = new Map();
-const OHLCV_LIVE_FULL_MS = 25_000;
 
 const http = axios.create({
   timeout: 14_000,
@@ -81,7 +79,7 @@ async function fetchPairsByMint(mint) {
   return null;
 }
 
-/** Mint → havuz adresi (sadece DexScreener, OHLCV yok). */
+/** Mint → havuz adresi (sadece DexScreener). */
 async function resolvePoolAddressForMint(mint) {
   const pair = await resolveDexScreenerPair({ mint });
   return pair?.pairAddress || null;
@@ -147,10 +145,13 @@ function dexScreenerPageUrl(poolOrMint) {
   return config.data.dexScreener(ref);
 }
 
-/** Pool veya mint → pair + OHLCV (Birdeye; yedek Gecko). */
+/** Canlı fiyat — DexScreener pair (mum verisi yok, grafik embed). */
 async function getPairChart(poolOrMint, timeframe = '15m', opts = {}) {
+  void timeframe;
   const ref = String(poolOrMint || '').trim();
-  if (!ref) return { pair: null, candles: [], poolAddress: null, priceUsd: null, source: null };
+  if (!ref) {
+    return { pair: null, candles: [], poolAddress: null, priceUsd: null, source: null, mint: null };
+  }
 
   const live = !!opts.fresh;
   const pairOpts = live ? { fresh: true, maxAge: LIVE_CACHE_MS } : {};
@@ -166,101 +167,35 @@ async function getPairChart(poolOrMint, timeframe = '15m', opts = {}) {
 
   let pool = pair?.pairAddress || null;
   const mint = pair?.baseToken?.address || (ref.length >= 32 && ref.length <= 48 ? ref : null);
-  if (!pool && ref.length >= 32 && ref.length <= 48) {
-    pool = ref;
-  }
-  if (!pool && mint) {
-    const { fetchGeckoPoolAddress } = require('./marketData');
-    pool = await fetchGeckoPoolAddress(mint);
-  }
-
-  const { fetchOhlcv, normalizeTimeframe, patchLastCandle } = require('./marketData');
-  const tf = normalizeTimeframe(timeframe);
-  let candles = [];
-  let source = null;
-
-  if (pool) {
-    const ohlcvKey = `${pool}:${tf}`;
-    const needFull = !live
-      || !ohlcvLiveFetchAt.has(ohlcvKey)
-      || Date.now() - ohlcvLiveFetchAt.get(ohlcvKey) >= OHLCV_LIVE_FULL_MS;
-    if (needFull) {
-      candles = await fetchOhlcv(pool, tf, { fresh: live });
-      if (candles.length) ohlcvLiveFetchAt.set(ohlcvKey, Date.now());
-    } else {
-      candles = await fetchOhlcv(pool, tf, { allowStale: true });
-    }
-    if (candles.length) source = 'geckoterminal';
-  }
+  if (!pool && ref.length >= 32 && ref.length <= 48) pool = ref;
 
   const priceUsd = parseFloat(pair?.priceUsd);
-  if (Number.isFinite(priceUsd) && candles.length) {
-    candles = patchLastCandle(candles, priceUsd);
-  }
 
   return {
     pair,
-    candles,
+    candles: [],
     poolAddress: pool,
     priceUsd: Number.isFinite(priceUsd) ? priceUsd : null,
-    source,
+    source: 'dexscreener',
     mint,
   };
 }
 
-/** Token mint → canlı işlemler (Gecko pool trades; pool varsa DS token atlanır). */
+/** İşlemler DexScreener embed — REST liste kullanılmıyor. */
 async function getTokenTrades(mint, limit = 50, opts = {}) {
-  const t0 = Date.now();
-  const poolQ = String(opts.poolAddress || '').trim() || null;
-  let best = null;
-  let pairs = [];
-  if (!poolQ) {
-    const pairOpts = opts.fresh ? { fresh: true, maxAge: LIVE_CACHE_MS } : {};
-    const token = await fetchTokenData(mint, pairOpts);
-    best = token?.best;
-    pairs = token?.pairs || [];
-  }
-  const pool = poolQ || best?.pairAddress || null;
-  const { isBirdeyeEnabled, fetchTokenTrades: fetchBirdeyeTrades } = require('./birdeyeApi');
-  const { parseSinceMs, filterTradesAfterSince } = require('./pairTrades');
-  const sinceMs = opts.sinceMs != null ? parseSinceMs(opts.sinceMs) : 0;
-  let trades = [];
-  let source = 'birdeye';
-
-  if (isBirdeyeEnabled()) {
-    trades = await fetchBirdeyeTrades(mint, limit);
-    if (sinceMs > 0) trades = filterTradesAfterSince(trades, sinceMs);
-  } else {
-    const { fetchPairTrades } = require('./pairTrades');
-    trades = await fetchPairTrades({
-      poolAddress: pool,
-      mint,
-      limit,
-      fresh: !!opts.fresh,
-      skipDexOrders: !!poolQ,
-      sinceMs,
-    });
-    source = 'geckoterminal';
-  }
-  const fetchMs = Date.now() - t0;
-  if (fetchMs > 2000) {
-    console.warn('[dex/trades] slow', fetchMs, 'ms', String(mint || '').slice(0, 8), String(pool || '').slice(0, 8));
-  }
-  let latestUpdatedAt = sinceMs || null;
-  for (const tr of trades) {
-    const ms = new Date(tr?.updatedAt || tr?.at || 0).getTime();
-    if (Number.isFinite(ms) && ms > (latestUpdatedAt || 0)) latestUpdatedAt = ms;
-  }
+  void mint;
+  void limit;
+  void opts;
   return {
-    trades,
-    pair: best,
-    poolAddress: pool,
-    pairs,
-    fetchMs,
+    trades: [],
+    pair: null,
+    poolAddress: opts.poolAddress || null,
+    pairs: [],
+    fetchMs: 0,
     pollMs: 0,
-    source,
-    incremental: sinceMs > 0,
-    latestUpdatedAt: latestUpdatedAt ? new Date(latestUpdatedAt).toISOString() : null,
+    source: 'dexscreener_embed',
+    incremental: false,
+    latestUpdatedAt: null,
   };
 }
 

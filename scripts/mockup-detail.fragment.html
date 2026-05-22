@@ -1,0 +1,112 @@
+  <!-- Screen C: Token detail (mockup) -->
+  <div id="view-detail" class="view-detail mockup-report hidden">
+    <header class="mrpt-top">
+      <button type="button" class="mrpt-back" id="btnBack" aria-label="Back">←</button>
+      <div class="mrpt-logo">
+        <span class="mrpt-logo-main">SNIPER</span>
+        <span class="mrpt-logo-sub">SCANNER</span>
+      </div>
+      <div class="mrpt-top-actions">
+        <button type="button" class="mrpt-icon-btn" id="btnShareHeader" aria-label="Share">↗</button>
+        <button type="button" class="mrpt-icon-btn" id="btnFavorite" aria-label="Favorite">★</button>
+      </div>
+    </header>
+
+    <div class="detail-body mrpt-scroll">
+      <section class="mrpt-hero">
+        <div class="mrpt-logo-ring" id="logoWrap">
+          <div class="logo-skeleton" id="logoSkeleton"></div>
+          <img id="tokenLogo" class="mrpt-token-img hidden" alt="" width="72" height="72" />
+        </div>
+        <div class="mrpt-hero-info">
+          <h1 id="pairTitle">—</h1>
+          <p id="tokenTagline" class="mrpt-subtitle">—</p>
+          <span id="mrptDexPill" class="mrpt-dex-pill">—</span>
+          <p id="pairSub" class="mint-line hidden" aria-hidden="true">—</p>
+          <button type="button" id="copyMint" class="hidden" aria-hidden="true">⧉</button>
+        </div>
+        <div class="mrpt-hero-right">
+          <div id="priceUsd" class="mrpt-price">—</div>
+          <div id="quoteChanges" class="mrpt-chg24-wrap"></div>
+        </div>
+      </section>
+
+      <div id="detailBadgeRow" class="mrpt-badges-scroll"></div>
+
+      <div class="mrpt-actions">
+        <button type="button" class="mrpt-act" id="btnWatchlist" disabled>Add to Watchlist</button>
+        <button type="button" class="mrpt-act" id="btnShareReport">Share Report</button>
+        <button type="button" class="mrpt-act mrpt-act-ai" id="btnAiSummary">AI Summary</button>
+      </div>
+
+      <section id="metricsDash" class="mrpt-metrics"></section>
+
+      <section class="mrpt-risk-row">
+        <div class="mrpt-gauge-card">
+          <h3>Risk Analysis</h3>
+          <div class="mrpt-gauge" id="mrptGauge">
+            <span class="mrpt-gauge-score" id="mrptGaugeScore">—</span>
+          </div>
+          <p class="mrpt-gauge-label" id="mrptGaugeLabel">—</p>
+        </div>
+        <div class="mrpt-check-card">
+          <ul id="mrptChecklist" class="mrpt-checklist"></ul>
+        </div>
+      </section>
+
+      <div class="mrpt-grid-2">
+        <article class="mrpt-panel">
+          <h4>About Token</h4>
+          <div class="mrpt-panel-body" id="mrptAboutBody"></div>
+        </article>
+        <article class="mrpt-panel">
+          <h4>Liquidity Details</h4>
+          <div class="mrpt-panel-body" id="mrptLiquidityBody"></div>
+        </article>
+      </div>
+
+      <div class="mrpt-grid-3">
+        <article class="mrpt-panel">
+          <h4>Top Holders</h4>
+          <div id="mrptHoldersBody"></div>
+        </article>
+        <article class="mrpt-panel">
+          <h4>Transactions 24H</h4>
+          <div id="mrptTxnsBody"></div>
+        </article>
+        <article class="mrpt-panel">
+          <h4>AI Summary</h4>
+          <p class="mrpt-ai-text" id="mrptAiText"></p>
+          <div class="mrpt-confidence">
+            <span>Confidence</span>
+            <div class="mrpt-conf-bar"><span id="mrptConfFill"></span></div>
+            <strong id="mrptConfPct">—</strong>
+          </div>
+        </article>
+      </div>
+    </div>
+
+    <div class="mrpt-legacy hidden" aria-hidden="true">
+      <span id="riskPillTop"></span>
+      <span id="dexBadge"></span>
+      <span id="levelChip"></span>
+      <span id="trustMini"></span>
+      <section class="chart-terminal glass">
+        <div class="chart-toolbar"><div id="tfGroup"></div></div>
+        <div class="ohlc-bar" id="ohlcBar"></div>
+        <div class="chart-stage"><div id="chartLoader"></div><div id="priceChart" class="chart-canvas"></div></div>
+        <p id="chartNote"></p>
+      </section>
+      <section id="tradesTape"></section>
+      <nav id="mainNav"></nav>
+      <div class="panel-stack">
+        <div id="panel-info"></div>
+        <div id="panel-security"></div>
+        <div id="panel-trade"></div>
+      </div>
+      <section id="txnSection"></section>
+    </div>
+
+    <footer class="trade-bar hidden" id="tradeBar"></footer>
+  </div>
+

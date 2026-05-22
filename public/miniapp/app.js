@@ -65,30 +65,7 @@
   let appData = null;
   let currentTf = '15m';
   let chartType = 'candle';
-  /** DexScreener dark chart theme (Lightweight Charts). */
-  const CHART_DS = {
-    bg: '#0d1117',
-    grid: '#1a2235',
-    up: '#26a69a',
-    down: '#ef5350',
-    priceLine: '#485c7b',
-    volUp: 'rgba(38, 166, 154, 0.3)',
-    volDown: 'rgba(239, 83, 80, 0.3)',
-    crosshair: 'rgba(255, 255, 255, 0.72)',
-    text: '#8b949e',
-  };
-  let chartApi = null;
-  let candleSeries = null;
-  let lineSeries = null;
-  let volumeSeries = null;
-  let resizeHandler = null;
-  let chartResizeObs = null;
   let livePollTimer = null;
-  let chartDrawMode = 'select';
-  let chartDrawings = [];
-  let chartTrendPending = null;
-  let chartClickUnsub = null;
-  const CHART_DRAW_COLOR = '#f0b429';
 
   let feedTab = 'trending';
   let dexFilter = 'all';
@@ -100,14 +77,7 @@
   let detailShellBound = false;
   let feedPollTimer = null;
   let feedRefreshSec = 45;
-  let tradesPollTimer = null;
-  let tradesPollInFlight = false;
-  let tradesFetchGen = 0;
-  let tradesLastGood = [];
-  let tradesDisplayRows = [];
   let dexTradesEmbedRef = '';
-  const TRADES_MAX_ROWS = 50;
-  const TRADES_POLL_MS = 1000;
   const CHART_LIVE_POLL_MS = 5000;
   let openingMint = false;
   let feedItemsFull = [];
@@ -2045,13 +2015,6 @@
 
   function stopTradesPoll() {
     stopDexTradesPanel();
-    if (tradesPollTimer) {
-      clearInterval(tradesPollTimer);
-      tradesPollTimer = null;
-    }
-    tradesDisplayRows = [];
-    tradesLastGood = [];
-    tradesPollInFlight = false;
   }
 
   function chartPoolRef(m) {
@@ -2095,186 +2058,6 @@
     return (market.address || appData?.address || '').trim();
   }
 
-  function tradeAgoLabel(at) {
-    const t = new Date(at).getTime();
-    if (!t) return '';
-    const sec = Math.max(0, Math.floor((Date.now() - t) / 1000));
-    if (sec < 60) return `${sec}s`;
-    if (sec < 3600) return `${Math.floor(sec / 60)}m`;
-    return `${Math.floor(sec / 3600)}h`;
-  }
-
-  function tradeTimeMs(t) {
-    const ms = new Date(t?.at || 0).getTime();
-    return Number.isFinite(ms) ? ms : 0;
-  }
-
-  function tradeDedupeKey(t) {
-    const tx = String(t?.txHash || t?.id || '').trim();
-    if (tx) return `tx:${tx}`;
-    return `t:${tradeTimeMs(t)}:${String(t?.wallet || '')}:${t?.usd ?? ''}`;
-  }
-
-  function mergeTradesDisplay(incoming, existing) {
-    const byKey = new Map();
-    for (const t of [...(incoming || []), ...(existing || [])]) {
-      if (!t) continue;
-      const k = tradeDedupeKey(t);
-      const prev = byKey.get(k);
-      if (!prev || tradeTimeMs(t) >= tradeTimeMs(prev)) byKey.set(k, t);
-    }
-    return [...byKey.values()]
-      .sort((a, b) => tradeTimeMs(b) - tradeTimeMs(a))
-      .slice(0, TRADES_MAX_ROWS);
-  }
-
-  function formatTradeAmount(t) {
-    const v = t?.amount;
-    if (v == null || !Number.isFinite(Number(v))) return '—';
-    const n = Number(v);
-    if (n >= 1e6) return `${(n / 1e6).toFixed(2)}M`;
-    if (n >= 1e3) return `${(n / 1e3).toFixed(1)}K`;
-    return n.toFixed(2);
-  }
-
-  function buildTradeRowHtml(t, isNew) {
-    const side = t.side === 'sell' ? 'sell' : 'buy';
-    const ago = tradeAgoLabel(t.at) || t.ago || '—';
-    const key = tradeDedupeKey(t);
-    return `<li class="trade-row trade-row--${side}${isNew ? ' trade-row--new' : ''}" data-trade-key="${escHtml(key)}">
-        <span class="trade-ago">${escHtml(ago)}</span>
-        <span class="trade-side ${side}">${side === 'buy' ? 'AL' : 'SAT'}</span>
-        <span class="trade-usd">${escHtml(t.usdFmt || '—')}</span>
-        <span class="trade-amt">${escHtml(formatTradeAmount(t))}</span>
-        <span class="trade-wallet">${escHtml(t.wallet || '—')}</span>
-      </li>`;
-  }
-
-  function tradesSessionKey(m) {
-    const mint = tokenMintRef(m) || m;
-    const pool = chartPoolRef(m);
-    if (!mint) return '';
-    return `trades:${mint}:${pool || ''}`;
-  }
-
-  function loadTradesSession(m) {
-    try {
-      const raw = sessionStorage.getItem(tradesSessionKey(m));
-      const arr = raw ? JSON.parse(raw) : [];
-      return Array.isArray(arr) ? arr.slice(0, TRADES_MAX_ROWS) : [];
-    } catch {
-      return [];
-    }
-  }
-
-  function saveTradesSession(m, trades) {
-    try {
-      if (!trades?.length) return;
-      sessionStorage.setItem(tradesSessionKey(m), JSON.stringify(trades.slice(0, TRADES_MAX_ROWS)));
-    } catch {
-      /* quota */
-    }
-  }
-
-  function showTradesSkeleton(n = 6) {
-    const list = $('tradesList');
-    if (!list) return;
-    const row = `<li class="trade-row trade-row--skeleton" aria-hidden="true">
-        <span class="sk-bar sk-w1"></span>
-        <span class="sk-bar sk-w2"></span>
-        <span class="sk-bar sk-w3"></span>
-        <span class="sk-bar sk-w4"></span>
-        <span class="sk-bar sk-w5"></span>
-      </li>`;
-    list.innerHTML = row.repeat(n);
-  }
-
-  function trimTradesDom(list) {
-    const rows = [...list.querySelectorAll('.trade-row:not(.trade-placeholder):not(.trade-row--skeleton)')];
-    while (rows.length > TRADES_MAX_ROWS) {
-      rows[rows.length - 1].remove();
-      rows.pop();
-    }
-  }
-
-  function renderTradesList(trades, symbol, opts = {}) {
-    const list = $('tradesList');
-    const col = $('tradesColToken');
-    if (col) col.textContent = symbol || 'Token';
-    if (!list) return;
-
-    if (!trades?.length) {
-      if (opts.keepPrevious && tradesDisplayRows.length) return;
-      tradesDisplayRows = [];
-      list.innerHTML = '<li class="trade-row trade-placeholder">Henüz işlem yok</li>';
-      return;
-    }
-
-    const prevKeys = new Set(tradesDisplayRows.map(tradeDedupeKey));
-    const merged = mergeTradesDisplay(trades, tradesDisplayRows);
-    tradesDisplayRows = merged;
-
-    const placeholder = list.querySelector('.trade-placeholder');
-    if (placeholder) placeholder.remove();
-    list.querySelectorAll('.trade-row--skeleton').forEach((el) => el.remove());
-
-    if (opts.fullRender || !list.querySelector('.trade-row[data-trade-key]')) {
-      list.innerHTML = merged.map((t) => buildTradeRowHtml(t, false)).join('');
-      trimTradesDom(list);
-      return;
-    }
-
-    const added = merged.filter((t) => !prevKeys.has(tradeDedupeKey(t)));
-    if (!added.length) {
-      trimTradesDom(list);
-      return;
-    }
-
-    added.sort((a, b) => tradeTimeMs(a) - tradeTimeMs(b));
-    for (const t of added) {
-      list.insertAdjacentHTML('afterbegin', buildTradeRowHtml(t, true));
-    }
-    trimTradesDom(list);
-  }
-
-  function seedTradesFromMarket(m) {
-    const raw = m?.recentTrades || appData?.market?.recentTrades || [];
-    return Array.isArray(raw) ? raw.slice(0, TRADES_MAX_ROWS) : [];
-  }
-
-  function tradesWatermarkMs(rows) {
-    let max = 0;
-    for (const t of rows || []) {
-      const ms = tradeTimeMs(t);
-      if (ms > max) max = ms;
-    }
-    return max;
-  }
-
-  async function fetchTradesFromServer(m, live = false, sinceMs = 0) {
-    const mint = tokenMintRef(m) || m;
-    if (!mint) return { trades: [], pollMs: TRADES_POLL_MS, incremental: false };
-    const pool = chartPoolRef(m);
-    const q = new URLSearchParams({ limit: String(TRADES_MAX_ROWS) });
-    if (live) {
-      q.set('live', '1');
-      q.set('t', String(Date.now()));
-    }
-    if (pool) q.set('pool', pool);
-    if (sinceMs > 0) q.set('since', String(sinceMs));
-    const res = await fetch(apiPath(`/api/dex/token/${encodeURIComponent(mint)}/trades?${q}`), { cache: 'no-store' });
-    if (!res.ok) return { trades: [], pollMs: TRADES_POLL_MS, incremental: sinceMs > 0 };
-    const body = await res.json();
-    const pollMs = Number(body?.pollMs) || TRADES_POLL_MS;
-    if (appData?.market && pollMs >= 1000) appData.market.tradesPollMs = pollMs;
-    return {
-      trades: body?.trades || [],
-      pollMs,
-      incremental: !!body?.incremental || sinceMs > 0,
-      latestUpdatedAt: body?.latestUpdatedAt || null,
-    };
-  }
-
   function applyLivePairToMarket(m, pair, priceUsd) {
     if (!m) return;
     if (Number.isFinite(priceUsd)) {
@@ -2303,70 +2086,6 @@
     renderQuoteChanges(m);
   }
 
-  async function refreshTrades(m, initial = false) {
-    const fetchGen = ++tradesFetchGen;
-    const tape = $('tradesTape');
-    const meta = $('tradesMeta');
-    const mint = tokenMintRef(m);
-    if (!tape) return;
-    tape.classList.remove('hidden');
-    if (!mint) {
-      renderTradesList([], m?.symbol);
-      if (meta) meta.textContent = 'mint yok';
-      return;
-    }
-    if (initial) {
-      tradesDisplayRows = [];
-      const cached = loadTradesSession(m);
-      const seeded = cached.length ? cached : seedTradesFromMarket(m);
-      tradesLastGood = seeded;
-      if (seeded.length) {
-        renderTradesList(seeded, m?.symbol, { fullRender: true });
-        if (meta) meta.textContent = `${seeded.length} işlem · güncelleniyor`;
-      } else {
-        showTradesSkeleton();
-        if (meta) meta.textContent = 'yükleniyor…';
-      }
-    }
-    if (!initial) return;
-
-    tradesPollInFlight = true;
-    try {
-      const { trades } = await fetchTradesFromServer(m, true, 0);
-      if (fetchGen !== tradesFetchGen) return;
-
-      if (trades.length) {
-        tradesLastGood = trades;
-        saveTradesSession(m, trades);
-      } else if (!tradesLastGood.length) {
-        tradesLastGood = seedTradesFromMarket(m);
-      }
-      const display = trades.length ? trades : tradesLastGood;
-      const list = $('tradesList');
-      const needsFull = initial || !list?.querySelector('.trade-row[data-trade-key]');
-      renderTradesList(display, m?.symbol, {
-        keepPrevious: !needsFull && !display.length,
-        fullRender: needsFull && !!display.length,
-      });
-
-      m.tradesUpdatedAtMs = tradesWatermarkMs(tradesLastGood);
-      if (meta) {
-        const n = tradesDisplayRows.length;
-        if (n) meta.textContent = `${n} işlem · WS bağlanıyor`;
-        else if (tradesLastGood.length) meta.textContent = `${tradesLastGood.length} işlem · WS`;
-        else meta.textContent = 'işlem bekleniyor';
-      }
-    } catch (e) {
-      console.warn('trades bootstrap', e);
-      if (tradesLastGood.length) {
-        renderTradesList(tradesLastGood, m?.symbol, { keepPrevious: true });
-        if (meta) meta.textContent = `${tradesLastGood.length} işlem · canlı`;
-      } else if (meta) meta.textContent = 'bağlantı hatası';
-    } finally {
-      tradesPollInFlight = false;
-    }
-  }
-
   function startTradesPoll(m) {
     stopTradesPoll();
     void startDexTradesPanel(m);
@@ -2389,20 +2108,21 @@
     }, CHART_LIVE_POLL_MS);
   }
 
-  function applyDexCrop() {
-    if (!globalThis.SniperDexCrop) return;
-    const run = () => SniperDexCrop.apply();
-    if (SniperCropProfile?.apply) SniperCropProfile.apply();
+  function scheduleDexTradesCrop() {
+    if (!globalThis.SniperDexCrop?.apply) return;
+    const run = () => {
+      if (SniperCropProfile?.apply) SniperCropProfile.apply();
+      SniperDexCrop.apply();
+    };
     if (SniperDexCrop.ensureProfilesReady) {
-      void SniperDexCrop.ensureProfilesReady().then(run);
+      void SniperDexCrop.ensureProfilesReady().then(() => {
+        run();
+        [150, 500, 1200, 2500].forEach((ms) => setTimeout(run, ms));
+      });
       return;
     }
     run();
-  }
-
-  function scheduleDexTradesCrop() {
-    applyDexCrop();
-    [150, 500, 1200, 2500].forEach((ms) => setTimeout(applyDexCrop, ms));
+    [150, 500, 1200, 2500].forEach((ms) => setTimeout(run, ms));
   }
 
   function dexEmbedUrlFor(poolOrMint, tf, ctype) {
@@ -2474,22 +2194,9 @@
   }
 
   function destroyChart() {
-    document.documentElement.classList.remove('chart-interacting');
-    if (resizeHandler) {
-      window.removeEventListener('resize', resizeHandler);
-      resizeHandler = null;
-    }
-    if (chartApi) {
-      try {
-        chartApi.remove();
-      } catch {
-        /* yoksay */
-      }
-      chartApi = null;
-      candleSeries = null;
-      lineSeries = null;
-      volumeSeries = null;
-    }
+    const container = $('priceChart');
+    if (container) container.innerHTML = '';
+    document.querySelector('.chart-terminal')?.classList.remove('chart-terminal--dex-embed');
   }
 
   async function renderChart(m) {

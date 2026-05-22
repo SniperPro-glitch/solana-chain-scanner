@@ -1,10 +1,11 @@
-// Canlı piyasa + OHLCV (DexScreener + GeckoTerminal) — Mini App grafik.
+// Canlı piyasa — DexScreener (Mini App grafik/işlemler embed).
 
 const axios = require('axios');
 const config = require('./chains/solana/config');
-const { resolveTokenLogo, chartStatsFromCandles, buildLogoCandidates } = require('./tokenLogo');
+const { resolveTokenLogo, buildLogoCandidates } = require('./tokenLogo');
 const {
   resolveDexScreenerPair,
+  resolvePoolAddressForMint,
   dexScreenerChartEmbedUrl,
   dexScreenerTradesEmbedUrl,
 } = require('./dexscreenerApi');
@@ -92,231 +93,13 @@ function applyPairToMarket(market, pair) {
   };
 }
 
-async function fetchGeckoPoolAddress(mint) {
-  if (!mint) return null;
-  try {
-    const { data } = await http.get(
-      `https://api.geckoterminal.com/api/v2/networks/solana/tokens/${mint}/pools`,
-      { params: { page: 1 } },
-    );
-    const pools = data?.data || [];
-    if (!pools.length) return null;
-    pools.sort((a, b) => {
-      const ra = parseFloat(a.attributes?.reserve_in_usd) || 0;
-      const rb = parseFloat(b.attributes?.reserve_in_usd) || 0;
-      return rb - ra;
-    });
-    return pools[0]?.attributes?.address || null;
-  } catch {
-    return null;
-  }
-}
-
-const TIMEFRAMES = {
-  '1m': { aggregate: 1, limit: 120, path: 'minute' },
-  '5m': { aggregate: 5, limit: 96, path: 'minute' },
-  '15m': { aggregate: 15, limit: 96, path: 'minute' },
-  '1h': { aggregate: 1, limit: 96, path: 'hour' },
-  '4h': { aggregate: 4, limit: 72, path: 'hour' },
-  '1d': { aggregate: 1, limit: 90, path: 'day' },
-};
-
-/** OHLCV cache TTL per timeframe (key: ${pool}:${tf}). */
-const OHLCV_CACHE_MS_BY_TF = {
-  '1m': 10_000,
-  '5m': 30_000,
-  '15m': 60_000,
-  '1h': 60_000,
-  '4h': 120_000,
-  '1d': 120_000,
-};
-const ohlcvCache = new Map();
-const ohlcvLastGood = new Map();
-
-function ohlcvCacheMs(tf) {
-  return OHLCV_CACHE_MS_BY_TF[normalizeTimeframe(tf)] || 60_000;
-}
-
-function sleep(ms) {
-  return new Promise((r) => setTimeout(r, ms));
-}
-
 function normalizeTimeframe(tf) {
   const key = String(tf || '15m').toLowerCase();
-  return TIMEFRAMES[key] ? key : '15m';
+  const ok = ['1m', '5m', '15m', '1h', '4h', '1d'];
+  return ok.includes(key) ? key : '15m';
 }
 
-/** Lightweight Charts: günlük mumlar için YYYY-MM-DD, diğerleri unix saniye. */
-function chartTimeFromUnix(unixSec, path) {
-  const sec = Number(unixSec);
-  if (!Number.isFinite(sec)) return null;
-  if (path === 'day') {
-    const d = new Date(sec * 1000);
-    return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`;
-  }
-  return sec;
-}
-
-function parseOhlcvRows(list, path) {
-  return (list || [])
-    .map((row) => {
-      let unix = Number(row[0]);
-      const close = Number(row[4]);
-      if (!unix || !close) return null;
-      if (unix > 1e12) unix = Math.floor(unix / 1000);
-      return {
-        unix,
-        time: chartTimeFromUnix(unix, path),
-        open: Number(row[1]),
-        high: Number(row[2]),
-        low: Number(row[3]),
-        close,
-        volume: Number(row[5]) || 0,
-      };
-    })
-    .filter(Boolean)
-    .sort((a, b) => a.unix - b.unix)
-    .map(({ unix, ...c }) => c);
-}
-
-/** 15m veriden 1H / 4H / 1D üret (Gecko boş dönerse). */
-function resampleCandles(candles, bucketSec, path) {
-  const buckets = new Map();
-  for (const c of candles) {
-    const unix = typeof c.time === 'number' ? c.time : Number(c.unix);
-    if (!unix) continue;
-    const key = Math.floor(unix / bucketSec) * bucketSec;
-    let b = buckets.get(key);
-    if (!b) {
-      b = {
-        unix: key,
-        time: chartTimeFromUnix(key, path),
-        open: c.open,
-        high: c.high,
-        low: c.low,
-        close: c.close,
-        volume: 0,
-      };
-      buckets.set(key, b);
-    } else {
-      b.high = Math.max(b.high, c.high);
-      b.low = Math.min(b.low, c.low);
-      b.close = c.close;
-      b.volume += c.volume || 0;
-    }
-  }
-  return [...buckets.values()]
-    .sort((a, b) => a.unix - b.unix)
-    .map(({ unix, ...rest }) => rest);
-}
-
-async function requestGeckoOhlcv(poolAddress, cfg, limit) {
-  const { data, status } = await http.get(
-    `https://api.geckoterminal.com/api/v2/networks/solana/pools/${poolAddress}/ohlcv/${cfg.path}`,
-    {
-      params: { aggregate: cfg.aggregate, limit, currency: 'usd' },
-      validateStatus: () => true,
-    },
-  );
-  if (status === 429) {
-    const err = new Error('GeckoTerminal rate limit');
-    err.code = 'rate_limit';
-    throw err;
-  }
-  if (status >= 400) return [];
-  return parseOhlcvRows(data?.data?.attributes?.ohlcv_list, cfg.path);
-}
-
-async function fetchOhlcvOnce(poolAddress, tf, limitOverride) {
-  const cfg = TIMEFRAMES[tf];
-  const limit = limitOverride || cfg.limit;
-  let candles = [];
-  try {
-    candles = await requestGeckoOhlcv(poolAddress, cfg, limit);
-  } catch (e) {
-    if (e.code === 'rate_limit') throw e;
-    return [];
-  }
-  if (!candles.length && (tf === '1h' || tf === '4h' || tf === '1d')) {
-    try {
-      const base = await requestGeckoOhlcv(poolAddress, TIMEFRAMES['15m'], 200);
-      const bucket = tf === '1h' ? 3600 : tf === '4h' ? 14_400 : 86_400;
-      candles = resampleCandles(
-        base.map((c) => ({ ...c, unix: typeof c.time === 'number' ? c.time : null })),
-        bucket,
-        cfg.path,
-      );
-    } catch (e) {
-      if (e.code === 'rate_limit') throw e;
-    }
-  }
-  return candles;
-}
-
-function patchLastCandle(candles, priceUsd) {
-  if (!candles?.length || !Number.isFinite(priceUsd)) return candles || [];
-  const out = candles.map((c) => ({ ...c }));
-  const last = out[out.length - 1];
-  last.close = priceUsd;
-  last.high = Math.max(Number(last.high) || priceUsd, priceUsd);
-  last.low = Math.min(Number(last.low) || priceUsd, priceUsd);
-  return out;
-}
-
-async function fetchOhlcv(poolAddress, timeframe = '15m', third, fourth) {
-  let limitOverride;
-  let opts = {};
-  if (third && typeof third === 'object') {
-    opts = third;
-  } else {
-    limitOverride = third;
-    opts = fourth || {};
-  }
-  if (!poolAddress) return [];
-  const tf = normalizeTimeframe(timeframe);
-  const cacheKey = `${poolAddress}:${tf}`;
-  const hit = ohlcvCache.get(cacheKey);
-  const cacheMs = ohlcvCacheMs(tf);
-  if (!opts.fresh && hit?.candles?.length && Date.now() - hit.at < cacheMs) return hit.candles;
-  if (opts.allowStale && hit?.candles?.length) return hit.candles;
-  const staleOnly = ohlcvLastGood.get(cacheKey);
-  if (opts.allowStale && staleOnly?.length) return staleOnly;
-
-  const stale = ohlcvLastGood.get(cacheKey);
-  let candles = [];
-  const attempts = 3;
-  for (let i = 0; i < attempts; i += 1) {
-    try {
-      candles = await fetchOhlcvOnce(poolAddress, tf, limitOverride);
-      if (candles.length) break;
-      if (i < attempts - 1) await sleep(600 * (i + 1));
-    } catch (e) {
-      if (e.code === 'rate_limit') {
-        console.warn('[market] Gecko OHLCV rate limit:', tf, `attempt ${i + 1}/${attempts}`);
-        if (i < attempts - 1) await sleep(900 * (i + 1));
-        continue;
-      }
-      candles = [];
-      break;
-    }
-  }
-
-  if (candles.length) {
-    ohlcvCache.set(cacheKey, { at: Date.now(), candles });
-    ohlcvLastGood.set(cacheKey, candles);
-    return candles;
-  }
-
-  if (stale?.length) {
-    console.warn('[market] OHLCV boş — son iyi veri kullanılıyor:', cacheKey);
-    return stale;
-  }
-  return [];
-}
-
-/**
- * Canlı fiyat + logo + grafik mumları (paylaşım anına göre değil, açılış anı).
- */
+/** Canlı fiyat + DexScreener embed URL (mum API yok). */
 async function enrichMarketForMiniApp(token, options = {}) {
   const market = buildMarketFromToken(token);
   if (!market) return null;
@@ -336,22 +119,12 @@ async function enrichMarketForMiniApp(token, options = {}) {
 
   let poolAddress = merged.poolAddress || pair?.pairAddress || null;
   if (!poolAddress && merged.address) {
-    poolAddress = await fetchGeckoPoolAddress(merged.address);
+    poolAddress = await resolvePoolAddressForMint(merged.address);
   }
 
   const chartRef = poolAddress || merged.address;
   const chartEmbedUrl = dexScreenerChartEmbedUrl(chartRef, timeframe);
   const tradesEmbedUrl = dexScreenerTradesEmbedUrl(chartRef);
-  const useCandleApi = ['1', 'true', 'gecko'].includes(
-    String(process.env.MINIAPP_CHART_CANDLES || '').trim().toLowerCase(),
-  );
-  let candles = [];
-  let chartSource = 'dexscreener_embed';
-  if (useCandleApi && poolAddress) {
-    candles = await fetchOhlcv(poolAddress, timeframe);
-    if (candles.length) chartSource = 'geckoterminal';
-  }
-  const chartStats = chartStatsFromCandles(candles);
   const buys = merged.buys24h || 0;
   const sells = merged.sells24h || 0;
   const txnTotal = buys + sells;
@@ -364,10 +137,10 @@ async function enrichMarketForMiniApp(token, options = {}) {
     chart: {
       timeframe,
       mode: 'dexscreener_embed',
-      candles,
-      stats: chartStats,
+      candles: [],
+      stats: null,
       priceSource: 'dexscreener',
-      source: candles.length ? chartSource : 'dexscreener_embed',
+      source: 'dexscreener_embed',
       empty: !chartEmbedUrl,
       pairRef: chartRef,
       dexScreenerEmbedUrl: chartEmbedUrl,
@@ -380,11 +153,6 @@ async function enrichMarketForMiniApp(token, options = {}) {
 module.exports = {
   buildMarketFromToken,
   enrichMarketForMiniApp,
-  ohlcvCacheMs,
-  OHLCV_CACHE_MS_BY_TF,
-  fetchOhlcv,
-  patchLastCandle,
-  fetchGeckoPoolAddress,
   normalizeTimeframe,
   tokenLogoUrl,
   fmtUsd,

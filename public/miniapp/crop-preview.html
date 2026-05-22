@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="tr" class="web-browser detail-mode">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
+  <title>DEX crop preview</title>
+  <script src="host-detect.js?v=1"></script>
+  <script src="profile-bootstrap.js?v=2"></script>
+  <script src="telegram-viewport.js?v=12"></script>
+  <link rel="stylesheet" href="styles.css?v=52" />
+  <link rel="stylesheet" href="dex-scanner.css?v=121" />
+  <link rel="stylesheet" href="dex-crop-profiles.css?v=2" />
+  <style>
+    body { margin: 0; background: #0a0e1a; max-width: 430px; margin-inline: auto; }
+    .crop-preview-hint {
+      font: 11px/1.4 monospace;
+      color: #67e8f9;
+      padding: 8px 12px;
+      border-bottom: 1px solid #1e293b;
+    }
+    #view-detail { display: block !important; }
+    #view-detail.hidden { display: block !important; }
+    .detail-body { padding: 8px; }
+  </style>
+</head>
+<body>
+  <p class="crop-preview-hint" id="cropHint">Kırpma önizleme · profil=…</p>
+  <div id="view-detail" class="view-detail">
+    <div class="detail-body">
+      <section class="chart-terminal glass chart-terminal--dex-embed">
+        <div class="chart-stage">
+          <iframe
+            class="dex-embed-chart"
+            title="DexScreener grafik"
+            loading="eager"
+            referrerpolicy="no-referrer-when-downgrade"
+          ></iframe>
+        </div>
+        <p class="chart-source">15M · DexScreener</p>
+      </section>
+      <section class="trades-tape glass" id="tradesTape">
+        <div class="trades-head">
+          <span class="trades-title">Canlı alım / satım</span>
+          <span class="trades-live"><span class="trades-live-dot"></span> LIVE</span>
+        </div>
+        <div class="dex-trades-embed-wrap" id="dexTradesWrap">
+          <iframe
+            id="dexTradesEmbed"
+            class="dex-trades-embed"
+            title="DexScreener işlemler"
+            loading="eager"
+            referrerpolicy="no-referrer-when-downgrade"
+          ></iframe>
+          <div class="dex-mask dex-mask-top" aria-hidden="true"></div>
+          <div class="dex-mask dex-mask-foot" aria-hidden="true"></div>
+        </div>
+      </section>
+    </div>
+  </div>
+  <script src="dex-crop-baked.js?v=13"></script>
+  <script src="dex-crop.js?v=45"></script>
+  <script>
+    const POOL = 'D6NdKrKNQPmRZCCnG1GqXtF7MMoHB7qR6GU5TkG59Qz1';
+    const chartQ = new URLSearchParams({
+      embed: '1', theme: 'dark', trades: '0', info: '0', tabs: '0',
+      chartLeftToolbar: '1', chartTheme: 'dark', chartType: 'candle', interval: '15',
+    });
+    const tradesQ = new URLSearchParams({
+      embed: '1', theme: 'dark', trades: '1', info: '0', tabs: '0',
+      chartLeftToolbar: '0', chartTheme: 'dark', interval: '15',
+    });
+    const chartUrl = `https://dexscreener.com/solana/${encodeURIComponent(POOL)}?${chartQ}`;
+    const tradesUrl = `https://dexscreener.com/solana/${encodeURIComponent(POOL)}?${tradesQ}`;
+
+    function burstCrop() {
+      const run = () => {
+        if (window.SniperCropProfile?.apply) window.SniperCropProfile.apply();
+        if (window.SniperDexCrop?.apply) window.SniperDexCrop.apply();
+      };
+      run();
+      [150, 500, 1200, 2500].forEach((ms) => setTimeout(run, ms));
+    }
+
+    function boot() {
+      if (!window.SniperDexCrop?.apply) {
+        setTimeout(boot, 80);
+        return;
+      }
+      const chartIfr = document.querySelector('iframe.dex-embed-chart');
+      const tradesIfr = document.getElementById('dexTradesEmbed');
+      chartIfr.src = chartUrl;
+      tradesIfr.src = tradesUrl;
+      tradesIfr.classList.remove('hidden');
+      const prof = document.documentElement.dataset.dexCropProfile || SniperDexCrop.detectProfile?.() || 'web';
+      document.getElementById('cropHint').textContent =
+        `Kırpma önizleme · profil=${prof} · ${document.documentElement.clientWidth}px · ?debugcrop=1`;
+      burstCrop();
+      chartIfr.addEventListener('load', burstCrop);
+      tradesIfr.addEventListener('load', burstCrop);
+    }
+
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
+    else boot();
+  </script>
+</body>
+</html>

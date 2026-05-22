@@ -20,6 +20,8 @@
 
   const PROFILE_ORDER = ['web', 'app11', 'app13', 'app13pm', 'app16'];
 
+  const BAKED_PROFILES = {"web":{"chart":{"stageH":330,"top":40,"left":1,"width":104,"heightExtra":0,"brandCrop":39,"clipLeft":0,"clipRight":0,"clipTop":0,"clipBottom":0,"shiftDown":0},"tape":{"shiftDown":0},"trades":{"viewH":302,"iframeH":845,"iframeTop":-590,"shiftDown":0,"left":1,"width":98,"maskTop":0,"maskFoot":0,"maskTopOn":true,"maskFootOn":true,"clipLeft":0,"clipRight":0,"clipTop":0,"clipBottom":0}},"app11":{"chart":{"stageH":330,"top":20,"left":1,"width":98,"heightExtra":14,"brandCrop":40,"clipLeft":0,"clipRight":0,"clipTop":0,"clipBottom":0,"shiftDown":0},"tape":{"shiftDown":0},"trades":{"viewH":302,"iframeH":845,"iframeTop":-590,"shiftDown":0,"left":1,"width":98,"maskTop":0,"maskFoot":0,"maskTopOn":true,"maskFootOn":true,"clipLeft":0,"clipRight":0,"clipTop":0,"clipBottom":0}},"app13":{"chart":{"stageH":314,"top":-15,"left":-1,"width":102,"heightExtra":0,"brandCrop":0,"clipLeft":0,"clipRight":0,"clipTop":0,"clipBottom":0,"shiftDown":55},"tape":{"shiftDown":0},"trades":{"viewH":302,"iframeH":845,"iframeTop":-590,"shiftDown":0,"left":1,"width":98,"maskTop":0,"maskFoot":0,"maskTopOn":true,"maskFootOn":true,"clipLeft":0,"clipRight":0,"clipTop":0,"clipBottom":0}},"app13pm":{"chart":{"stageH":344,"top":40,"left":-1,"width":108,"heightExtra":36,"brandCrop":39,"clipLeft":0,"clipRight":0,"clipTop":0,"clipBottom":0,"shiftDown":0},"tape":{"shiftDown":0},"trades":{"viewH":302,"iframeH":845,"iframeTop":-590,"shiftDown":0,"left":1,"width":98,"maskTop":0,"maskFoot":0,"maskTopOn":true,"maskFootOn":true,"clipLeft":0,"clipRight":0,"clipTop":0,"clipBottom":0}},"app16":{"chart":{"stageH":328,"top":37,"left":1,"width":98,"heightExtra":0,"brandCrop":36,"clipLeft":0,"clipRight":0,"clipTop":0,"clipBottom":0,"shiftDown":0},"tape":{"shiftDown":0},"trades":{"viewH":302,"iframeH":845,"iframeTop":-590,"shiftDown":0,"left":1,"width":98,"maskTop":0,"maskFoot":0,"maskTopOn":true,"maskFootOn":true,"clipLeft":0,"clipRight":0,"clipTop":0,"clipBottom":0}}};
+
   const DEFAULT_BLOCK = {
     chart: {
       stageH: 340,
@@ -99,36 +101,7 @@
 
   /** Koddaki ├Âl├ğ├╝ler + sunucudaki g├╝ncel profiller birle┼şir (bo┼ş sunucu varsay─▒lan─▒ ezmez). */
   function getBakedSource() {
-    const file = globalThis.__DEX_CROP_BAKED__;
-    if (!isCalibrateMode()) {
-      const server = serverBaked;
-      if (!file?.profiles && !server?.profiles) return null;
-      if (!server?.profiles) return file;
-      if (!file?.profiles) return server;
-      const profiles = {};
-      PROFILE_ORDER.forEach((id) => {
-        profiles[id] = server.profiles[id] || file.profiles[id];
-      });
-      return { version: 1, updatedAt: server.updatedAt || file.updatedAt, profiles };
-    }
-    const server = serverBaked;
-    if (!file?.profiles) return server || null;
-    if (!server?.profiles) return file;
-    const profiles = {};
-    PROFILE_ORDER.forEach((id) => {
-      const s = server.profiles[id];
-      const f = file.profiles[id];
-      const sOk = profileLooksCustom(s);
-      const fOk = profileLooksCustom(f);
-      if (sOk && !fOk) profiles[id] = s;
-      else if (fOk) profiles[id] = f;
-      else profiles[id] = f || s;
-    });
-    return {
-      version: 1,
-      updatedAt: server.updatedAt || file.updatedAt,
-      profiles,
-    };
+    return { version: 1, profiles: BAKED_PROFILES };
   }
 
   function defaultStore() {
@@ -145,16 +118,6 @@
   }
 
   async function fetchServerBaked() {
-    try {
-      const r = await fetch(`/api/crop-profiles?v=${Date.now()}`, { cache: 'no-store' });
-      if (r.ok) {
-        serverBaked = await r.json();
-        globalThis.__DEX_CROP_BAKED__ = serverBaked;
-        return serverBaked;
-      }
-    } catch {
-      /* yoksay */
-    }
     return null;
   }
 
@@ -170,7 +133,6 @@
     const data = await r.json().catch(() => ({}));
     if (!r.ok) throw new Error(data.message || data.error || `HTTP ${r.status}`);
     serverBaked = data.saved || { version: 1, profiles: store.profiles };
-    globalThis.__DEX_CROP_BAKED__ = serverBaked;
     if (isDetailOpen() && !cropPanelIsOpen()) {
       applyCropNow();
       runHiddenMotor();
@@ -319,7 +281,6 @@
         updatedAt: new Date().toISOString(),
         profiles: base.profiles,
       };
-      globalThis.__DEX_CROP_BAKED__ = serverBaked;
       syncProfilesToServer(serverBaked);
       return true;
     } catch {
@@ -360,7 +321,6 @@
 
     const store = loadStore();
     serverBaked = { version: 1, updatedAt: new Date().toISOString(), profiles: store.profiles };
-    globalThis.__DEX_CROP_BAKED__ = serverBaked;
     syncProfilesToServer(store);
 
     if (profileId === activeProfileId()) apply(block);
