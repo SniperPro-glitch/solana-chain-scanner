@@ -636,7 +636,17 @@
   }
 
   function removeCalibrateButton() {
-    document.querySelector('.btn-crop-cal')?.remove();
+    document.querySelectorAll('.btn-crop-cal').forEach((el) => el.remove());
+    document.getElementById('cropCalFab')?.remove();
+    delete document.documentElement.dataset.cropUiOn;
+  }
+
+  function wireCropButton(btn) {
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      openPanel();
+    });
   }
 
   function clearCalibrateSession() {
@@ -1211,19 +1221,30 @@
 
   function addCalibrateButton() {
     if (!shouldShowCropButton()) return;
+    document.documentElement.dataset.cropUiOn = '1';
+
     const head = document.querySelector('.trades-head');
-    if (!head || head.querySelector('.btn-crop-cal')) return;
-    const btn = document.createElement('button');
-    btn.type = 'button';
-    btn.className = 'btn-crop-cal';
-    btn.textContent = 'K\u0131rpma';
-    btn.title = 'Dex embed hizalama — kaydet';
-    btn.addEventListener('click', (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      openPanel();
-    });
-    head.appendChild(btn);
+    if (head && !head.querySelector('.btn-crop-cal')) {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'btn-crop-cal';
+      btn.textContent = 'K\u0131rpma';
+      btn.title = 'Dex embed hizalama — kaydet';
+      wireCropButton(btn);
+      head.appendChild(btn);
+    }
+
+    /* iPhone 11 / dar ekran — başlık satırında kırpılıyordu; sabit FAB her zaman görünür */
+    if (!document.getElementById('cropCalFab')) {
+      const fab = document.createElement('button');
+      fab.type = 'button';
+      fab.id = 'cropCalFab';
+      fab.className = 'btn-crop-cal-fab';
+      fab.textContent = 'K\u0131rpma';
+      fab.setAttribute('aria-label', 'K\u0131rpma ayar');
+      wireCropButton(fab);
+      document.body.appendChild(fab);
+    }
   }
 
   function ensureProfilesReady() {
