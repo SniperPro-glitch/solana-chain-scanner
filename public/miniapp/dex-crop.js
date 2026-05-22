@@ -91,11 +91,6 @@
       );
       return forced;
     }
-    if (global.SniperHost?.isWebBrowser?.() || document.documentElement.classList.contains('web-browser')) {
-      document.documentElement.dataset.dexCropProfile = 'web';
-      document.documentElement.dataset.dexCropW = String(window.innerWidth || 0);
-      return 'web';
-    }
     if (global.SniperCropProfile?.apply) return global.SniperCropProfile.apply();
     const id = detectProfile();
     document.documentElement.dataset.dexCropProfile = id;
@@ -166,6 +161,10 @@
     if (!r.ok) throw new Error(data.message || data.error || `HTTP ${r.status}`);
     serverBaked = data.saved || { version: 1, profiles: store.profiles };
     globalThis.__DEX_CROP_BAKED__ = serverBaked;
+    if (isDetailOpen() && !cropPanelIsOpen()) {
+      applyCropNow();
+      runHiddenMotor();
+    }
     return serverBaked;
   }
 
@@ -173,17 +172,21 @@
     return !!global.Telegram?.WebApp?.initData || document.documentElement.classList.contains('tg-mini-app');
   }
 
-  function detectProfile() {
-    if (global.SniperHost?.isWebBrowser?.() || document.documentElement.classList.contains('web-browser')) {
-      return 'web';
-    }
-    if (global.SniperCropProfile?.detect) return global.SniperCropProfile.detect();
-    if (!isTelegram()) return 'web';
-    const w = global.SniperCropProfile?.layoutWidth?.() || window.innerWidth || 390;
+  function detectProfileByWidth(w) {
     if (w >= 429) return 'app16';
     if (w >= 426) return 'app13pm';
     if (w >= 400) return 'app11';
     return 'app13';
+  }
+
+  function detectProfile() {
+    if (global.SniperCropProfile?.detect) return global.SniperCropProfile.detect();
+    const w = global.SniperCropProfile?.layoutWidth?.() || window.innerWidth || 390;
+    const inBrowser = global.SniperHost?.isWebBrowser?.() || document.documentElement.classList.contains('web-browser');
+    if (inBrowser && w >= 500) return 'web';
+    if (!isTelegram() && inBrowser) return detectProfileByWidth(w);
+    if (!isTelegram()) return 'web';
+    return detectProfileByWidth(w);
   }
 
   function normalizeBlock(patch) {

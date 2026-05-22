@@ -31,17 +31,23 @@
     return Math.round(window.innerWidth || 390);
   }
 
-  function detect() {
-    const forced = fromUrl();
-    if (forced) return forced;
-    if (window.SniperHost?.isWebBrowser?.()) return 'web';
-    if (document.documentElement.classList.contains('web-browser')) return 'web';
-    if (!isTelegramApp()) return 'web';
-    const w = layoutWidth();
+  function detectByWidth(w) {
     if (w >= 429) return 'app16';
     if (w >= 426) return 'app13pm';
     if (w >= 400) return 'app11';
     return 'app13';
+  }
+
+  function detect() {
+    const forced = fromUrl();
+    if (forced) return forced;
+    const w = layoutWidth();
+    const inBrowser = window.SniperHost?.isWebBrowser?.() || document.documentElement.classList.contains('web-browser');
+    /* Geniş masaüstü Chrome = web; dar pencere / mobil emülasyon = TG ile aynı genişlik kovaları */
+    if (inBrowser && w >= 500) return 'web';
+    if (!isTelegramApp() && inBrowser) return detectByWidth(w);
+    if (!isTelegramApp()) return 'web';
+    return detectByWidth(w);
   }
 
   function apply() {
