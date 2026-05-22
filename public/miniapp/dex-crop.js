@@ -580,7 +580,8 @@
     delete document.documentElement.dataset.cropCalibrate;
   }
 
-  const LAYOUT_SESSION_KEY = 'sniperCropLayoutDone';
+  const LAYOUT_SESSION_KEY = 'sniperCropLayoutV3';
+  let motorBurstDoneTimer = null;
 
   function layoutSessionDone() {
     if (calibrateFromUrl()) return false;
@@ -594,10 +595,25 @@
   function markLayoutSessionDone() {
     try {
       sessionStorage.setItem(LAYOUT_SESSION_KEY, '1');
+      sessionStorage.removeItem('sniperCropLayoutDone');
     } catch {
       /* yoksay */
     }
     global.__sniperCropLayoutDone = true;
+  }
+
+  function clearLayoutSession() {
+    try {
+      sessionStorage.removeItem(LAYOUT_SESSION_KEY);
+      sessionStorage.removeItem('sniperCropLayoutDone');
+    } catch {
+      /* yoksay */
+    }
+    delete global.__sniperCropLayoutDone;
+    if (motorBurstDoneTimer) {
+      clearTimeout(motorBurstDoneTimer);
+      motorBurstDoneTimer = null;
+    }
   }
 
   function isDetailOpen() {
@@ -625,21 +641,51 @@
     if (panel) panel.classList.add('hidden');
     document.documentElement.classList.remove('crop-panel-open');
 
-    const finish = () => apply(load());
+    const finish = () => {
+      if (!isDetailOpen()) return;
+      apply(load());
+    };
     finish();
-    [150, 500, 1200, 2500].forEach((ms) => setTimeout(finish, ms));
+    [150, 500, 1200, 2500, 4000, 6000].forEach((ms) => setTimeout(finish, ms));
+    if (motorBurstDoneTimer) clearTimeout(motorBurstDoneTimer);
+    motorBurstDoneTimer = setTimeout(() => markLayoutSessionDone(), 6200);
     return true;
   }
 
-  /** Oturumda bir kez gizli motor (token değişiminde tekrar yok). */
+  /** Oturumda bir kez — Dex iframe hazır olunca (erken "bitti" yok). */
   function ensureMotorOnce() {
     if (layoutSessionDone()) return false;
     if (!isDetailOpen()) return false;
     void ensureProfilesReady().then(() => {
       if (layoutSessionDone()) return;
-      if (runHiddenMotor()) markLayoutSessionDone();
+      let tries = 0;
+      const attempt = () => {
+        if (layoutSessionDone()) return;
+        tries += 1;
+        const hasEmbed = !!(
+          document.querySelector('iframe.dex-embed-chart')
+          || document.getElementById('dexTradesEmbed')?.src
+        );
+        if (hasEmbed || tries >= 48) runHiddenMotor();
+        else setTimeout(attempt, 250);
+      };
+      attempt();
     });
     return true;
+  }
+
+  function bindMotorOnEmbedReady() {
+    if (global.__sniperMotorEmbedReady) return;
+    global.__sniperMotorEmbedReady = true;
+    document.addEventListener(
+      'load',
+      (e) => {
+        const t = e.target;
+        if (!t?.matches?.('iframe.dex-embed-chart, #dexTradesEmbed')) return;
+        ensureMotorOnce();
+      },
+      true,
+    );
   }
 
   function scheduleMotorCrop() {
@@ -1033,11 +1079,15 @@
   }
 
   async function init() {
-    if (!calibrateFromUrl()) clearCalibrateSession();
+    if (!calibrateFromUrl()) {
+      clearCalibrateSession();
+      clearLayoutSession();
+    }
     if (global.SniperCropProfile?.apply) global.SniperCropProfile.apply();
     await ensureProfilesReady();
     apply();
     bindCropObservers();
+    bindMotorOnEmbedReady();
     addCalibrateButton();
     window.addEventListener('resize', () => {
       if (!document.getElementById('dexCropPanel')?.classList.contains('hidden')) return;
@@ -1082,6 +1132,7 @@
     runHiddenMotor,
     ensureMotorOnce,
     scheduleMotorCrop,
+    clearLayoutSession,
     openPanel,
     closePanel,
     copyProfileFrom,
