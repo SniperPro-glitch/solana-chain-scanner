@@ -598,11 +598,12 @@
     return String(location.hash || '').includes('kalibre');
   }
 
-  /** Manuel test: ?motor=1 veya ?debugcrop=1 — gizli motor butonu */
+  /** Manuel test: ?motor=1 · ?debugcrop=1 · #...motor=1 · localStorage sniperShowMotor=1 */
   function motorTestFromUrl() {
     try {
-      const q = new URLSearchParams(location.search);
-      return q.get('motor') === '1' || q.get('debugcrop') === '1';
+      if (localStorage.getItem('sniperShowMotor') === '1') return true;
+      const href = location.href || '';
+      return /(?:\?|&|#)(?:motor|debugcrop)=1(?:&|$|#)/.test(href);
     } catch {
       return false;
     }
@@ -1136,38 +1137,46 @@
     setTimeout(() => el.classList.remove('show'), 2200);
   }
 
+  function mountCropBtn(host, cls, label, title, onClick) {
+    if (!host || host.querySelector(`.${cls}`)) return;
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = `btn-crop-cal ${cls}`;
+    btn.textContent = label;
+    btn.title = title;
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      onClick();
+    });
+    host.appendChild(btn);
+  }
+
   function addCalibrateButton() {
     if (!shouldShowCropButton()) return;
-    const head = document.querySelector('.trades-head');
-    if (!head) return;
-    if (calibrateFromUrl() && !head.querySelector('.btn-crop-cal')) {
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      btn.className = 'btn-crop-cal';
-      btn.textContent = 'K\u0131rpma';
-      btn.title = 'Dex embed hizalama — kaydet';
-      btn.addEventListener('click', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        openPanel();
-      });
-      head.appendChild(btn);
-    }
-    if (motorTestFromUrl() && !head.querySelector('.btn-crop-motor')) {
-      const motorBtn = document.createElement('button');
-      motorBtn.type = 'button';
-      motorBtn.className = 'btn-crop-cal btn-crop-motor';
-      motorBtn.textContent = 'Motor';
-      motorBtn.title = 'Gizli motor (runHiddenMotor) — manuel test';
-      motorBtn.addEventListener('click', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        clearLayoutSession();
-        const ok = runHiddenMotor();
-        toast(ok ? 'Motor çalıştı (6 sn burst)' : 'Motor: detay/embed yok');
-      });
-      head.appendChild(motorBtn);
-    }
+    const hosts = [
+      document.querySelector('.detail-action-row'),
+      document.querySelector('.trades-head'),
+    ].filter(Boolean);
+    if (!hosts.length) return;
+    hosts.forEach((host) => {
+      if (calibrateFromUrl()) {
+        mountCropBtn(host, 'btn-crop-cal', 'K\u0131rpma', 'Dex embed — kaydet', () => openPanel());
+      }
+      if (motorTestFromUrl()) {
+        mountCropBtn(host, 'btn-crop-motor', 'Motor', 'Gizli motor (runHiddenMotor)', () => {
+          clearLayoutSession();
+          const ok = runHiddenMotor();
+          toast(ok ? 'Motor çalıştı (6 sn burst)' : 'Motor: detay/embed yok');
+        });
+      }
+    });
+  }
+
+  function scheduleCropButtons() {
+    if (!shouldShowCropButton()) return;
+    addCalibrateButton();
+    [100, 500, 1500].forEach((ms) => setTimeout(addCalibrateButton, ms));
   }
 
   function ensureProfilesReady() {
@@ -1195,7 +1204,7 @@
     apply();
     bindCropObservers();
     bindMotorOnEmbedReady();
-    addCalibrateButton();
+    scheduleCropButtons();
     window.addEventListener('resize', () => {
       if (cropPanelIsOpen()) return;
       if (!isDetailOpen()) return;
@@ -1207,7 +1216,7 @@
     if (calibrateFromUrl()) {
       enableCalibrateSession();
       setTimeout(() => {
-        addCalibrateButton();
+        scheduleCropButtons();
         openPanel();
       }, 1200);
     }
@@ -1215,7 +1224,7 @@
     if (vd) {
       new MutationObserver(() => {
         if (!vd.classList.contains('hidden')) {
-          addCalibrateButton();
+          scheduleCropButtons();
           ensureMotorOnce();
         }
       }).observe(vd, { attributes: true, attributeFilter: ['class'] });
@@ -1245,6 +1254,9 @@
     ensureMotorOnce,
     scheduleMotorCrop,
     clearLayoutSession,
+    addCalibrateButton,
+    scheduleCropButtons,
+    motorTestFromUrl,
     openPanel,
     closePanel,
     copyProfileFrom,

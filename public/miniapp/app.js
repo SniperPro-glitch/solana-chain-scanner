@@ -458,6 +458,7 @@
     refreshTgViewport();
     if (globalThis.SniperCropProfile?.apply) globalThis.SniperCropProfile.apply();
     scheduleDexTradesCrop();
+    globalThis.SniperDexCrop?.scheduleCropButtons?.();
   }
 
   function isSolanaMint(s) {
