@@ -1007,6 +1007,30 @@ async function handleAdminApi(req, res, url, helpers) {
     }
   }
 
+  if (url.pathname === '/api/admin/crop-profiles') {
+    const cropProfiles = require('./cropProfiles');
+    if (req.method === 'GET') {
+      const baked = cropProfiles.loadBakedProfiles();
+      if (!baked) {
+        sendJson(res, 404, { error: 'no_baked_profiles', message: 'Henüz kayıtlı profil yok; POST ile oluşturun.' });
+        return true;
+      }
+      sendJson(res, 200, baked);
+      return true;
+    }
+    if (req.method === 'POST') {
+      try {
+        const body = await readJsonBody(req, 2 * 1024 * 1024);
+        const saved = cropProfiles.saveBakedProfiles(body);
+        console.log('[admin] crop-profiles kaydedildi:', cropProfiles.DATA_FILE);
+        sendJson(res, 200, { ok: true, saved });
+      } catch (e) {
+        sendJson(res, 400, { error: 'crop_save_failed', message: e.message });
+      }
+      return true;
+    }
+  }
+
   if (url.pathname === '/api/admin/promo-banner') {
     const promoBannerStore = require('./promoBannerStore');
     const { getPromoBanner } = require('./miniAppPromo');

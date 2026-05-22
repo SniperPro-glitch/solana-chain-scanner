@@ -5,10 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
   <title>DEX crop preview</title>
   <script src="host-detect.js?v=1"></script>
-  <script src="profile-bootstrap.js?v=2"></script>
+  <script src="profile-bootstrap.js?v=5"></script>
   <script src="telegram-viewport.js?v=12"></script>
   <link rel="stylesheet" href="styles.css?v=52" />
-  <link rel="stylesheet" href="dex-scanner.css?v=121" />
+  <link rel="stylesheet" href="dex-scanner.css?v=123" />
   <style>
     body { margin: 0; background: #0a0e1a; max-width: 430px; margin-inline: auto; }
     .crop-preview-hint {
@@ -56,8 +56,12 @@
       </section>
     </div>
   </div>
-  <script src="dex-crop.js?v=63"></script>
+  <script src="dex-crop.js?v=75"></script>
   <script>
+    const ADMIN_PREVIEW = new URLSearchParams(location.search).get('adminPreview') === '1';
+    const FORCED_PROFILE = new URLSearchParams(location.search).get('profil')
+      || new URLSearchParams(location.search).get('profile')
+      || '';
     const POOL = 'D6NdKrKNQPmRZCCnG1GqXtF7MMoHB7qR6GU5TkG59Qz1';
     const chartQ = new URLSearchParams({
       embed: '1', theme: 'dark', trades: '0', info: '0', tabs: '0',
@@ -70,14 +74,24 @@
     const chartUrl = `https://dexscreener.com/solana/${encodeURIComponent(POOL)}?${chartQ}`;
     const tradesUrl = `https://dexscreener.com/solana/${encodeURIComponent(POOL)}?${tradesQ}`;
 
+    function applyBlock(block, profileId) {
+      if (profileId) document.documentElement.dataset.dexCropProfile = profileId;
+      if (window.SniperCropProfile?.apply) window.SniperCropProfile.apply();
+      if (block && window.SniperDexCrop?.apply) window.SniperDexCrop.apply(block);
+      else if (window.SniperDexCrop?.apply) window.SniperDexCrop.apply();
+    }
+
     function burstCrop() {
-      const run = () => {
-        if (window.SniperCropProfile?.apply) window.SniperCropProfile.apply();
-        if (window.SniperDexCrop?.apply) window.SniperDexCrop.apply();
-      };
+      if (ADMIN_PREVIEW) return;
+      const run = () => applyBlock();
       run();
       [150, 500, 1200, 2500].forEach((ms) => setTimeout(run, ms));
     }
+
+    window.addEventListener('message', (e) => {
+      if (!ADMIN_PREVIEW || !e.data || e.data.type !== 'sniper-crop-preview') return;
+      applyBlock(e.data.block, e.data.profileId);
+    });
 
     function boot() {
       if (!window.SniperDexCrop?.apply) {
@@ -89,10 +103,14 @@
       chartIfr.src = chartUrl;
       tradesIfr.src = tradesUrl;
       tradesIfr.classList.remove('hidden');
-      const prof = document.documentElement.dataset.dexCropProfile || SniperDexCrop.detectProfile?.() || 'web';
+      if (FORCED_PROFILE) document.documentElement.dataset.dexCropProfile = FORCED_PROFILE;
+      const prof = document.documentElement.dataset.dexCropProfile || 'web';
       document.getElementById('cropHint').textContent =
-        `Kırpma önizleme · profil=${prof} · ${document.documentElement.clientWidth}px · ?debugcrop=1`;
-      burstCrop();
+        ADMIN_PREVIEW
+          ? `Admin önizleme · profil=${prof} · ${document.documentElement.clientWidth}px`
+          : `Kırpma önizleme · profil=${prof} · ${document.documentElement.clientWidth}px · ?debugcrop=1`;
+      if (!ADMIN_PREVIEW) burstCrop();
+      else applyBlock(null, prof);
       chartIfr.addEventListener('load', burstCrop);
       tradesIfr.addEventListener('load', burstCrop);
     }

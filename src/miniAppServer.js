@@ -531,6 +531,11 @@ function createMiniAppServer() {
         res.end();
         return;
       }
+      if (url.pathname === '/admin/crop-calibrate' || url.pathname === '/admin/crop-calibrate/') {
+        serveStatic(res, path.join(ADMIN_PUBLIC_DIR, 'crop-calibrate.html'));
+        return;
+      }
+
       if (url.pathname.startsWith('/admin/')) {
         let rel = url.pathname.replace(/^\/admin\/?/, '') || 'index.html';
         if (rel === '/' || rel === '') rel = 'index.html';

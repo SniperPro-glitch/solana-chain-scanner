@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DEX Kırpma Kalibrasyon — SNIPER Admin</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="admin-shell.css?v=15" />
+  <link rel="stylesheet" href="admin-crop-calibrate.css?v=1" />
+</head>
+<body>
+  <div id="loginGate" class="login-gate">
+    <div class="login-card">
+      <div class="login-brand">
+        <div class="brand-logo"><img src="assets/sniper-logo.png" alt="SNIPER" width="36" height="36" /></div>
+        <div><strong style="font-size:18px">SNIPER</strong><div style="font-size:11px;color:#758096">DEX KIRPMA</div></div>
+      </div>
+      <p class="login-hint" id="loginHint">Admin girişi gerekli</p>
+      <label class="input-group"><div class="input-label">Kullanıcı adı</div><input class="input" id="loginUser" autocomplete="username" /></label>
+      <label class="input-group"><div class="input-label">Şifre</div><input class="input" id="loginPass" type="password" autocomplete="current-password" /></label>
+      <button type="button" class="btn btn-primary btn-md" id="btnLogin" style="width:100%;margin-top:10px">Giriş yap</button>
+      <p style="margin-top:12px;font-size:11px;text-align:center"><a href="/admin/" style="color:#67e8f9">← Ana admin paneli</a></p>
+    </div>
+  </div>
+
+  <div class="layout hidden" id="appLayout">
+    <header class="topbar" style="position:sticky;top:0;z-index:20">
+      <div>
+        <div class="topbar-title" id="topbar-title">DEX Kırpma Kalibrasyon</div>
+        <div class="topbar-sub" id="topbar-sub">5 cihaz profili · canlı önizleme · sunucuya kaydet</div>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <a class="btn btn-ghost btn-sm" href="/admin/">Admin panel</a>
+        <a class="btn btn-ghost btn-sm" href="/miniapp/?kalibre=1" target="_blank" rel="noopener">Mini App kalibre</a>
+      </div>
+    </header>
+
+    <main style="padding:16px 20px 32px">
+      <p class="crop-cal-status" id="cropCalStatus" role="status"></p>
+      <div class="crop-cal-page">
+        <div class="crop-cal-side">
+          <div id="cropCalControls"></div>
+          <div class="crop-actions">
+            <button type="button" class="btn btn-cyan btn-md" id="cropCalSave">Bu profili kaydet (yerel)</button>
+            <button type="button" class="btn btn-primary btn-md" id="cropCalPublish">Sunucuya sabitle (5 profil)</button>
+            <button type="button" class="btn btn-ghost btn-md" id="cropCalReload">Yeniden yükle</button>
+          </div>
+          <pre class="crop-json" id="cropJsonPreview" aria-label="Önizleme JSON"></pre>
+        </div>
+
+        <div class="crop-cal-preview-wrap">
+          <div class="crop-cal-preview-toolbar">
+            <span style="font-size:11px;color:#9ca3af">Önizleme genişliği:</span>
+            <button type="button" class="crop-width-chip" data-w="390">13 · 390</button>
+            <button type="button" class="crop-width-chip" data-w="414">11 · 414</button>
+            <button type="button" class="crop-width-chip" data-w="428">13 PM · 428</button>
+            <button type="button" class="crop-width-chip active" data-w="430">16 PM · 430</button>
+            <button type="button" class="crop-width-chip" data-w="1200">Web · 1200</button>
+          </div>
+          <div class="crop-cal-preview-frame">
+            <iframe
+              id="cropPreviewFrame"
+              title="Dex crop önizleme"
+              src="about:blank"
+              width="430"
+              height="720"
+              loading="eager"
+            ></iframe>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="admin-live.js?v=10"></script>
+  <script src="admin-crop-calibrate.js?v=1"></script>
+</body>
+</html>
