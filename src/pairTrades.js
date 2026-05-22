@@ -14,7 +14,9 @@ const http = axios.create({
 
 const CACHE_MS = 12_000;
 const CACHE_MS_SLOW = 30_000;
-const TRADES_LIVE_CACHE_MS = 2_000;
+/** live=1 + pool: cache yok (her poll Gecko). Pool yoksa kısa cache. */
+const TRADES_LIVE_CACHE_MS = 0;
+const TRADES_LIVE_CACHE_MS_NOPOOL = 1_200;
 const PAIR_RESOLVE_CACHE_MS = 10 * 60 * 1000;
 const TRADES_FEED_MAX = 50;
 const cache = new Map();
@@ -185,8 +187,9 @@ async function fetchPairTradesInner({
 } = {}) {
   const key = `${poolAddress || ''}:${mint || ''}:${limit}`;
   const hit = cache.get(key);
-  const maxAge = fresh ? TRADES_LIVE_CACHE_MS : (hit?.slow ? CACHE_MS_SLOW : CACHE_MS);
-  if (hit?.trades?.length && Date.now() - hit.at < maxAge) return hit.trades;
+  const liveMaxAge = poolAddress ? TRADES_LIVE_CACHE_MS : TRADES_LIVE_CACHE_MS_NOPOOL;
+  const maxAge = fresh ? liveMaxAge : (hit?.slow ? CACHE_MS_SLOW : CACHE_MS);
+  if (maxAge > 0 && hit?.trades?.length && Date.now() - hit.at < maxAge) return hit.trades;
 
   let pool = poolAddress;
   let baseMint = mint;
@@ -198,7 +201,7 @@ async function fetchPairTradesInner({
 
   const t0 = Date.now();
   let trades = [];
-  const attempts = poolAddress ? (fresh ? 2 : 1) : (fresh ? 3 : 2);
+  const attempts = poolAddress ? 1 : (fresh ? 2 : 1);
   for (let i = 0; i < attempts && pool; i += 1) {
     try {
       trades = await fetchGeckoTrades(pool, baseMint, limit);

@@ -102,10 +102,11 @@
   let feedRefreshSec = 45;
   let tradesPollTimer = null;
   let tradesPollInFlight = false;
+  let tradesFetchGen = 0;
   let tradesLastGood = [];
   let tradesDisplayRows = [];
   const TRADES_MAX_ROWS = 50;
-  const TRADES_POLL_MS = 2000;
+  const TRADES_POLL_MS = 800;
   const CHART_LIVE_POLL_MS = 5000;
   let openingMint = false;
   let feedItemsFull = [];
@@ -2180,13 +2181,16 @@
     if (!mint) return { trades: [], pollMs: TRADES_POLL_MS };
     const pool = chartPoolRef(m);
     const q = new URLSearchParams({ limit: String(TRADES_MAX_ROWS) });
-    if (live) q.set('live', '1');
+    if (live) {
+      q.set('live', '1');
+      q.set('t', String(Date.now()));
+    }
     if (pool) q.set('pool', pool);
-    const res = await fetch(apiPath(`/api/dex/token/${encodeURIComponent(mint)}/trades?${q}`));
+    const res = await fetch(apiPath(`/api/dex/token/${encodeURIComponent(mint)}/trades?${q}`), { cache: 'no-store' });
     if (!res.ok) return { trades: [], pollMs: TRADES_POLL_MS };
     const body = await res.json();
     const pollMs = Number(body?.pollMs) || TRADES_POLL_MS;
-    if (appData?.market && pollMs >= 1000) appData.market.tradesPollMs = pollMs;
+    if (appData?.market && pollMs >= 800) appData.market.tradesPollMs = pollMs;
     return { trades: body?.trades || [], pollMs };
   }
 
@@ -2219,7 +2223,7 @@
   }
 
   async function refreshTrades(m, initial = false) {
-    if (tradesPollInFlight && !initial) return;
+    const fetchGen = ++tradesFetchGen;
     const tape = $('tradesTape');
     const meta = $('tradesMeta');
     const mint = tokenMintRef(m);
@@ -2245,9 +2249,10 @@
     }
     tradesPollInFlight = true;
     try {
-      await ensurePoolOnMarket(m);
+      if (initial || !chartPoolRef(m)) await ensurePoolOnMarket(m);
       const { trades, pollMs } = await fetchTradesFromServer(m, true);
-      if (m && pollMs >= 1000) m.tradesPollMs = pollMs;
+      if (fetchGen !== tradesFetchGen) return;
+      if (m && pollMs >= 800) m.tradesPollMs = pollMs;
       if (trades.length) {
         tradesLastGood = trades;
         saveTradesSession(m, trades);
@@ -2281,7 +2286,7 @@
 
   function tradesPollIntervalMs(m) {
     const ms = m?.tradesPollMs || TRADES_POLL_MS;
-    return Math.max(1500, Math.min(ms, 8000));
+    return Math.max(800, Math.min(ms, 5000));
   }
 
   function startTradesPoll(m) {
@@ -2303,10 +2308,8 @@
 
   function startLivePoll(m) {
     stopLivePoll();
-    void (async () => {
-      await refreshChartAndPrice(m);
-      void refreshTrades(m, true);
-    })();
+    void refreshTrades(m, true);
+    void refreshChartAndPrice(m);
     tradesPollTimer = setInterval(() => {
       if (reportId && appData?.market) void refreshTrades(appData.market);
     }, tradesPollIntervalMs(m));
