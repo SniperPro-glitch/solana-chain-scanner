@@ -13,8 +13,8 @@
   <script src="host-detect.js?v=1"></script>
   <script src="profile-bootstrap.js?v=2"></script>
   <script src="telegram-viewport.js?v=16"></script>
-  <link rel="stylesheet" href="dex-crop-profiles.css?v=3" />
-  <link rel="stylesheet" href="styles.css?v=54" />
+  <link rel="stylesheet" href="styles.css?v=55" />
+  <script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js" defer></script>
   <link rel="stylesheet" href="dex-scanner.css?v=121" />
   <link rel="stylesheet" href="new-pairs.css?v=120" />
   <link rel="stylesheet" href="dex-scanner-radar.css?v=2" />
@@ -383,13 +383,13 @@
         <div class="trades-head">
           <span class="trades-title">Canlı alım / satım</span>
           <span class="trades-live" aria-hidden="true"><span class="trades-live-dot"></span> LIVE</span>
-          <span class="trades-meta" id="tradesMeta">DexScreener</span>
+          <span class="trades-meta" id="tradesMeta">—</span>
         </div>
-        <div class="dex-trades-embed-wrap" id="dexTradesWrap">
-          <iframe id="dexTradesEmbed" class="dex-trades-embed hidden" title="DexScreener canlı işlemler" loading="eager" referrerpolicy="no-referrer-when-downgrade"></iframe>
-          <div class="dex-mask dex-mask-top" aria-hidden="true"></div>
-          <div class="dex-mask dex-mask-foot" aria-hidden="true"></div>
-          <p class="dex-trades-fallback" id="dexTradesFallback">İşlem akışı yükleniyor…</p>
+        <div class="trades-thead" aria-hidden="true">
+          <span>Zaman</span><span>Tip</span><span>USD</span><span id="tradesColToken">Token</span><span>Cüzdan</span>
+        </div>
+        <div id="dexTradesWrap">
+          <ul class="trades-list" id="tradesList"></ul>
         </div>
       </section>
 
@@ -485,14 +485,12 @@
   </div>
 
   <script src="wallet.js?v=1"></script>
-  <script src="dex-crop-baked.js?v=16"></script>
-  <script src="dex-crop.js?v=61"></script>
   <script src="feed-badges.js?v=1"></script>
 <script src="dex-sidebar.js?v=7"></script>
   <script src="search-overlay.js?v=5"></script>
   <script src="support.js?v=3"></script>
   <script src="sidebar-account.js?v=4"></script>
-  <script src="app.js?v=153"></script>
+  <script src="app.js?v=154"></script>
   <script src="boot-feed.js?v=5"></script>
 </body>
 </html>

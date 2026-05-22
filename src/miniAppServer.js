@@ -245,30 +245,12 @@ function createMiniAppServer() {
       }
 
       if (url.pathname === '/api/miniapp-version' && req.method === 'GET') {
-        let cropV = '';
-        let bakedV = '';
         let appV = '';
-        let webCrop = null;
         try {
           const indexPath = path.join(PUBLIC_DIR, 'index.html');
           const html = fs.readFileSync(indexPath, 'utf8');
-          const m1 = html.match(/dex-crop\.js\?v=([^"&]+)/);
-          const m2 = html.match(/dex-crop-baked\.js\?v=([^"&]+)/);
           const m3 = html.match(/app\.js\?v=([^"&]+)/);
-          cropV = m1?.[1] || '';
-          bakedV = m2?.[1] || '';
           appV = m3?.[1] || '';
-          const cropProfiles = require('./cropProfiles');
-          const baked = cropProfiles.loadBakedProfiles();
-          const w = baked?.profiles?.web;
-          if (w) {
-            webCrop = {
-              stageH: w.chart?.stageH,
-              viewH: w.trades?.viewH,
-              iframeTop: w.trades?.iframeTop,
-              updatedAt: baked.updatedAt || null,
-            };
-          }
         } catch {
           /* yoksay */
         }
@@ -276,36 +258,45 @@ function createMiniAppServer() {
           build: MINIAPP_BUILD_ID,
           git: String(process.env.RAILWAY_GIT_COMMIT_SHA || '').slice(0, 7),
           webAppEntry: getWebAppEntryUrl(),
-          assets: { cropV, bakedV, appV },
-          cropWeb: webCrop,
-          cropWebOk: webCrop?.stageH === 330 && webCrop?.viewH === 302 && webCrop?.iframeTop === -590,
+          assets: { appV },
+          chart: 'lightweight',
         });
         return;
       }
 
-      if (url.pathname === '/api/crop-profiles') {
-        const cropProfiles = require('./cropProfiles');
-        if (req.method === 'GET') {
-          const baked = cropProfiles.loadBakedProfiles();
-          if (!baked) {
-            sendJson(res, 404, { error: 'no_baked_profiles' });
-            return;
-          }
-          sendJson(res, 200, baked);
-          return;
+      const dexPairMatch = url.pathname.match(/^\/api\/dex\/pair\/([A-Za-z0-9]+)$/);
+      if (req.method === 'GET' && dexPairMatch) {
+        const { getPairChart } = require('./dexscreenerApi');
+        const { chartStatsFromCandles } = require('./tokenLogo');
+        const tf = url.searchParams.get('tf') || '15m';
+        try {
+          const { pair, candles, poolAddress } = await getPairChart(dexPairMatch[1], tf);
+          sendJson(res, 200, {
+            pair,
+            poolAddress,
+            timeframe: tf,
+            candles,
+            stats: chartStatsFromCandles(candles),
+          });
+        } catch (e) {
+          console.warn('[miniApp] dex pair:', e.message);
+          sendJson(res, 502, { error: 'dex_pair_failed', message: e.message });
         }
-        if (req.method === 'POST') {
-          if (!cropProfiles.isPublishAuthorized(req)) {
-            sendJson(res, 403, { error: 'forbidden' });
-            return;
-          }
-          const raw = await readBody(req);
-          const payload = JSON.parse(raw.toString('utf8') || '{}');
-          const saved = cropProfiles.saveBakedProfiles(payload);
-          console.log('[miniApp] crop-profiles kaydedildi:', cropProfiles.DATA_FILE);
-          sendJson(res, 200, { ok: true, saved });
-          return;
+        return;
+      }
+
+      const dexTradesMatch = url.pathname.match(/^\/api\/dex\/token\/([A-Za-z0-9]+)\/trades$/);
+      if (req.method === 'GET' && dexTradesMatch) {
+        const { getTokenTrades } = require('./dexscreenerApi');
+        const limit = Math.min(40, Math.max(8, parseInt(url.searchParams.get('limit') || '28', 10) || 28));
+        try {
+          const out = await getTokenTrades(dexTradesMatch[1], limit);
+          sendJson(res, 200, out);
+        } catch (e) {
+          console.warn('[miniApp] dex trades:', e.message);
+          sendJson(res, 502, { error: 'dex_trades_failed', message: e.message });
         }
+        return;
       }
 
       if (req.method === 'GET' && shouldProxyToBot(url.pathname, url.searchParams)) {
@@ -522,25 +513,6 @@ function createMiniAppServer() {
 
       let rel = url.pathname === '/' ? '/index.html' : url.pathname;
       if (rel.startsWith('/miniapp')) rel = rel.slice('/miniapp'.length) || '/index.html';
-
-      if (rel === '/dex-crop-baked.js' || rel.endsWith('/dex-crop-baked.js')) {
-        try {
-          const cropProfiles = require('./cropProfiles');
-          const baked = cropProfiles.loadBakedProfiles();
-          if (baked?.profiles) {
-            const stamp = baked.updatedAt || '';
-            const js = `/** server · ${stamp} */\nglobalThis.__DEX_CROP_BAKED__=${JSON.stringify(baked)};\n`;
-            res.writeHead(200, {
-              'Content-Type': 'application/javascript; charset=utf-8',
-              'Cache-Control': 'no-store',
-            });
-            res.end(js);
-            return;
-          }
-        } catch (e) {
-          console.warn('[miniApp] dex-crop-baked dynamic:', e.message);
-        }
-      }
 
       const safe = path.normalize(rel).replace(/^(\.\.[/\\])+/, '');
       const filePath = path.join(PUBLIC_DIR, safe);

@@ -81,7 +81,8 @@
   let detailShellBound = false;
   let feedPollTimer = null;
   let feedRefreshSec = 45;
-  let tradesResizeHandler = null;
+  let tradesPollTimer = null;
+  let lastTradeIds = new Set();
   let openingMint = false;
   let feedItemsFull = [];
   let feedEmptyMessage = '';
@@ -456,9 +457,6 @@
     $('view-detail')?.classList.remove('hidden');
     ensureDetailSpacer();
     refreshTgViewport();
-    if (globalThis.SniperCropProfile?.apply) globalThis.SniperCropProfile.apply();
-    scheduleDexTradesCrop();
-    globalThis.SniperDexCrop?.scheduleCropButtons?.();
   }
 
   function isSolanaMint(s) {
@@ -1935,26 +1933,11 @@
   }
 
   function stopTradesPoll() {
-    if (tradesResizeHandler) {
-      window.removeEventListener('resize', tradesResizeHandler);
-      tradesResizeHandler = null;
+    if (tradesPollTimer) {
+      clearInterval(tradesPollTimer);
+      tradesPollTimer = null;
     }
-  }
-
-  function applyDexCrop() {
-    if (!globalThis.SniperDexCrop) return;
-    const run = () => SniperDexCrop.apply();
-    if (SniperCropProfile?.apply) SniperCropProfile.apply();
-    if (SniperDexCrop.ensureProfilesReady) {
-      void SniperDexCrop.ensureProfilesReady().then(run);
-      return;
-    }
-    run();
-  }
-
-  function scheduleDexTradesCrop() {
-    applyDexCrop();
-    [150, 500, 1200, 2500].forEach((ms) => setTimeout(applyDexCrop, ms));
+    lastTradeIds = new Set();
   }
 
   function chartPoolRef(m) {
@@ -1969,106 +1952,76 @@
     ).trim();
   }
 
-  function dexTradesEmbedUrl(poolOrMint) {
-    const ref = String(poolOrMint || chartPoolRef(appData?.market) || '').trim();
-    if (!ref) return null;
-    const q = new URLSearchParams({
-      embed: '1',
-      theme: 'dark',
-      trades: '1',
-      info: '0',
-      tabs: '0',
-      chartLeftToolbar: '0',
-      chartTheme: 'dark',
-      interval: '15',
-    });
-    return `https://dexscreener.com/solana/${encodeURIComponent(ref)}?${q.toString()}`;
+  function tokenMintRef(m) {
+    const market = m || appData?.market || {};
+    return (market.address || appData?.address || '').trim();
   }
 
-  function showDexTradesEmbed(m) {
-    const tape = $('tradesTape');
-    const wrap = $('dexTradesWrap');
-    const iframe = $('dexTradesEmbed');
-    const fallback = $('dexTradesFallback');
-    const meta = $('tradesMeta');
-    if (!tape || !wrap) return;
-
-    tape.classList.remove('hidden');
-    const url = m?.dexTradesEmbedUrl || dexTradesEmbedUrl(chartPoolRef(m));
-
-    if (!iframe) return;
-    if (!url) {
-      iframe.classList.add('hidden');
-      if (fallback) {
-        fallback.textContent = 'İşlem akışı için pool bulunamadı.';
-        fallback.classList.remove('hidden');
-      }
+  function renderTradesList(trades, symbol) {
+    const list = $('tradesList');
+    const col = $('tradesColToken');
+    if (col) col.textContent = symbol || 'Token';
+    if (!list) return;
+    if (!trades?.length) {
+      list.innerHTML = '<li class="trade-row trade-placeholder">Henüz işlem yok</li>';
       return;
     }
+    const rows = trades.map((t) => {
+      const side = t.side === 'sell' ? 'sell' : 'buy';
+      const isNew = t.id && !lastTradeIds.has(t.id);
+      if (t.id) lastTradeIds.add(t.id);
+      const amt = t.amount != null && Number.isFinite(t.amount)
+        ? (t.amount >= 1e6 ? `${(t.amount / 1e6).toFixed(2)}M` : t.amount >= 1e3 ? `${(t.amount / 1e3).toFixed(1)}K` : t.amount.toFixed(2))
+        : '—';
+      return `<li class="trade-row trade-row--${side}${isNew ? ' trade-row--new' : ''}">
+        <span class="trade-ago">${escHtml(t.ago || '—')}</span>
+        <span class="trade-side ${side}">${side === 'buy' ? 'AL' : 'SAT'}</span>
+        <span class="trade-usd">${escHtml(t.usdFmt || '—')}</span>
+        <span class="trade-amt">${escHtml(amt)}</span>
+        <span class="trade-wallet">${escHtml(t.wallet || '—')}</span>
+      </li>`;
+    });
+    list.innerHTML = rows.join('');
+  }
 
-    if (fallback) {
-      fallback.textContent = 'İşlem akışı yükleniyor…';
-      fallback.classList.remove('hidden');
+  async function fetchTradesFromServer(mint) {
+    if (!mint) return [];
+    const res = await fetch(apiPath(`/api/dex/token/${encodeURIComponent(mint)}/trades`));
+    if (!res.ok) return [];
+    const body = await res.json();
+    return body?.trades || [];
+  }
+
+  async function refreshTrades(m, initial = false) {
+    const tape = $('tradesTape');
+    const meta = $('tradesMeta');
+    const mint = tokenMintRef(m);
+    if (!tape) return;
+    tape.classList.remove('hidden');
+    if (!mint) {
+      renderTradesList([], m?.symbol);
+      if (meta) meta.textContent = 'mint yok';
+      return;
     }
-    iframe.classList.remove('hidden');
-    iframe.onload = () => {
-      if (fallback) fallback.classList.add('hidden');
-      if (meta) meta.textContent = 'canlı';
-      if (globalThis.SniperDexCrop?.calibrateFromUrl?.()) {
-        setTimeout(() => SniperDexCrop.openPanel(), 300);
-      }
-    };
-    if (iframe.src !== url) iframe.src = url;
-    else if (meta) meta.textContent = 'canlı';
+    if (initial && meta) meta.textContent = 'yükleniyor…';
+    try {
+      const trades = await fetchTradesFromServer(mint);
+      if (initial) lastTradeIds = new Set();
+      renderTradesList(trades, m?.symbol);
+      if (meta) meta.textContent = `${trades.length} işlem · 5s`;
+    } catch (e) {
+      console.warn('trades poll', e);
+      if (meta) meta.textContent = 'bağlantı hatası';
+    }
   }
 
   function startTradesPoll(m) {
     stopTradesPoll();
-    showDexTradesEmbed(m);
-  }
-
-  function dexEmbedUrlFor(poolOrMint, tf) {
-    const ref = String(poolOrMint || '').trim();
-    if (!ref) return null;
-    const intervals = { '1m': '1', '5m': '5', '15m': '15', '1h': '60', '4h': '240', '1d': '1D' };
-    const interval = intervals[String(tf || '15m').toLowerCase()] || '15';
-    const q = new URLSearchParams({
-      embed: '1',
-      theme: 'dark',
-      trades: '0',
-      info: '0',
-      tabs: '0',
-      chartLeftToolbar: '1',
-      chartTheme: 'dark',
-      chartType: 'candle',
-      interval,
-    });
-    return `https://dexscreener.com/solana/${encodeURIComponent(ref)}?${q.toString()}`;
-  }
-
-  function setChartEmbedMode(on) {
-    document.querySelector('.chart-terminal')?.classList.toggle('chart-terminal--dex-embed', !!on);
-  }
-
-  function showDexEmbedChart(container, m, note, tf) {
-    const embed = m?.chart?.dexScreenerEmbedUrl || dexEmbedUrlFor(chartPoolRef(m), tf);
-    const page = m?.chart?.dexScreenerPageUrl || m?.dexScreenerUrl;
-    if (embed) {
-      setChartEmbedMode(true);
-      container.innerHTML = `<iframe class="dex-embed-chart" src="${escHtml(embed)}" title="DexScreener canlı grafik" loading="eager" allow="fullscreen" referrerpolicy="no-referrer-when-downgrade"></iframe>`;
-      const chartIfr = container.querySelector('iframe.dex-embed-chart');
-      if (note) {
-        note.textContent = `${(tf || '15m').toUpperCase()} · DexScreener`;
-        note.classList.remove('hidden');
-      }
-      return true;
-    }
-    setChartEmbedMode(false);
-    const link = page
-      ? `<a class="dex-chart-link" href="${escHtml(page)}" target="_blank" rel="noopener">DexScreener’da aç</a>`
-      : '';
-    container.innerHTML = `<div class="empty-chart">Grafik yüklenemedi. ${link}</div>`;
-    return false;
+    const ms = m?.tradesPollMs || 5000;
+    void refreshTrades(m, true);
+    tradesPollTimer = setInterval(() => {
+      if (reportId && appData?.market) void refreshTrades(appData.market);
+    }, ms);
   }
 
   function loadChartLibrary() {
@@ -2078,8 +2031,8 @@
         return;
       }
       const urls = [
+        'https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js',
         '/vendor/lightweight-charts.js?v=3',
-        'https://cdn.jsdelivr.net/npm/lightweight-charts@4.2.0/dist/lightweight-charts.standalone.production.js',
       ];
       let i = 0;
       const next = () => {
@@ -2150,9 +2103,10 @@
     return out;
   }
 
-  function preferDexEmbedChart(m) {
-    const poolRef = chartPoolRef(m);
-    return !!(m?.chart?.dexScreenerEmbedUrl || dexEmbedUrlFor(poolRef, currentTf));
+  function chartStageHeight() {
+    const stage = document.querySelector('.chart-stage');
+    if (stage?.clientHeight > 80) return stage.clientHeight;
+    return Math.min(330, Math.max(260, Math.floor(window.innerHeight * 0.34)));
   }
 
   async function renderChart(m) {
@@ -2160,34 +2114,166 @@
     const note = $('chartNote');
     if (!container) return;
 
+    let candles = m?.chart?.candles || [];
     const tf = m?.chart?.timeframe || currentTf;
-    const stats = m?.chart?.stats;
+    let stats = m?.chart?.stats;
+    const pool = chartPoolRef(m);
+
+    if (pool && !candles.length) {
+      try {
+        const res = await fetch(apiPath(`/api/dex/pair/${encodeURIComponent(pool)}?tf=${encodeURIComponent(tf)}`));
+        if (res.ok) {
+          const body = await res.json();
+          candles = body.candles || [];
+          stats = body.stats || stats;
+          if (appData?.market?.chart) {
+            appData.market.chart.candles = candles;
+            appData.market.chart.stats = stats;
+          }
+        }
+      } catch (e) {
+        console.warn('chart api', e);
+      }
+    }
 
     renderChartPeriodChg(stats, tf);
 
     destroyChart();
-    setChartEmbedMode(false);
     container.innerHTML = '';
     if (note) note.classList.remove('hidden');
 
-    if (showDexEmbedChart(container, m, note, tf)) {
-      const candles = m?.chart?.candles || [];
-      const last = candles[candles.length - 1];
-      if (last) updateOhlc(last);
-      console.log('applyDexCrop çağrıldı');
-      applyDexCrop();
+    const hasLib = await loadChartLibrary();
+    if (!hasLib) {
+      if (note) note.textContent = 'Grafik kütüphanesi yüklenemedi';
+      container.innerHTML = '<div class="empty-chart">Grafik kütüphanesi yüklenemedi</div>';
+      return;
+    }
+
+    const seriesData = buildChartData(candles);
+    if (!seriesData.length) {
+      if (note) {
+        note.textContent = pool ? `${tf.toUpperCase()} · veri bekleniyor` : 'Pool bulunamadı';
+        note.classList.remove('hidden');
+      }
+      const page = m?.chart?.dexScreenerPageUrl || m?.dexScreenerUrl;
+      const link = page
+        ? `<a class="dex-chart-link" href="${escHtml(page)}" target="_blank" rel="noopener">DexScreener’da aç</a>`
+        : '';
+      container.innerHTML = `<div class="empty-chart">Mum verisi yok. ${link}</div>`;
       return;
     }
 
     if (note) {
-      note.textContent = 'DexScreener grafik — pool/mint bekleniyor';
-      note.classList.remove('hidden');
+      note.textContent = `${tf.toUpperCase()} · canlı mum`;
+      note.classList.add('hidden');
     }
-    const page = m?.chart?.dexScreenerPageUrl || m?.dexScreenerUrl;
-    const link = page
-      ? `<a class="dex-chart-link" href="${escHtml(page)}" target="_blank" rel="noopener">DexScreener’da aç</a>`
-      : '';
-    container.innerHTML = `<div class="empty-chart">Grafik için DexScreener gerekli. ${link}</div>`;
+
+    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+
+    const last = candles[candles.length - 1];
+    updateOhlc(last);
+
+    const w = Math.max(container.clientWidth || 0, 320);
+    const h = chartStageHeight();
+    try {
+      chartApi = LightweightCharts.createChart(container, {
+        width: w,
+        height: h,
+        layout: {
+          background: { color: '#080c16' },
+          textColor: '#6b7788',
+          fontFamily: 'Inter, sans-serif',
+          fontSize: 11,
+        },
+        grid: {
+          vertLines: { color: '#1a2035' },
+          horzLines: { color: '#1a2035' },
+        },
+        rightPriceScale: {
+          borderVisible: false,
+          scaleMargins: { top: 0.06, bottom: 0.2 },
+        },
+        timeScale: {
+          borderVisible: false,
+          timeVisible: true,
+          secondsVisible: tf === '1m' || tf === '5m',
+          rightOffset: 6,
+          barSpacing: 7,
+        },
+        crosshair: {
+          mode: LightweightCharts.CrosshairMode.Normal,
+          vertLine: { width: 1, color: 'rgba(0, 229, 255, 0.45)', style: 2 },
+          horzLine: { width: 1, color: 'rgba(0, 229, 255, 0.35)', style: 2 },
+        },
+      });
+
+      candleSeries = chartApi.addCandlestickSeries({
+        upColor: '#00c850',
+        downColor: '#ef4444',
+        borderUpColor: '#00a844',
+        borderDownColor: '#dc2626',
+        wickUpColor: '#00c850',
+        wickDownColor: '#ef4444',
+        visible: chartType !== 'line',
+      });
+
+      lineSeries = chartApi.addLineSeries({
+        color: '#00e5ff',
+        lineWidth: 2,
+        crosshairMarkerVisible: true,
+        priceLineVisible: false,
+        visible: chartType === 'line',
+      });
+
+      volumeSeries = chartApi.addHistogramSeries({
+        priceFormat: { type: 'volume' },
+        priceScaleId: '',
+      });
+      volumeSeries.priceScale().applyOptions({
+        scaleMargins: { top: 0.8, bottom: 0 },
+      });
+
+      const volData = seriesData.map((d, i) => {
+        const raw = candles.find((c) => c.time === d.time) || candles[i] || {};
+        return {
+          time: d.time,
+          value: Number(raw.volume) || 0,
+          color: d.close >= d.open ? 'rgba(0, 200, 80, 0.35)' : 'rgba(239, 68, 68, 0.35)',
+        };
+      });
+
+      candleSeries.setData(chartType === 'line' ? [] : seriesData);
+      lineSeries.setData(seriesData.map((d) => ({ time: d.time, value: d.close })));
+      volumeSeries.setData(volData);
+      chartApi.timeScale().fitContent();
+
+      chartApi.subscribeCrosshairMove((param) => {
+        if (!param.time || !param.seriesData) return;
+        const cd = param.seriesData.get(candleSeries);
+        if (cd) {
+          updateOhlc(cd);
+          return;
+        }
+        const ld = param.seriesData.get(lineSeries);
+        if (ld) {
+          updateOhlc({ open: ld.value, high: ld.value, low: ld.value, close: ld.value, volume: 0 });
+        }
+      });
+
+      resizeHandler = () => {
+        if (chartApi) {
+          chartApi.applyOptions({
+            width: container.clientWidth || w,
+            height: chartStageHeight(),
+          });
+        }
+      };
+      window.addEventListener('resize', resizeHandler);
+    } catch (e) {
+      console.warn('chart render', e);
+      destroyChart();
+      container.innerHTML = '<div class="empty-chart">Grafik oluşturulamadı</div>';
+    }
   }
 
   function setChartType(type) {
@@ -2370,26 +2456,6 @@
         const tf = btn.dataset.tf;
         if (!tf || tf === currentTf || !reportId) return;
 
-        const m = appData?.market;
-        if (preferDexEmbedChart(m)) {
-          currentTf = tf;
-          const container = $('priceChart');
-          const iframe = container?.querySelector('iframe.dex-embed-chart');
-          const url = m?.chart?.dexScreenerEmbedUrl || dexEmbedUrlFor(chartPoolRef(m), tf);
-          if (iframe && url) {
-            iframe.src = url;
-            const note = $('chartNote');
-            if (note) note.textContent = `${tf.toUpperCase()} · Canlı grafik · DexScreener`;
-            document.querySelectorAll('.tf').forEach((b) => {
-              b.classList.toggle('active', b.dataset.tf === tf);
-            });
-            setChartLoading(true);
-            iframe.onload = () => setChartLoading(false);
-            setTimeout(() => setChartLoading(false), 4000);
-            return;
-          }
-        }
-
         setChartLoading(true);
         document.querySelectorAll('.tf').forEach((b) => b.classList.add('loading'));
         try {
@@ -2483,7 +2549,6 @@
     if (detailHideChart) {
       chartSection?.classList.add('hidden');
       destroyChart();
-      setChartEmbedMode(false);
     } else {
       chartSection?.classList.remove('hidden');
       renderChart(m).catch((e) => console.warn('renderChart', e));

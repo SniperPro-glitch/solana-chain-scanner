@@ -51,16 +51,13 @@
   }
 
   let viewportTimer = null;
-  let cropTimer = null;
+  let profileTimer = null;
 
-  /** TG viewport oturunca profil + kırpma (debounce — sersemleme yok). */
-  function scheduleCropApply() {
-    clearTimeout(cropTimer);
-    cropTimer = setTimeout(() => {
+  function scheduleProfileApply() {
+    clearTimeout(profileTimer);
+    profileTimer = setTimeout(() => {
       if (window.SniperCropProfile?.applyWhenReady) window.SniperCropProfile.applyWhenReady();
       else if (window.SniperCropProfile?.apply) window.SniperCropProfile.apply();
-      if (window.SniperDexCrop?.handleCropProfileChange) window.SniperDexCrop.handleCropProfileChange();
-      if (window.SniperDexCrop?.ensureMotorOnce) window.SniperDexCrop.ensureMotorOnce();
     }, 60);
   }
 
@@ -82,11 +79,11 @@
     if (typeof tg.expand === 'function') tg.expand();
 
     applySafeArea();
-    scheduleCropApply();
+    scheduleProfileApply();
     clearTimeout(viewportTimer);
     viewportTimer = setTimeout(() => {
       applySafeArea();
-      scheduleCropApply();
+      scheduleProfileApply();
     }, 180);
   }
 
@@ -97,11 +94,11 @@
     tg.onEvent('viewportChanged', applyViewport);
     tg.onEvent('safeAreaChanged', () => {
       applySafeArea();
-      scheduleCropApply();
+      scheduleProfileApply();
     });
     tg.onEvent('contentSafeAreaChanged', () => {
       applySafeArea();
-      scheduleCropApply();
+      scheduleProfileApply();
     });
     tg.onEvent('fullscreenChanged', () => {
       if (tg.isFullscreen && typeof tg.exitFullscreen === 'function') {

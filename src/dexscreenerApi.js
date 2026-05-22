@@ -1,12 +1,28 @@
-// DexScreener REST — fiyat/pair/hacim + canlı grafik embed URL.
+// DexScreener REST — 30s in-memory cache; pair, token, OHLCV (Gecko yedek).
 
 const axios = require('axios');
 const config = require('./chains/solana/config');
+
+const CACHE_MS = 30_000;
+const cache = new Map();
 
 const http = axios.create({
   timeout: 14_000,
   headers: { Accept: 'application/json', 'User-Agent': 'solana-chain-scanner/dexscreener' },
 });
+
+function cacheKey(url) {
+  return url;
+}
+
+async function cachedGet(url) {
+  const key = cacheKey(url);
+  const hit = cache.get(key);
+  if (hit && Date.now() - hit.at < CACHE_MS) return hit.data;
+  const { data } = await http.get(url);
+  cache.set(key, { at: Date.now(), data });
+  return data;
+}
 
 function pickBestSolanaPair(pairs) {
   const list = (pairs || []).filter((p) => p?.chainId === 'solana' && p?.baseToken?.address);
@@ -17,25 +33,38 @@ function pickBestSolanaPair(pairs) {
 async function fetchPairByPool(poolAddr) {
   if (!poolAddr) return null;
   try {
-    const { data } = await http.get(
+    const data = await cachedGet(
       `${config.api.dexScreenerBase}/latest/dex/pairs/solana/${poolAddr}`,
     );
-    return data?.pairs?.[0] || null;
+    return data?.pairs?.[0] || data?.pair || null;
+  } catch {
+    return null;
+  }
+}
+
+async function fetchTokenData(mint) {
+  if (!mint) return null;
+  try {
+    const data = await cachedGet(
+      `${config.api.dexScreenerBase}/latest/dex/tokens/${mint}`,
+    );
+    const pairs = data?.pairs || [];
+    return { pairs, best: pickBestSolanaPair(pairs) };
   } catch {
     return null;
   }
 }
 
 async function fetchPairsByMint(mint) {
-  if (!mint) return null;
+  const token = await fetchTokenData(mint);
+  if (token?.best) return token.best;
   const urls = [
-    `${config.api.dexScreenerBase}/latest/dex/tokens/${mint}`,
     `${config.api.dexScreenerBase}/tokens/v1/solana/${mint}`,
     `${config.api.dexScreenerBase}/token-pairs/v1/solana/${mint}`,
   ];
   for (const url of urls) {
     try {
-      const { data } = await http.get(url);
+      const data = await cachedGet(url);
       const pairs = Array.isArray(data) ? data : (data?.pairs || []);
       const best = pickBestSolanaPair(pairs);
       if (best) return best;
@@ -56,62 +85,46 @@ async function resolveDexScreenerPair({ mint, poolAddress } = {}) {
   return null;
 }
 
-const CHART_INTERVAL = {
-  '1m': '1',
-  '5m': '5',
-  '15m': '15',
-  '1h': '60',
-  '4h': '240',
-  '1d': '1D',
-};
-
-/** Canlı grafik — DexScreener embed (TradingView motoru DexScreener sunucusunda). */
-function dexScreenerChartEmbedUrl(poolOrMint, timeframe = '15m') {
-  const ref = String(poolOrMint || '').trim();
-  if (!ref) return null;
-  const tf = String(timeframe || '15m').toLowerCase();
-  const interval = CHART_INTERVAL[tf] || '15';
-  const q = new URLSearchParams({
-    embed: '1',
-    theme: 'dark',
-    trades: '0',
-    info: '0',
-    tabs: '0',
-    chartLeftToolbar: '1',
-    chartTheme: 'dark',
-    chartType: 'candle',
-    interval,
-  });
-  return `https://dexscreener.com/solana/${encodeURIComponent(ref)}?${q.toString()}`;
-}
-
-/** Canlı işlem listesi — DexScreener embed (trades paneli). */
-function dexScreenerTradesEmbedUrl(poolOrMint) {
-  const ref = String(poolOrMint || '').trim();
-  if (!ref) return null;
-  const q = new URLSearchParams({
-    embed: '1',
-    theme: 'dark',
-    trades: '1',
-    info: '0',
-    tabs: '0',
-    chartLeftToolbar: '0',
-    chartTheme: 'dark',
-    interval: '15',
-  });
-  return `https://dexscreener.com/solana/${encodeURIComponent(ref)}?${q.toString()}`;
-}
-
 function dexScreenerPageUrl(poolOrMint) {
   const ref = String(poolOrMint || '').trim();
   if (!ref) return null;
   return config.data.dexScreener(ref);
 }
 
+/** Pair metadata + OHLCV mumları (pair DS, mumlar Gecko). */
+async function getPairChart(poolAddress, timeframe = '15m') {
+  const pair = await fetchPairByPool(poolAddress);
+  const pool = pair?.pairAddress || poolAddress;
+  let candles = [];
+  if (pool) {
+    const { fetchOhlcv, normalizeTimeframe } = require('./marketData');
+    candles = await fetchOhlcv(pool, normalizeTimeframe(timeframe));
+  }
+  return { pair, candles, poolAddress: pool };
+}
+
+/** Token mint → canlı işlemler (DS token + pool trades). */
+async function getTokenTrades(mint, limit = 28) {
+  const token = await fetchTokenData(mint);
+  const best = token?.best;
+  const { fetchPairTrades } = require('./pairTrades');
+  const trades = await fetchPairTrades({
+    poolAddress: best?.pairAddress,
+    mint,
+    limit,
+  });
+  return { trades, pair: best, pairs: token?.pairs || [] };
+}
+
 module.exports = {
+  CACHE_MS,
+  cachedGet,
+  fetchPairByPool,
+  fetchTokenData,
+  fetchPairsByMint,
   resolveDexScreenerPair,
   pickBestSolanaPair,
-  dexScreenerChartEmbedUrl,
-  dexScreenerTradesEmbedUrl,
   dexScreenerPageUrl,
+  getPairChart,
+  getTokenTrades,
 };

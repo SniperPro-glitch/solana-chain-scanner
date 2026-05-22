@@ -3,11 +3,7 @@
 const axios = require('axios');
 const config = require('./chains/solana/config');
 const { resolveTokenLogo, chartStatsFromCandles, buildLogoCandidates } = require('./tokenLogo');
-const {
-  resolveDexScreenerPair,
-  dexScreenerChartEmbedUrl,
-  dexScreenerTradesEmbedUrl,
-} = require('./dexscreenerApi');
+const { resolveDexScreenerPair } = require('./dexscreenerApi');
 
 const http = axios.create({
   timeout: 12_000,
@@ -272,13 +268,8 @@ async function enrichMarketForMiniApp(token, options = {}) {
   }
 
   const chartRef = poolAddress || merged.address;
-  const chartEmbedUrl = dexScreenerChartEmbedUrl(chartRef, timeframe);
-  const tradesEmbedUrl = dexScreenerTradesEmbedUrl(chartRef);
-  const useCandleApi = ['1', 'true', 'gecko'].includes(
-    String(process.env.MINIAPP_CHART_CANDLES || '').trim().toLowerCase(),
-  );
   let candles = [];
-  if (useCandleApi && poolAddress) {
+  if (poolAddress) {
     candles = await fetchOhlcv(poolAddress, timeframe);
   }
   const chartStats = chartStatsFromCandles(candles);
@@ -301,22 +292,19 @@ async function enrichMarketForMiniApp(token, options = {}) {
   return {
     ...merged,
     poolAddress,
-    dexTradesEmbedUrl: tradesEmbedUrl,
     txnRatio: txnTotal > 0 ? { buys, sells, buyPct: Math.round((buys / txnTotal) * 100) } : null,
     recentTrades,
-    tradesPollMs: 3000,
+    tradesPollMs: 5000,
     chart: {
       timeframe,
-      mode: 'dexscreener_embed',
+      mode: 'lightweight',
       candles,
       stats: chartStats,
       priceSource: 'dexscreener',
-      source: candles.length ? 'geckoterminal' : 'dexscreener_embed',
-      empty: !chartEmbedUrl,
+      source: candles.length ? 'geckoterminal' : 'dexscreener',
+      empty: !chartRef,
       pairRef: chartRef,
-      dexScreenerEmbedUrl: chartEmbedUrl,
       dexScreenerPageUrl: merged.dexScreenerUrl,
-      dexTradesEmbedUrl: tradesEmbedUrl,
     },
   };
 }
