@@ -275,6 +275,7 @@ function createMiniAppServer() {
         sendJson(res, 200, {
           build: MINIAPP_BUILD_ID,
           git: String(process.env.RAILWAY_GIT_COMMIT_SHA || '').slice(0, 7),
+          webAppEntry: getWebAppEntryUrl(),
           assets: { cropV, bakedV, appV },
           cropWeb: webCrop,
           cropWebOk: webCrop?.stageH === 330 && webCrop?.viewH === 302 && webCrop?.iframeTop === -590,
@@ -367,6 +368,7 @@ function createMiniAppServer() {
         const { loadConfig: loadTrendConfig } = require('./trendConfigStore');
         sendJson(res, 200, {
           webAppBase: getWebAppBaseUrl(),
+          webAppEntry: getWebAppEntryUrl(),
           botApiBase: getBotApiBaseUrl(),
           telegramBotUsername: botUser || 'solachainscanbot',
           support: supportStore.loadConfig(),
@@ -539,6 +541,21 @@ function getWebAppBaseUrl() {
   return `http://localhost:${port}`;
 }
 
+/** Telegram Mini App aynı URL’yi agresif önbelleğe alır — her deploy’da farklı ?dv= zorunlu. */
+function getWebAppEntryUrl() {
+  const base = getWebAppBaseUrl();
+  const v = MINIAPP_BUILD_ID;
+  if (!v || v === 'dev') return base;
+  try {
+    const u = new URL(base);
+    u.searchParams.set('dv', v);
+    return u.toString();
+  } catch {
+    const sep = base.includes('?') ? '&' : '?';
+    return `${base}${sep}dv=${encodeURIComponent(v)}`;
+  }
+}
+
 /** İki Railway: DEX UI burada, feed BOT sunucusunda — BOT_API_URL = bot Railway https */
 function getBotApiBaseUrl() {
   try {
@@ -555,8 +572,10 @@ function getBotApiBaseUrl() {
 }
 
 function buildWebAppUrl(reportId) {
-  const base = getWebAppBaseUrl();
-  return `${base}/#r=${encodeURIComponent(reportId)}`;
+  const base = getWebAppEntryUrl();
+  const u = new URL(base);
+  u.hash = `r=${encodeURIComponent(reportId)}`;
+  return u.toString();
 }
 
 function startMiniAppServer() {
@@ -593,6 +612,7 @@ module.exports = {
   startMiniAppServer,
   buildWebAppUrl,
   getWebAppBaseUrl,
+  getWebAppEntryUrl,
   getBotApiBaseUrl,
   PUBLIC_DIR,
 };

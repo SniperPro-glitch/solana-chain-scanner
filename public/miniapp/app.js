@@ -1396,7 +1396,9 @@
                 ? 'Bot kanal'
                 : c.src;
     const live = body.liveRefresh ? ' · anlık' : '';
-    txt.textContent = `◎ ${c.label} · ${src} · ${n} token · ${vol} 24h${live}${demo}`;
+    const dv = document.documentElement.dataset.build || '';
+    const dvTag = dv && !dv.includes('BUILD') ? ` · ${dv.slice(0, 8)}` : '';
+    txt.textContent = `◎ ${c.label} · ${src} · ${n} token · ${vol} 24h${live}${demo}${dvTag}`;
     delete txt.dataset.lockChain;
     bar.classList.remove('hidden');
   }

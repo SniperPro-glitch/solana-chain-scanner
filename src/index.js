@@ -31,7 +31,7 @@ const { createScanRunner } = require('./scanRunner');
 const { createWatchRunner } = require('./watchRunner');
 const reportStore = require('./reportStore');
 const { formatTrustTeaserComment } = require('./trustTeaser');
-const { startMiniAppServer, buildWebAppUrl, getWebAppBaseUrl } = require('./miniAppServer');
+const { startMiniAppServer, buildWebAppUrl, getWebAppBaseUrl, getWebAppEntryUrl } = require('./miniAppServer');
 
 const BOT_TOKEN = process.env.BOT_TOKEN || process.env.TELEGRAM_BOT_TOKEN;
 const ADMIN_USER_ID = process.env.ADMIN_USER_ID ? String(process.env.ADMIN_USER_ID) : null;
@@ -1594,15 +1594,16 @@ async function main() {
     console.log(`   Mini App feed: ${botFeedStore.feedCount()} kayıt (DATA_DIR=${DATA_DIR})`);
   } catch (_) { /* */ }
 
-  const webBase = getWebAppBaseUrl();
-  if (/^https:\/\//i.test(webBase)) {
+  const webEntry = getWebAppEntryUrl();
+  if (/^https:\/\//i.test(webEntry)) {
     await bot.setChatMenuButton({
       menu_button: {
         type: 'web_app',
         text: 'Risk Raporu',
-        web_app: { url: webBase },
+        web_app: { url: webEntry },
       },
     }).catch((e) => console.warn('setChatMenuButton:', e?.message));
+    console.log(`   Mini App menü URL: ${webEntry}`);
   }
 
   await bot.setMyCommands([
