@@ -2178,6 +2178,7 @@
       const candles = m?.chart?.candles || [];
       const last = candles[candles.length - 1];
       if (last) updateOhlc(last);
+      applyDexCrop();
       return;
     }
 
