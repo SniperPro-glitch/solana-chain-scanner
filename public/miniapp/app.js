@@ -5,7 +5,12 @@
   }
 
   function isTgMiniApp() {
-    return window.SniperHost?.isTelegram?.() || document.documentElement.classList.contains('tg-mini-app');
+    if (/(?:^|[?&])showmeta=1(?:&|$)/.test(location.search || '')) return false;
+    if (window.SniperHost?.isTelegram?.()) return true;
+    if (document.documentElement.classList.contains('tg-mini-app')) return true;
+    if (window.SniperTgLaunch?.hasLaunchData?.()) return true;
+    const p = String(window.Telegram?.WebApp?.platform || '').toLowerCase();
+    return ['android', 'ios', 'macos', 'tdesktop', 'weba', 'webk', 'unigram'].includes(p);
   }
   let apiConfig = { botApiBase: '', webAppBase: '' };
   let apiConfigPromise = null;
@@ -1444,7 +1449,9 @@
     const bar = $('feedMetaBar');
     const txt = $('feedMetaText');
     if (!bar || !txt) return;
-    if (isTgMiniApp()) {
+    const showMeta = /(?:^|[?&])showmeta=1(?:&|$)/.test(location.search || '');
+    document.documentElement.dataset.showFeedMeta = showMeta ? '1' : '0';
+    if (!showMeta || isTgMiniApp()) {
       bar.classList.add('hidden');
       return;
     }
@@ -2698,6 +2705,12 @@
     });
     window.addEventListener('hashchange', onReportRouteChange);
     window.addEventListener('popstate', onReportRouteChange);
+    document.documentElement.dataset.showFeedMeta = '0';
+    $('feedMetaBar')?.classList.add('hidden');
+    window.addEventListener('sniper-host-changed', () => {
+      $('feedMetaBar')?.classList.add('hidden');
+      updateFeedMetaBar(null);
+    });
   }
 
   async function main() {

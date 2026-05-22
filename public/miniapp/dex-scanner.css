@@ -610,9 +610,13 @@ html.web-browser .promo-banner-img {
   color: var(--muted);
 }
 
-/* Telegram mini app: üstte “Solana • Bot • …” satırı yok (TG bar + SNIPER header yeter) */
-html.tg-mini-app .feed-meta-bar {
+/* Üst meta satırı kapalı (TG yan sekme / telefon); geliştirici: ?showmeta=1 */
+.feed-meta-bar {
   display: none !important;
+}
+
+html[data-show-feed-meta="1"] .feed-meta-bar {
+  display: flex !important;
 }
 
 .feed-meta-dot {

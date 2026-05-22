@@ -35,6 +35,9 @@
     if (!web) {
       document.documentElement.classList.remove('web-browser');
       document.documentElement.classList.add('tg-mini-app');
+      document.documentElement.dataset.tgHost = '1';
+    } else {
+      document.documentElement.dataset.tgHost = '0';
     }
   }
 
