@@ -9,6 +9,8 @@
   let profilesReady = null;
   const CHART_BRAND_CROP = 40;
   const D = 'di' + 'v';
+  /** Kalibrasyon bitince false yap — gizli motor tamamen kapalı. */
+  const MOTOR_TEMP_DISABLED = true;
 
   const PROFILE_META = {
     web: { label: 'Web', hint: 'Tarayici / masaustu' },
@@ -692,6 +694,7 @@
    * Gizli motor = Kırpma apply (panel yok). Her zaman baked/git profil — localStorage değil.
    */
   function runHiddenMotor() {
+    if (MOTOR_TEMP_DISABLED) return false;
     if (!isDetailOpen()) return false;
     const panel = document.getElementById('dexCropPanel');
     if (panel && !panel.classList.contains('hidden')) return false;
@@ -717,6 +720,7 @@
 
   /** Profil başına bir kez — Dex iframe hazır olunca. */
   function ensureMotorOnce() {
+    if (MOTOR_TEMP_DISABLED) return false;
     handleCropProfileChange();
     const profileId = refreshCropProfile();
     if (layoutSessionDone(profileId)) return false;
@@ -740,6 +744,7 @@
   }
 
   function bindMotorOnEmbedReady() {
+    if (MOTOR_TEMP_DISABLED) return;
     if (global.__sniperMotorEmbedReady) return;
     global.__sniperMotorEmbedReady = true;
     document.addEventListener(
