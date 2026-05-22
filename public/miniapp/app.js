@@ -456,8 +456,14 @@
     $('view-detail')?.classList.remove('hidden');
     ensureDetailSpacer();
     refreshTgViewport();
-    if (globalThis.SniperCropProfile?.apply) globalThis.SniperCropProfile.apply();
-    scheduleDexTradesCrop();
+    if (globalThis.SniperDexCrop?.applyWhenDetailReady) {
+      void globalThis.SniperDexCrop.refreshProfilesFromServer?.().then(() => {
+        globalThis.SniperDexCrop.applyWhenDetailReady();
+      });
+    } else {
+      if (globalThis.SniperCropProfile?.apply) globalThis.SniperCropProfile.apply();
+      scheduleDexTradesCrop();
+    }
   }
 
   function isSolanaMint(s) {
@@ -1942,8 +1948,11 @@
 
   function applyDexCrop() {
     if (!globalThis.SniperDexCrop) return;
-    const run = () => SniperDexCrop.apply();
-    if (SniperCropProfile?.apply) SniperCropProfile.apply();
+    const run = () => {
+      if (SniperCropProfile?.apply) SniperCropProfile.apply();
+      if (SniperDexCrop.forceApply) SniperDexCrop.forceApply();
+      else SniperDexCrop.apply();
+    };
     if (SniperDexCrop.ensureProfilesReady) {
       void SniperDexCrop.ensureProfilesReady().then(run);
       return;
@@ -1952,8 +1961,12 @@
   }
 
   function scheduleDexTradesCrop() {
+    if (SniperDexCrop?.applyWhenDetailReady) {
+      SniperDexCrop.applyWhenDetailReady();
+      return;
+    }
     applyDexCrop();
-    [150, 500, 1200, 2500].forEach((ms) => setTimeout(applyDexCrop, ms));
+    [150, 500, 1200, 2500, 4000, 6000, 9000].forEach((ms) => setTimeout(applyDexCrop, ms));
   }
 
   function chartPoolRef(m) {
@@ -2022,7 +2035,7 @@
       scheduleDexTradesCrop();
       if (fallback) fallback.classList.add('hidden');
       if (meta) meta.textContent = 'canlı';
-      if (globalThis.SniperDexCrop?.isCalibrateMode?.()) {
+      if (globalThis.SniperDexCrop?.isCalibrateUrl?.()) {
         setTimeout(() => SniperDexCrop.openPanel(), 300);
       }
     };
@@ -2398,7 +2411,10 @@
               b.classList.toggle('active', b.dataset.tf === tf);
             });
             setChartLoading(true);
-            iframe.onload = () => setChartLoading(false);
+            iframe.onload = () => {
+              setChartLoading(false);
+              scheduleDexTradesCrop();
+            };
             setTimeout(() => setChartLoading(false), 4000);
             return;
           }
@@ -2510,6 +2526,7 @@
     document.querySelectorAll('.tf').forEach((b) => {
       b.classList.toggle('active', b.dataset.tf === (m.chart?.timeframe || currentTf));
     });
+    scheduleDexTradesCrop();
   }
 
   function showError(title, hint) {

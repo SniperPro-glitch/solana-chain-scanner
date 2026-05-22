@@ -57,8 +57,21 @@
   function scheduleCropApply() {
     clearTimeout(cropTimer);
     cropTimer = setTimeout(() => {
+      if (window.SniperDexCrop?.applyWhenDetailReady) {
+        window.SniperDexCrop.applyWhenDetailReady();
+        return;
+      }
+      if (window.SniperDexCrop?.ensureProfilesReady) {
+        void window.SniperDexCrop.ensureProfilesReady().then(() => {
+          if (window.SniperCropProfile?.apply) window.SniperCropProfile.apply();
+          if (window.SniperDexCrop?.forceApply) window.SniperDexCrop.forceApply();
+          else if (window.SniperDexCrop?.apply) window.SniperDexCrop.apply();
+        });
+        return;
+      }
       if (window.SniperCropProfile?.apply) window.SniperCropProfile.apply();
-      if (window.SniperDexCrop?.apply) window.SniperDexCrop.apply();
+      if (window.SniperDexCrop?.forceApply) window.SniperDexCrop.forceApply();
+      else if (window.SniperDexCrop?.apply) window.SniperDexCrop.apply();
     }, 220);
   }
 
