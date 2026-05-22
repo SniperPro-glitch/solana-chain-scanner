@@ -14,10 +14,43 @@ const http = axios.create({
 
 const CACHE_MS = 12_000;
 const CACHE_MS_SLOW = 30_000;
+const PAIR_RESOLVE_CACHE_MS = 10 * 60 * 1000;
 const TRADES_FEED_MAX = 50;
 const cache = new Map();
 const tradesLastGood = new Map();
 const inFlight = new Map();
+const pairResolveCache = new Map();
+const pairResolveInFlight = new Map();
+
+function pairResolveCacheKey({ mint, poolAddress } = {}) {
+  const m = String(mint || '').trim();
+  const p = String(poolAddress || '').trim();
+  if (p && m) return `m:${m}:p:${p}`;
+  if (p) return `p:${p}`;
+  if (m) return `m:${m}`;
+  return '';
+}
+
+async function resolvePairCached(opts = {}) {
+  const key = pairResolveCacheKey(opts);
+  if (!key) return null;
+  const hit = pairResolveCache.get(key);
+  if (hit && Date.now() - hit.at < PAIR_RESOLVE_CACHE_MS) return hit.pair;
+
+  const pending = pairResolveInFlight.get(key);
+  if (pending) return pending;
+
+  const promise = resolveDexScreenerPair(opts)
+    .then((pair) => {
+      pairResolveCache.set(key, { at: Date.now(), pair: pair || null });
+      return pair || null;
+    })
+    .finally(() => {
+      pairResolveInFlight.delete(key);
+    });
+  pairResolveInFlight.set(key, promise);
+  return promise;
+}
 
 function sleep(ms) {
   return new Promise((r) => setTimeout(r, ms));
@@ -157,7 +190,7 @@ async function fetchPairTradesInner({
   let pool = poolAddress;
   let baseMint = mint;
   if (!pool && mint) {
-    const pair = await resolveDexScreenerPair({ mint });
+    const pair = await resolvePairCached({ mint });
     pool = pair?.pairAddress;
     baseMint = pair?.baseToken?.address || mint;
   }
