@@ -1743,9 +1743,34 @@
   function fmtPriceNum(n) {
     if (n == null || Number.isNaN(n)) return '—';
     const x = Number(n);
-    if (x < 0.0001) return x.toExponential(4);
-    if (x < 1) return x.toFixed(8);
-    return x.toFixed(6);
+    if (x === 0) return '0';
+    if (x < 0.0000001) return x.toExponential(4);
+    if (x < 0.0001) return x.toFixed(8).replace(/\.?0+$/, '');
+    if (x < 1) return x.toFixed(6).replace(/\.?0+$/, '');
+    return x.toFixed(4);
+  }
+
+  function chartPriceFormat(candles) {
+    const vals = (candles || [])
+      .flatMap((c) => [Number(c.high), Number(c.low), Number(c.close)])
+      .filter((v) => Number.isFinite(v) && v > 0);
+    const max = vals.length ? Math.max(...vals) : 1;
+    if (max < 0.00001) return { type: 'price', precision: 10, minMove: 1e-10 };
+    if (max < 0.0001) return { type: 'price', precision: 8, minMove: 1e-8 };
+    if (max < 0.01) return { type: 'price', precision: 6, minMove: 1e-6 };
+    if (max < 1) return { type: 'price', precision: 4, minMove: 0.0001 };
+    return { type: 'price', precision: 2, minMove: 0.01 };
+  }
+
+  function chartPriceLabel(price) {
+    const x = Number(price);
+    if (!Number.isFinite(x)) return '—';
+    if (x === 0) return '0';
+    if (x < 0.0000001) return x.toExponential(2);
+    if (x < 0.0001) return x.toFixed(8).replace(/\.?0+$/, '');
+    if (x < 1) return x.toFixed(6).replace(/\.?0+$/, '');
+    if (x < 1000) return x.toFixed(4);
+    return x.toFixed(2);
   }
 
   function shortMint(addr) {
@@ -2253,11 +2278,13 @@
     updateOhlc(last);
 
     const { w, h } = await waitForChartLayout(container);
+    const priceFmt = chartPriceFormat(seriesData);
     try {
       const crosshairMode = LightweightCharts.CrosshairMode?.Normal ?? 0;
       chartApi = LightweightCharts.createChart(container, {
         width: w,
         height: h,
+        autoSize: true,
         layout: {
           background: { color: '#080c16' },
           textColor: '#6b7788',
@@ -2267,6 +2294,9 @@
         grid: {
           vertLines: { color: '#1a2035' },
           horzLines: { color: '#1a2035' },
+        },
+        localization: {
+          priceFormatter: chartPriceLabel,
         },
         rightPriceScale: {
           borderVisible: false,
@@ -2284,6 +2314,17 @@
           vertLine: { width: 1, color: 'rgba(0, 229, 255, 0.45)', style: 2 },
           horzLine: { width: 1, color: 'rgba(0, 229, 255, 0.35)', style: 2 },
         },
+        handleScroll: {
+          mouseWheel: true,
+          pressedMouseMove: true,
+          horzTouchDrag: true,
+          vertTouchDrag: true,
+        },
+        handleScale: {
+          axisPressedMouseMove: true,
+          mouseWheel: true,
+          pinch: true,
+        },
       });
 
       candleSeries = addChartSeries(chartApi, 'candle', {
@@ -2293,6 +2334,7 @@
         borderDownColor: '#dc2626',
         wickUpColor: '#00c850',
         wickDownColor: '#ef4444',
+        priceFormat: priceFmt,
         visible: chartType !== 'line',
       });
 
@@ -2301,6 +2343,7 @@
         lineWidth: 2,
         crosshairMarkerVisible: true,
         priceLineVisible: false,
+        priceFormat: priceFmt,
         visible: chartType === 'line',
       });
 
@@ -2348,6 +2391,7 @@
         }
       };
       window.addEventListener('resize', resizeHandler);
+      requestAnimationFrame(() => resizeHandler());
     } catch (e) {
       console.warn('chart render', e);
       destroyChart();
@@ -2529,27 +2573,32 @@
     });
   }
 
+  async function switchChartTimeframe(tf) {
+    if (!tf || tf === currentTf || !reportId || !appData?.market) return;
+    currentTf = tf;
+    document.querySelectorAll('.tf').forEach((b) => {
+      b.classList.toggle('active', b.dataset.tf === tf);
+      b.classList.add('loading');
+    });
+    setChartLoading(true);
+    try {
+      if (appData.market.chart) appData.market.chart.timeframe = tf;
+      await renderChart(appData.market);
+    } catch (e) {
+      console.warn('switchChartTimeframe', e);
+      showToast('Grafik yenilenemedi — birkaç sn sonra tekrar dene');
+    } finally {
+      document.querySelectorAll('.tf').forEach((b) => b.classList.remove('loading'));
+      setChartLoading(false);
+    }
+  }
+
   function setupTfButtons() {
     document.querySelectorAll('.tf').forEach((btn) => {
-      btn.addEventListener('click', async () => {
+      btn.addEventListener('click', () => {
         const tf = btn.dataset.tf;
         if (!tf || tf === currentTf || !reportId) return;
-
-        setChartLoading(true);
-        document.querySelectorAll('.tf').forEach((b) => b.classList.add('loading'));
-        try {
-          await loadReport(tf);
-          document.querySelectorAll('.tf').forEach((b) => {
-            b.classList.remove('loading');
-            b.classList.toggle('active', b.dataset.tf === tf);
-          });
-        } catch (e) {
-          document.querySelectorAll('.tf').forEach((b) => b.classList.remove('loading'));
-          const msg = e?.hint || e?.message;
-          showToast(msg && msg !== 'not_found' ? msg : 'Grafik yenilenemedi — birkaç sn sonra tekrar dene');
-        } finally {
-          setChartLoading(false);
-        }
+        void switchChartTimeframe(tf);
       });
     });
   }

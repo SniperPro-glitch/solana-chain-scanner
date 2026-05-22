@@ -733,6 +733,11 @@ html.detail-mode body {
   align-items: center;
   justify-content: center;
   background: rgba(5, 8, 10, 0.8);
+  pointer-events: none;
+}
+
+.chart-loader:not(.hidden) {
+  pointer-events: auto;
 }
 
 .chart-loader span {
@@ -829,6 +834,13 @@ html.detail-mode body {
   max-height: 330px;
   overflow: hidden;
   background: #080c16;
+  touch-action: none;
+  overscroll-behavior: contain;
+}
+
+.chart-stage .chart-canvas,
+.chart-stage canvas {
+  touch-action: none;
 }
 
 .chart-terminal .chart-canvas {
