@@ -337,8 +337,15 @@ async function enrichMarketForMiniApp(token, options = {}) {
 
   const chartRef = poolAddress || merged.address;
   let candles = [];
-  if (poolAddress) {
+  let chartSource = 'dexscreener';
+  const { fetchOhlcvByMint, isBirdeyeEnabled } = require('./birdeyeApi');
+  if (isBirdeyeEnabled() && merged.address) {
+    candles = await fetchOhlcvByMint(merged.address, timeframe);
+    if (candles.length) chartSource = 'birdeye';
+  }
+  if (!candles.length && poolAddress) {
     candles = await fetchOhlcv(poolAddress, timeframe);
+    if (candles.length) chartSource = 'geckoterminal';
   }
   const chartStats = chartStatsFromCandles(candles);
   const buys = merged.buys24h || 0;
@@ -347,12 +354,18 @@ async function enrichMarketForMiniApp(token, options = {}) {
 
   let recentTrades = [];
   try {
-    const { fetchPairTrades } = require('./pairTrades');
-    recentTrades = await fetchPairTrades({
-      poolAddress,
-      mint: merged.address,
-      limit: 28,
-    });
+    const { isBirdeyeEnabled, fetchTokenTrades: fetchBirdeyeTrades } = require('./birdeyeApi');
+    if (isBirdeyeEnabled() && merged.address) {
+      recentTrades = await fetchBirdeyeTrades(merged.address, 28);
+    }
+    if (!recentTrades.length) {
+      const { fetchPairTrades } = require('./pairTrades');
+      recentTrades = await fetchPairTrades({
+        poolAddress,
+        mint: merged.address,
+        limit: 28,
+      });
+    }
   } catch (e) {
     console.warn('[market] trades:', e.message);
   }
@@ -369,7 +382,7 @@ async function enrichMarketForMiniApp(token, options = {}) {
       candles,
       stats: chartStats,
       priceSource: 'dexscreener',
-      source: candles.length ? 'geckoterminal' : 'dexscreener',
+      source: chartSource,
       empty: !chartRef,
       pairRef: chartRef,
       dexScreenerPageUrl: merged.dexScreenerUrl,

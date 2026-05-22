@@ -49,19 +49,23 @@ async function sendDexChartJson(res, ref, tf, live) {
   const { getPairChart } = require('./dexscreenerApi');
   const { chartStatsFromCandles } = require('./tokenLogo');
   const { ohlcvCacheMs, normalizeTimeframe } = require('./marketData');
+  const { ohlcvCacheMs: birdeyeCacheMs, isBirdeyeEnabled } = require('./birdeyeApi');
   const t0 = Date.now();
   const timeframe = normalizeTimeframe(tf);
-  const { pair, candles, poolAddress, priceUsd } = await getPairChart(ref, timeframe, { fresh: live });
+  const { pair, candles, poolAddress, priceUsd, source, mint } = await getPairChart(ref, timeframe, { fresh: live });
   const serverMs = Date.now() - t0;
+  const cacheMs = source === 'birdeye' ? birdeyeCacheMs(timeframe) : ohlcvCacheMs(timeframe);
   sendJson(res, 200, {
     pair,
     poolAddress,
+    mint,
     timeframe,
     candles,
     priceUsd,
     stats: chartStatsFromCandles(candles),
     live,
-    cacheMs: ohlcvCacheMs(timeframe),
+    source: source || (isBirdeyeEnabled() ? 'birdeye' : 'geckoterminal'),
+    cacheMs,
     serverMs,
   });
 }
@@ -399,10 +403,12 @@ function createMiniAppServer() {
         const { isMiniAppOnlyMode } = require('../scripts/railway-env');
         const hasBotToken = !!String(process.env.BOT_TOKEN || process.env.TELEGRAM_BOT_TOKEN || '').trim();
         const miniOnly = isMiniAppOnlyMode();
+        const { publicConfig: birdeyePublicConfig } = require('./birdeyeApi');
         sendJson(res, 200, {
           webAppBase: getWebAppBaseUrl(),
           webAppEntry: getWebAppEntryUrl(),
           botApiBase: getBotApiBaseUrl(),
+          birdeye: birdeyePublicConfig(),
           telegramBotUsername: botUser || 'solachainscanbot',
           bot: {
             miniAppOnly: miniOnly,

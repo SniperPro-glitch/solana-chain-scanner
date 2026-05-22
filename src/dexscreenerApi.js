@@ -97,10 +97,10 @@ function dexScreenerPageUrl(poolOrMint) {
   return config.data.dexScreener(ref);
 }
 
-/** Pool veya mint → pair + OHLCV (Dex pair meta, Gecko mumlar). */
+/** Pool veya mint → pair + OHLCV (Birdeye; yedek Gecko). */
 async function getPairChart(poolOrMint, timeframe = '15m', opts = {}) {
   const ref = String(poolOrMint || '').trim();
-  if (!ref) return { pair: null, candles: [], poolAddress: null, priceUsd: null };
+  if (!ref) return { pair: null, candles: [], poolAddress: null, priceUsd: null, source: null };
 
   const live = !!opts.fresh;
   const pairOpts = live ? { fresh: true, maxAge: LIVE_CACHE_MS } : {};
@@ -115,18 +115,27 @@ async function getPairChart(poolOrMint, timeframe = '15m', opts = {}) {
   }
 
   let pool = pair?.pairAddress || null;
+  const mint = pair?.baseToken?.address || (ref.length >= 32 && ref.length <= 48 ? ref : null);
   if (!pool && ref.length >= 32 && ref.length <= 48) {
     pool = ref;
   }
-  if (!pool) {
+  if (!pool && mint) {
     const { fetchGeckoPoolAddress } = require('./marketData');
-    pool = await fetchGeckoPoolAddress(ref);
+    pool = await fetchGeckoPoolAddress(mint);
   }
 
   const { fetchOhlcv, normalizeTimeframe, patchLastCandle } = require('./marketData');
+  const { fetchOhlcvByMint, isBirdeyeEnabled } = require('./birdeyeApi');
   const tf = normalizeTimeframe(timeframe);
   let candles = [];
-  if (pool) {
+  let source = null;
+
+  if (isBirdeyeEnabled() && mint) {
+    candles = await fetchOhlcvByMint(mint, tf, { fresh: live });
+    if (candles.length) source = 'birdeye';
+  }
+
+  if (!candles.length && pool) {
     const ohlcvKey = `${pool}:${tf}`;
     const needFull = !live
       || !ohlcvLiveFetchAt.has(ohlcvKey)
@@ -137,6 +146,7 @@ async function getPairChart(poolOrMint, timeframe = '15m', opts = {}) {
     } else {
       candles = await fetchOhlcv(pool, tf, { allowStale: true });
     }
+    if (candles.length) source = 'geckoterminal';
   }
 
   const priceUsd = parseFloat(pair?.priceUsd);
@@ -144,7 +154,14 @@ async function getPairChart(poolOrMint, timeframe = '15m', opts = {}) {
     candles = patchLastCandle(candles, priceUsd);
   }
 
-  return { pair, candles, poolAddress: pool, priceUsd: Number.isFinite(priceUsd) ? priceUsd : null };
+  return {
+    pair,
+    candles,
+    poolAddress: pool,
+    priceUsd: Number.isFinite(priceUsd) ? priceUsd : null,
+    source,
+    mint,
+  };
 }
 
 /** Token mint → canlı işlemler (Gecko pool trades; pool varsa DS token atlanır). */
@@ -160,16 +177,29 @@ async function getTokenTrades(mint, limit = 50, opts = {}) {
     pairs = token?.pairs || [];
   }
   const pool = poolQ || best?.pairAddress || null;
-  const { fetchPairTrades } = require('./pairTrades');
-  const sinceMs = opts.sinceMs != null ? require('./pairTrades').parseSinceMs(opts.sinceMs) : 0;
-  const trades = await fetchPairTrades({
-    poolAddress: pool,
-    mint,
-    limit,
-    fresh: !!opts.fresh,
-    skipDexOrders: !!poolQ,
-    sinceMs,
-  });
+  const { isBirdeyeEnabled, fetchTokenTrades: fetchBirdeyeTrades } = require('./birdeyeApi');
+  const { fetchPairTrades, parseSinceMs, filterTradesAfterSince } = require('./pairTrades');
+  const sinceMs = opts.sinceMs != null ? parseSinceMs(opts.sinceMs) : 0;
+  let trades = [];
+  let source = 'geckoterminal';
+
+  if (isBirdeyeEnabled()) {
+    trades = await fetchBirdeyeTrades(mint, limit);
+    if (trades.length) source = 'birdeye';
+  }
+  if (!trades.length) {
+    trades = await fetchPairTrades({
+      poolAddress: pool,
+      mint,
+      limit,
+      fresh: !!opts.fresh,
+      skipDexOrders: !!poolQ,
+      sinceMs,
+    });
+    source = 'geckoterminal';
+  } else if (sinceMs > 0) {
+    trades = filterTradesAfterSince(trades, sinceMs);
+  }
   const fetchMs = Date.now() - t0;
   if (fetchMs > 2000) {
     console.warn('[dex/trades] slow', fetchMs, 'ms', String(mint || '').slice(0, 8), String(pool || '').slice(0, 8));
@@ -185,7 +215,8 @@ async function getTokenTrades(mint, limit = 50, opts = {}) {
     poolAddress: pool,
     pairs,
     fetchMs,
-    pollMs: 1000,
+    pollMs: 0,
+    source,
     incremental: sinceMs > 0,
     latestUpdatedAt: latestUpdatedAt ? new Date(latestUpdatedAt).toISOString() : null,
   };

@@ -105,6 +105,10 @@
   let tradesFetchGen = 0;
   let tradesLastGood = [];
   let tradesDisplayRows = [];
+  let birdeyeTradesWs = null;
+  let birdeyeTradesMint = null;
+  let birdeyeWsReconnectTimer = null;
+  let birdeyeWsFailCount = 0;
   const TRADES_MAX_ROWS = 50;
   const TRADES_POLL_MS = 1000;
   const CHART_LIVE_POLL_MS = 5000;
@@ -1984,7 +1988,170 @@
     if (counts) counts.textContent = `${ratio.buys} alım · ${ratio.sells} satım (${ratio.buyPct}% alım)`;
   }
 
+  function birdeyeWsUrl() {
+    const be = apiConfig?.birdeye || {};
+    const base = be.wsUrl || 'wss://public-api.birdeye.so/socket/solana';
+    const key = String(be.apiKey || '').trim();
+    if (!key) return base;
+    const sep = base.includes('?') ? '&' : '?';
+    return `${base}${sep}x-api-key=${encodeURIComponent(key)}`;
+  }
+
+  function fmtTradeUsd(usd) {
+    const n = Math.abs(Number(usd) || 0);
+    if (!n) return '—';
+    if (n >= 1) return `$${n >= 1000 ? (n / 1000).toFixed(1) + 'K' : n.toFixed(2)}`;
+    if (n >= 0.01) return `$${n.toFixed(4)}`;
+    return `$${n.toExponential(2)}`;
+  }
+
+  function normalizeBirdeyeWsTrade(msg, baseMint) {
+    const item = msg?.data || msg;
+    if (!item) return null;
+    let side = String(item.side || '').toLowerCase();
+    if (side === 'swap') return null;
+    if (side !== 'buy' && side !== 'sell') return null;
+    const unix = Number(item.blockUnixTime);
+    if (!unix) return null;
+    const usd = Math.abs(parseFloat(item.volumeUSD) || 0);
+    const txHash = item.txHash || null;
+    const at = new Date(unix * 1000).toISOString();
+    const base = String(baseMint || '').toLowerCase();
+    const from = item.from;
+    const to = item.to;
+    let amount = null;
+    if (side === 'buy' && to) {
+      amount = Math.abs(parseFloat(to.uiChangeAmount ?? to.uiAmount) || 0) || null;
+    } else if (side === 'sell' && from) {
+      amount = Math.abs(parseFloat(from.uiChangeAmount ?? from.uiAmount) || 0) || null;
+    }
+    if (amount == null && base && from) {
+      const fromMint = String(from.address || '').toLowerCase();
+      if (fromMint === base) amount = Math.abs(parseFloat(from.uiAmount) || 0);
+    }
+    return {
+      id: txHash || `be-${unix}-${item.owner || ''}`,
+      side,
+      usd,
+      usdFmt: fmtTradeUsd(usd),
+      amount,
+      wallet: item.owner ? `${item.owner.slice(0, 4)}…${item.owner.slice(-4)}` : '—',
+      txHash,
+      at,
+      updatedAt: at,
+      ago: tradeAgoLabel(at),
+      source: 'birdeye',
+    };
+  }
+
+  function stopBirdeyeTradesWs() {
+    if (birdeyeWsReconnectTimer) {
+      clearTimeout(birdeyeWsReconnectTimer);
+      birdeyeWsReconnectTimer = null;
+    }
+    if (birdeyeTradesWs) {
+      try {
+        birdeyeTradesWs.onclose = null;
+        birdeyeTradesWs.close();
+      } catch {
+        /* yoksay */
+      }
+      birdeyeTradesWs = null;
+    }
+    birdeyeTradesMint = null;
+    birdeyeWsFailCount = 0;
+  }
+
+  function scheduleBirdeyeWsReconnect(m) {
+    if (!reportId || birdeyeWsReconnectTimer) return;
+    birdeyeWsFailCount = Math.min(birdeyeWsFailCount + 1, 6);
+    const delay = Math.min(30_000, 1500 * 2 ** birdeyeWsFailCount);
+    birdeyeWsReconnectTimer = setTimeout(() => {
+      birdeyeWsReconnectTimer = null;
+      if (reportId && appData?.market) void startBirdeyeTradesWs(appData.market);
+    }, delay);
+  }
+
+  async function startBirdeyeTradesWs(m) {
+    await loadApiConfig();
+    const mint = tokenMintRef(m);
+    if (!mint || !reportId) return;
+    const be = apiConfig?.birdeye;
+    if (!be?.apiKey) {
+      startTradesPollFallback(m);
+      return;
+    }
+    if (birdeyeTradesWs && birdeyeTradesMint === mint) return;
+    stopBirdeyeTradesWs();
+    birdeyeTradesMint = mint;
+    if (tradesPollTimer) {
+      clearInterval(tradesPollTimer);
+      tradesPollTimer = null;
+    }
+
+    let ws;
+    try {
+      ws = new WebSocket(birdeyeWsUrl(), 'echo-protocol');
+    } catch (e) {
+      console.warn('birdeye ws', e);
+      startTradesPollFallback(m);
+      return;
+    }
+    birdeyeTradesWs = ws;
+
+    ws.onopen = () => {
+      birdeyeWsFailCount = 0;
+      try {
+        ws.send(JSON.stringify({
+          type: 'SUBSCRIBE_TXS',
+          data: { queryType: 'simple', address: mint, txsType: 'swap' },
+        }));
+      } catch (e) {
+        console.warn('birdeye subscribe', e);
+      }
+      const meta = $('tradesMeta');
+      if (meta && tradesDisplayRows.length) meta.textContent = `${tradesDisplayRows.length} işlem · canlı WS`;
+    };
+
+    ws.onmessage = (ev) => {
+      const market = appData?.market;
+      if (!market || tokenMintRef(market) !== mint) return;
+      let msg;
+      try {
+        msg = JSON.parse(ev.data);
+      } catch {
+        return;
+      }
+      if (msg?.type !== 'TXS_DATA') return;
+      const trade = normalizeBirdeyeWsTrade(msg, mint);
+      if (!trade) return;
+      tradesLastGood = mergeTradesDisplay([trade], tradesLastGood);
+      saveTradesSession(market, tradesLastGood);
+      renderTradesList(tradesLastGood, market?.symbol, { keepPrevious: false, fullRender: false });
+      const meta = $('tradesMeta');
+      if (meta) meta.textContent = `${tradesDisplayRows.length} işlem · canlı WS`;
+    };
+
+    ws.onerror = () => {
+      scheduleBirdeyeWsReconnect(m);
+    };
+
+    ws.onclose = () => {
+      if (birdeyeTradesWs === ws) birdeyeTradesWs = null;
+      if (reportId && birdeyeTradesMint === mint) scheduleBirdeyeWsReconnect(m);
+    };
+  }
+
+  function startTradesPollFallback(m) {
+    if (tradesPollTimer) return;
+    const ms = tradesPollIntervalMs(m);
+    tradesPollTimer = setInterval(() => {
+      if (reportId && appData?.market) void refreshTrades(appData.market);
+    }, ms);
+  }
+
   function stopTradesPoll() {
+    stopBirdeyeTradesWs();
     if (tradesPollTimer) {
       clearInterval(tradesPollTimer);
       tradesPollTimer = null;
@@ -2296,9 +2463,9 @@
       m.tradesUpdatedAtMs = tradesWatermarkMs(tradesLastGood);
       if (meta) {
         const n = tradesDisplayRows.length;
-        const sec = Math.max(1, Math.round((m?.tradesPollMs || TRADES_POLL_MS) / 1000));
-        if (n) meta.textContent = `${n} işlem · canlı ${sec}s`;
-        else if (tradesLastGood.length) meta.textContent = `${tradesLastGood.length} işlem · canlı`;
+        const liveTag = birdeyeTradesWs ? 'canlı WS' : `canlı ${Math.max(1, Math.round((m?.tradesPollMs || TRADES_POLL_MS) / 1000))}s`;
+        if (n) meta.textContent = `${n} işlem · ${liveTag}`;
+        else if (tradesLastGood.length) meta.textContent = `${tradesLastGood.length} işlem · ${liveTag}`;
         else meta.textContent = 'işlem bekleniyor';
       }
     } catch (e) {
@@ -2319,11 +2486,8 @@
 
   function startTradesPoll(m) {
     stopTradesPoll();
-    const ms = tradesPollIntervalMs(m);
     void refreshTrades(m, true);
-    tradesPollTimer = setInterval(() => {
-      if (reportId && appData?.market) void refreshTrades(appData.market);
-    }, tradesPollIntervalMs(appData?.market || m));
+    void startBirdeyeTradesWs(m);
   }
 
   function stopLivePoll() {
@@ -2336,11 +2500,9 @@
 
   function startLivePoll(m) {
     stopLivePoll();
-    void refreshTrades(m, true);
+    tradesFetchGen += 1;
+    void refreshTrades(m, true).then(() => startBirdeyeTradesWs(m));
     void refreshChartAndPrice(m);
-    tradesPollTimer = setInterval(() => {
-      if (reportId && appData?.market) void refreshTrades(appData.market);
-    }, tradesPollIntervalMs(m));
     livePollTimer = setInterval(() => {
       if (reportId && appData?.market) void refreshChartAndPrice(appData.market);
     }, CHART_LIVE_POLL_MS);
@@ -2361,9 +2523,8 @@
   }
 
   async function fetchChartCandles(m, tf, opts = {}) {
-    const pool = m?.poolAddress;
     const mint = tokenMintRef(m);
-    const ref = pool || mint;
+    const ref = mint || m?.poolAddress;
     if (!ref) return { candles: [], stats: null, poolAddress: null, priceUsd: null, pair: null };
     const q = new URLSearchParams({ tf });
     if (opts.live) q.set('live', '1');

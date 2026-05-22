@@ -294,6 +294,7 @@ async function fetchPairTrades(opts = {}) {
 
 module.exports = {
   parseSinceMs,
+  filterTradesAfterSince,
   fetchPairTrades,
   mergeTrades,
   tradeDedupeKey,

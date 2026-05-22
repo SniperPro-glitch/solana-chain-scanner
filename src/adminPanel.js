@@ -63,6 +63,7 @@ const ENV_GROUPS = [
       'MINI_APP_SEED',
       'MINI_APP_BANNER_ENABLED',
       'CROP_PUBLISH_KEY',
+      'BIRDEYE_API_KEY',
     ],
   },
   {
