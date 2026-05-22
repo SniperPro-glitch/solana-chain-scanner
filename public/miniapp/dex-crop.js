@@ -749,7 +749,7 @@
         if (!t?.matches?.('iframe.dex-embed-chart, #dexTradesEmbed')) return;
         if (!isDetailOpen()) return;
         applyCropNow();
-        runHiddenMotor();
+        // Geçici kapalı — kalibrasyon sonrası geri aç: runHiddenMotor();
       },
       true,
     );
