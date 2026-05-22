@@ -557,6 +557,17 @@
     return String(location.hash || '').includes('kalibre');
   }
 
+  /** URL’de ?kalibre=1 — panel/buton (sessionStorage sayılmaz). */
+  function calibrateFromUrl() {
+    try {
+      const q = new URLSearchParams(location.search);
+      if (q.get('kalibre') === '1' || q.get('calibrate') === '1') return true;
+    } catch {
+      /* yoksay */
+    }
+    return String(location.hash || '').includes('kalibre');
+  }
+
   /** Görünür Kırpma yalnızca ?kalibre=1 — normalde motor gizli düğmeye basar. */
   function shouldShowCropButton() {
     return calibrateFromUrl();
