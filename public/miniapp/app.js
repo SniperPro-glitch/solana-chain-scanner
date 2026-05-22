@@ -2053,9 +2053,33 @@
     }, ms);
   }
 
-  function isLightweightChartsV4() {
-    const L = window.LightweightCharts;
-    return !!(L?.createChart && !L.CandlestickSeries);
+  function chartsLibReady() {
+    return typeof window.LightweightCharts?.createChart === 'function';
+  }
+
+  async function waitForChartLayout(container, tries = 12) {
+    for (let i = 0; i < tries; i += 1) {
+      const w = container?.clientWidth || 0;
+      const h = document.querySelector('.chart-stage')?.clientHeight || 0;
+      if (w > 40 && h > 40) return { w, h: chartStageHeight() };
+      await new Promise((r) => setTimeout(r, 50));
+    }
+    return { w: Math.max(container?.clientWidth || 320, 320), h: chartStageHeight() };
+  }
+
+  async function fetchChartCandles(m, tf) {
+    const pool = m?.poolAddress;
+    const mint = tokenMintRef(m);
+    const ref = pool || mint;
+    if (!ref) return { candles: [], stats: null, poolAddress: null };
+    const res = await fetch(apiPath(`/api/dex/pair/${encodeURIComponent(ref)}?tf=${encodeURIComponent(tf)}`));
+    if (!res.ok) return { candles: [], stats: null, poolAddress: null };
+    const body = await res.json();
+    return {
+      candles: body.candles || [],
+      stats: body.stats || null,
+      poolAddress: body.poolAddress || pool || null,
+    };
   }
 
   function addChartSeries(chart, kind, opts) {
@@ -2077,17 +2101,17 @@
 
   function loadChartLibrary() {
     return new Promise((resolve) => {
-      if (isLightweightChartsV4()) {
+      if (chartsLibReady()) {
         resolve(true);
         return;
       }
       const urls = [
-        '/vendor/lightweight-charts.js?v=3',
-        'https://unpkg.com/lightweight-charts@4.2.0/dist/lightweight-charts.standalone.production.js',
+        'vendor/lightweight-charts.js?v=4',
+        '/vendor/lightweight-charts.js?v=4',
       ];
       let i = 0;
       const next = () => {
-        if (isLightweightChartsV4()) {
+        if (chartsLibReady()) {
           resolve(true);
           return;
         }
@@ -2098,7 +2122,7 @@
         const s = document.createElement('script');
         s.src = urls[i];
         i += 1;
-        s.onload = () => resolve(isLightweightChartsV4());
+        s.onload = () => resolve(chartsLibReady());
         s.onerror = next;
         document.head.appendChild(s);
       };
@@ -2168,23 +2192,22 @@
     let candles = m?.chart?.candles || [];
     const tf = m?.chart?.timeframe || currentTf;
     let stats = m?.chart?.stats;
-    const pool = chartPoolRef(m);
 
-    if (pool && !candles.length) {
-      try {
-        const res = await fetch(apiPath(`/api/dex/pair/${encodeURIComponent(pool)}?tf=${encodeURIComponent(tf)}`));
-        if (res.ok) {
-          const body = await res.json();
-          candles = body.candles || [];
-          stats = body.stats || stats;
-          if (appData?.market?.chart) {
-            appData.market.chart.candles = candles;
-            appData.market.chart.stats = stats;
-          }
-        }
-      } catch (e) {
-        console.warn('chart api', e);
+    try {
+      const live = await fetchChartCandles(m, tf);
+      if (live.candles.length) {
+        candles = live.candles;
+        stats = live.stats || stats;
+        if (live.poolAddress && appData?.market) appData.market.poolAddress = live.poolAddress;
+      } else if (!candles.length && live.poolAddress && appData?.market) {
+        appData.market.poolAddress = live.poolAddress;
       }
+      if (appData?.market?.chart) {
+        appData.market.chart.candles = candles;
+        appData.market.chart.stats = stats;
+      }
+    } catch (e) {
+      console.warn('chart api', e);
     }
 
     renderChartPeriodChg(stats, tf);
@@ -2202,8 +2225,9 @@
 
     const seriesData = buildChartData(candles);
     if (!seriesData.length) {
+      const hasRef = !!(m?.poolAddress || tokenMintRef(m));
       if (note) {
-        note.textContent = pool ? `${tf.toUpperCase()} · veri bekleniyor` : 'Pool bulunamadı';
+        note.textContent = hasRef ? `${tf.toUpperCase()} · veri bekleniyor` : 'Pool bulunamadı';
         note.classList.remove('hidden');
       }
       const page = m?.chart?.dexScreenerPageUrl || m?.dexScreenerUrl;
@@ -2224,9 +2248,9 @@
     const last = candles[candles.length - 1];
     updateOhlc(last);
 
-    const w = Math.max(container.clientWidth || 0, 320);
-    const h = chartStageHeight();
+    const { w, h } = await waitForChartLayout(container);
     try {
+      const crosshairMode = LightweightCharts.CrosshairMode?.Normal ?? 0;
       chartApi = LightweightCharts.createChart(container, {
         width: w,
         height: h,
@@ -2252,7 +2276,7 @@
           barSpacing: 7,
         },
         crosshair: {
-          mode: LightweightCharts.CrosshairMode.Normal,
+          mode: crosshairMode,
           vertLine: { width: 1, color: 'rgba(0, 229, 255, 0.45)', style: 2 },
           horzLine: { width: 1, color: 'rgba(0, 229, 255, 0.35)', style: 2 },
         },

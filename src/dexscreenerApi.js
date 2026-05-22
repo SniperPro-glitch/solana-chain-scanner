@@ -91,10 +91,22 @@ function dexScreenerPageUrl(poolOrMint) {
   return config.data.dexScreener(ref);
 }
 
-/** Pair metadata + OHLCV mumları (pair DS, mumlar Gecko). */
-async function getPairChart(poolAddress, timeframe = '15m') {
-  const pair = await fetchPairByPool(poolAddress);
-  const pool = pair?.pairAddress || poolAddress;
+/** Pool veya mint → pair + OHLCV (Dex pair meta, Gecko mumlar). */
+async function getPairChart(poolOrMint, timeframe = '15m') {
+  const ref = String(poolOrMint || '').trim();
+  if (!ref) return { pair: null, candles: [], poolAddress: null };
+
+  let pair = await fetchPairByPool(ref);
+  if (!pair) {
+    pair = await resolveDexScreenerPair({ mint: ref, poolAddress: ref });
+  }
+
+  let pool = pair?.pairAddress || null;
+  if (!pool) {
+    const { fetchGeckoPoolAddress } = require('./marketData');
+    pool = await fetchGeckoPoolAddress(ref);
+  }
+
   let candles = [];
   if (pool) {
     const { fetchOhlcv, normalizeTimeframe } = require('./marketData');
