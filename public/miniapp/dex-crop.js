@@ -22,6 +22,29 @@
 
   const BAKED_PROFILES = {"web":{"chart":{"stageH":330,"top":40,"left":1,"width":104,"heightExtra":0,"brandCrop":39,"clipLeft":0,"clipRight":0,"clipTop":0,"clipBottom":0,"shiftDown":0},"tape":{"shiftDown":0},"trades":{"viewH":302,"iframeH":845,"iframeTop":-590,"shiftDown":0,"left":1,"width":98,"maskTop":0,"maskFoot":0,"maskTopOn":true,"maskFootOn":true,"clipLeft":0,"clipRight":0,"clipTop":0,"clipBottom":0}},"app11":{"chart":{"stageH":330,"top":20,"left":1,"width":98,"heightExtra":14,"brandCrop":40,"clipLeft":0,"clipRight":0,"clipTop":0,"clipBottom":0,"shiftDown":0},"tape":{"shiftDown":0},"trades":{"viewH":302,"iframeH":845,"iframeTop":-590,"shiftDown":0,"left":1,"width":98,"maskTop":0,"maskFoot":0,"maskTopOn":true,"maskFootOn":true,"clipLeft":0,"clipRight":0,"clipTop":0,"clipBottom":0}},"app13":{"chart":{"stageH":314,"top":-15,"left":-1,"width":102,"heightExtra":0,"brandCrop":0,"clipLeft":0,"clipRight":0,"clipTop":0,"clipBottom":0,"shiftDown":55},"tape":{"shiftDown":0},"trades":{"viewH":302,"iframeH":845,"iframeTop":-590,"shiftDown":0,"left":1,"width":98,"maskTop":0,"maskFoot":0,"maskTopOn":true,"maskFootOn":true,"clipLeft":0,"clipRight":0,"clipTop":0,"clipBottom":0}},"app13pm":{"chart":{"stageH":344,"top":40,"left":-1,"width":108,"heightExtra":36,"brandCrop":39,"clipLeft":0,"clipRight":0,"clipTop":0,"clipBottom":0,"shiftDown":0},"tape":{"shiftDown":0},"trades":{"viewH":302,"iframeH":845,"iframeTop":-590,"shiftDown":0,"left":1,"width":98,"maskTop":0,"maskFoot":0,"maskTopOn":true,"maskFootOn":true,"clipLeft":0,"clipRight":0,"clipTop":0,"clipBottom":0}},"app16":{"chart":{"stageH":328,"top":37,"left":1,"width":98,"heightExtra":0,"brandCrop":36,"clipLeft":0,"clipRight":0,"clipTop":0,"clipBottom":0,"shiftDown":0},"tape":{"shiftDown":0},"trades":{"viewH":302,"iframeH":845,"iframeTop":-590,"shiftDown":0,"left":1,"width":98,"maskTop":0,"maskFoot":0,"maskTopOn":true,"maskFootOn":true,"clipLeft":0,"clipRight":0,"clipTop":0,"clipBottom":0}}};
 
+  /** 18 May — alım/satım kutusu 5 cihazda aynı; grafik profil bazlı. */
+  const LOCKED_TRADES_FRAME = {
+    viewH: 302,
+    iframeH: 845,
+    iframeTop: -590,
+    shiftDown: 0,
+    left: 1,
+    width: 98,
+    maskTop: 0,
+    maskFoot: 0,
+    maskTopOn: true,
+    maskFootOn: true,
+    clipLeft: 0,
+    clipRight: 0,
+    clipTop: 0,
+    clipBottom: 0,
+  };
+
+  function enforceTradesFrame(trades) {
+    if (!trades) return { ...LOCKED_TRADES_FRAME };
+    return { ...trades, ...LOCKED_TRADES_FRAME };
+  }
+
   const DEFAULT_BLOCK = {
     chart: {
       stageH: 340,
@@ -40,22 +63,7 @@
     tape: {
       shiftDown: 0,
     },
-    trades: {
-      viewH: 268,
-      iframeH: 980,
-      iframeTop: -820,
-      shiftDown: 0,
-      left: -3,
-      width: 106,
-      maskTop: 8,
-      maskFoot: 24,
-      maskTopOn: true,
-      maskFootOn: true,
-      clipLeft: 0,
-      clipRight: 0,
-      clipTop: 0,
-      clipBottom: 0,
-    },
+    trades: { ...LOCKED_TRADES_FRAME },
   };
 
   function clone(o) {
@@ -170,7 +178,7 @@
     return {
       chart: { ...base.chart, ...patch.chart },
       tape: { ...base.tape, ...patch.tape },
-      trades: { ...base.trades, ...patch.trades },
+      trades: enforceTradesFrame({ ...base.trades, ...patch.trades }),
     };
   }
 
@@ -441,7 +449,7 @@
     const s = settings || loadForProfile(profileId);
     const root = document.documentElement;
     const c = s.chart;
-    const t = s.trades;
+    const t = enforceTradesFrame(s.trades);
     const brandCrop = Number(c.brandCrop) || CHART_BRAND_CROP;
     const chartDown = Number(c.shiftDown) || 0;
     const tapeDown = Number(s.tape?.shiftDown) || 0;
