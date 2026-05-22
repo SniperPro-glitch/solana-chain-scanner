@@ -61,7 +61,7 @@
       else if (window.SniperCropProfile?.apply) window.SniperCropProfile.apply();
       if (window.SniperDexCrop?.handleCropProfileChange) window.SniperDexCrop.handleCropProfileChange();
       if (window.SniperDexCrop?.ensureMotorOnce) window.SniperDexCrop.ensureMotorOnce();
-    }, 220);
+    }, 60);
   }
 
   function applyViewport() {

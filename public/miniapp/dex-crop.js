@@ -428,12 +428,12 @@
     if (global.__sniperCropObs) return;
     global.__sniperCropObs = true;
     const reapply = () => {
-      if (document.getElementById('dexCropPanel')?.classList.contains('hidden') === false) return;
+      if (cropPanelIsOpen()) return;
+      if (!isDetailOpen()) return;
       handleCropProfileChange();
       const pid = refreshCropProfile();
-      if (!isDetailOpen()) return;
+      apply(loadForProfile(pid));
       if (!layoutSessionDone(pid)) ensureMotorOnce();
-      else apply(loadForProfile(pid));
     };
     window.addEventListener('resize', reapply);
     const tg = global.Telegram?.WebApp;
@@ -655,15 +655,28 @@
     }
   }
 
-  /** 16 PM ↔ web vb. profil değişince motoru yeniden çalıştır. */
+  function cropPanelIsOpen() {
+    const panel = document.getElementById('dexCropPanel');
+    return !!(panel && !panel.classList.contains('hidden'));
+  }
+
+  /** Anlık apply — git-gel beklemeden (iframe hazır olunca tekrar motor). */
+  function applyCropNow() {
+    const pid = refreshCropProfile();
+    apply(loadForProfile(pid));
+    return pid;
+  }
+
+  /** 16 PM ↔ web vb. profil değişince: önce anlık apply, sonra gizli motor. */
   function handleCropProfileChange() {
     const prev = lastMotorProfileId || document.documentElement.dataset.dexCropProfile;
     const next = refreshCropProfile();
     if (prev && prev !== next) {
       clearLayoutSession();
-      const panel = document.getElementById('dexCropPanel');
-      const panelOpen = panel && !panel.classList.contains('hidden');
-      if (isDetailOpen() && !panelOpen) runHiddenMotor();
+      if (isDetailOpen() && !cropPanelIsOpen()) {
+        applyCropNow();
+        runHiddenMotor();
+      }
     }
     lastMotorProfileId = next;
     return next;
@@ -736,6 +749,8 @@
       (e) => {
         const t = e.target;
         if (!t?.matches?.('iframe.dex-embed-chart, #dexTradesEmbed')) return;
+        if (!isDetailOpen()) return;
+        applyCropNow();
         ensureMotorOnce();
       },
       true,
@@ -1186,6 +1201,7 @@
     apply,
     applyAsync,
     refreshCropProfile,
+    applyCropNow,
     handleCropProfileChange,
     runHiddenMotor,
     ensureMotorOnce,
