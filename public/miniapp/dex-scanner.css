@@ -26,6 +26,19 @@ html.tg-mini-app body {
   background: #060910;
 }
 
+/* Mobilde aşağı çekerek küçültmeyi zorlaştır (X/ok Telegram tam ekranda kalkar) */
+html.tg-sticky-mobile,
+html.tg-sticky-mobile body {
+  overscroll-behavior: none;
+  touch-action: manipulation;
+}
+
+html.tg-sticky-mobile .scanner-home,
+html.tg-sticky-mobile .view-detail {
+  overscroll-behavior-y: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
 /* Arka plan — status bar (5G/batarya) altına uzanır; içerik ayrı padding alır */
 html.tg-mini-app::before,
 html.tg-mini-app body::before {
