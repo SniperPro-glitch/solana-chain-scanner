@@ -752,13 +752,31 @@
     return !!(p && !p.classList.contains('hidden'));
   }
 
-  /** Arka plan motoru — Kırpma panelini kapatınca olan apply(load()), panel açık değil. */
-  function runMotorCrop() {
-    if (!isDetailOpen() || isCropPanelOpen()) return;
+  /**
+   * Kırpma tuşuna basınca olan (openPanel + isteğe bağlı kapat) — panel görünmez.
+   * Web: enableCalibrateSession → localStorage’daki kayıtlı ölçüler (butonla aynı).
+   * Telegram: kilitli baked profil (May 18).
+   */
+  function applyLikeKirpmaButton() {
+    if (!isDetailOpen() || isCropPanelOpen()) return false;
+    editingProfile = profileFromUrl() || detectProfile();
+    const onWeb = document.documentElement.classList.contains('web-browser');
+    if (onWeb) enableCalibrateSession();
+    current = onWeb ? loadForProfile(editingProfile) : profileFromBaked(editingProfile);
     if (global.SniperCropProfile?.apply) global.SniperCropProfile.apply();
-    const pid = profileFromUrl() || detectProfile();
-    document.documentElement.dataset.dexCropProfile = pid;
-    apply(loadForProfile(pid));
+    document.documentElement.dataset.dexCropProfile = editingProfile;
+    apply(current);
+    panelEl?.classList.add('hidden');
+    document.documentElement.classList.remove('crop-panel-open');
+    requestAnimationFrame(() => {
+      apply(current);
+      apply(load());
+    });
+    return true;
+  }
+
+  function runMotorCrop() {
+    return applyLikeKirpmaButton();
   }
 
   let motorBurstIds = [];
@@ -981,7 +999,7 @@
     btn.addEventListener('click', (e) => {
       e.preventDefault();
       e.stopPropagation();
-      openPanel();
+      if (!applyLikeKirpmaButton()) openPanel();
     });
     head.appendChild(btn);
   }
@@ -1049,6 +1067,7 @@
     applyAsync,
     runMotorCrop,
     scheduleMotorCrop,
+    applyLikeKirpmaButton,
     openPanel,
     closePanel,
     copyProfileFrom,
