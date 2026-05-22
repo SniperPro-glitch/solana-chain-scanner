@@ -67,13 +67,13 @@
     const retry = () => {
       n += 1;
       const w = layoutWidth();
-      if (w >= 390 || n >= 30) apply();
-      else setTimeout(retry, 80);
+      if (w >= 390 || n >= 10) apply();
+      else setTimeout(retry, 35);
     };
     if (typeof tg.ready === 'function') tg.ready();
+    apply();
     setTimeout(retry, 0);
-    setTimeout(retry, 250);
-    setTimeout(retry, 600);
+    setTimeout(retry, 120);
   }
 
   applyWhenReady();

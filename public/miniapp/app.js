@@ -2023,17 +2023,15 @@
     if (meta) meta.textContent = 'DexScreener';
   }
 
-  async function startDexTradesPanel(m) {
+  function startDexTradesPanel(m) {
     const tape = $('tradesTape');
     if (tape) tape.classList.add('trades-tape--dex-embed');
-    if (!chartPoolRef(m) || !m?.poolAddress) {
-      try {
-        await ensurePoolOnMarket(m);
-      } catch {
-        /* yoksay */
-      }
-    }
     mountDexTradesEmbed(m);
+    if (!chartPoolRef(m)) {
+      void ensurePoolOnMarket(m).then((pool) => {
+        if (pool && reportId) mountDexTradesEmbed(m);
+      });
+    }
   }
 
   function stopDexTradesPanel() {
@@ -2075,10 +2073,16 @@
     const mint = tokenMintRef(m);
     if (!mint) return '';
     try {
-      const live = await fetchChartCandles(m, currentTf, {});
-      if (live.poolAddress) {
-        m.poolAddress = live.poolAddress;
-        if (appData?.market) appData.market.poolAddress = live.poolAddress;
+      const res = await fetch(apiPath(`/api/dex/token/${encodeURIComponent(mint)}/pool`), {
+        cache: 'no-store',
+      });
+      if (res.ok) {
+        const body = await res.json();
+        if (body.poolAddress) {
+          m.poolAddress = body.poolAddress;
+          if (appData?.market) appData.market.poolAddress = body.poolAddress;
+          return body.poolAddress;
+        }
       }
     } catch (e) {
       console.warn('pool resolve', e);
@@ -3269,6 +3273,7 @@
     renderDetailBadges(data);
     renderMetrics(m, m.chart?.stats);
     renderTxnBar(m);
+    startDexTradesPanel(m);
     const chartSection = document.querySelector('.chart-terminal');
     if (detailHideChart) {
       chartSection?.classList.add('hidden');

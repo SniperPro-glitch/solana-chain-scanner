@@ -81,6 +81,12 @@ async function fetchPairsByMint(mint) {
   return null;
 }
 
+/** Mint → havuz adresi (sadece DexScreener, OHLCV yok). */
+async function resolvePoolAddressForMint(mint) {
+  const pair = await resolveDexScreenerPair({ mint });
+  return pair?.pairAddress || null;
+}
+
 /** Mint veya pool → en likit DexScreener pair. */
 async function resolveDexScreenerPair({ mint, poolAddress } = {}) {
   if (poolAddress) {
@@ -227,6 +233,7 @@ module.exports = {
   fetchTokenData,
   fetchPairsByMint,
   resolveDexScreenerPair,
+  resolvePoolAddressForMint,
   pickBestSolanaPair,
   dexScreenerPageUrl,
   getPairChart,

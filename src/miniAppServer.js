@@ -315,6 +315,19 @@ function createMiniAppServer() {
         return;
       }
 
+      const dexPoolMatch = url.pathname.match(/^\/api\/dex\/token\/([A-Za-z0-9]+)\/pool$/);
+      if (req.method === 'GET' && dexPoolMatch) {
+        try {
+          const { resolvePoolAddressForMint } = require('./dexscreenerApi');
+          const poolAddress = await resolvePoolAddressForMint(dexPoolMatch[1]);
+          sendJson(res, 200, { poolAddress: poolAddress || null, mint: dexPoolMatch[1] });
+        } catch (e) {
+          console.warn('[miniApp] dex pool:', e.message);
+          sendJson(res, 502, { error: 'dex_pool_failed', message: e.message });
+        }
+        return;
+      }
+
       const dexTradesMatch = url.pathname.match(/^\/api\/dex\/token\/([A-Za-z0-9]+)\/trades$/);
       if (req.method === 'GET' && dexTradesMatch) {
         const { getTokenTrades } = require('./dexscreenerApi');
