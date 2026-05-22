@@ -1,6 +1,5 @@
 /**
  * Kayıtlı profil — Telegram'da viewportWidth (kalibrasyon ile aynı ölçü).
- * Kilitleme: viewportWidth > 0 olunca (erken "web" kilidi yok).
  */
 (function () {
   const IDS = ['web', 'app11', 'app13', 'app13pm', 'app16'];
@@ -17,90 +16,40 @@
   }
 
   function isTelegramApp() {
-    if (window.SniperHost?.isTelegram) return window.SniperHost.isTelegram();
     const tg = window.Telegram?.WebApp;
     if (!tg) return false;
     if (String(tg.initData || '').trim().length > 0) return true;
-    const uid = tg.initDataUnsafe?.user?.id;
-    if (uid != null && String(uid) !== '0') return true;
-    if (tg.initDataUnsafe?.auth_date) return true;
     const p = String(tg.platform || '').toLowerCase();
-    if (p && p !== 'unknown') return true;
     return ['android', 'ios', 'macos', 'tdesktop', 'weba', 'webk'].includes(p);
   }
 
+  /** Kalibrasyonda kullanılan genişlik — innerWidth değil, TG viewportWidth. */
   function layoutWidth() {
     const tg = window.Telegram?.WebApp;
-    if (tg?.viewportWidth && tg.viewportWidth > 0) return Math.round(tg.viewportWidth);
+    if (tg?.viewportWidth) return Math.round(tg.viewportWidth);
     if (window.visualViewport?.width) return Math.round(window.visualViewport.width);
     return Math.round(window.innerWidth || 390);
   }
 
-  function profileFromWidth(w) {
+  function detect() {
+    const forced = fromUrl();
+    if (forced) return forced;
+    if (document.documentElement.classList.contains('web-browser')) return 'web';
+    if (!isTelegramApp()) return 'web';
+    const w = layoutWidth();
     if (w >= 429) return 'app16';
     if (w >= 426) return 'app13pm';
     if (w >= 400) return 'app11';
     return 'app13';
   }
 
-  function detect() {
-    const forced = fromUrl();
-    if (forced) return forced;
-    if (!isTelegramApp()) return 'web';
-    return profileFromWidth(layoutWidth());
-  }
-
-  let lockedProfileId = null;
-
-  function viewportReadyForLock() {
-    if (!isTelegramApp()) return true;
-    const vw = window.Telegram?.WebApp?.viewportWidth;
-    return vw != null && vw > 0;
-  }
-
-  function setProfileDataset(id) {
+  function apply() {
+    const id = detect();
     document.documentElement.dataset.dexCropProfile = id;
     document.documentElement.dataset.dexCropW = String(layoutWidth());
+    return id;
   }
 
-  function apply(opts) {
-    if (window.SniperHost?.refresh) window.SniperHost.refresh();
-    const forced = fromUrl();
-    if (forced) {
-      lockedProfileId = forced;
-      setProfileDataset(forced);
-      return forced;
-    }
-    if (opts?.force) lockedProfileId = null;
-
-    const id = detect();
-    if (viewportReadyForLock()) {
-      lockedProfileId = id;
-    }
-    setProfileDataset(lockedProfileId || id);
-    return lockedProfileId || id;
-  }
-
-  function boot(force) {
-    apply(force ? { force: true } : undefined);
-  }
-
-  window.SniperCropProfile = {
-    detect,
-    apply,
-    layoutWidth,
-    profileFromWidth,
-    viewportReadyForLock,
-    IDS,
-  };
-
-  const tg = window.Telegram?.WebApp;
-  if (tg && typeof tg.ready === 'function') {
-    tg.ready(() => boot(true));
-  } else {
-    boot();
-  }
-  document.addEventListener('DOMContentLoaded', () => boot());
-  window.addEventListener('sniper-host-telegram', () => boot(true));
-  setTimeout(() => boot(true), 800);
+  apply();
+  window.SniperCropProfile = { detect, apply, layoutWidth, IDS };
 })();

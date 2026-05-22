@@ -4,7 +4,6 @@
  */
 (function (global) {
   const STORAGE_KEY = 'sniperDexCropV4';
-  const LAYOUT_SESSION_KEY = 'sniperCropLayoutDone';
   const LEGACY_KEYS = ['sniperDexCropV3', 'sniperDexCropV2', 'sniperDexCropV1'];
   let serverBaked = null;
   let profilesReady = null;
@@ -153,13 +152,7 @@
   }
 
   function isTelegram() {
-    if (global.SniperHost?.isTelegram) return global.SniperHost.isTelegram();
-    const tg = global.Telegram?.WebApp;
-    if (!tg) return document.documentElement.classList.contains('tg-mini-app');
-    if (String(tg.initData || '').trim().length > 0) return true;
-    const uid = tg.initDataUnsafe?.user?.id;
-    if (uid != null && String(uid) !== '0') return true;
-    return document.documentElement.classList.contains('tg-mini-app');
+    return !!global.Telegram?.WebApp?.initData || document.documentElement.classList.contains('tg-mini-app');
   }
 
   function detectProfile() {
@@ -310,16 +303,7 @@
   }
 
   function load() {
-    return loadProfileForMotor(activeProfileId());
-  }
-
-  /** Kilitli baked profil (Telegram / motor — localStorage yok). */
-  function profileFromBaked(profileId) {
-    const id = profileId || detectProfile();
-    const baked = globalThis.__DEX_CROP_BAKED__?.profiles?.[id];
-    if (baked) return clone(normalizeBlock(baked));
-    const store = defaultStore();
-    return clone(normalizeBlock(store.profiles[id] || store.profiles.web));
+    return loadForProfile(activeProfileId());
   }
 
   function saveBlock(profileId, block) {
@@ -423,15 +407,19 @@
     if (global.__sniperCropObs) return;
     global.__sniperCropObs = true;
     const reapply = () => {
-      if (!isCalibrateMode() && !calibrateFromUrl()) return;
-      if (isCropPanelOpen()) return;
-      if (!isDetailOpen()) return;
-      apply(loadProfileForMotor(activeProfileId()));
+      if (document.getElementById('dexCropPanel')?.classList.contains('hidden') === false) return;
+      apply();
     };
     window.addEventListener('resize', reapply);
     const tg = global.Telegram?.WebApp;
     if (tg && typeof tg.onEvent === 'function') {
       tg.onEvent('viewportChanged', reapply);
+    }
+    for (const id of ['dexTradesWrap', 'dexTradesEmbed']) {
+      const node = document.getElementById(id);
+      if (!node || typeof ResizeObserver === 'undefined') continue;
+      const ro = new ResizeObserver(reapply);
+      ro.observe(node);
     }
   }
 
@@ -449,7 +437,7 @@
   function apply(settings) {
     const profileId = activeProfileId();
     document.documentElement.dataset.dexCropProfile = profileId;
-    const s = settings || loadProfileForMotor(profileId);
+    const s = settings || loadForProfile(profileId);
     const root = document.documentElement;
     const c = s.chart;
     const t = s.trades;
@@ -485,8 +473,7 @@
       tapeEl.style.marginTop = `${tapeDown}px`;
     }
 
-    const stage = document.querySelector('.chart-terminal--dex-embed .chart-stage')
-      || document.querySelector('#view-detail .chart-terminal .chart-stage');
+    const stage = document.querySelector('.chart-terminal--dex-embed .chart-stage');
     const chartIframe = document.querySelector('iframe.dex-embed-chart');
     if (stage) {
       setImp(stage, 'height', `${c.stageH}px`);
@@ -569,55 +556,9 @@
     return String(location.hash || '').includes('kalibre');
   }
 
-  /** URL’de ?kalibre=1 — panel/buton (sessionStorage sayılmaz). */
-  function calibrateFromUrl() {
-    try {
-      const q = new URLSearchParams(location.search);
-      if (q.get('kalibre') === '1' || q.get('calibrate') === '1') return true;
-    } catch {
-      /* yoksay */
-    }
-    return String(location.hash || '').includes('kalibre');
-  }
-
-  /** Görünür Kırpma yalnızca ?kalibre=1 — normalde motor gizli düğmeye basar. */
   function shouldShowCropButton() {
-    return calibrateFromUrl();
-  }
-
-  function clearCalibrateSession() {
-    try {
-      sessionStorage.removeItem('sniperCropCalibrate');
-    } catch {
-      /* yoksay */
-    }
-    delete document.documentElement.dataset.cropCalibrate;
-    delete document.documentElement.dataset.cropPanelUi;
-  }
-
-  /** Panel ve oturum — yalnızca ?kalibre=1; motor asla açmaz. */
-  function forceHideCropPanel() {
-    const p = document.getElementById('dexCropPanel');
-    if (p) p.classList.add('hidden');
-    document.documentElement.classList.remove('crop-panel-open');
-    delete document.documentElement.dataset.cropPanelUi;
-  }
-
-  /** Web localStorage ölçüsü — enableCalibrateSession olmadan (panel açılmaz). */
-  function loadProfileForMotor(profileId) {
-    const id = profileId || detectProfile();
-    if (!isTelegram()) {
-      try {
-        const raw = localStorage.getItem(STORAGE_KEY);
-        if (raw) {
-          const parsed = JSON.parse(raw);
-          if (parsed?.profiles?.[id]) return normalizeBlock(parsed.profiles[id]);
-        }
-      } catch {
-        /* yoksay */
-      }
-    }
-    return profileFromBaked(id);
+    if (isCalibrateMode()) return true;
+    return document.documentElement.classList.contains('web-browser');
   }
 
   /** ?profil=web|app11|app13|app13pm|app16 ÔÇö link sadece do─şru sekmeyi a├ğar; ├Âl├ğ├╝ler kay─▒tta. */
@@ -753,9 +694,7 @@
     const det = document.getElementById('cropDetectLabel');
     if (det) {
       const auto = detectProfile();
-      const vw = global.SniperCropProfile?.layoutWidth?.() || window.innerWidth;
-      const host = document.documentElement.dataset.sniperHost || '?';
-      det.textContent = `Otomatik: ${PROFILE_META[auto]?.label || auto} (vw=${vw}px host=${host} ${window.innerWidth}x${window.innerHeight})`;
+      det.textContent = `Otomatik: ${PROFILE_META[auto]?.label || auto} (${window.innerWidth}x${window.innerHeight})`;
     }
   }
 
@@ -780,9 +719,7 @@
   }
 
   function openPanel() {
-    if (!calibrateFromUrl()) return;
     enableCalibrateSession();
-    document.documentElement.dataset.cropPanelUi = '1';
     if (!panelBuilt) buildPanel();
     editingProfile = profileFromUrl() || detectProfile();
     baselineProfiles = clone(loadStore().profiles);
@@ -798,140 +735,7 @@
   function closePanel() {
     panelEl?.classList.add('hidden');
     document.documentElement.classList.remove('crop-panel-open');
-    delete document.documentElement.dataset.cropPanelUi;
     apply(load());
-  }
-
-  function isDetailOpen() {
-    const vd = document.getElementById('view-detail');
-    return (
-      document.documentElement.classList.contains('detail-mode')
-      || (vd && !vd.classList.contains('hidden'))
-    );
-  }
-
-  function isCropPanelOpen() {
-    const p = document.getElementById('dexCropPanel');
-    return !!(p && !p.classList.contains('hidden'));
-  }
-
-  /**
-   * Kırpma tuşuna basınca olan (openPanel + isteğe bağlı kapat) — panel görünmez.
-   * Web: enableCalibrateSession → localStorage’daki kayıtlı ölçüler (butonla aynı).
-   * Telegram: kilitli baked profil (May 18).
-   */
-  function applyLikeKirpmaButton() {
-    if (!isDetailOpen() || isCropPanelOpen()) return false;
-    editingProfile = profileFromUrl() || detectProfile();
-    if (global.SniperCropProfile?.apply) global.SniperCropProfile.apply();
-    document.documentElement.dataset.dexCropProfile = editingProfile;
-    const block = loadProfileForMotor(editingProfile);
-    current = clone(block);
-    apply(block);
-    forceHideCropPanel();
-    requestAnimationFrame(() => {
-      apply(clone(block));
-      requestAnimationFrame(() => {
-        apply(load());
-        forceHideCropPanel();
-      });
-    });
-    return true;
-  }
-
-  /** Görünmez Kırpma — motor bunu programatik .click() ile tetikler. */
-  function ensureKirpmaBotButton() {
-    let btn = document.getElementById('sniperKirpmaBot');
-    if (btn) return btn;
-    btn = document.createElement('button');
-    btn.id = 'sniperKirpmaBot';
-    btn.type = 'button';
-    btn.setAttribute('aria-hidden', 'true');
-    btn.tabIndex = -1;
-    btn.textContent = 'K\u0131rpma';
-    Object.assign(btn.style, {
-      position: 'fixed',
-      left: '-9999px',
-      width: '1px',
-      height: '1px',
-      opacity: '0',
-      pointerEvents: 'none',
-    });
-    btn.addEventListener('click', (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      applyLikeKirpmaButton();
-    });
-    document.body.appendChild(btn);
-    return btn;
-  }
-
-  /** Motor = gizli düğmeye bas (aç-kapat apply ile aynı). */
-  function pressKirpmaBot() {
-    if (!isDetailOpen()) return false;
-    ensureKirpmaBotButton().click();
-    return true;
-  }
-
-  function layoutSessionDone() {
-    if (calibrateFromUrl() || isCalibrateMode()) return false;
-    try {
-      return sessionStorage.getItem(LAYOUT_SESSION_KEY) === '1';
-    } catch {
-      return !!global.__sniperCropLayoutDone;
-    }
-  }
-
-  function markLayoutSessionDone() {
-    try {
-      sessionStorage.setItem(LAYOUT_SESSION_KEY, '1');
-    } catch {
-      /* yoksay */
-    }
-    global.__sniperCropLayoutDone = true;
-  }
-
-  function clearLayoutSession() {
-    try {
-      sessionStorage.removeItem(LAYOUT_SESSION_KEY);
-    } catch {
-      /* yoksay */
-    }
-    delete global.__sniperCropLayoutDone;
-  }
-
-  function runMotorCrop() {
-    return pressKirpmaBot();
-  }
-
-  /** Oturumda bir kez: profil + kırpma (token değişiminde tekrarlanmaz). */
-  function ensureMotorOnce() {
-    if (layoutSessionDone()) return false;
-    if (!isDetailOpen() || isCropPanelOpen()) return false;
-    if (isTelegram() && global.SniperCropProfile?.viewportReadyForLock
-      && !global.SniperCropProfile.viewportReadyForLock()) {
-      return false;
-    }
-    void ensureProfilesReady().then(() => {
-      if (layoutSessionDone()) return;
-      editingProfile = profileFromUrl() || detectProfile();
-      if (global.SniperCropProfile?.apply) global.SniperCropProfile.apply();
-      document.documentElement.dataset.dexCropProfile = editingProfile;
-      const block = loadProfileForMotor(editingProfile);
-      current = clone(block);
-      apply(block);
-      forceHideCropPanel();
-      markLayoutSessionDone();
-    });
-    return true;
-  }
-
-  function scheduleMotorCrop(force) {
-    if (force || calibrateFromUrl() || isCalibrateMode()) {
-      void ensureProfilesReady().then(() => runMotorCrop());
-      return;
-    }
-    ensureMotorOnce();
   }
 
   function refreshPreview() {
@@ -1143,31 +947,32 @@
   }
 
   async function init() {
-    if (!calibrateFromUrl()) clearCalibrateSession();
-    forceHideCropPanel();
     if (global.SniperCropProfile?.apply) global.SniperCropProfile.apply();
     await ensureProfilesReady();
-    apply(loadProfileForMotor(activeProfileId()));
+    apply();
     bindCropObservers();
-    ensureKirpmaBotButton();
     addCalibrateButton();
-    if (calibrateFromUrl()) {
-      clearLayoutSession();
+    window.addEventListener('resize', () => {
+      if (!document.getElementById('dexCropPanel')?.classList.contains('hidden')) return;
+      apply();
+    });
+    if (isCalibrateMode()) {
       enableCalibrateSession();
       setTimeout(() => {
         addCalibrateButton();
         openPanel();
       }, 1200);
+    } else {
+      addCalibrateButton();
     }
     const vd = document.getElementById('view-detail');
     if (vd) {
       new MutationObserver(() => {
         if (!vd.classList.contains('hidden')) {
           addCalibrateButton();
-          ensureMotorOnce();
+          apply();
         }
       }).observe(vd, { attributes: true, attributeFilter: ['class'] });
-      if (!vd.classList.contains('hidden')) ensureMotorOnce();
     }
   }
 
@@ -1186,21 +991,11 @@
     reset,
     apply,
     applyAsync,
-    runMotorCrop,
-    ensureMotorOnce,
-    scheduleMotorCrop,
-    clearLayoutSession,
-    applyLikeKirpmaButton,
-    pressKirpmaBot,
-    ensureKirpmaBotButton,
     openPanel,
     closePanel,
     copyProfileFrom,
     isCalibrateMode,
-    calibrateFromUrl,
-    isCalibrateUrl: calibrateFromUrl,
     enableCalibrateSession,
-    forceHideCropPanel,
   };
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => init());
