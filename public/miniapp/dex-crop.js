@@ -340,6 +340,10 @@
     return loadForProfile(activeProfileId());
   }
 
+  function profileFromBaked(profileId) {
+    return loadForProfile(profileId);
+  }
+
   function saveBlock(profileId, block) {
     let lsStore = { profiles: {} };
     try {
