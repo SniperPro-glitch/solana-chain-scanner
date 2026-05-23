@@ -125,6 +125,8 @@ async function fetchGoPlusSolana(mint) {
       top_holder_pct: top1,
       top10_pct: top10,
       non_transferable: row.non_transferable ?? null,
+      transfer_fee: row.transfer_fee ?? null,
+      transfer_fee_upgradable: row.transfer_fee_upgradable ?? null,
     };
   } catch (e) {
     return { error: e.message };

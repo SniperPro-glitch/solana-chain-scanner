@@ -1445,7 +1445,7 @@
       sliderRow('Sa\u011f kenar k\u0131rp', 'cropChartClipR', 0, 80, 1, c.clipRight, 'px'),
       sliderRow('Yukar\u0131 daralt', 'cropChartClipT', 0, 100, 1, c.clipTop, 'px \u2014 \u00fcstten kes'),
       sliderRow('A\u015fa\u011f\u0131 daralt', 'cropChartClipB', 0, 100, 1, c.clipBottom, 'px \u2014 alttan kes'),
-      sliderRow('\u00dcst marka k\u0131rp', 'cropChartBrand', 0, 64, 1, c.brandCrop, 'DexScreener \u015feridi'),
+      sliderRow('\u00dcst marka k\u0131rp', 'cropChartBrand', 0, 64, 1, c.brandCrop, 'Harici grafik \u015feridi'),
       sliderRow('Ekstra y\u00fckseklik', 'cropChartExtra', 0, 48, 1, c.heightExtra, 'px'),
       '</section>',
       '<section class="crop-section crop-section--tape"><h3>Al\u0131m / sat\u0131m panosu</h3>',

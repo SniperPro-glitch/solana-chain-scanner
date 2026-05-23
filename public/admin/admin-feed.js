@@ -176,7 +176,7 @@
   async function fetchPreview() {
     const input = resolveInput();
     if (!input) {
-      setStatus('Contract veya DexScreener linki girin.', true);
+      setStatus('Contract veya piyasa linki girin.', true);
       return;
     }
     const btn = $('addTokenFetchPreview');
@@ -203,7 +203,7 @@
   async function submitAdd() {
     const input = resolveInput();
     if (!input) {
-      setStatus('Contract adresi veya DexScreener linki zorunlu.', true);
+      setStatus('Contract adresi veya piyasa linki zorunlu.', true);
       return;
     }
     const btn = $('addTokenSubmit');

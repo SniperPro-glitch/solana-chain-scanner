@@ -40,8 +40,9 @@ html.tg-mini-app body {
   width: 100%;
   max-width: 100%;
   margin: 0;
-  min-height: var(--app-height, 100dvh);
-  height: var(--app-height, 100dvh);
+  min-height: 0;
+  height: auto;
+  max-height: none;
   background: var(--bg);
   color: var(--text);
   font-family: 'Inter', system-ui, sans-serif;
@@ -1631,6 +1632,14 @@ html.scanner-mode .search-box {
   background: rgba(245, 166, 35, 0.12);
   border: 1px solid rgba(245, 166, 35, 0.45);
   box-shadow: 0 0 10px rgba(245, 166, 35, 0.25);
+}
+
+.risk-badge.none {
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--muted);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  font-weight: 600;
+  letter-spacing: 0;
 }
 
 .risk-badge.high {

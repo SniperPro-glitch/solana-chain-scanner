@@ -39,26 +39,33 @@ function isWithinNewPairsWindowMs(listedAtMs, now = Date.now()) {
 }
 
 function cardLevelFromAudit(audit) {
-  if (audit?.isCritical) return 'critical';
-  if (audit?.risk?.code === 'HIGH') return 'red';
-  if (audit?.risk?.code === 'MEDIUM') return 'yellow';
+  if (!audit || (!audit.risk?.code && audit.riskPercent == null && !audit.isCritical)) return 'unknown';
+  if (audit.isCritical) return 'critical';
+  if (audit.risk?.code === 'HIGH') return 'red';
+  if (audit.risk?.code === 'MEDIUM') return 'yellow';
   return 'green';
 }
 
 function riskBandFromAudit(audit) {
-  const code = audit?.risk?.code;
-  if (audit?.isCritical || code === 'HIGH') return { band: 'high', label: 'HIGH RISK' };
-  if (code === 'MEDIUM') return { band: 'mid', label: 'MEDIUM RISK' };
-  return { band: 'low', label: 'LOW RISK' };
+  if (!audit || (!audit.risk?.code && audit.riskPercent == null && !audit.isCritical)) {
+    return { band: 'none', label: '—' };
+  }
+  const code = audit.risk?.code;
+  if (audit.isCritical || code === 'HIGH') return { band: 'high', label: 'YÜKSEK' };
+  if (code === 'MEDIUM') return { band: 'mid', label: 'ORTA' };
+  if (code === 'LOW' || code === 'VERY_LOW') return { band: 'low', label: 'DÜŞÜK' };
+  return { band: 'none', label: '—' };
 }
 
 function auditFromFeedEntry(entry) {
   if (!entry) return null;
-  return {
-    isCritical: entry.isCritical,
-    risk: { code: entry.riskCode || 'LOW' },
+  if (entry.riskCode == null && entry.riskPercent == null && !entry.isCritical) return null;
+  const audit = {
+    isCritical: !!entry.isCritical,
     riskPercent: entry.riskPercent,
   };
+  if (entry.riskCode) audit.risk = { code: entry.riskCode };
+  return audit;
 }
 
 function quickAudit(token) {
@@ -199,7 +206,7 @@ async function buildFeedFromBotShares(tab = 'trending', limit = 24, dexFilter = 
       const meta = reportStore.getReportMeta(entry.reportId);
       if (meta.status === 'ok') audit = meta.report.audit;
     }
-    if (!audit) audit = auditFromFeedEntry(entry) || quickAudit(token);
+    if (!audit) audit = auditFromFeedEntry(entry);
 
     const listedAt = getPairListedAtMs(token) ?? getPairListedAtMs(entry.token);
     if (isNewTab && !isWithinNewPairsWindowMs(listedAt, now)) continue;
@@ -308,7 +315,7 @@ async function buildFeedFromBotShares(tab = 'trending', limit = 24, dexFilter = 
     emptyMessage: finalItems.length === 0
       ? (isNewTab
         ? null
-        : 'Liste boş — DexScreener veya bot kanalından veri alınamadı.')
+        : 'Liste boş — canlı piyasa veya bot kanalından veri alınamadı.')
       : null,
     liveRefresh: true,
     newPairsWindowHours: NEW_PAIRS_MAX_AGE_HOURS,
@@ -351,6 +358,8 @@ module.exports = {
   buildFeedFromBotShares,
   analyzeMintAndSave,
   tokenToFeedItem,
+  auditFromFeedEntry,
+  riskBandFromAudit,
   getPairListedAtMs,
   isWithinNewPairsWindowMs,
   ageFmtForToken,

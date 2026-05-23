@@ -78,7 +78,7 @@
   let feedPollTimer = null;
   let feedRefreshSec = 45;
   let dexTradesEmbedRef = '';
-  const CHART_LIVE_POLL_MS = 5000;
+  const CHART_LIVE_POLL_MS = 2000;
   let openingMint = false;
   let feedItemsFull = [];
   let feedEmptyMessage = '';
@@ -131,15 +131,18 @@
 
   function riskColHtml(band, label, up24) {
     const spark = feedShowsSparklines() ? miniSparkline(up24) : '';
-    return `<div class="tr-risk-col">${spark}<span class="risk-badge ${band}">${escHtml(label)}</span></div>`;
+    const b = band === 'none' || label === '—' ? 'none' : band;
+    const lbl = label === '—' ? '—' : label;
+    const title = b === 'none' ? ' title="Henüz SNIPER taraması yok"' : '';
+    return `<div class="tr-risk-col">${spark}<span class="risk-badge ${b}"${title}>${escHtml(lbl)}</span></div>`;
   }
 
   const PLACEHOLDER_TOKENS = [
-    { rank: 1, symbol: 'BONK', pairLabel: 'BONK/SOL', priceUsdFmt: '…', change1h: null, change24h: null, volume24hFmt: '—', liquidityUsdFmt: '—', marketCapUsdFmt: '—', risk: { band: 'low', label: 'LOW RISK' }, mint: 'DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263', imageUrl: 'https://dd.dexscreener.com/ds-data/tokens/solana/DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263.png?size=sm' },
-    { rank: 2, symbol: 'WIF', pairLabel: 'WIF/SOL', priceUsdFmt: '…', change1h: null, change24h: null, volume24hFmt: '—', liquidityUsdFmt: '—', marketCapUsdFmt: '—', risk: { band: 'low', label: 'LOW RISK' }, mint: 'EKpQGSJtjMFqKZ9KQanSqYXRcF8fBopzLHYxdM65zcjm', imageUrl: 'https://dd.dexscreener.com/ds-data/tokens/solana/EKpQGSJtjMFqKZ9KQanSqYXRcF8fBopzLHYxdM65zcjm.png?size=sm' },
-    { rank: 3, symbol: 'POPCAT', pairLabel: 'POPCAT/SOL', priceUsdFmt: '…', change1h: null, change24h: null, volume24hFmt: '—', liquidityUsdFmt: '—', marketCapUsdFmt: '—', risk: { band: 'mid', label: 'MEDIUM RISK' }, mint: '7GCihgDB8fe6KNjn2MYtkzZcRjQy3t1GHn2a4gyyg9WH', imageUrl: 'https://dd.dexscreener.com/ds-data/tokens/solana/7GCihgDB8fe6KNjn2MYtkzZcRjQy3t1GHn2a4gyyg9WH.png?size=sm' },
-    { rank: 4, symbol: 'JUP', pairLabel: 'JUP/SOL', priceUsdFmt: '…', change1h: null, change24h: null, volume24hFmt: '—', liquidityUsdFmt: '—', marketCapUsdFmt: '—', risk: { band: 'low', label: 'LOW RISK' }, mint: 'JUPyiwrYJFskUPiHa7HPQc8J4iHmuxcKoCx8xNv4Sol', imageUrl: 'https://dd.dexscreener.com/ds-data/tokens/solana/JUPyiwrYJFskUPiHa7HPQc8J4iHmuxcKoCx8xNv4Sol.png?size=sm' },
-    { rank: 5, symbol: 'RAY', pairLabel: 'RAY/SOL', priceUsdFmt: '…', change1h: null, change24h: null, volume24hFmt: '—', liquidityUsdFmt: '—', marketCapUsdFmt: '—', risk: { band: 'low', label: 'LOW RISK' }, mint: '4k3Dyjzvzp8eMZWUXbBCjEvwSkkk59S5iCNLY3QrkX6R', imageUrl: 'https://dd.dexscreener.com/ds-data/tokens/solana/4k3Dyjzvzp8eMZWUXbBCjEvwSkkk59S5iCNLY3QrkX6R.png?size=sm' },
+    { rank: 1, symbol: 'BONK', pairLabel: 'BONK/SOL', priceUsdFmt: '…', change1h: null, change24h: null, volume24hFmt: '—', liquidityUsdFmt: '—', marketCapUsdFmt: '—', risk: { band: 'low', label: 'LOW RISK' }, mint: 'DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263', reportId: 'dev', imageUrl: 'https://dd.dexscreener.com/ds-data/tokens/solana/DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263.png?size=sm' },
+    { rank: 2, symbol: 'WIF', pairLabel: 'WIF/SOL', priceUsdFmt: '…', change1h: null, change24h: null, volume24hFmt: '—', liquidityUsdFmt: '—', marketCapUsdFmt: '—', risk: { band: 'low', label: 'LOW RISK' }, mint: 'EKpQGSJtjMFqKZ9KQanSqYXRcF8fBopzLHYxdM65zcjm', reportId: 'dev', imageUrl: 'https://dd.dexscreener.com/ds-data/tokens/solana/EKpQGSJtjMFqKZ9KQanSqYXRcF8fBopzLHYxdM65zcjm.png?size=sm' },
+    { rank: 3, symbol: 'POPCAT', pairLabel: 'POPCAT/SOL', priceUsdFmt: '…', change1h: null, change24h: null, volume24hFmt: '—', liquidityUsdFmt: '—', marketCapUsdFmt: '—', risk: { band: 'mid', label: 'MEDIUM RISK' }, mint: '7GCihgDB8fe6KNjn2MYtkzZcRjQy3t1GHn2a4gyyg9WH', reportId: 'dev', imageUrl: 'https://dd.dexscreener.com/ds-data/tokens/solana/7GCihgDB8fe6KNjn2MYtkzZcRjQy3t1GHn2a4gyyg9WH.png?size=sm' },
+    { rank: 4, symbol: 'JUP', pairLabel: 'JUP/SOL', priceUsdFmt: '…', change1h: null, change24h: null, volume24hFmt: '—', liquidityUsdFmt: '—', marketCapUsdFmt: '—', risk: { band: 'low', label: 'LOW RISK' }, mint: 'JUPyiwrYJFskUPiHa7HPQc8J4iHmuxcKoCx8xNv4Sol', reportId: 'dev', imageUrl: 'https://dd.dexscreener.com/ds-data/tokens/solana/JUPyiwrYJFskUPiHa7HPQc8J4iHmuxcKoCx8xNv4Sol.png?size=sm' },
+    { rank: 5, symbol: 'RAY', pairLabel: 'RAY/SOL', priceUsdFmt: '…', change1h: null, change24h: null, volume24hFmt: '—', liquidityUsdFmt: '—', marketCapUsdFmt: '—', risk: { band: 'low', label: 'LOW RISK' }, mint: '4k3Dyjzvzp8eMZWUXbBCjEvwSkkk59S5iCNLY3QrkX6R', reportId: 'dev', imageUrl: 'https://dd.dexscreener.com/ds-data/tokens/solana/4k3Dyjzvzp8eMZWUXbBCjEvwSkkk59S5iCNLY3QrkX6R.png?size=sm' },
   ];
 
   const PLACEHOLDER_STATS = {
@@ -200,8 +203,33 @@
     orca: 'assets/dex-orca.png?v=8',
   };
 
-  /** Alt satır — Pump.fun / PumpSwap yazısının solu (kapsül) */
   const SWAP_BADGE_SRC = 'assets/swap-badge.png?v=2';
+
+  /** Üçüncü taraf marka adlarını kullanıcı metninden çıkar (Sniper hariç). */
+  function stripExternalBrands(text) {
+    let s = String(text ?? '');
+    const rules = [
+      [/dex\s*screener/gi, 'canlı piyasa'],
+      [/goplus/gi, 'güvenlik taraması'],
+      [/rug\s*check/gi, 'rug analizi'],
+      [/geckoterminal/gi, 'grafik'],
+      [/solscan/gi, 'explorer'],
+      [/pump\.fun/gi, 'launchpad'],
+      [/pumpswap/gi, 'bonding AMM'],
+      [/jupiter/gi, 'swap'],
+      [/birdeye/gi, 'piyasa verisi'],
+    ];
+    for (const [re, rep] of rules) s = s.replace(re, rep);
+    return s;
+  }
+
+  function tradeViaLabel(provider) {
+    return stripExternalBrands(provider || 'Swap') || 'Swap';
+  }
+
+  function pumpDexLabel(dexKey) {
+    return dexKey === 'pumpswap' ? 'Bonding AMM' : 'Launchpad';
+  }
 
   function avatarCornerHtml(dexKey, chainKey) {
     const ck = chainKey || 'solana';
@@ -365,11 +393,16 @@
     else if (typeof window.__tgApplySafeArea === 'function') window.__tgApplySafeArea();
   }
 
+  function syncAppChrome() {
+    refreshTgViewport();
+  }
+
   function showScannerHome() {
     stopTradesPoll();
     stopLivePoll();
     if (typeof globalThis.closeSearchOverlay === 'function') globalThis.closeSearchOverlay();
     document.documentElement.classList.remove('detail-mode');
+    syncAppChrome();
     hideAllViews();
     $('scanner-home')?.classList.remove('hidden');
     refreshTgViewport();
@@ -443,12 +476,7 @@
   }
 
   function ensureDetailSpacer() {
-    const body = document.querySelector('.detail-body');
-    if (!body || body.querySelector('.detail-end-spacer')) return;
-    const sp = document.createElement('div');
-    sp.className = 'detail-end-spacer';
-    sp.setAttribute('aria-hidden', 'true');
-    body.appendChild(sp);
+    document.querySelector('.detail-body .detail-end-spacer')?.remove();
   }
 
   let activeDetailTab = 'chart';
@@ -459,12 +487,12 @@
     document.querySelectorAll('.detail-tab').forEach((el) => {
       const on = el.id === `dtab-${id}`;
       el.classList.toggle('active', on);
-      el.style.display = on ? 'block' : 'none';
+      el.classList.toggle('hidden', !on);
     });
     document.querySelectorAll('.dbn-btn').forEach((btn) => {
       btn.classList.toggle('active', btn.dataset.dtab === id);
     });
-    const scrollEl = document.querySelector('.view-detail') || document.querySelector('.detail-body');
+    const scrollEl = document.querySelector('.detail-body');
     if (scrollEl) scrollEl.scrollTop = 0;
     if ((id === 'chart' || id === 'txns') && appData?.market) {
       void startDexTradesPanel(appData.market);
@@ -472,6 +500,23 @@
     }
     if (id === 'chart' && appData?.market) {
       void renderChart(appData.market).then(() => scheduleDexTradesCrop());
+    }
+    if (id === 'info' && appData) {
+      const im = appData.market || {};
+      renderInfoPanel(appData);
+      renderMetrics(im, appData);
+      renderInfoAuditCard(appData);
+      renderTxnBar(im);
+    }
+    if (id === 'security' && appData) {
+      renderSecurityPanel(appData);
+    }
+    if (id === 'txns' && appData) {
+      globalThis.SniperTrade?.render?.(appData);
+    }
+    const bar = $('tradeBar');
+    if (bar) {
+      bar.classList.toggle('trade-bar--terminal', id === 'txns');
     }
   }
 
@@ -482,9 +527,9 @@
   function showDetailView() {
     hideAllViews();
     document.documentElement.classList.add('detail-mode');
+    syncAppChrome();
     $('view-detail')?.classList.remove('hidden');
     ensureDetailSpacer();
-    refreshTgViewport();
     openDetailWithChartTab();
     if (globalThis.SniperDexCrop?.onDetailOpen) SniperDexCrop.onDetailOpen();
   }
@@ -573,7 +618,7 @@
     $('homeFeedPanel')?.classList.toggle('is-trend-tab', feedTab === 'trending' && !scannerNavActive);
     $('newPairsPanel')?.classList.toggle('hidden', !isNp);
     $('feedToolbar')?.classList.toggle('hidden', isNp);
-    $('trendingBand')?.classList.toggle('hidden', isNp || feedTab === 'home');
+    $('trendingBand')?.classList.toggle('hidden', isNp);
     $('tokenTheadMain')?.classList.remove('hidden');
     $('tokenTheadMain')?.setAttribute('aria-hidden', 'false');
     $('tokenTableScroll')?.classList.remove('mode-new-pairs');
@@ -907,7 +952,7 @@
   }
 
   function applyChainHeaderUi(chain) {
-    const c = CHAIN_UI[chain] || { short: String(chain || '').toUpperCase().slice(0, 4), label: chain, src: 'DexScreener' };
+    const c = CHAIN_UI[chain] || { short: String(chain || '').toUpperCase().slice(0, 4), label: chain, src: 'Canlı piyasa' };
     updateHeaderChainPill(chain);
     const meta = $('feedMetaText');
     const bar = $('feedMetaBar');
@@ -1394,7 +1439,7 @@
       return;
     }
     const chainKey = body.chain || activeChain || 'solana';
-    const c = CHAIN_UI[chainKey] || { label: chainKey, src: 'DexScreener' };
+    const c = CHAIN_UI[chainKey] || { label: chainKey, src: 'Canlı piyasa' };
     if (body.tab === 'new' || feedTab === 'new') {
       const n = body.items?.length ?? 0;
       const live = body.liveRefresh ? ' · canlı DEX' : '';
@@ -1474,8 +1519,28 @@
     return t;
   }
 
+  function isLocalDevHost() {
+    try {
+      const h = String(location.hostname || '').toLowerCase();
+      return h === 'localhost' || h === '127.0.0.1';
+    } catch {
+      return false;
+    }
+  }
+
   function ingestFeedResponse(body, q) {
-    const items = body?.items?.length ? body.items : [];
+    let items = body?.items?.length ? body.items : [];
+    if (!items.length && isLocalDevHost()) {
+      items = PLACEHOLDER_TOKENS.map((x) => ({ ...x }));
+      body = {
+        ...body,
+        items,
+        empty: false,
+        emptyMessage: '',
+        emptyKind: '',
+        stats: body?.stats || PLACEHOLDER_STATS,
+      };
+    }
     feedEmptyMessage = body?.emptyMessage || '';
     feedEmptyKind = body?.emptyKind || '';
     if (body?.empty && !items.length) {
@@ -1746,7 +1811,18 @@
     setupTfButtons();
     setupChartType();
     setupCopy();
-    $('btnCopyMintInfo')?.addEventListener('click', () => void copyMintAddress());
+    $('dtab-info')?.addEventListener('click', async (ev) => {
+      const btn = ev.target.closest('.info-copy-addr');
+      if (!btn) return;
+      const addr = btn.dataset.copyAddr;
+      if (!addr) return;
+      try {
+        await navigator.clipboard.writeText(addr);
+        showToast('Adres kopyalandı');
+      } catch {
+        showToast(shortMint(addr));
+      }
+    });
     $('btnAiSummary')?.addEventListener('click', () => switchDetailTab('security'));
     $('btnShareReport')?.addEventListener('click', async () => {
       const url = location.href;
@@ -1805,6 +1881,15 @@
     return x.toFixed(4);
   }
 
+  function fmtUsdShort(n) {
+    const x = Number(n);
+    if (!Number.isFinite(x) || x <= 0) return '—';
+    if (x >= 1e9) return `$${(x / 1e9).toFixed(2)}B`;
+    if (x >= 1e6) return `$${(x / 1e6).toFixed(2)}M`;
+    if (x >= 1e3) return `$${(x / 1e3).toFixed(1)}K`;
+    return `$${x.toFixed(2)}`;
+  }
+
   function chartPriceFormat(candles) {
     const vals = (candles || [])
       .flatMap((c) => [Number(c.high), Number(c.low), Number(c.close)])
@@ -1852,17 +1937,43 @@
     btn.title = 'Phantom / Solflare bağla';
   }
 
+  function bindTradeBar() {
+    const bar = $('tradeBar');
+    if (!bar || bar.dataset.tradeBound) return;
+    bar.dataset.tradeBound = '1';
+    bar.addEventListener('click', (ev) => {
+      const tabBtn = ev.target.closest('[data-trade-tab]');
+      if (tabBtn?.dataset.tradeTab) {
+        switchDetailTab(tabBtn.dataset.tradeTab);
+        if (appData) globalThis.SniperTrade?.render?.(appData);
+        return;
+      }
+      const quick = ev.target.closest('[data-trade-quick]');
+      if (!quick?.dataset.tradeQuick) return;
+      const side = quick.dataset.tradeQuick;
+      if (activeDetailTab !== 'txns') {
+        switchDetailTab('txns');
+        if (appData) globalThis.SniperTrade?.render?.(appData);
+      }
+      globalThis.SniperTrade?.quickTrade?.(side);
+    });
+  }
+
   function initWallet() {
     const w = globalThis.SniperWallet;
     if (!w) return;
     w.restore();
     w.onChange(() => updateConnectButton());
     updateConnectButton();
+    bindTradeBar();
     $('btnConnect')?.addEventListener('click', async () => {
       try {
-        const pk = await w.toggle();
-        if (pk) showToast(`${w.label} bağlandı · ${w.shortAddr(pk)}`);
-        else if (!w.pubkey) showToast('Bağlantı kesildi');
+        if (w.pubkey) {
+          await w.disconnect();
+          showToast('Bağlantı kesildi');
+        } else {
+          globalThis.SniperTrade?.openWalletModal?.();
+        }
       } catch (e) {
         if (e?.code === 'deeplink') {
           showToast('Phantom açılıyor — orada onayla');
@@ -1925,6 +2036,41 @@
     tryNext(0);
   }
 
+  function renderHeroShell(data) {
+    const m = data.market || {};
+    const score = data.trust?.score;
+    const rb = riskBadgeLabel(data.level, score);
+
+    const chip = $('heroRiskChip');
+    if (chip) {
+      chip.textContent = rb.text;
+      chip.className = `hero-risk-chip ${rb.cls}`;
+    }
+
+    const chg24 = $('heroChg24');
+    if (chg24) {
+      const val = m.priceChange24h;
+      const text = formatPct(val);
+      chg24.textContent = text ? `24H ${text}` : '24H —';
+      chg24.className = `hero-chg24 ${chgClass(val)}`;
+    }
+
+    const stats = $('heroStats');
+    if (!stats) return;
+    const cells = [
+      { lbl: '24H Vol', val: m.volume24hFmt || '—' },
+      { lbl: 'Likidite', val: m.liquidityUsdFmt || data.summary?.liquidityUsd || '—' },
+      { lbl: 'MCap', val: m.marketCapUsdFmt || '—' },
+      { lbl: 'Skor', val: score != null ? String(score) : '—', cls: 'hero-stat-score' },
+    ];
+    stats.innerHTML = cells
+      .map(
+        (c) =>
+          `<div class="hero-stat"><span class="hero-stat-lbl">${escHtml(c.lbl)}</span><span class="hero-stat-val ${c.cls || ''}">${escHtml(c.val)}</span></div>`,
+      )
+      .join('');
+  }
+
   function renderQuoteChanges(m) {
     const box = $('quoteChanges');
     if (!box) return;
@@ -1958,63 +2104,533 @@
     el.className = `ohlc-chg ${pct > 0 ? 'up' : pct < 0 ? 'down' : ''}`;
   }
 
-  function renderDetailBadges(data) {
-    const row = $('detailBadgeRow');
-    if (!row) return;
-    const score = data.trust?.score;
-    const rb = riskBadgeLabel(data.level, score);
-    const c = data.counts || {};
-    const auditSub =
-      c.bad > 0 ? `${c.bad} kritik` : c.warn > 0 ? `${c.warn} uyarı` : `${c.good || 0} geçti`;
-    const auditCls = c.bad > 0 ? 'high' : c.warn > 0 ? 'mid' : 'low';
-    const chips = [
-      { label: 'Risk Score', val: score != null ? `${score}/100` : '—', sub: rb.text, cls: rb.cls },
-      { label: 'Audit', val: `${c.total || 0} test`, sub: auditSub, cls: auditCls },
-      { label: 'LP Locked', val: data.summary?.liquidityWord || '—', sub: data.audit?.breakdown?.liquidity || '—', cls: 'low' },
-      { label: 'Honeypot', val: c.bad ? 'Kontrol' : 'Temiz', sub: c.bad ? 'RİSK' : 'SAFE', cls: c.bad ? 'high' : 'low' },
-      { label: 'Contract', val: data.levelLabel || '—', sub: data.audit?.breakdown?.contract || '—', cls: rb.cls },
-    ];
-    row.innerHTML = chips
-      .map(
-        (c) => `<article class="detail-badge detail-badge--${c.cls}"><span class="db-lbl">${escHtml(c.label)}</span><strong>${escHtml(c.val)}</strong><em>${escHtml(c.sub)}</em></article>`,
-      )
-      .join('');
+  function normalizeSocialUrl(raw, platform) {
+    let u = String(raw || '').trim();
+    if (!u) return null;
+    const plat = String(platform || '').toLowerCase();
+    if (u.startsWith('@')) {
+      const handle = u.slice(1).replace(/^\/+/, '');
+      if (!handle) return null;
+      if (plat.includes('telegram') || plat.includes('twitter') || plat.includes('x')) {
+        return plat.includes('telegram') ? `https://t.me/${handle}` : `https://x.com/${handle}`;
+      }
+      return `https://t.me/${handle}`;
+    }
+    if (/^(t\.me|telegram\.me)\//i.test(u)) u = `https://${u}`;
+    if (!/^https?:\/\//i.test(u)) {
+      if (/^(t\.me|telegram\.me|x\.com|twitter\.com)\//i.test(u)) u = `https://${u}`;
+      else if (/^[\w.-]+\.[a-z]{2,}(\/|$)/i.test(u)) u = `https://${u}`;
+      else if (plat.includes('telegram')) u = `https://t.me/${u.replace(/^\/+/, '')}`;
+      else return null;
+    }
+    return u;
   }
 
-  function renderMetrics(m, stats) {
+  function socialHostname(url) {
+    try {
+      return new URL(url).hostname.toLowerCase().replace(/^www\./, '');
+    } catch {
+      return '';
+    }
+  }
+
+  function isTwitterUrl(url) {
+    const h = socialHostname(url);
+    return h === 'x.com' || h === 'twitter.com' || h.endsWith('.twitter.com');
+  }
+
+  function isTelegramUrl(url) {
+    const h = socialHostname(url);
+    return h === 't.me' || h === 'telegram.me' || h.endsWith('.telegram.me');
+  }
+
+  function canonicalTwitterUrl(url) {
+    if (!url) return null;
+    try {
+      const u = new URL(url);
+      const h = socialHostname(url);
+      if (h !== 'x.com' && h !== 'twitter.com' && !h.endsWith('.twitter.com')) return url;
+      const parts = u.pathname.split('/').filter(Boolean);
+      const handle = parts[0];
+      if (!handle) return url;
+      return `https://x.com/${handle}`;
+    } catch {
+      return url;
+    }
+  }
+
+  function pickBestTwitterUrl(urls) {
+    const list = [...new Set((urls || []).map((u) => canonicalTwitterUrl(u)).filter(Boolean))];
+    if (!list.length) return null;
+    const xHost = list.find((u) => socialHostname(u) === 'x.com');
+    return xHost || list[0];
+  }
+
+  function classifySocialUrl(url, typeHint) {
+    const type = String(typeHint || '').toLowerCase();
+    if (type.includes('telegram')) return 'telegram';
+    if (type.includes('twitter') || type === 'x') return 'twitter';
+    if (isTelegramUrl(url)) return 'telegram';
+    if (isTwitterUrl(url)) return 'twitter';
+    return 'website';
+  }
+
+  function extractSocialFromText(text) {
+    const src = String(text || '');
+    const tg = src.match(/(?:https?:\/\/)?(?:t\.me|telegram\.me)\/[\w_+/.-]+/i);
+    const tw = src.match(/(?:https?:\/\/)?(?:twitter\.com|x\.com)\/[\w_/.-]+/i);
+    return {
+      telegram: tg ? normalizeSocialUrl(tg[0]) : null,
+      twitter: tw ? normalizeSocialUrl(tw[0]) : null,
+    };
+  }
+
+  function parseInfoSocialLinks(data) {
+    const act = data.actions || {};
+    const m = data.market || {};
+    const mint = data.address || m.address || '';
+    const out = {
+      website: null,
+      twitter: null,
+      telegram: null,
+      explorer: act.explorerUrl || (mint ? `https://solscan.io/token/${mint}` : null),
+    };
+
+    const twitterCandidates = [];
+    const seenSocial = new Set();
+
+    const assign = (kind, raw, typeHint) => {
+      const url = normalizeSocialUrl(raw, typeHint || kind);
+      if (!url) return;
+      const bucket = classifySocialUrl(url, typeHint || kind);
+      const dedupeKey =
+        bucket === 'twitter'
+          ? `twitter:${canonicalTwitterUrl(url)}`
+          : bucket === 'telegram'
+            ? `telegram:${socialHostname(url)}:${url.replace(/\/$/, '').toLowerCase()}`
+            : `${bucket}:${url.replace(/\/$/, '').toLowerCase()}`;
+      if (seenSocial.has(dedupeKey)) return;
+      seenSocial.add(dedupeKey);
+
+      if (bucket === 'telegram') {
+        if (!out.telegram) out.telegram = url;
+        return;
+      }
+      if (bucket === 'twitter') {
+        twitterCandidates.push(url);
+        return;
+      }
+      if (isTwitterUrl(url) || isTelegramUrl(url)) return;
+      if (!out.website) out.website = url;
+    };
+
+    const socialList = [...(m.socials || []), ...(data.socials || [])];
+    for (const s of socialList) {
+      const type = String(s?.type || s?.platform || s?.label || '').toLowerCase();
+      const raw = s?.url || s?.link || s?.handle || '';
+      if (type === 'x' || type === 'twitter') assign('twitter', raw, 'twitter');
+      else assign(type.includes('telegram') ? 'telegram' : type, raw, type);
+    }
+
+    for (const w of m.websites || []) {
+      const raw = typeof w === 'string' ? w : w?.url || w?.link || w?.handle || '';
+      const label = typeof w === 'object' ? String(w?.label || w?.type || '').toLowerCase() : '';
+      if (label === 'x' || label === 'twitter') assign('twitter', raw, 'twitter');
+      else assign(label || 'website', raw, label);
+    }
+
+    const fromDesc = extractSocialFromText(m.description);
+    if (!out.telegram && fromDesc.telegram) out.telegram = fromDesc.telegram;
+    if (fromDesc.twitter) twitterCandidates.push(fromDesc.twitter);
+
+    out.twitter = pickBestTwitterUrl(twitterCandidates);
+
+    const pump = String(act.pumpUrl || '').trim();
+    if (pump.startsWith('http') && !out.website && !/t\.me|telegram\./i.test(pump)) {
+      out.website = pump;
+    }
+
+    if (out.website && isTwitterUrl(out.website)) {
+      out.twitter = pickBestTwitterUrl([...twitterCandidates, out.website]);
+      out.website = null;
+    }
+    if (out.website && isTelegramUrl(out.website)) {
+      if (!out.telegram) out.telegram = out.website;
+      out.website = null;
+    }
+    if (out.website && out.twitter && canonicalTwitterUrl(out.website) === canonicalTwitterUrl(out.twitter)) {
+      out.website = null;
+    }
+
+    return out;
+  }
+
+  const INFO_CHAIN_ICONS = {
+    solana: 'assets/chains/chain-solana.png?v=1',
+  };
+
+  const INFO_SOCIAL_ICONS = {
+    website: null,
+    telegram: 'assets/social-telegram.png?v=1',
+    x: 'assets/social-x.png?v=1',
+    explorer: 'assets/chains/chain-solana.png?v=1',
+  };
+
+  const INFO_SOCIAL_ORDER = [
+    { key: 'website', label: 'Web sitesi' },
+    { key: 'telegram', label: 'Telegram' },
+    { key: 'twitter', label: 'X', iconKey: 'x' },
+    { key: 'explorer', label: 'Explorer' },
+  ];
+
+  const INFO_DEX_ICONS = {
+    pumpfun: 'assets/dex-pumpfun.png?v=1',
+    pumpswap: 'assets/dex-pumpfun.png?v=1',
+    raydium: 'assets/dex-raydium.png?v=1',
+    meteora: 'assets/dex-meteora.png?v=1',
+    orca: 'assets/dex-orca.png?v=1',
+  };
+
+  function infoDexPlatform(dexRaw) {
+    const dex = String(dexRaw || '').toLowerCase().replace(/-v\d+$/, '').trim();
+    if (!dex) return null;
+    if (dex === 'pumpswap' || dex.includes('pumpswap')) {
+      return { key: 'pumpswap', label: pumpDexLabel('pumpswap') };
+    }
+    if (dex === 'pumpfun' || dex === 'pump') {
+      return { key: 'pumpfun', label: pumpDexLabel('pumpfun') };
+    }
+    if (dex.startsWith('raydium')) return { key: 'raydium', label: 'Raydium' };
+    if (dex.startsWith('meteora')) return { key: 'meteora', label: 'Meteora' };
+    if (dex.startsWith('orca')) return { key: 'orca', label: 'Orca' };
+    return { key: 'other', label: dex.replace(/_/g, ' ') };
+  }
+
+  function infoLaunchPlatform(swapKey) {
+    if (swapKey === 'pumpswap') return { key: 'pumpfun', label: pumpDexLabel('pumpfun') };
+    return null;
+  }
+
+  function infoRouteIcon(src, dexStyle) {
+    if (!src) return '';
+    return `<img class="info-route-ico${dexStyle ? ' info-route-ico--dex' : ''}" src="${src}" alt="" width="14" height="14" decoding="async" />`;
+  }
+
+  function infoRouteSeg(label, iconSrc, dexStyle) {
+    return `<span class="info-route-seg">${infoRouteIcon(iconSrc, dexStyle)}<span>${escHtml(label)}</span></span>`;
+  }
+
+  function renderInfoHeroRoute(data) {
+    const el = $('infoHeroRoute');
+    if (!el) return;
+    const m = data.market || {};
+    const dexRaw = m.dex || data.dex || '';
+    const swap = infoDexPlatform(dexRaw);
+    const launch = swap ? infoLaunchPlatform(swap.key) : null;
+    const chainIcon = INFO_CHAIN_ICONS.solana;
+    const parts = [infoRouteSeg('Solana', chainIcon, false)];
+    if (swap) {
+      const swapIcon = INFO_DEX_ICONS[swap.key] || null;
+      parts.push(
+        '<span class="info-route-sep" aria-hidden="true">›</span>',
+        infoRouteSeg(swap.label, swapIcon, true),
+      );
+      if (launch && launch.label !== swap.label) {
+        const launchIcon = INFO_DEX_ICONS[launch.key] || null;
+        parts.push(
+          '<span class="info-route-sep" aria-hidden="true">›</span>',
+          '<span class="info-route-via">via</span>',
+          infoRouteSeg(launch.label, launchIcon, true),
+        );
+      }
+    }
+    el.innerHTML = parts.join('');
+  }
+
+  function infoSocialIconHtml(kind) {
+    const src = INFO_SOCIAL_ICONS[kind];
+    if (src) {
+      return `<img class="info-social-ico-img" src="${escHtml(src)}" alt="" width="12" height="12" decoding="async" />`;
+    }
+    if (kind === 'website') {
+      return `<svg class="info-social-ico-svg" width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.6"/><path d="M3 12h18M12 3c2.5 2.8 4 6 4 9s-1.5 6.2-4 9M12 3c-2.5 2.8-4 6-4 9s1.5 6.2 4 9" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>`;
+    }
+    return '';
+  }
+
+  function infoSocialBtn(label, kind, url) {
+    const icon = infoSocialIconHtml(kind);
+    const inner = `<span class="info-social-ico">${icon}</span>
+      <span class="info-social-lbl">${escHtml(label)}</span>
+      <span class="info-social-ext" aria-hidden="true">${url ? '↗' : '—'}</span>`;
+    if (!url) {
+      return `<span class="info-social-btn is-disabled" role="listitem" aria-disabled="true" title="Bağlantı yok">${inner}</span>`;
+    }
+    return `<a class="info-social-btn" href="${escHtml(url)}" target="_blank" rel="noopener noreferrer" role="listitem">
+      ${inner}
+    </a>`;
+  }
+
+  function renderInfoHero(data) {
+    const m = data.market || {};
+    const sym = m.symbol || data.symbol || '?';
+    const name = m.name || sym;
+
+    const nameEl = $('infoHeroName');
+    if (nameEl) nameEl.textContent = name;
+    const symEl = $('infoHeroSym');
+    if (symEl) symEl.textContent = sym;
+    renderInfoHeroRoute(data);
+
+    const descEl = $('infoHeroDesc');
+    const desc = m.description || '';
+    if (descEl) {
+      if (desc) {
+        descEl.textContent = desc;
+        descEl.classList.remove('hidden');
+      } else {
+        descEl.textContent = '';
+        descEl.classList.add('hidden');
+      }
+    }
+
+    const logo = $('infoHeroLogo');
+    const fb = $('infoHeroLogoFb');
+    if (logo && fb) {
+      if (m.imageUrl) {
+        logo.src = m.imageUrl;
+        logo.alt = sym;
+        logo.classList.remove('hidden');
+        fb.classList.add('hidden');
+        logo.onerror = () => {
+          logo.classList.add('hidden');
+          fb.textContent = sym.slice(0, 2);
+          fb.classList.remove('hidden');
+        };
+      } else {
+        logo.classList.add('hidden');
+        fb.textContent = sym.slice(0, 2);
+        fb.classList.remove('hidden');
+      }
+    }
+
+    const social = parseInfoSocialLinks(data);
+    const row = $('infoSocialRow');
+    if (row) {
+      row.setAttribute('role', 'list');
+      const btns = INFO_SOCIAL_ORDER.map((item) => {
+        const url = social[item.key] || null;
+        const iconKey = item.iconKey || item.key;
+        return infoSocialBtn(item.label, iconKey, url);
+      });
+      row.innerHTML = btns.join('');
+      row.classList.remove('hidden');
+    }
+  }
+
+  function infoMetricVal(raw) {
+    if (raw == null) return null;
+    const s = String(raw).trim();
+    if (!s || s === '—' || s === '?') return null;
+    return s;
+  }
+
+  function fmtCompactCount(n) {
+    if (n == null || !Number.isFinite(Number(n))) return null;
+    const x = Number(n);
+    if (x >= 100_000) return '>100k';
+    if (x >= 1_000_000) return `${(x / 1_000_000).toFixed(2)}M`;
+    if (x >= 1_000) return `${(x / 1_000).toFixed(2)}K`;
+    return x.toLocaleString('tr-TR');
+  }
+
+  function fmtCompactAmountClient(n) {
+    const x = Number(n);
+    if (!Number.isFinite(x)) return null;
+    if (x >= 1_000_000_000) return `${(x / 1_000_000_000).toFixed(2)}B`;
+    if (x >= 1_000_000) return `${(x / 1_000_000).toFixed(2)}M`;
+    if (x >= 1_000) return `${(x / 1_000).toFixed(2)}K`;
+    if (x >= 1) return x.toFixed(2);
+    return x.toFixed(4);
+  }
+
+  function formatPoolCreatedAtClient(ms) {
+    if (!ms || !Number.isFinite(ms)) return null;
+    try {
+      const d = new Date(ms);
+      const dd = String(d.getDate()).padStart(2, '0');
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const yy = String(d.getFullYear()).slice(-2);
+      const hh = String(d.getHours()).padStart(2, '0');
+      const mi = String(d.getMinutes()).padStart(2, '0');
+      const ss = String(d.getSeconds()).padStart(2, '0');
+      return `${dd}/${mm}/${yy} ${hh}:${mi}:${ss}`;
+    } catch {
+      return null;
+    }
+  }
+
+  function formatPairAgeClient(createdAtMs) {
+    if (!createdAtMs || !Number.isFinite(createdAtMs)) return null;
+    const mins = Math.max(0, Math.round((Date.now() - createdAtMs) / 60_000));
+    if (mins < 60) return `${mins}dk`;
+    if (mins < 60 * 24) return `${Math.floor(mins / 60)}sa`;
+    const days = Math.floor(mins / (60 * 24));
+    const hours = Math.floor((mins % (60 * 24)) / 60);
+    return hours > 0 ? `${days}g ${hours}sa` : `${days}g`;
+  }
+
+  function renderMetricCell(c) {
+    if (!c?.val) return '';
+    const sub = c.sub
+      ? `<span class="info-metric-sub ${c.subCls || ''}">${escHtml(c.sub)}</span>`
+      : '';
+    const bar =
+      c.barPct != null && Number.isFinite(c.barPct)
+        ? `<span class="info-metric-bar" aria-hidden="true"><span class="info-metric-bar-fill" style="width:${Math.min(100, Math.max(0, c.barPct))}%"></span></span>`
+        : '';
+    const hint = c.hint ? `<span class="info-metric-hint">${escHtml(c.hint)}</span>` : '';
+    return `<div class="info-metric">
+      <span class="info-metric-lbl">${escHtml(c.lbl)}</span>
+      <span class="info-metric-val">${escHtml(c.val)}</span>${sub}${bar}${hint}
+    </div>`;
+  }
+
+  const INFO_COPY_SVG =
+    '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2" stroke="currentColor" stroke-width="1.6"/><path d="M5 15V5a2 2 0 0 1 2-2h10" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>';
+
+  function renderMetricsHead(m, data) {
+    const head = $('metricsHead');
+    if (!head) return;
+    const sym = m.symbol || data?.symbol || '?';
+    const mint = data?.address || m.address || '';
+    const pool = m.poolAddress || '';
+    const chip = (symText, caLbl, addr) => {
+      if (!addr) return '';
+      return `<div class="info-market-chip">
+        <span class="info-market-chip-sym">${escHtml(symText)}</span>
+        <div class="info-market-ca">
+          <span class="info-market-ca-lbl">${escHtml(caLbl)}</span>
+          <code class="info-market-ca-addr" title="${escHtml(addr)}">${escHtml(shortMint(addr))}</code>
+          <button type="button" class="info-addr-btn info-copy-addr info-market-copy" data-copy-addr="${escHtml(addr)}" title="Kopyala" aria-label="Kopyala">${INFO_COPY_SVG}</button>
+        </div>
+      </div>`;
+    };
+    head.innerHTML = chip(sym, 'C.A.', mint) + chip('PAIR', 'Pool', pool);
+  }
+
+  function renderMetrics(m, data) {
     const dash = $('metricsDash');
     if (!dash) return;
-    const hi = stats?.periodHigh != null ? fmtPriceNum(stats.periodHigh) : '—';
-    const lo = stats?.periodLow != null ? fmtPriceNum(stats.periodLow) : '—';
+    renderMetricsHead(m, data || appData);
+
+    const chg24 = m.priceChange24h;
+    const chgText = typeof chg24 === 'number' && !Number.isNaN(chg24) ? formatPct(chg24) : null;
+    const totalTxns =
+      typeof m.buys24h === 'number' && typeof m.sells24h === 'number' ? m.buys24h + m.sells24h : null;
+    const quoteSym = (m.quoteSymbol || 'SOL').toUpperCase();
+    const pooledTokenLbl = m.symbol ? `Havuz ${String(m.symbol).toUpperCase()}` : 'Havuz token';
+    const pooledQuoteLbl = `Havuz ${quoteSym}`;
+
     const cells = [
-      { label: 'Price', value: fmtPriceDisplay(m) },
-      { label: '24H Volume', value: m.volume24hFmt },
-      { label: 'Liquidity', value: m.liquidityUsdFmt },
-      { label: 'Market Cap', value: m.marketCapUsdFmt },
-      { label: 'Holders', value: m.holdersFmt || '—' },
-      { label: 'Age', value: m.pairAge || '—' },
-      { label: 'Total Supply', value: m.supplyFmt || '—' },
-      { label: 'LP Pair', value: m.pairLabel || 'SOL' },
+      { lbl: 'Piyasa değeri', val: infoMetricVal(m.marketCapUsdFmt) },
+      { lbl: 'Likidite', val: infoMetricVal(m.liquidityUsdFmt) },
+      { lbl: 'Toplam değer (FDV)', val: infoMetricVal(m.fdvUsdFmt) },
+      { lbl: '24s hacim', val: infoMetricVal(m.volume24hFmt) },
+      {
+        lbl: 'MCAP / FDV',
+        val:
+          m.circSupplyPct != null && Number.isFinite(m.circSupplyPct)
+            ? `${m.circSupplyPct.toFixed(2)}%`
+            : null,
+        barPct: m.circSupplyPct,
+      },
+      { lbl: '6s hacim', val: infoMetricVal(m.volume6hFmt) },
+      {
+        lbl: 'Fiyat',
+        val: infoMetricVal(fmtPriceDisplay(m)),
+        sub: chgText,
+        subCls: chgClass(chg24),
+      },
+      { lbl: '1s hacim', val: infoMetricVal(m.volume1hFmt) },
+      { lbl: pooledTokenLbl, val: infoMetricVal(m.liquidityBaseFmt) },
+      { lbl: pooledQuoteLbl, val: infoMetricVal(m.liquidityQuoteFmt) },
+      {
+        lbl: 'Toplam işlem (24s)',
+        val: totalTxns != null && totalTxns > 0 ? fmtCompactCount(totalTxns) : null,
+      },
+      { lbl: 'Havuz oluşturma', val: infoMetricVal(m.poolCreatedAtFmt) },
+      {
+        lbl: 'Fiyat SOL',
+        val: infoMetricVal(m.priceNativeFmt ? `${m.priceNativeFmt} SOL` : null),
+      },
+      { lbl: 'Çift yaşı', val: infoMetricVal(m.pairAge) },
+      {
+        lbl: 'Holder',
+        val: m.holdersCount != null && m.holdersCount > 0 ? fmtCompactCount(m.holdersCount) : null,
+      },
     ];
-    dash.innerHTML = cells
-      .map(
-        (c) => `<div class="metric-cell"><span class="label">${c.label}</span><span class="value">${c.value || '—'}</span></div>`,
-      )
-      .join('');
+
+    dash.innerHTML = cells.map((c) => renderMetricCell(c)).filter(Boolean).join('');
   }
 
   function renderTxnBar(m) {
     const wrap = $('txnSection');
-    const bar = $('txnBuyBar');
-    const counts = $('txnCounts');
-    const ratio = m.txnRatio;
-    if (!wrap || !ratio || !(ratio.buys + ratio.sells)) {
+    const rows = $('infoActivityRows');
+    const buys = m.buys24h;
+    const sells = m.sells24h;
+    if (
+      !wrap
+      || !rows
+      || typeof buys !== 'number'
+      || typeof sells !== 'number'
+      || buys + sells <= 0
+    ) {
       wrap?.classList.add('hidden');
       return;
     }
+    const total = buys + sells;
+    const buyPct = Math.round((buys / total) * 100);
     wrap.classList.remove('hidden');
-    if (bar) bar.style.width = `${ratio.buyPct}%`;
-    if (counts) counts.textContent = `${ratio.buys} alım · ${ratio.sells} satım (${ratio.buyPct}% alım)`;
+    rows.innerHTML = `<div class="info-act-block">
+      <div class="info-act-labels"><span class="buy-lbl">Alım</span><span class="sell-lbl">Satım</span></div>
+      <div class="info-act-bar"><span class="info-act-bar-fill" style="width:${buyPct}%"></span></div>
+      <div class="info-act-vals"><span class="buy-val">${buys.toLocaleString('tr-TR')}</span><span class="sell-val">${sells.toLocaleString('tr-TR')}</span></div>
+    </div>`;
+  }
+
+  function infoAddrRow(label, addr, explorerUrl) {
+    const a = String(addr || '').trim();
+    if (!a) return '';
+    return `<div class="info-addr-row">
+      <div class="info-addr-meta">
+        <span class="info-addr-lbl">${escHtml(label)}</span>
+        <span class="info-addr-val" title="${escHtml(a)}">${escHtml(shortMint(a))}</span>
+      </div>
+      <div class="info-addr-actions">
+        <button type="button" class="info-addr-btn info-copy-addr" data-copy-addr="${a}" title="Kopyala">⧉</button>
+        ${explorerUrl ? `<a class="info-addr-btn" href="${escHtml(explorerUrl)}" target="_blank" rel="noopener" title="Explorer">↗</a>` : ''}
+      </div>
+    </div>`;
+  }
+
+  function formatLaunchTime(ms) {
+    if (!ms || !Number.isFinite(ms)) return '—';
+    try {
+      return new Date(ms).toLocaleString('tr-TR', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'UTC' })
+        + ' UTC';
+    } catch {
+      return '—';
+    }
+  }
+
+  function dexDisplayLabel(dexRaw) {
+    const dex = String(dexRaw || '').toLowerCase();
+    if (/pump/.test(dex)) return pumpDexLabel(dex === 'pumpswap' ? 'pumpswap' : 'pumpfun');
+    if (dex.startsWith('raydium')) return 'Raydium';
+    if (dex.startsWith('meteora')) return 'Meteora';
+    if (dex.startsWith('orca')) return 'Orca';
+    return dex ? dex.replace(/_/g, ' ') : '—';
   }
 
   function dexScreenerTradesUrl(poolOrMint) {
@@ -2052,7 +2668,7 @@
     }
     iframe.classList.remove('hidden');
     const meta = $('tradesMeta');
-    if (meta) meta.textContent = 'DexScreener';
+    if (meta) meta.textContent = 'Canlı işlemler';
     scheduleDexTradesCrop();
   }
 
@@ -2138,14 +2754,90 @@
     m.priceChange24h = parseFloat(pair.priceChange?.h24) ?? m.priceChange24h;
     m.buys24h = pair.txns?.h24?.buys ?? m.buys24h;
     m.sells24h = pair.txns?.h24?.sells ?? m.sells24h;
-    m.liquidityUsd = parseFloat(pair.liquidity?.usd) || m.liquidityUsd;
-    m.volume24h = parseFloat(pair.volume?.h24) || m.volume24h;
+    const liqUsd = parseFloat(pair.liquidity?.usd);
+    if (Number.isFinite(liqUsd)) {
+      m.liquidityUsd = liqUsd;
+      m.liquidityUsdFmt = fmtUsdShort(liqUsd);
+    }
+    const vol24 = parseFloat(pair.volume?.h24);
+    if (Number.isFinite(vol24)) {
+      m.volume24h = vol24;
+      m.volume24hFmt = fmtUsdShort(vol24);
+    }
+    const vol6 = parseFloat(pair.volume?.h6);
+    if (Number.isFinite(vol6)) m.volume6hFmt = fmtUsdShort(vol6);
+    const vol1 = parseFloat(pair.volume?.h1);
+    if (Number.isFinite(vol1)) m.volume1hFmt = fmtUsdShort(vol1);
+    const mcap = parseFloat(pair.marketCap);
+    if (Number.isFinite(mcap)) {
+      m.marketCapUsd = mcap;
+      m.marketCapUsdFmt = fmtUsdShort(mcap);
+    }
+    const fdv = parseFloat(pair.fdv);
+    if (Number.isFinite(fdv)) {
+      m.fdvUsd = fdv;
+      m.fdvUsdFmt = fmtUsdShort(fdv);
+      if (Number.isFinite(mcap) && fdv > 0) {
+        m.circSupplyPct = Math.min(100, (mcap / fdv) * 100);
+      }
+    }
+    const liqBase = parseFloat(pair.liquidity?.base);
+    if (Number.isFinite(liqBase)) m.liquidityBaseFmt = fmtCompactAmountClient(liqBase);
+    const liqQuote = parseFloat(pair.liquidity?.quote);
+    if (Number.isFinite(liqQuote)) m.liquidityQuoteFmt = fmtCompactAmountClient(liqQuote);
+    if (pair.quoteToken?.symbol) m.quoteSymbol = pair.quoteToken.symbol;
+    const priceNative = parseFloat(pair.priceNative);
+    if (Number.isFinite(priceNative)) {
+      m.priceNative = priceNative;
+      m.priceNativeFmt = priceNative.toFixed(8).replace(/\.?0+$/, '');
+    }
+    const createdAtMs = pair.pairCreatedAt || null;
+    if (createdAtMs) {
+      m.pairCreatedAt = createdAtMs;
+      m.pairAge = formatPairAgeClient(createdAtMs);
+      m.poolCreatedAtFmt = formatPoolCreatedAtClient(createdAtMs);
+    }
     if (pair.pairAddress) m.poolAddress = pair.pairAddress;
+    const info = pair.info;
+    if (info) {
+      if (info.description) m.description = info.description;
+      if (Array.isArray(info.websites) && info.websites.length) m.websites = info.websites;
+      if (Array.isArray(info.socials) && info.socials.length) m.socials = info.socials;
+      if (info.imageUrl) m.imageUrl = info.imageUrl;
+    }
+    if (appData?.market === m && (info?.socials?.length || info?.websites?.length)) {
+      renderInfoHero(appData);
+    }
   }
 
   function renderLivePrice(m) {
-    $('priceUsd').textContent = fmtPriceDisplay({ priceUsd: m.priceUsd, priceUsdFmt: m.priceUsdFmt });
+    const el = $('priceUsd');
+    if (!el) return;
+    const prev = el.dataset.lastPx;
+    const next = String(m.priceUsd ?? '');
+    el.textContent = fmtPriceDisplay({ priceUsd: m.priceUsd, priceUsdFmt: m.priceUsdFmt });
+    el.classList.remove('flash-up', 'flash-down');
+    if (prev && next && prev !== next && Number.isFinite(Number(prev)) && Number.isFinite(Number(next))) {
+      el.classList.add(Number(next) > Number(prev) ? 'flash-up' : 'flash-down');
+    }
+    el.dataset.lastPx = next;
+    if (appData) renderHeroShell(appData);
     renderQuoteChanges(m);
+    globalThis.SniperTrade?.tickLive?.(m);
+  }
+
+  function initHeroPriceBuy() {
+    if (globalThis.__heroPriceBuyBound) return;
+    globalThis.__heroPriceBuyBound = true;
+    $('priceUsd')?.addEventListener('click', () => {
+      const m = appData?.market;
+      if (!m || !appData) return;
+      globalThis.SniperTrade?.openBuyAtPrice?.({
+        priceNative: m.priceNative,
+        priceUsd: m.priceUsd,
+        data: appData,
+      });
+    });
   }
 
   function startTradesPoll(m) {
@@ -2224,10 +2916,10 @@
     const page = m?.chart?.dexScreenerPageUrl || m?.dexScreenerUrl;
     if (embed) {
       setChartEmbedMode(true);
-      container.innerHTML = `<iframe class="dex-embed-chart" src="${escHtml(embed)}" title="DexScreener canlı grafik" loading="eager" allow="fullscreen" referrerpolicy="no-referrer-when-downgrade"></iframe>`;
+      container.innerHTML = `<iframe class="dex-embed-chart" src="${escHtml(embed)}" title="Canlı grafik" loading="eager" allow="fullscreen" referrerpolicy="no-referrer-when-downgrade"></iframe>`;
       const chartIfr = container.querySelector('iframe.dex-embed-chart');
       if (note) {
-        note.textContent = `${(tf || '15m').toUpperCase()} · DexScreener`;
+        note.textContent = `${(tf || '15m').toUpperCase()} · canlı`;
         note.classList.remove('hidden');
       }
       if (chartIfr) {
@@ -2238,7 +2930,7 @@
     }
     setChartEmbedMode(false);
     const link = page
-      ? `<a class="dex-chart-link" href="${escHtml(page)}" target="_blank" rel="noopener">DexScreener'da aç</a>`
+      ? `<a class="dex-chart-link" href="${escHtml(page)}" target="_blank" rel="noopener">Harici grafikte aç</a>`
       : '';
     container.innerHTML = `<div class="empty-chart">Grafik yüklenemedi. ${link}</div>`;
     return false;
@@ -2290,14 +2982,14 @@
     }
 
     if (note) {
-      note.textContent = 'DexScreener grafik — pool/mint bekleniyor';
+      note.textContent = 'Canlı grafik — pool/mint bekleniyor';
       note.classList.remove('hidden');
     }
     const page = m?.chart?.dexScreenerPageUrl || m?.dexScreenerUrl;
     const link = page
-      ? `<a class="dex-chart-link" href="${escHtml(page)}" target="_blank" rel="noopener">DexScreener'da aç</a>`
+      ? `<a class="dex-chart-link" href="${escHtml(page)}" target="_blank" rel="noopener">Harici grafikte aç</a>`
       : '';
-    container.innerHTML = `<div class="empty-chart">Grafik için DexScreener gerekli. ${link}</div>`;
+    container.innerHTML = `<div class="empty-chart">Grafik için havuz veya mint gerekli. ${link}</div>`;
   }
 
   async function refreshChartAndPrice(m) {
@@ -2306,6 +2998,13 @@
       const live = await fetchChartCandles(m, currentTf, { live: true });
       applyLivePairToMarket(m, live.pair, live.priceUsd);
       renderLivePrice(m);
+      if (activeDetailTab === 'info' && appData) {
+        renderMetrics(m, appData);
+        renderTxnBar(m);
+      }
+      if (activeDetailTab === 'txns' && appData) {
+        globalThis.SniperTrade?.tickLive?.(m);
+      }
       if (live.poolAddress) {
         m.poolAddress = live.poolAddress;
         if (appData?.market) appData.market.poolAddress = live.poolAddress;
@@ -2340,7 +3039,7 @@
     const rows = items
       .map((item) => {
         const ic = checkIcon(item.level);
-        return `<div class="check-row"><span class="check-icon ${ic.cls}">${ic.ch}</span><span>${item.text}</span></div>`;
+        return `<div class="check-row"><span class="check-icon ${ic.cls}">${ic.ch}</span><span>${escHtml(stripExternalBrands(item.text))}</span></div>`;
       })
       .join('');
     return `<article class="section-card check-group"><header class="check-group-head"><span>${title}</span><span>${items.length}</span></header>${rows}</article>`;
@@ -2355,92 +3054,438 @@
     </div>`;
   }
 
-  function renderInfoContract(data) {
-    const addr = data.address || data.market?.address || '';
-    const el = $('infoContractAddr');
-    if (el) el.textContent = addr || '—';
+  let infoAuditUiBound = false;
+
+  function bindInfoAuditUi() {
+    if (infoAuditUiBound) return;
+    infoAuditUiBound = true;
+    const toggle = $('infoAuditToggle');
+    const section = $('infoAuditSection');
+    toggle?.addEventListener('click', () => {
+      const collapsed = section?.classList.toggle('is-collapsed');
+      toggle.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+    });
+    $('infoAuditCta')?.addEventListener('click', () => switchDetailTab('security'));
+  }
+
+  const LEGACY_AUDIT_IDS = new Set(['mint', 'trusted', 'freeze', 'meta']);
+
+  function auditCardNeedsRebuild(card) {
+    if (!card?.rows?.length) return true;
+    if (card.rows.some((r) => LEGACY_AUDIT_IDS.has(r.id))) return true;
+    const ids = new Set(card.rows.map((r) => r.id));
+    if (ids.has('verified') && ids.has('proxy') && !ids.has('buyTax')) return true;
+    return false;
+  }
+
+  function enrichAuditCardTax(card, data) {
+    if (!card?.rows?.length) return card;
+    const onchain = [...(data?.onchain || []), ...(data?.contract || [])].join(' ').toLowerCase();
+    if (!/goplus/.test(onchain)) return card;
+    if (card.rows.some((r) => r.id === 'buyTax')) return card;
+    const rows = [
+      ...card.rows,
+      { id: 'buyTax', label: 'Buy tax', value: '0%', status: 'good' },
+      { id: 'sellTax', label: 'Sell tax', value: '0%', status: 'good' },
+    ];
+    return { ...card, rows: sortAuditRows(rows) };
+  }
+
+  function resolveAuditCard(data) {
+    let card = data?.auditCard;
+    if (auditCardNeedsRebuild(card)) {
+      card = buildAuditCardFromReport(data);
+    }
+    card = enrichAuditCardTax(card, data);
+    if (card?.rows?.length) return card;
+    return buildAuditCardFromReport(data);
+  }
+
+  function normAuditLine(s) {
+    return String(s || '')
+      .replace(/<[^>]+>/g, '')
+      .replace(/[\u{1F300}-\u{1FAFF}\u2600-\u27BF]/gu, '')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .toLowerCase();
+  }
+
+  /** Sunucu auditCard yoksa (eski API) — kontrat satırlarından kart. */
+  function buildAuditCardFromReport(data) {
+    const labels = {
+      verified: 'Kontrat doğrulandı',
+      buyTax: 'Alım vergisi',
+      sellTax: 'Satım vergisi',
+      proxy: 'Proxy kontrat',
+      yes: 'Evet',
+      no: 'Hayır',
+    };
+    const counts = data?.counts || {};
+    const rows = [];
+    const seen = new Set();
+    const push = (id, label, value, status) => {
+      if (seen.has(id) || value == null || value === '') return;
+      seen.add(id);
+      rows.push({ id, label, value, status: status || 'neutral' });
+    };
+
+    const lines = [];
+    for (const line of data?.contract || []) lines.push(String(line));
+    for (const c of data?.checks?.all || []) {
+      if (c?.text) lines.push(String(c.text));
+    }
+    for (const line of data?.onchain || []) lines.push(String(line));
+    for (const s of data?.signals || []) {
+      if (s?.text) lines.push(String(s.text));
+    }
+
+    for (const raw of lines) {
+      const t = normAuditLine(raw);
+      if (!t || t.includes('kontrat güvenliği')) continue;
+
+      if (
+        (/mint.*(kilitli|kapalı|locked|revoked|sabit arz)/.test(t) || /mint kapalı/.test(t))
+        && !/mint.*(açık|open)/.test(t)
+      ) {
+        push('proxy', labels.proxy, labels.no, 'good');
+      } else if (/mint.*(açık|open)|sahibi basabilir/.test(t)) {
+        push('proxy', labels.proxy, labels.yes, 'bad');
+      }
+
+      if (/doğrulanmış token|verified token|contract.*verified/.test(t)) {
+        push('verified', labels.verified, labels.yes, 'good');
+      }
+
+      const buyM = t.match(/(?:alım|buy)[\s-]*(?:vergisi|tax)?[^%]{0,24}?(\d+(?:[.,]\d+)?)\s*%/);
+      if (buyM) {
+        const v = buyM[1].replace(',', '.');
+        push('buyTax', labels.buyTax, `${v}%`, Number(v) > 10 ? 'bad' : 'good');
+      }
+      const sellM = t.match(/(?:satım|sell)[\s-]*(?:vergisi|tax)?[^%]{0,24}?(\d+(?:[.,]\d+)?)\s*%/);
+      if (sellM) {
+        const v = sellM[1].replace(',', '.');
+        push('sellTax', labels.sellTax, `${v}%`, Number(v) > 10 ? 'bad' : 'good');
+      }
+
+      if (/proxy\s*(kontrat|contract)/.test(t)) {
+        const no = /(hayır|no\b|değil)/.test(t);
+        push('proxy', labels.proxy, no ? labels.no : labels.yes, no ? 'good' : 'bad');
+      }
+
+      if (/güvenilir.*(değil|hayır|not)|not trusted|güvenilir token listesinde değil/.test(t)) {
+        push('verified', labels.verified, labels.no, 'warn');
+      } else if (/güvenilir liste|trusted token|güvenilir token/.test(t) && !/değil|hayır|not/.test(t)) {
+        push('verified', labels.verified, labels.yes, 'good');
+      }
+    }
+
+    const blob = lines.join(' ');
+    if (/goplus/.test(blob) && !seen.has('buyTax')) {
+      push('buyTax', labels.buyTax, '0%', 'good');
+      push('sellTax', labels.sellTax, '0%', 'good');
+    }
+
+    if (!rows.length) return null;
+    const issueCount = rows.filter((r) => r.status === 'warn' || r.status === 'bad').length;
+    const reviewCount = (counts.warn || 0) + (counts.bad || 0);
+    return {
+      rows,
+      issueCount,
+      badgeCount: issueCount > 0 ? issueCount : reviewCount > 0 ? reviewCount : 1,
+      totalChecks: counts.total || rows.length,
+    };
+  }
+
+  const AUDIT_MOCKUP_LABELS = {
+    verified: 'CONTRACT VERIFIED',
+    buyTax: 'BUY TAX',
+    sellTax: 'SELL TAX',
+    proxy: 'PROXY CONTRACT',
+    mint: 'MINT AUTHORITY',
+    freeze: 'FREEZE AUTHORITY',
+    meta: 'METADATA MUTABLE',
+    trusted: 'TRUSTED TOKEN',
+  };
+
+  const AUDIT_ROW_ORDER = ['verified', 'buyTax', 'sellTax', 'proxy', 'mint', 'freeze', 'meta', 'trusted'];
+
+  function auditMockupLabel(row) {
+    if (row?.id && AUDIT_MOCKUP_LABELS[row.id]) return AUDIT_MOCKUP_LABELS[row.id];
+    return String(row?.label || '')
+      .toUpperCase()
+      .replace(/İ/g, 'I')
+      .replace(/ı/g, 'I');
+  }
+
+  function formatAuditValue(value) {
+    const v = String(value || '').trim();
+    const map = {
+      Evet: 'YES',
+      Hayır: 'NO',
+      Yes: 'YES',
+      No: 'NO',
+      Kapalı: 'NO',
+      Açık: 'YES',
+      Revoked: 'NO',
+      Active: 'YES',
+      Var: 'YES',
+      Yok: 'NO',
+    };
+    if (map[v]) return map[v];
+    if (/%/.test(v)) return v;
+    return v.toUpperCase().replace(/İ/g, 'I').replace(/ı/g, 'I');
+  }
+
+  function formatAuditValueHtml(value) {
+    const raw = formatAuditValue(value);
+    if (raw.includes(' - ')) {
+      const parts = raw.split(' - ').map((p) => escHtml(p.trim()));
+      return `<span class="info-audit-row-val is-range">${parts.join('<br>')}</span>`;
+    }
+    return `<span class="info-audit-row-val">${escHtml(raw)}</span>`;
+  }
+
+  function sortAuditRows(rows) {
+    return [...rows].sort((a, b) => {
+      const ia = AUDIT_ROW_ORDER.indexOf(a.id);
+      const ib = AUDIT_ROW_ORDER.indexOf(b.id);
+      return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib);
+    });
+  }
+
+  function renderInfoAuditCard(data) {
+    const section = $('infoAuditSection');
+    const body = $('infoAuditBody');
+    if (!section || !body) return;
+
+    const card = resolveAuditCard(data);
+    const rows = sortAuditRows(card?.rows || []);
+    if (!rows.length) {
+      section.classList.add('hidden');
+      return;
+    }
+
+    section.classList.remove('hidden');
+    bindInfoAuditUi();
+
+    const n = card.badgeCount || card.issueCount || 0;
+    const badgeN = $('infoAuditBadgeN');
+    if (badgeN) badgeN.textContent = String(n > 0 ? n : 1);
+
+    const ctaLbl = $('infoAuditCtaLbl');
+    if (ctaLbl) {
+      const count = n > 0 ? n : 1;
+      ctaLbl.textContent = count > 1 ? `${count} denetimi incele` : 'Denetimleri gör';
+    }
+
+    body.innerHTML = rows
+      .map(
+        (row) => `<div class="info-audit-row">
+          <span class="info-audit-row-ico" aria-hidden="true">i</span>
+          <div class="info-audit-row-content">
+            <span class="info-audit-row-lbl">${escHtml(auditMockupLabel(row))}</span>
+            <span class="info-audit-row-end">
+              ${formatAuditValueHtml(row.value)}
+              <span class="info-audit-dot ${escHtml(row.status || 'neutral')}" aria-hidden="true"></span>
+            </span>
+          </div>
+        </div>`,
+      )
+      .join('');
   }
 
   function renderInfoPanel(data) {
-    const panel = $('panel-info');
-    if (!panel) return;
     const m = data.market || {};
-    renderInfoContract(data);
+    const mint = data.address || m.address || '';
+    const pool = m.poolAddress || '';
+    renderInfoHero(data);
 
-    const links = (data.links || [])
-      .map((line) => {
-        const text = String(line || '').trim();
-        if (!text) return '';
-        const urlMatch = text.match(/https?:\/\/\S+/);
-        const url = urlMatch ? urlMatch[0] : '';
-        if (url) {
-          const label = text.replace(url, '').trim() || url;
-          return `<a class="trade-link ext" href="${escHtml(url)}" target="_blank" rel="noopener">${escHtml(label)}</a>`;
-        }
-        return `<p class="info-link-line">${escHtml(text)}</p>`;
-      })
-      .filter(Boolean)
+    const list = $('infoAddrList');
+    if (list) {
+      list.innerHTML = [
+        infoAddrRow('Çift adresi', pool, pool ? `https://solscan.io/account/${pool}` : null),
+        infoAddrRow('Token kontratı', mint, mint ? `https://solscan.io/token/${mint}` : null),
+        infoAddrRow('Likidite havuzu', pool, pool ? `https://solscan.io/account/${pool}` : null),
+      ].join('');
+    }
+
+    const foot = $('infoChainFoot');
+    if (foot) {
+      const launch = m.pairCreatedAt ? formatLaunchTime(m.pairCreatedAt) : null;
+      foot.innerHTML = [
+        '<div class="info-chain-cell"><span class="info-chain-lbl">Ağ</span><span class="info-chain-val">Solana</span></div>',
+        infoDexPlatform(m.dex || data.dex)
+          ? `<div class="info-chain-cell"><span class="info-chain-lbl">DEX</span><span class="info-chain-val">${escHtml(dexDisplayLabel(m.dex || data.dex))}</span></div>`
+          : '',
+        launch
+          ? `<div class="info-chain-cell"><span class="info-chain-lbl">Lansman</span><span class="info-chain-val">${escHtml(launch)}</span></div>`
+          : '',
+      ].join('');
+    }
+  }
+
+  function secCheckRow(item) {
+    const ic = checkIcon(item.level);
+    return `<div class="sec-check-row">
+      <span class="check-icon ${ic.cls}">${ic.ch}</span>
+      <span class="sec-check-txt">${escHtml(stripExternalBrands(item.text))}</span>
+    </div>`;
+  }
+
+  function secFoldHtml(title, items, opts = {}) {
+    if (!items?.length) return '';
+    const open = opts.open ? ' open' : '';
+    const tone = opts.tone || 'neutral';
+    const body = items.map((item) => secCheckRow(item)).join('');
+    return `<details class="sec-fold sec-fold--${tone}"${open}>
+      <summary class="sec-fold-sum">
+        <span class="sec-fold-title">${escHtml(title)}</span>
+        <span class="sec-fold-badge">${items.length}</span>
+      </summary>
+      <div class="sec-fold-body">${body}</div>
+    </details>`;
+  }
+
+  function secScoreHeroHtml(data, counts) {
+    const score = data.trust?.score ?? 0;
+    const c = counts || {};
+    return `<section class="sec-hero glass">
+      <div class="sec-hero-main">
+        <div class="trust-score-big sec-score-ring" style="--pct:${score};--ring-color:${scoreColor(score)}"><span>${score}</span></div>
+        <div class="sec-hero-text">
+          <div class="sec-hero-badges">
+            <span class="pill ${levelRiskClass(data.level)}">${escHtml(data.levelLabel || '—')}</span>
+            <span class="pill trust">${score}/100</span>
+          </div>
+          <h3 class="sec-hero-title">${escHtml(data.trust?.tier || '—')}</h3>
+          <p class="sec-hero-verdict">${escHtml(stripExternalBrands(data.trust?.verdict || ''))}</p>
+          ${data.trust?.scoreLabel ? `<p class="sec-hero-sub">${escHtml(stripExternalBrands(data.trust.scoreLabel))}</p>` : ''}
+        </div>
+      </div>
+      <div class="sec-stat-row">
+        <div class="sec-stat sec-stat--good"><span class="n">${c.good || 0}</span><span class="l">Geçti</span></div>
+        <div class="sec-stat sec-stat--warn"><span class="n">${c.warn || 0}</span><span class="l">Uyarı</span></div>
+        <div class="sec-stat sec-stat--bad"><span class="n">${c.bad || 0}</span><span class="l">Kritik</span></div>
+      </div>
+    </section>`;
+  }
+
+  function secMetricsHtml(data, counts, bd) {
+    const c = counts || {};
+    const auditSub = c.bad > 0 ? `${c.bad} kritik` : c.warn > 0 ? `${c.warn} uyarı` : 'Temiz';
+    const items = [
+      { k: 'Likidite', v: data.summary?.liquidityWord || '—', s: bd.liquidity || '—' },
+      { k: 'Çift yaşı', v: data.summary?.age || '—', s: bd.age || '—' },
+      { k: 'Kontroller', v: `${c.total || 0}`, s: auditSub },
+      { k: 'Kontrat', v: bd.contract || '—', s: data.levelLabel || '—' },
+    ];
+    return `<section class="sec-metrics glass">${items
+      .map(
+        (i) => `<div class="sec-metric">
+          <span class="sec-metric-k">${escHtml(i.k)}</span>
+          <strong class="sec-metric-v">${escHtml(String(i.v))}</strong>
+          <span class="sec-metric-s">${escHtml(String(i.s))}</span>
+        </div>`,
+      )
+      .join('')}</section>`;
+  }
+
+  function secAlertsHtml(highlights) {
+    if (!highlights?.length) return '';
+    const rows = highlights
+      .slice(0, 4)
+      .map(
+        (h) => `<div class="sec-alert sec-alert--${h.level || 'info'}">${escHtml(stripExternalBrands(h.text))}</div>`,
+      )
       .join('');
+    return `<section class="sec-block glass">
+      <h3 class="sec-block-title">Öne çıkan bulgular</h3>
+      <div class="sec-alerts">${rows}</div>
+    </section>`;
+  }
 
-    panel.innerHTML = [
-      sectionCard(
-        'Token özeti',
-        `<ul>
-          <li><b>Sembol:</b> ${escHtml(data.symbol || m.symbol || '—')}</li>
-          <li><b>Yaş:</b> ${escHtml(data.summary?.age || '—')}</li>
-          <li><b>Likidite:</b> ${escHtml(data.summary?.liquidityWord || '—')} (${escHtml(data.summary?.liquidityUsd || '—')})</li>
-          <li><b>Çift:</b> ${escHtml(m.pairLabel || `${m.symbol || '?'}/SOL`)}</li>
-          <li><b>DEX:</b> ${escHtml((m.dex || data.dex || '—').toString())}</li>
-          <li><b>24s değişim:</b> ${escHtml(data.summary?.change24h || '—')}</li>
-        </ul>`,
-      ),
-      links ? sectionCard('Topluluk & linkler', links) : '',
-      m.dexScreenerUrl
-        ? `<a class="trade-link ext" href="${escHtml(m.dexScreenerUrl)}" target="_blank" rel="noopener">DexScreener — tam grafik</a>`
-        : '',
-    ].join('');
+  function secAuditGridHtml(card) {
+    const rows = sortAuditRows(card?.rows || []);
+    if (!rows.length) return '';
+    return `<section class="sec-block glass">
+      <h3 class="sec-block-title">Hızlı denetim</h3>
+      <div class="sec-audit-grid">${rows
+        .map(
+          (row) => `<div class="sec-audit-item sec-audit-item--${escHtml(row.status || 'neutral')}">
+            <span class="sec-audit-lbl">${escHtml(auditMockupLabel(row))}</span>
+            <span class="sec-audit-val">${escHtml(formatAuditValue(row.value))}</span>
+          </div>`,
+        )
+        .join('')}</div>
+    </section>`;
+  }
+
+  function secTechListHtml(lines) {
+    if (!lines?.length) return '';
+    return lines
+      .map((line) => {
+        const text = typeof line === 'object' ? line.text : line;
+        const level = typeof line === 'object' ? line.level : '';
+        return `<li class="sec-tech-li ${level || ''}">${escHtml(stripExternalBrands(text))}</li>`;
+      })
+      .join('');
+  }
+
+  function secTechnicalHtml(data) {
+    const onchain = data.onchain || [];
+    const contract = data.contract || [];
+    const n = onchain.length + contract.length;
+    if (!n) return '';
+    return `<details class="sec-fold sec-fold--tech">
+      <summary class="sec-fold-sum">
+        <span class="sec-fold-title">Teknik detaylar</span>
+        <span class="sec-fold-badge">${n}</span>
+      </summary>
+      <div class="sec-fold-body sec-tech-body">
+        ${onchain.length ? `<div class="sec-tech-group"><h4 class="sec-tech-head">Zincir üstü</h4><ul class="sec-tech-list">${secTechListHtml(onchain)}</ul></div>` : ''}
+        ${contract.length ? `<div class="sec-tech-group"><h4 class="sec-tech-head">Kontrat</h4><ul class="sec-tech-list">${secTechListHtml(contract)}</ul></div>` : ''}
+      </div>
+    </details>`;
   }
 
   function renderSecurityPanel(data) {
     const panel = $('panel-security');
     if (!panel) return;
-    const score = data.trust?.score ?? 0;
+
     const checks = data.checks || {};
+    const counts = data.counts || {};
     const bd = data.audit?.breakdown || {};
     const generated = data.generatedAt
-      ? new Date(data.generatedAt).toLocaleString('tr-TR')
+      ? new Date(data.generatedAt).toLocaleString('tr-TR', { dateStyle: 'short', timeStyle: 'short' })
       : '—';
-    const highlights = (data.highlights || [])
-      .map((h) => `<div class="alert-row ${h.level || ''}">${escHtml(h.text)}</div>`)
-      .join('');
+    const auditCard = resolveAuditCard(data);
+
+    const checklistFolds = [
+      secFoldHtml('Kritik riskler', checks.critical, { open: (counts.bad || 0) > 0, tone: 'bad' }),
+      secFoldHtml('Uyarılar', checks.warnings, {
+        open: (counts.bad || 0) === 0 && (counts.warn || 0) > 0,
+        tone: 'warn',
+      }),
+      secFoldHtml('Geçen kontroller', checks.passed, { open: false, tone: 'good' }),
+    ].join('');
+    const checklist = `<section class="sec-block glass sec-checklist">
+      <h3 class="sec-block-title">Kontrol listesi</h3>
+      ${checklistFolds || '<p class="sec-empty">Bu rapor için kontrol listesi yok.</p>'}
+    </section>`;
+
+    const rugNote = data.rugcheck
+      ? `<div class="sec-rug glass">${escHtml(stripExternalBrands(data.rugcheck))}</div>`
+      : '';
 
     panel.innerHTML = [
-      highlights ? sectionCard('Öne çıkan bulgular', highlights) : '',
-      bd.liquidity || bd.age
-        ? sectionCard(
-            'Denetim özeti',
-            `<ul>
-              <li><b>Likidite kodu:</b> ${escHtml(bd.liquidity || '—')}</li>
-              <li><b>Yaş kodu:</b> ${escHtml(bd.age || '—')}</li>
-            </ul>`,
-          )
-        : '',
-      `<article class="section-card"><div class="trust-hero">
-        <div class="trust-score-big" style="--pct:${score};--ring-color:${scoreColor(score)}"><span>${score}</span></div>
-        <div class="trust-detail">
-          <strong>${data.trust?.tier || '—'} · ${data.levelLabel || ''}</strong>
-          <p>${data.trust?.verdict || ''}</p>
-          <p style="margin-top:6px;font-size:11px;color:var(--text-tertiary)">${data.trust?.scoreLabel || ''}</p>
-        </div>
-      </div></article>`,
-      auditSummaryHtml(data).split('div').join('div'),
-      data.rugcheck ? sectionCard('RugCheck', `<p style="margin:0">${data.rugcheck}</p>`) : '',
-      checksGroupHtml('Kritik riskler', checks.critical),
-      checksGroupHtml('Uyarılar', checks.warnings),
-      checksGroupHtml('Geçen kontroller', checks.passed),
-      sectionCard('On-chain detay', listHtml(data.onchain)),
-      sectionCard('Kontrat güvenliği', listHtml(data.contract)),
-      `<p class="report-meta">Rapor: ${generated} · ${data.counts?.total || 0} kontrol</p>`,
+      secScoreHeroHtml(data, counts),
+      secMetricsHtml(data, counts, bd),
+      secAlertsHtml(data.highlights),
+      secAuditGridHtml(auditCard),
+      rugNote,
+      checklist,
+      secTechnicalHtml(data),
+      `<footer class="sec-foot"><span>Rapor · ${escHtml(generated)}</span><span>${counts.total || 0} kontrol</span></footer>`,
     ].join('');
   }
 
@@ -2450,53 +3495,26 @@
       .map((line) => {
         const text = typeof line === 'object' ? line.text : line;
         const level = typeof line === 'object' ? line.level : '';
-        return `<li class="${level || ''}">${text}</li>`;
+        return `<li class="${level || ''}">${escHtml(stripExternalBrands(text))}</li>`;
       })
       .join('');
     return `<ul>${lis}</ul>`;
   }
 
-  function renderTradePanel(data) {
-    const panel = $('panel-trade');
+  function paintTradeBar() {
     const bar = $('tradeBar');
-    const a = data.actions || {};
-    const m = data.market || {};
-    const buy = a.buyUrl || m.dexScreenerUrl;
-    const sell = a.sellUrl || buy;
-    const via = a.tradeProvider || 'Swap';
+    if (!bar) return;
+    bar.innerHTML = `<button type="button" class="trade-bar-btn trade-bar-btn--buy" data-trade-quick="buy"><span class="tbb-ico">↑</span><span class="tbb-lbl">Al</span></button>
+      <button type="button" class="trade-bar-btn trade-bar-btn--sell" data-trade-quick="sell"><span class="tbb-ico">↓</span><span class="tbb-lbl">Sat</span></button>
+      <button type="button" class="trade-bar-btn trade-bar-btn--chart" data-trade-tab="txns"><span class="tbb-ico">⚡</span><span class="tbb-lbl">Trade</span></button>`;
+    bar.dataset.tradeBound = '';
+    bindTradeBar();
+  }
 
-    if (panel) {
-      const w = globalThis.SniperWallet;
-      const walletLine = w?.pubkey
-        ? `<p class="wallet-banner">◎ ${escHtml(w.label)} · <code>${escHtml(w.shortAddr(w.pubkey))}</code></p>`
-        : '';
-      const links = [
-        a.dsUrl && { label: 'DexScreener', url: a.dsUrl },
-        a.gtUrl && { label: 'GeckoTerminal', url: a.gtUrl },
-        a.explorerUrl && { label: 'Solscan', url: a.explorerUrl },
-        a.pumpUrl && { label: 'Pump.fun', url: a.pumpUrl },
-      ].filter(Boolean);
-
-      panel.innerHTML = [
-        walletLine,
-        buy
-          ? `<div class="trade-grid">
-              <a class="trade-link buy" href="${buy}" target="_blank" rel="noopener">Satın al</a>
-              <a class="trade-link sell" href="${sell}" target="_blank" rel="noopener">Sat</a>
-            </div>
-            <p style="text-align:center;font-size:11px;color:var(--text-tertiary);margin:0 0 8px">via ${via}</p>`
-          : '',
-        links.map((l) => `<a class="trade-link ext" href="${l.url}" target="_blank" rel="noopener">${l.label}</a>`).join(''),
-      ].join('');
-    }
-
-    if (bar) {
-      const chartUrl = a.dsUrl || m.dexScreenerUrl || '#';
-      bar.innerHTML = buy
-        ? `<a class="trade-bar-btn trade-bar-btn--buy" href="${buy}" target="_blank" rel="noopener"><span class="tbb-ico" aria-hidden="true">↑</span><span class="tbb-lbl">Al</span></a>
-           <a class="trade-bar-btn trade-bar-btn--sell" href="${sell}" target="_blank" rel="noopener"><span class="tbb-ico" aria-hidden="true">↓</span><span class="tbb-lbl">Sat</span></a>
-           <a class="trade-bar-btn trade-bar-btn--chart" href="${chartUrl}" target="_blank" rel="noopener"><span class="tbb-ico" aria-hidden="true">◎</span><span class="tbb-lbl">Grafik</span></a>`
-        : '';
+  function renderTradePanel(data) {
+    paintTradeBar();
+    if (globalThis.SniperTrade?.render) {
+      globalThis.SniperTrade.render(data);
     }
   }
 
@@ -2583,7 +3601,10 @@
       const dexRaw = String(m.dex || data.dex || '').toLowerCase();
       let plat = 'other';
       let label = 'DEX';
-      if (/pump/.test(dexRaw)) { plat = 'pumpfun'; label = dexRaw === 'pumpswap' ? 'PumpSwap' : 'Pump.fun'; }
+      if (/pump/.test(dexRaw)) {
+        plat = 'pumpfun';
+        label = pumpDexLabel(dexRaw === 'pumpswap' ? 'pumpswap' : 'pumpfun');
+      }
       else if (dexRaw.startsWith('raydium')) { plat = 'raydium'; label = 'Raydium'; }
       else if (dexRaw.startsWith('meteora')) { plat = 'meteora'; label = 'Meteora'; }
       else if (dexRaw.startsWith('orca')) { plat = 'orca'; label = 'Orca'; }
@@ -2592,32 +3613,14 @@
       dexBadge.className = `pill dex-pill dex-${plat}`;
     }
 
-    const chip = $('levelChip');
-    if (chip) {
-      chip.textContent = data.levelLabel || '—';
-      chip.className = `pill ${levelRiskClass(data.level)}`;
-    }
-
-    const trustMini = $('trustMini');
-    if (trustMini) {
-      trustMini.textContent = `Skor ${data.trust?.score ?? '—'}`;
-      trustMini.className = 'pill trust';
-    }
-
-    const riskTop = $('riskPillTop');
-    const rb = riskBadgeLabel(data.level, data.trust?.score);
-    if (riskTop) {
-      riskTop.textContent = rb.text;
-      riskTop.className = `risk-pill-top ${rb.cls}`;
-    }
-
     loadLogo(m.imageUrl, m.imageFallbacks, sym);
     $('priceUsd').textContent = fmtPriceDisplay({ priceUsd: m.priceUsd, priceUsdFmt: m.priceUsdFmt })
       || data.summary?.price || '—';
 
+    renderHeroShell(data);
     renderQuoteChanges(m);
-    renderDetailBadges(data);
-    renderMetrics(m, m.chart?.stats);
+    renderMetrics(m, data);
+    renderInfoAuditCard(data);
     renderTxnBar(m);
     startDexTradesPanel(m);
     const chartSection = document.querySelector('.chart-terminal');
@@ -2677,6 +3680,14 @@
   }
 
   function setupShell() {
+    $('appBrandHome')?.addEventListener('click', () => {
+      if (document.documentElement.classList.contains('detail-mode')) {
+        location.hash = '';
+        reportId = null;
+        destroyChart();
+        showScannerHome();
+      }
+    });
     $('btnBack')?.addEventListener('click', () => {
       location.hash = '';
       reportId = null;
@@ -2705,7 +3716,10 @@
 
   async function main() {
     setupShell();
+    syncAppChrome();
     initWallet();
+    initHeroPriceBuy();
+    void loadPromoBanner();
     reportId = reportIdFromUrl();
 
     if (!reportId) {
@@ -2719,6 +3733,7 @@
     await loadReportFlow();
   }
 
+  globalThis.apiPath = apiPath;
   globalThis.showToast = showToast;
   globalThis.getActiveChain = getActiveChain;
   globalThis.sniperFeedCatalog = () => feedItemsFull || [];

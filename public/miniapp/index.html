@@ -13,11 +13,13 @@
   <script src="host-detect.js?v=1"></script>
   <script src="profile-bootstrap.js?v=5"></script>
   <script src="telegram-viewport.js?v=16"></script>
-  <link rel="stylesheet" href="styles.css?v=68" />
+  <link rel="stylesheet" href="styles.css?v=88" />
+  <link rel="stylesheet" href="trade.css?v=11" />
   <link rel="stylesheet" href="dex-scanner.css?v=126" />
   <link rel="stylesheet" href="new-pairs.css?v=120" />
   <link rel="stylesheet" href="dex-scanner-radar.css?v=2" />
   <link rel="stylesheet" href="dex-sidebar.css?v=5" />
+  <link rel="stylesheet" href="app-chrome.css?v=6" />
   <link rel="stylesheet" href="search-overlay.css?v=2" />
   <link rel="stylesheet" href="support.css?v=3" />
   <link rel="stylesheet" href="account-login.css?v=3" />
@@ -94,6 +96,40 @@
     </aside>
   </div>
 
+  <div id="appTopChrome" class="app-top-chrome" aria-label="SNIPER marka">
+    <header class="app-brand-bar">
+      <button type="button" class="btn-sidebar-open" id="btnSidebarOpen" aria-label="Menü">☰</button>
+      <button type="button" class="app-brand-back" id="btnBack" aria-label="Ana ekrana dön">←</button>
+      <button type="button" class="app-brand-core" id="appBrandHome" aria-label="SNIPER DEX SCANNER ana sayfa">
+        <img src="assets/sniper-logo.png?v=3" alt="" class="brand-logo" width="44" height="44" decoding="async" fetchpriority="high" />
+        <span class="brand-titles">
+          <span class="brand-main">SNIPER</span>
+          <span class="brand-sub">DEX SCANNER</span>
+          <span class="chain-pill-active" id="headerChainPill">
+            <img class="chain-pill-ico" src="assets/chains/chain-solana.png?v=1" alt="" width="12" height="12" decoding="async" />
+            <span class="chain-pill-txt">SOL</span>
+          </span>
+        </span>
+      </button>
+      <div class="app-brand-actions">
+        <button type="button" id="btnCropDetail" class="btn-crop-detail app-chrome-detail-only hidden" title="Dex kırpma ayarı">Kırpma</button>
+        <button type="button" class="btn-connect" id="btnConnect"><span class="wallet-ico">👛</span> Connect</button>
+      </div>
+    </header>
+    <div class="feed-meta-bar app-chrome-home-only hidden" id="feedMetaBar">
+      <span class="feed-meta-dot"></span>
+      <span id="feedMetaText">◎ Bot channel posts · live prices</span>
+    </div>
+    <a href="#" class="promo-banner app-promo-global hidden" id="promoBanner" rel="noopener noreferrer">
+      <picture class="promo-banner-picture">
+        <source id="promoBannerSrcMobile" media="(max-width: 479px)" srcset="" />
+        <source id="promoBannerSrcTablet" media="(max-width: 899px)" srcset="" />
+        <img class="promo-banner-img" id="promoBannerImg" alt="Reklam" loading="lazy" decoding="async" />
+      </picture>
+      <span class="promo-banner-badge">AD</span>
+    </a>
+  </div>
+
   <div id="loading" class="boot-screen">
     <div class="boot-logo">SNIPER DEX SCANNER</div>
     <div class="boot-spinner"></div>
@@ -108,47 +144,7 @@
 
   <!-- SNIPER DEX SCANNER home -->
   <div id="scanner-home" class="scanner-home hidden">
-    <header class="scan-header">
-      <button type="button" class="btn-sidebar-open" id="btnSidebarOpen" aria-label="Menü">☰</button>
-      <div class="scan-brand">
-        <img
-          src="assets/sniper-logo.png?v=3"
-          alt="SNIPER DEX SCANNER"
-          class="brand-logo"
-          width="108"
-          height="108"
-          decoding="async"
-          fetchpriority="high"
-        />
-        <div class="brand-titles">
-          <span class="brand-main">SNIPER</span>
-          <span class="brand-sub">DEX SCANNER</span>
-          <span class="chain-pill-active" id="headerChainPill">
-            <img class="chain-pill-ico" src="assets/chains/chain-solana.png?v=1" alt="" width="12" height="12" decoding="async" />
-            <span class="chain-pill-txt">SOL</span>
-          </span>
-        </div>
-      </div>
-      <div class="header-actions">
-        <button type="button" class="btn-connect" id="btnConnect"><span class="wallet-ico">👛</span> Connect Wallet</button>
-      </div>
-    </header>
-
     <div id="homeFeedPanel" class="home-feed-panel">
-    <div class="feed-meta-bar hidden" id="feedMetaBar">
-      <span class="feed-meta-dot"></span>
-      <span id="feedMetaText">◎ Bot channel posts · live prices</span>
-    </div>
-
-    <a href="#" class="promo-banner hidden" id="promoBanner" rel="noopener noreferrer">
-      <picture class="promo-banner-picture">
-        <source id="promoBannerSrcMobile" media="(max-width: 479px)" srcset="" />
-        <source id="promoBannerSrcTablet" media="(max-width: 899px)" srcset="" />
-        <img class="promo-banner-img" id="promoBannerImg" alt="Reklam" loading="lazy" decoding="async" />
-      </picture>
-      <span class="promo-banner-badge">AD</span>
-    </a>
-
     <section class="trending-band hidden" id="trendingBand" aria-label="Trending">
       <div class="trending-band-head">
         <span class="trending-band-icon">🔥</span>
@@ -311,17 +307,10 @@
 
   <!-- Token detay (rapor #r=) -->
   <div id="view-detail" class="view-detail hidden">
-    <header class="detail-top">
-      <button type="button" class="btn-back" id="btnBack">←</button>
-      <span class="detail-title">Token analizi</span>
-      <span id="riskPillTop" class="risk-pill-top">—</span>
-      <button type="button" id="btnCropDetail" class="btn-crop-detail hidden" title="Dex kırpma ayarı">Kırpma</button>
-    </header>
-
     <div class="detail-body">
       <div class="detail-tab-wrap">
       <div id="dtab-chart" class="detail-tab active">
-      <section class="hero-card">
+      <section class="detail-token-shell hero-card" id="detailTokenShell">
         <div class="hero-top">
           <div class="logo-wrap" id="logoWrap">
             <div class="logo-skeleton" id="logoSkeleton"></div>
@@ -330,15 +319,20 @@
           <div class="hero-meta">
             <div class="hero-title-row">
               <h1 id="pairTitle">—</h1>
-              <button type="button" id="copyMint" class="icon-btn">⧉</button>
+              <button type="button" id="copyMint" class="icon-btn" title="Mint kopyala">⧉</button>
             </div>
             <p id="pairSub" class="mint-line">—</p>
             <div class="hero-badges">
               <span id="dexBadge" class="pill">—</span>
             </div>
           </div>
+          <span id="heroRiskChip" class="hero-risk-chip">—</span>
         </div>
-        <div class="hero-price" id="priceUsd">—</div>
+        <div class="hero-price-row">
+          <button type="button" class="hero-price hero-price-live" id="priceUsd" aria-label="Güncel fiyat — bu fiyattan al">—</button>
+          <span id="heroChg24" class="hero-chg24">—</span>
+        </div>
+        <div class="hero-stats" id="heroStats" aria-label="Özet metrikler"></div>
         <div class="quote-changes" id="quoteChanges"></div>
       </section>
 
@@ -382,7 +376,7 @@
         <div class="trades-head">
           <span class="trades-title">Canlı alım / satım</span>
           <span class="trades-live" aria-hidden="true"><span class="trades-live-dot"></span> LIVE</span>
-          <span class="trades-meta" id="tradesMeta">DexScreener</span>
+          <span class="trades-meta" id="tradesMeta">Canlı işlemler</span>
           <button type="button" id="btnCropInline" class="btn-crop-cal hidden" title="Dex kırpma">Kırpma</button>
         </div>
         <div class="trades-thead" aria-hidden="true">
@@ -392,7 +386,7 @@
           <iframe
             id="dexTradesEmbed"
             class="dex-trades-embed hidden"
-            title="DexScreener işlemler"
+            title="Canlı işlemler"
             loading="eager"
             referrerpolicy="no-referrer-when-downgrade"
           ></iframe>
@@ -403,59 +397,170 @@
       </section>
       </div>
 
-      <div id="dtab-info" class="detail-tab hidden">
-      <section class="info-contract glass" id="infoContractSection">
-        <h3 class="info-section-title">Kontrat</h3>
-        <p class="info-contract-addr" id="infoContractAddr">—</p>
-        <button type="button" class="detail-act-btn info-copy-mint" id="btnCopyMintInfo">Mint kopyala</button>
-      </section>
-      <section class="metrics-dashboard" id="metricsDash"></section>
+      <div id="dtab-info" class="detail-tab">
+        <div class="info-tab-stack">
+          <section class="info-hero-card" id="infoHeroCard">
+            <div class="info-hero-bg" aria-hidden="true"></div>
+            <div class="info-hero-inner">
+              <div class="info-hero-logo-wrap">
+                <img id="infoHeroLogo" class="info-hero-logo hidden" alt="" width="72" height="72" />
+                <span id="infoHeroLogoFb" class="info-hero-logo-fb">?</span>
+              </div>
+              <h2 class="info-hero-name" id="infoHeroName">—</h2>
+              <p class="info-hero-ticker" id="infoHeroTicker"><span id="infoHeroSym">—</span> / SOL</p>
+              <div class="info-hero-route" id="infoHeroRoute" aria-label="Ağ ve platform"></div>
+              <p class="info-hero-desc hidden" id="infoHeroDesc"></p>
+              <div class="info-social-row" id="infoSocialRow"></div>
+            </div>
+          </section>
 
-      <section class="txn-section glass hidden" id="txnSection">
-        <div class="txn-head"><span>24s işlem akışı</span><span id="txnCounts">—</span></div>
-        <div class="txn-track"><span id="txnBuyBar" class="txn-buy"></span></div>
-      </section>
+          <section class="info-panel glass info-market-panel">
+            <div class="info-market-head" id="metricsHead"></div>
+            <div class="info-metrics-grid info-metrics-grid--rich" id="metricsDash"></div>
+          </section>
 
-      <div class="panel-stack">
-        <div id="panel-info" class="tab-panel active"></div>
+          <section class="info-panel glass info-audit-panel hidden" id="infoAuditSection" aria-label="Denetim">
+            <header class="info-audit-head">
+              <button type="button" class="info-audit-toggle" id="infoAuditToggle" aria-expanded="true" aria-controls="infoAuditBody">
+                <svg class="info-audit-chevron" width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 7.5L6 4l3.5 3.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                <span class="info-audit-title">Denetim</span>
+                <span class="info-audit-hint" title="Zincir üstü güvenlik verileri" aria-hidden="true"><span>i</span></span>
+              </button>
+              <span class="info-audit-badge" id="infoAuditBadge">
+                <svg class="audit-shield-ico" width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 2 4 6v6c0 5.55 3.84 10.74 8 12 4.16-1.26 8-6.45 8-12V6l-8-4z" stroke="currentColor" stroke-width="1.5"/><path d="M12 8v4M12 15.5h.01" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+                <span id="infoAuditBadgeN">0</span>
+              </span>
+            </header>
+            <div class="info-audit-body" id="infoAuditBody"></div>
+            <div class="info-audit-foot">
+              <button type="button" class="info-audit-cta" id="infoAuditCta">
+                <svg class="audit-shield-ico" width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 2 4 6v6c0 5.55 3.84 10.74 8 12 4.16-1.26 8-6.45 8-12V6l-8-4z" stroke="currentColor" stroke-width="1.5"/><path d="M12 8v4M12 15.5h.01" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+                <span id="infoAuditCtaLbl">Denetimleri gör</span>
+              </button>
+            </div>
+          </section>
+
+          <section class="info-panel glass info-activity-panel hidden" id="txnSection">
+            <h3 class="info-panel-title">24s işlem sayısı</h3>
+            <div class="info-activity-rows" id="infoActivityRows"></div>
+          </section>
+
+          <section class="info-panel glass info-contract-panel">
+            <h3 class="info-panel-title">Kontrat bilgisi</h3>
+            <div class="info-addr-list" id="infoAddrList"></div>
+            <div class="info-chain-foot" id="infoChainFoot"></div>
+          </section>
+        </div>
       </div>
+
+      <div id="dtab-security" class="detail-tab">
+        <div id="panel-security" class="sec-stack" role="region" aria-label="Güvenlik raporu"></div>
       </div>
 
-      <div id="dtab-security" class="detail-tab hidden">
-        <section class="security-overview glass">
-          <div class="hero-badges security-hero-badges">
-            <span id="levelChip" class="pill">—</span>
-            <span id="trustMini" class="pill trust">—</span>
-          </div>
-          <div id="detailBadgeRow" class="detail-badge-row"></div>
-        </section>
-        <div id="panel-security" class="tab-panel active"></div>
-      </div>
-
-      <div id="dtab-txns" class="detail-tab hidden">
-        <div id="panel-trade" class="tab-panel active"></div>
+      <div id="dtab-txns" class="detail-tab">
+        <div id="panel-trade" class="detail-trade-panel"></div>
       </div>
       </div>
     </div>
 
     <footer class="trade-bar" id="tradeBar"></footer>
 
+    <div id="tradeAlertModal" class="trade-alert-modal hidden" role="dialog" aria-modal="true" aria-label="Fiyat alarmı kur">
+      <div class="trade-alert-backdrop" id="tradeAlertBackdrop"></div>
+      <div class="trade-alert-sheet">
+        <header class="trade-alert-head">
+          <div class="trade-alert-head-main">
+            <span class="trade-alert-badge" aria-hidden="true">🔔</span>
+            <div>
+              <h3 id="tradeAlertTitle">Fiyat alarmı</h3>
+              <p class="trade-alert-lead" id="tradeAlertLead">Hedef fiyata ulaşınca bildirim alın</p>
+            </div>
+          </div>
+          <button type="button" class="trade-alert-close" id="tradeAlertClose" aria-label="Paneli kapat">✕</button>
+        </header>
+
+        <div class="trade-alert-token-card">
+          <div class="trade-alert-token-row">
+            <span class="trade-alert-token-sym" id="tradeAlertTokenSym">$TOKEN</span>
+            <span class="trade-alert-token-pill">Canlı izleme</span>
+          </div>
+          <span class="trade-alert-token-mint" id="tradeAlertTokenMint">—</span>
+        </div>
+
+        <div class="trade-alert-price-card">
+          <span class="trade-alert-price-lbl">Güncel fiyat</span>
+          <strong class="trade-alert-price-val" id="tradeAlertNow">—</strong>
+          <span class="trade-alert-price-note" id="tradeAlertSub">USD · token detayı açıkken kontrol</span>
+        </div>
+
+        <label class="trade-alert-field">
+          <span class="trade-alert-field-lbl">Hedef fiyat</span>
+          <div class="trade-alert-input-wrap">
+            <span class="trade-alert-input-prefix" aria-hidden="true">$</span>
+            <input type="text" inputmode="decimal" id="tradeAlertTarget" placeholder="0.000000" autocomplete="off" />
+            <span class="trade-alert-input-suffix">USD</span>
+          </div>
+        </label>
+
+        <div class="trade-alert-dir-block">
+          <span class="trade-alert-dir-lbl">Ne zaman haber verilsin?</span>
+          <div class="trade-alert-dir" role="group" aria-label="Alarm koşulu">
+            <button type="button" class="trade-alert-dir-btn active" data-dir="above" id="tradeAlertDirAbove">
+              <span class="trade-alert-dir-ico" aria-hidden="true">↑</span>
+              <span class="trade-alert-dir-txt">Fiyat yükselince</span>
+            </button>
+            <button type="button" class="trade-alert-dir-btn" data-dir="below" id="tradeAlertDirBelow">
+              <span class="trade-alert-dir-ico" aria-hidden="true">↓</span>
+              <span class="trade-alert-dir-txt">Fiyat düşünce</span>
+            </button>
+          </div>
+        </div>
+
+        <button type="button" class="trade-alert-save" id="tradeAlertSave">Alarmı etkinleştir</button>
+        <p class="trade-alert-footnote">Uygulama açıkken canlı fiyatla kontrol edilir. İsteğe bağlı tarayıcı bildirimi isteyebilirsiniz.</p>
+
+        <section class="trade-alert-list-section" aria-labelledby="tradeAlertListTitle">
+          <h4 class="trade-alert-list-title" id="tradeAlertListTitle">Bu token için aktif alarmlar</h4>
+          <ul class="trade-alert-list" id="tradeAlertList"></ul>
+        </section>
+      </div>
+    </div>
+
+    <div id="tradeWalletModal" class="trade-wallet-modal hidden" role="dialog" aria-modal="true" aria-label="Cüzdan bağla">
+      <div class="trade-wallet-backdrop" id="tradeWalletBackdrop"></div>
+      <div class="trade-wallet-sheet">
+        <h3>Cüzdanınızı bağlayın</h3>
+        <p>İşlem cüzdanınızda onaylanır. Sniper yalnızca bağlantı köprüsüdür; anahtarlarınıza erişmez.</p>
+        <div class="trade-wallet-options">
+          <button type="button" class="trade-wallet-opt" id="tradeWalletPhantom">
+            <span class="trade-wallet-opt-ico phantom">👻</span>
+            <span>Phantom</span>
+          </button>
+          <button type="button" class="trade-wallet-opt" id="tradeWalletSolflare">
+            <span class="trade-wallet-opt-ico solflare">🔆</span>
+            <span>Solflare</span>
+          </button>
+        </div>
+        <button type="button" class="trade-wallet-close" id="tradeWalletClose">Vazgeç</button>
+      </div>
+    </div>
+
     <nav class="detail-bottom-nav" id="detailBottomNav" aria-label="Token detay sekmeleri">
       <button type="button" class="dbn-btn active" data-dtab="chart">
-        <span class="dbn-icon" aria-hidden="true">📈</span>
-        <span class="dbn-label">Chart</span>
+        <span class="dbn-icon" aria-hidden="true"><img class="dbn-icon-img" src="assets/detail-nav/nav-chart.png?v=1" alt="" width="30" height="30" decoding="async" /></span>
+        <span class="dbn-label">Grafik</span>
       </button>
       <button type="button" class="dbn-btn" data-dtab="info">
-        <span class="dbn-icon" aria-hidden="true">ℹ️</span>
-        <span class="dbn-label">Info</span>
+        <span class="dbn-icon" aria-hidden="true"><img class="dbn-icon-img" src="assets/detail-nav/nav-info.png?v=1" alt="" width="30" height="30" decoding="async" /></span>
+        <span class="dbn-label">Bilgi</span>
       </button>
       <button type="button" class="dbn-btn" data-dtab="security">
-        <span class="dbn-icon" aria-hidden="true">🛡️</span>
-        <span class="dbn-label">Security</span>
+        <span class="dbn-icon" aria-hidden="true"><img class="dbn-icon-img" src="assets/detail-nav/nav-security.png?v=1" alt="" width="30" height="30" decoding="async" /></span>
+        <span class="dbn-label">Güvenlik</span>
       </button>
       <button type="button" class="dbn-btn" data-dtab="txns">
-        <span class="dbn-icon" aria-hidden="true">📋</span>
-        <span class="dbn-label">Txns</span>
+        <span class="dbn-icon" aria-hidden="true"><img class="dbn-icon-img" src="assets/detail-nav/nav-trade.png?v=1" alt="" width="30" height="30" decoding="async" /></span>
+        <span class="dbn-label">Trade</span>
       </button>
     </nav>
   </div>
@@ -540,7 +645,8 @@
     </div>
   </div>
 
-  <script src="wallet.js?v=1"></script>
+  <script src="wallet.js?v=3"></script>
+  <script src="trade.js?v=15"></script>
   <script src="feed-badges.js?v=1"></script>
 <script src="dex-sidebar.js?v=7"></script>
   <script src="search-overlay.js?v=5"></script>
@@ -550,7 +656,7 @@
   <button type="button" id="cropCalFab" class="btn-crop-cal-fab hidden" aria-label="Kırpma ayar">Kırpma</button>
   <script src="dex-crop-baked.js?v=20260523"></script>
   <script src="dex-crop.js?v=85"></script>
-  <script src="app.js?v=191"></script>
+  <script src="app.js?v=225"></script>
   <script src="boot-feed.js?v=5"></script>
 </body>
 </html>

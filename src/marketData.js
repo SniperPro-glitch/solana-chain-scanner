@@ -52,7 +52,34 @@ function buildMarketFromToken(token) {
     fdvUsdFmt: fmtUsd(token.fdvUsd),
     buys24h: token.buys24h,
     sells24h: token.sells24h,
+    holdersCount: token.holdersCount ?? null,
   };
+}
+
+function fmtCompactAmount(n) {
+  const x = Number(n);
+  if (!Number.isFinite(x)) return null;
+  if (x >= 1_000_000_000) return `${(x / 1_000_000_000).toFixed(2)}B`;
+  if (x >= 1_000_000) return `${(x / 1_000_000).toFixed(2)}M`;
+  if (x >= 1_000) return `${(x / 1_000).toFixed(2)}K`;
+  if (x >= 1) return x.toFixed(2);
+  return x.toFixed(4);
+}
+
+function formatPoolCreatedAt(ms) {
+  if (!ms || !Number.isFinite(ms)) return null;
+  try {
+    const d = new Date(ms);
+    const dd = String(d.getDate()).padStart(2, '0');
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const yy = String(d.getFullYear()).slice(-2);
+    const hh = String(d.getHours()).padStart(2, '0');
+    const mi = String(d.getMinutes()).padStart(2, '0');
+    const ss = String(d.getSeconds()).padStart(2, '0');
+    return `${dd}/${mm}/${yy} ${hh}:${mi}:${ss}`;
+  } catch {
+    return null;
+  }
 }
 
 async function fetchDexScreenerPair(token) {
@@ -62,11 +89,30 @@ async function fetchDexScreenerPair(token) {
   });
 }
 
+function formatPairAgeMs(createdAtMs) {
+  if (!createdAtMs || !Number.isFinite(createdAtMs)) return null;
+  const mins = Math.max(0, Math.round((Date.now() - createdAtMs) / 60_000));
+  if (mins < 60) return `${mins}dk`;
+  if (mins < 60 * 24) return `${Math.floor(mins / 60)}sa`;
+  const days = Math.floor(mins / (60 * 24));
+  const hours = Math.floor((mins % (60 * 24)) / 60);
+  return hours > 0 ? `${days}g ${hours}sa` : `${days}g`;
+}
+
 function applyPairToMarket(market, pair) {
   if (!pair || !market) return market;
+  const createdAtMs = pair.pairCreatedAt || null;
+  const priceNative = parseFloat(pair.priceNative);
   return {
     ...market,
     imageUrl: pair.info?.imageUrl || market.imageUrl,
+    description: pair.info?.description || market.description || null,
+    websites: pair.info?.websites || market.websites || [],
+    socials: pair.info?.socials || market.socials || [],
+    pairCreatedAt: createdAtMs,
+    pairAge: formatPairAgeMs(createdAtMs) || market.pairAge,
+    priceNative: Number.isFinite(priceNative) ? priceNative : market.priceNative,
+    priceNativeFmt: Number.isFinite(priceNative) ? priceNative.toFixed(8).replace(/\.?0+$/, '') : market.priceNativeFmt,
     priceUsd: parseFloat(pair.priceUsd) || market.priceUsd,
     priceUsdFmt: fmtPriceUsd(parseFloat(pair.priceUsd) || market.priceUsd),
     pairLabel: pair.baseToken?.symbol && pair.quoteToken?.symbol
@@ -90,6 +136,21 @@ function applyPairToMarket(market, pair) {
     fdvUsdFmt: fmtUsd(parseFloat(pair.fdv) || market.fdvUsd),
     poolAddress: pair.pairAddress || market.poolAddress,
     dexScreenerUrl: pair.url || market.dexScreenerUrl,
+    quoteSymbol: pair.quoteToken?.symbol || market.quoteSymbol || 'SOL',
+    quoteAddress: pair.quoteToken?.address || market.quoteAddress || null,
+    liquidityBase: parseFloat(pair.liquidity?.base) || market.liquidityBase || null,
+    liquidityQuote: parseFloat(pair.liquidity?.quote) || market.liquidityQuote || null,
+    liquidityBaseFmt: fmtCompactAmount(parseFloat(pair.liquidity?.base)) || market.liquidityBaseFmt,
+    liquidityQuoteFmt: fmtCompactAmount(parseFloat(pair.liquidity?.quote)) || market.liquidityQuoteFmt,
+    volume6h: parseFloat(pair.volume?.h6) || market.volume6h,
+    volume6hFmt: fmtUsd(parseFloat(pair.volume?.h6) || market.volume6h),
+    volume1hFmt: fmtUsd(parseFloat(pair.volume?.h1) || market.volume1h),
+    poolCreatedAtFmt: formatPoolCreatedAt(createdAtMs) || market.poolCreatedAtFmt,
+    holdersCount: market.holdersCount ?? null,
+    circSupplyPct:
+      parseFloat(pair.fdv) > 0 && parseFloat(pair.marketCap) > 0
+        ? Math.min(100, (parseFloat(pair.marketCap) / parseFloat(pair.fdv)) * 100)
+        : market.circSupplyPct ?? null,
   };
 }
 

@@ -149,7 +149,16 @@
       return;
     }
     if (action === 'alerts') {
-      toast('Alerts — yakında');
+      const n = global.SniperTrade?.listPriceAlerts?.()?.length ?? 0;
+      if (n > 0) {
+        toast(`${n} aktif fiyat alarmı · token detayında düzenleyin`);
+      } else {
+        toast('Alarm yok — Trade sekmesinde 🔔 Fiyat hedefi ile kurun');
+      }
+      if (typeof global.switchDetailTab === 'function' && document.documentElement.classList.contains('detail-mode')) {
+        global.switchDetailTab('txns');
+        global.SniperTrade?.openPriceAlertModal?.();
+      }
       return;
     }
     toast('Yakında');

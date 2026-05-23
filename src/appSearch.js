@@ -23,12 +23,7 @@ function searchScore(it, qLower) {
 }
 
 function auditFromEntry(entry) {
-  if (!entry) return null;
-  return {
-    isCritical: entry.isCritical,
-    risk: { code: entry.riskCode || 'LOW' },
-    riskPercent: entry.riskPercent,
-  };
+  return miniAppFeed.auditFromFeedEntry?.(entry) ?? null;
 }
 
 async function buildItemsFromBotEntries(entries) {
@@ -46,16 +41,7 @@ async function buildItemsFromBotEntries(entries) {
         /* yoksay */
       }
     }
-    if (!audit) {
-      audit = auditFromEntry(entry);
-      if (!audit) {
-        try {
-          audit = solana.auditToken(token);
-        } catch {
-          audit = { risk: { code: 'MEDIUM' }, riskPercent: 55 };
-        }
-      }
-    }
+    if (!audit) audit = auditFromEntry(entry);
     const item = miniAppFeed.tokenToFeedItem(token, audit, 0, entry.reportId);
     item.postedAt = entry.postedAt;
     item.chain = 'solana';

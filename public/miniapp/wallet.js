@@ -7,10 +7,25 @@
     return global.Telegram?.WebApp;
   }
 
+  let activeProvider = null;
+
+  function getPhantomProvider() {
+    const p = global.phantom?.solana;
+    return p && typeof p.connect === 'function' ? p : null;
+  }
+
+  function getSolflareProvider() {
+    const p = global.solflare;
+    return p && typeof p.connect === 'function' ? p : null;
+  }
+
   function getProvider() {
-    const p = global.phantom?.solana || global.solflare || global.solana;
-    if (p && typeof p.connect === 'function') return p;
-    return null;
+    if (activeProvider && typeof activeProvider.connect === 'function') return activeProvider;
+    return getPhantomProvider() || getSolflareProvider() || (global.solana?.connect ? global.solana : null);
+  }
+
+  function getActiveProvider() {
+    return getProvider();
   }
 
   function providerLabel(p) {
@@ -71,15 +86,26 @@
     });
   }
 
-  async function connectInjected() {
-    const provider = getProvider();
-    if (!provider) return null;
-    bindProviderEvents(provider);
-    const resp = await provider.connect();
-    const pubkey = resp?.publicKey?.toString?.() || provider.publicKey?.toString?.();
+  async function connectInjected(provider) {
+    const p = provider || getProvider();
+    if (!p) return null;
+    activeProvider = p;
+    bindProviderEvents(p);
+    const resp = await p.connect();
+    const pubkey = resp?.publicKey?.toString?.() || p.publicKey?.toString?.();
     if (!pubkey) throw new Error('Adres alınamadı');
-    saveSession(pubkey, providerLabel(provider));
+    saveSession(pubkey, providerLabel(p));
     return pubkey;
+  }
+
+  async function connectWith(which) {
+    const key = String(which || '').toLowerCase();
+    const p = key === 'solflare' ? getSolflareProvider() : getPhantomProvider();
+    if (!p) {
+      if (key === 'phantom') openPhantomDeeplink();
+      throw new Error(key === 'solflare' ? 'Solflare bulunamadı — tarayıcı eklentisini kurun' : 'Phantom bulunamadı');
+    }
+    return connectInjected(p);
   }
 
   async function connectSilent() {
@@ -127,6 +153,7 @@
     try {
       await provider?.disconnect?.();
     } catch { /* yoksay */ }
+    activeProvider = null;
     saveSession(null);
   }
 
@@ -167,6 +194,10 @@
 
   global.SniperWallet = {
     getProvider,
+    getActiveProvider,
+    getPhantomProvider,
+    getSolflareProvider,
+    connectWith,
     get pubkey() { return state.pubkey; },
     get label() { return state.label; },
     get connecting() { return state.connecting; },

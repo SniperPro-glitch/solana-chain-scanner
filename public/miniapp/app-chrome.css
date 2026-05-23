@@ -1,0 +1,381 @@
+/* Üst marka + reklam — flex shell (kayma yok) */
+
+:root {
+  --app-brand-h: 58px;
+  --sniper-bg: #060910;
+  --sniper-card: #0b101d;
+  --sniper-border: rgba(255, 255, 255, 0.06);
+  --sniper-border-cyan: rgba(0, 229, 255, 0.22);
+}
+
+html {
+  height: 100%;
+}
+
+html,
+html.detail-mode body {
+  background: var(--sniper-bg);
+}
+
+body {
+  display: flex;
+  flex-direction: column;
+  height: var(--app-height, 100dvh);
+  max-height: var(--app-height, 100dvh);
+  overflow: hidden;
+  margin: 0;
+}
+
+/* Üst şerit — akışta, fixed değil */
+.app-top-chrome {
+  flex: 0 0 auto;
+  position: relative;
+  z-index: 260;
+  pointer-events: none;
+  background: linear-gradient(180deg, rgba(6, 9, 16, 0.99) 0%, rgba(6, 9, 16, 0.96) 100%);
+  border-bottom: 1px solid var(--sniper-border-cyan);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
+  padding-top: var(--tg-content-safe-top, 0px);
+}
+
+.app-top-chrome::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(rgba(0, 229, 255, 0.018) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 229, 255, 0.018) 1px, transparent 1px);
+  background-size: 20px 20px;
+  opacity: 0.85;
+}
+
+.app-top-chrome > * {
+  position: relative;
+  pointer-events: auto;
+}
+
+.app-brand-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: var(--app-brand-h);
+  padding: 6px calc(10px + var(--tg-content-safe-right, 0px)) 6px calc(8px + var(--tg-content-safe-left, 0px));
+  box-sizing: border-box;
+}
+
+.app-brand-back,
+.app-top-chrome .btn-sidebar-open {
+  flex-shrink: 0;
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  border: 1px solid var(--sniper-border-cyan);
+  background: rgba(0, 229, 255, 0.06);
+  color: var(--cyan, #00e5ff);
+  font-size: 17px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 12px rgba(0, 229, 255, 0.12);
+}
+
+.app-brand-back:active,
+.app-top-chrome .btn-sidebar-open:active {
+  transform: scale(0.97);
+}
+
+.app-brand-core {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+  color: inherit;
+}
+
+.app-brand-core .brand-logo {
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  border-radius: 10px;
+  object-fit: contain;
+  border: 1px solid rgba(0, 229, 255, 0.28);
+  box-shadow: 0 0 14px rgba(0, 229, 255, 0.2);
+  background: #000;
+}
+
+.app-brand-core .brand-titles {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  line-height: 1.05;
+  min-width: 0;
+}
+
+.app-brand-core .chain-pill-active {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 4px;
+  padding: 2px 8px 2px 4px;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  color: #00e5ff;
+  border: 1px solid rgba(0, 229, 255, 0.35);
+  border-radius: 999px;
+  background: rgba(0, 229, 255, 0.08);
+  text-transform: uppercase;
+  line-height: 1;
+}
+
+.app-brand-core .chain-pill-ico {
+  width: 12px;
+  height: 12px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.app-brand-core .chain-pill-txt {
+  line-height: 1;
+}
+
+.app-brand-core .brand-main {
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  color: var(--text, #eef2ff);
+  white-space: nowrap;
+}
+
+.app-brand-core .brand-sub {
+  font-size: 7px;
+  font-weight: 700;
+  letter-spacing: 0.28em;
+  color: var(--cyan, #00e5ff);
+}
+
+.app-brand-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.app-top-chrome .btn-connect {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 140px;
+  padding: 8px 16px;
+  font-size: 12px;
+  font-weight: 700;
+  font-family: inherit;
+  color: var(--cyan, #00e5ff);
+  background: rgba(0, 229, 255, 0.08);
+  border: 1px solid rgba(0, 229, 255, 0.45);
+  border-radius: 999px;
+  box-shadow: 0 0 16px rgba(0, 229, 255, 0.2);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.app-top-chrome .btn-connect.connected {
+  color: var(--green, #00ff88);
+  border-color: rgba(0, 255, 136, 0.5);
+  background: rgba(0, 255, 136, 0.08);
+  box-shadow: 0 0 12px rgba(0, 255, 136, 0.15);
+}
+
+.app-top-chrome .feed-meta-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 8px 8px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: rgba(0, 255, 136, 0.07);
+  border: 1px solid rgba(0, 255, 136, 0.28);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted, #758096);
+}
+
+html.detail-mode .app-top-chrome .feed-meta-bar {
+  display: none !important;
+}
+
+.app-top-chrome .promo-banner.app-promo-global {
+  display: block;
+  box-sizing: border-box;
+  width: calc(100% - 16px);
+  margin: 0 8px 8px;
+  border-radius: 10px;
+  aspect-ratio: 12.5 / 1;
+  min-height: 44px;
+  max-height: 68px;
+  overflow: hidden;
+}
+
+.app-top-chrome .promo-banner.app-promo-global.hidden {
+  display: none !important;
+  margin: 0;
+  min-height: 0;
+}
+
+html.detail-mode .app-chrome-home-only {
+  display: none !important;
+}
+
+html:not(.detail-mode) .app-chrome-detail-only {
+  display: none !important;
+}
+
+html.detail-mode .app-brand-back {
+  display: inline-flex !important;
+}
+
+html:not(.detail-mode) .app-brand-back {
+  display: none !important;
+}
+
+html.detail-mode .app-top-chrome .btn-sidebar-open {
+  display: none !important;
+}
+
+/* Ana içerik alanı — kalan yükseklik */
+#scanner-home.scanner-home,
+#view-detail.view-detail,
+#loading.boot-screen,
+#error.boot-screen {
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
+  padding-top: 0 !important;
+  position: relative !important;
+  top: auto !important;
+  left: auto !important;
+  right: auto !important;
+  bottom: auto !important;
+  height: auto !important;
+  max-height: none !important;
+  box-sizing: border-box;
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+#scanner-home.scanner-home {
+  min-height: 0 !important;
+  padding-bottom: var(--footer-stack, calc(var(--nav-h, 72px) + 88px));
+}
+
+html.detail-mode #view-detail.view-detail {
+  display: flex;
+  flex-direction: column;
+  background: var(--sniper-bg);
+  overflow: hidden;
+  padding-bottom: 0 !important;
+  overscroll-behavior-y: contain;
+}
+
+html.detail-mode #view-detail .detail-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 12px !important;
+}
+
+#view-detail.view-detail::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background:
+    linear-gradient(rgba(0, 229, 255, 0.018) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 229, 255, 0.018) 1px, transparent 1px),
+    radial-gradient(ellipse 70% 40% at 50% 0%, rgba(0, 229, 255, 0.04), transparent 55%);
+  background-size: 20px 20px, 20px 20px, 100% 100%;
+}
+
+#view-detail.view-detail > * {
+  position: relative;
+  z-index: 1;
+}
+
+#loading.boot-screen,
+#error.boot-screen {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+/* Kart / düğme uyumu */
+html.detail-mode .glass,
+html.detail-mode .hero-card,
+html.detail-mode .chart-terminal,
+html.detail-mode .trades-tape,
+html.detail-mode .detail-act-btn,
+html.detail-mode .tf,
+html.detail-mode .ctype,
+html.detail-mode .section-card,
+html.detail-mode .trade-terminal .trade-head,
+html.detail-mode .trade-book,
+html.detail-mode .trade-form-panel {
+  background: var(--sniper-card) !important;
+  border-color: var(--sniper-border) !important;
+}
+
+html.detail-mode .detail-act-btn,
+html.detail-mode .tf,
+html.detail-mode .ctype {
+  border-radius: 10px;
+  border: 1px solid var(--sniper-border-cyan);
+  background: rgba(0, 229, 255, 0.05) !important;
+  color: var(--text, #eef2ff);
+  font-weight: 700;
+}
+
+html.detail-mode .tf.active,
+html.detail-mode .ctype.active {
+  background: rgba(0, 229, 255, 0.14) !important;
+  color: var(--cyan, #00e5ff);
+  box-shadow: 0 0 14px rgba(0, 229, 255, 0.18);
+}
+
+html.detail-mode .hero-card {
+  background: linear-gradient(145deg, rgba(0, 229, 255, 0.05), rgba(11, 16, 29, 0.95)) !important;
+  border-color: var(--sniper-border-cyan) !important;
+}
+
+/* Alt sekme çubuğu — flex sütunun dibinde sabit (kayma yok) */
+html.detail-mode .detail-bottom-nav {
+  flex-shrink: 0;
+  position: relative !important;
+  bottom: auto !important;
+  left: auto !important;
+  right: auto !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  margin: 0 !important;
+  z-index: 280;
+}
+
+/* Al/Sat hızlı çubuğu yalnızca Trade sekmesinde (panel içinde) */
+html.detail-mode .trade-bar {
+  display: none !important;
+}

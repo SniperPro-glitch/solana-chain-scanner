@@ -6,7 +6,7 @@ const path = require('path');
 const { URL } = require('url');
 
 const reportStore = require('./reportStore');
-const { buildReportPayload } = require('./reportPayload');
+const { buildReportPayload, buildAuditCardFromPayload } = require('./reportPayload');
 const { enrichMarketForMiniApp } = require('./marketData');
 const miniAppFeed = require('./miniAppFeed');
 
@@ -72,6 +72,7 @@ async function sendDexChartJson(res, ref, tf, live) {
 /** DEX Railway: rapor/feed bot sunucusunda; status/config yerel kalsın. */
 function shouldProxyToBot(pathname, searchParams) {
   if (pathname === '/api/feed/status' || pathname === '/api/config') return false;
+  if (pathname === '/api/report/dev') return false;
   if (pathname.startsWith('/api/trades/')) return false;
   // Feed + arama her zaman bu serviste (multiChainFeed / appSearch) — localhost'ta da çalışır.
   if (pathname === '/api/feed' || pathname === '/api/search') return false;
@@ -321,6 +322,11 @@ function createMiniAppServer() {
         }
       }
 
+      const tradeApi = require('./miniAppTradeApi');
+      if (await tradeApi.handleTradeApi(req, res, url, { sendJson, readBody })) {
+        return;
+      }
+
       if (url.pathname === '/api/miniapp-version' && req.method === 'GET') {
         let appV = '';
         try {
@@ -409,6 +415,62 @@ function createMiniAppServer() {
 
       const apiMatch = url.pathname.match(/^\/api\/report\/([A-Za-z0-9_-]+)$/);
       if (req.method === 'GET' && apiMatch) {
+        if (apiMatch[1] === 'dev') {
+          const host = String(req.headers.host || '');
+          if (/localhost|127\.0\.0\.1/i.test(host)) {
+            try {
+              const axios = require('axios');
+              const sampleId = String(process.env.DEV_REPORT_ID || '1QCResXVs8I').trim();
+              const base = String(
+                process.env.DEV_REPORT_BASE || 'https://solana-chain-scanner-production.up.railway.app',
+              ).replace(/\/$/, '');
+              const tf = url.searchParams.get('tf') || '15m';
+              const { data } = await axios.get(`${base}/api/report/${encodeURIComponent(sampleId)}`, {
+                params: { tf },
+                timeout: 25000,
+              });
+              const devPayload = { ...data, id: 'dev' };
+              try {
+                const pseudoToken = {
+                  chain: 'solana',
+                  tokenAddress: devPayload.address,
+                  tokenSymbol: devPayload.symbol,
+                  tokenName: devPayload.market?.name || devPayload.symbol,
+                  dex: devPayload.market?.dex || devPayload.dex,
+                  priceUsd: devPayload.market?.priceUsd,
+                  liquidityUsd: devPayload.market?.liquidityUsd,
+                  volume24h: devPayload.market?.volume24h,
+                  marketCapUsd: devPayload.market?.marketCapUsd,
+                  fdvUsd: devPayload.market?.fdvUsd,
+                  buys24h: devPayload.market?.buys24h,
+                  sells24h: devPayload.market?.sells24h,
+                  priceChange24h: devPayload.market?.priceChange24h,
+                  priceChange5m: devPayload.market?.priceChange5m,
+                  priceChange1h: devPayload.market?.priceChange1h,
+                  priceChange6h: devPayload.market?.priceChange6h,
+                  dexScreener: {
+                    url: devPayload.actions?.dsUrl,
+                    pairAddress: devPayload.market?.poolAddress,
+                  },
+                };
+                const liveMarket = await enrichMarketForMiniApp(pseudoToken, { timeframe: tf });
+                if (liveMarket) devPayload.market = liveMarket;
+              } catch (e) {
+                console.warn('[miniApp] dev enrich:', e.message);
+              }
+              devPayload.auditCard = buildAuditCardFromPayload(devPayload);
+              sendJson(res, 200, devPayload);
+            } catch (e) {
+              sendJson(res, 502, {
+                error: 'dev_preview_failed',
+                message: e.message || 'Önizleme raporu alınamadı',
+              });
+            }
+            return;
+          }
+          sendJson(res, 404, { error: 'not_found', message: 'dev yalnızca localhost' });
+          return;
+        }
         const meta = await reportStore.getReportMetaAsync(apiMatch[1]);
         if (meta.status === 'not_found') {
           sendJson(res, 404, { error: 'not_found', message: 'Rapor bulunamadi. Yeni token paylasimindaki butonu kullanin.' });
