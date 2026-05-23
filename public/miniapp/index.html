@@ -13,7 +13,7 @@
   <script src="host-detect.js?v=1"></script>
   <script src="profile-bootstrap.js?v=5"></script>
   <script src="telegram-viewport.js?v=16"></script>
-  <link rel="stylesheet" href="styles.css?v=67" />
+  <link rel="stylesheet" href="styles.css?v=68" />
   <link rel="stylesheet" href="dex-scanner.css?v=126" />
   <link rel="stylesheet" href="new-pairs.css?v=120" />
   <link rel="stylesheet" href="dex-scanner-radar.css?v=2" />
@@ -362,9 +362,6 @@
             <button type="button" class="ctype active" data-type="candle">Mum</button>
             <button type="button" class="ctype" data-type="line">Çizgi</button>
           </div>
-          <button type="button" class="chart-live-btn" id="btnOpenLiveDrawer" title="Canlı alım / satım">
-            <span class="chart-live-dot" aria-hidden="true"></span> Canlı
-          </button>
         </div>
         <div class="ohlc-bar" id="ohlcBar">
           <span>O <b id="ohlcO">—</b></span>
@@ -379,6 +376,30 @@
           <div id="priceChart" class="chart-canvas"></div>
         </div>
         <p id="chartNote" class="chart-source hidden">—</p>
+      </section>
+
+      <section class="trades-tape glass trades-tape--dex-embed" id="tradesTape" aria-live="polite">
+        <div class="trades-head">
+          <span class="trades-title">Canlı alım / satım</span>
+          <span class="trades-live" aria-hidden="true"><span class="trades-live-dot"></span> LIVE</span>
+          <span class="trades-meta" id="tradesMeta">DexScreener</span>
+          <button type="button" id="btnCropInline" class="btn-crop-cal hidden" title="Dex kırpma">Kırpma</button>
+        </div>
+        <div class="trades-thead" aria-hidden="true">
+          <span>Zaman</span><span>Tip</span><span>USD</span><span id="tradesColToken">Token</span><span>Cüzdan</span>
+        </div>
+        <div id="dexTradesWrap" class="dex-trades-embed-wrap">
+          <iframe
+            id="dexTradesEmbed"
+            class="dex-trades-embed hidden"
+            title="DexScreener işlemler"
+            loading="eager"
+            referrerpolicy="no-referrer-when-downgrade"
+          ></iframe>
+          <div class="dex-mask dex-mask-top" aria-hidden="true"></div>
+          <div class="dex-mask dex-mask-foot" aria-hidden="true"></div>
+          <ul class="trades-list hidden" id="tradesList" aria-hidden="true"></ul>
+        </div>
       </section>
       </div>
 
@@ -412,43 +433,10 @@
       </div>
 
       <div id="dtab-txns" class="detail-tab hidden">
-        <p class="txns-tab-hint">Canlı işlem akışı yan panelde. Alım / satım linkleri aşağıda.</p>
-        <button type="button" class="detail-act-btn txns-open-live" id="btnTxnsOpenLive">Canlı alım / satım — yandan aç</button>
         <div id="panel-trade" class="tab-panel active"></div>
       </div>
       </div>
     </div>
-
-    <div id="detailLiveBackdrop" class="detail-live-backdrop hidden" aria-hidden="true"></div>
-    <aside id="detailLiveDrawer" class="detail-live-drawer" aria-label="Canlı alım satım" aria-hidden="true">
-      <header class="detail-live-head">
-        <span class="detail-live-title">Canlı alım / satım</span>
-        <span class="trades-live" aria-hidden="true"><span class="trades-live-dot"></span> LIVE</span>
-        <button type="button" class="detail-live-close" id="btnLiveDrawerClose" aria-label="Kapat">×</button>
-      </header>
-      <section class="trades-tape glass trades-tape--dex-embed" id="tradesTape" aria-live="polite">
-        <div class="trades-head">
-          <span class="trades-title">Canlı alım / satım</span>
-          <span class="trades-meta" id="tradesMeta">DexScreener</span>
-          <button type="button" id="btnCropInline" class="btn-crop-cal hidden" title="Dex kırpma">Kırpma</button>
-        </div>
-        <div class="trades-thead" aria-hidden="true">
-          <span>Zaman</span><span>Tip</span><span>USD</span><span id="tradesColToken">Token</span><span>Cüzdan</span>
-        </div>
-        <div id="dexTradesWrap" class="dex-trades-embed-wrap">
-          <iframe
-            id="dexTradesEmbed"
-            class="dex-trades-embed hidden"
-            title="DexScreener işlemler"
-            loading="eager"
-            referrerpolicy="no-referrer-when-downgrade"
-          ></iframe>
-          <div class="dex-mask dex-mask-top" aria-hidden="true"></div>
-          <div class="dex-mask dex-mask-foot" aria-hidden="true"></div>
-          <ul class="trades-list hidden" id="tradesList" aria-hidden="true"></ul>
-        </div>
-      </section>
-    </aside>
 
     <footer class="trade-bar" id="tradeBar"></footer>
 
@@ -562,7 +550,7 @@
   <button type="button" id="cropCalFab" class="btn-crop-cal-fab hidden" aria-label="Kırpma ayar">Kırpma</button>
   <script src="dex-crop-baked.js?v=20260523"></script>
   <script src="dex-crop.js?v=85"></script>
-  <script src="app.js?v=190"></script>
+  <script src="app.js?v=191"></script>
   <script src="boot-feed.js?v=5"></script>
 </body>
 </html>

@@ -452,36 +452,6 @@
   }
 
   let activeDetailTab = 'chart';
-  let liveDrawerOpen = false;
-
-  function openLiveDrawer() {
-    const drawer = $('detailLiveDrawer');
-    const backdrop = $('detailLiveBackdrop');
-    if (!drawer) return;
-    liveDrawerOpen = true;
-    drawer.classList.add('open');
-    drawer.setAttribute('aria-hidden', 'false');
-    backdrop?.classList.remove('hidden');
-    backdrop?.classList.add('open');
-    backdrop?.setAttribute('aria-hidden', 'false');
-    document.documentElement.classList.add('detail-live-open');
-    if (appData?.market) {
-      void startDexTradesPanel(appData.market);
-      scheduleDexTradesCrop();
-    }
-  }
-
-  function closeLiveDrawer() {
-    const drawer = $('detailLiveDrawer');
-    const backdrop = $('detailLiveBackdrop');
-    liveDrawerOpen = false;
-    drawer?.classList.remove('open');
-    drawer?.setAttribute('aria-hidden', 'true');
-    backdrop?.classList.remove('open');
-    backdrop?.classList.add('hidden');
-    backdrop?.setAttribute('aria-hidden', 'true');
-    document.documentElement.classList.remove('detail-live-open');
-  }
 
   function switchDetailTab(tabId) {
     const id = String(tabId || 'chart');
@@ -496,10 +466,9 @@
     });
     const scrollEl = document.querySelector('.view-detail') || document.querySelector('.detail-body');
     if (scrollEl) scrollEl.scrollTop = 0;
-    if (id === 'txns') {
-      openLiveDrawer();
-    } else if (liveDrawerOpen) {
-      closeLiveDrawer();
+    if ((id === 'chart' || id === 'txns') && appData?.market) {
+      void startDexTradesPanel(appData.market);
+      scheduleDexTradesCrop();
     }
     if (id === 'chart' && appData?.market) {
       void renderChart(appData.market).then(() => scheduleDexTradesCrop());
@@ -512,7 +481,6 @@
 
   function showDetailView() {
     hideAllViews();
-    closeLiveDrawer();
     document.documentElement.classList.add('detail-mode');
     $('view-detail')?.classList.remove('hidden');
     ensureDetailSpacer();
@@ -1794,10 +1762,6 @@
       }
     });
     $('btnWatchlist')?.addEventListener('click', () => showToast('Watchlist yakında'));
-    $('btnOpenLiveDrawer')?.addEventListener('click', () => openLiveDrawer());
-    $('btnTxnsOpenLive')?.addEventListener('click', () => openLiveDrawer());
-    $('btnLiveDrawerClose')?.addEventListener('click', () => closeLiveDrawer());
-    $('detailLiveBackdrop')?.addEventListener('click', () => closeLiveDrawer());
   }
 
   async function loadReportFlow() {
@@ -2670,7 +2634,7 @@
     renderInfoPanel(data);
     renderSecurityPanel(data);
     renderTradePanel(data);
-    if (liveDrawerOpen || activeDetailTab === 'txns') void startDexTradesPanel(m);
+    void startDexTradesPanel(m);
 
     document.querySelectorAll('.tf').forEach((b) => {
       b.classList.toggle('active', b.dataset.tf === (m.chart?.timeframe || currentTf));
@@ -2716,7 +2680,6 @@
     $('btnBack')?.addEventListener('click', () => {
       location.hash = '';
       reportId = null;
-      closeLiveDrawer();
       destroyChart();
       showScannerHome();
     });
@@ -2771,8 +2734,6 @@
   };
   globalThis.onBottomNav = onBottomNav;
   globalThis.switchDetailTab = switchDetailTab;
-  globalThis.openLiveDrawer = openLiveDrawer;
-  globalThis.closeLiveDrawer = closeLiveDrawer;
   globalThis.updateHeaderChainPill = updateHeaderChainPill;
   globalThis.fetchFeedForChain = (chainId) => {
     if (!chainId) return;
