@@ -2,6 +2,7 @@
   --trade-bar-h: 76px;
   --detail-tab-nav-h: 72px;
   --bottom-nav-icon-size: 22px;
+  --detail-nav-icon-size: 26px;
   --trade-row-h: 44px;
   --bg: #060910;
   --bg2: #0b101d;
@@ -820,18 +821,18 @@ html.detail-mode .trade-bar {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: var(--bottom-nav-icon-size);
-  height: var(--bottom-nav-icon-size);
+  width: var(--detail-nav-icon-size);
+  height: var(--detail-nav-icon-size);
   line-height: 0;
 }
 
 .dbn-icon-img {
   display: block;
-  width: var(--bottom-nav-icon-size);
-  height: var(--bottom-nav-icon-size);
+  width: var(--detail-nav-icon-size);
+  height: var(--detail-nav-icon-size);
   object-fit: contain;
   flex-shrink: 0;
-  transform: scale(1.15);
+  transform: scale(1.2);
   transform-origin: center;
   transition: filter 0.15s ease;
 }
