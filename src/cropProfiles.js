@@ -34,16 +34,9 @@ function loadBakedProfiles() {
 }
 
 function profileLooksCustom(block) {
-  if (!block?.chart) return false;
-  const c = block.chart;
-  const t = block.trades || {};
-  return (
-    c.top !== -8
-    || c.stageH !== 340
-    || t.iframeTop !== -820
-    || t.viewH !== 268
-    || (block.tape?.shiftDown || 0) !== 0
-  );
+  // chart ve trades objesi varsa custom say — default kontrolü kaldırıldı
+  // Çünkü farklı cihazların default değerleri farklı, yanlış sıfırlama yapıyordu
+  return !!(block?.chart && block?.trades);
 }
 
 function saveBakedProfiles(payload) {
