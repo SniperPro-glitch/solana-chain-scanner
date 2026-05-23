@@ -687,12 +687,145 @@ html.detail-mode .trade-bar {
   color: var(--text);
 }
 
-#dtab-txns .trades-tape {
+.txns-tab-hint {
+  margin: 0 0 10px;
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.txns-open-live {
+  width: 100%;
   margin-bottom: 12px;
 }
 
-#dtab-txns .dex-trades-embed-wrap {
-  min-height: 280px;
+.chart-live-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(0, 255, 136, 0.45);
+  background: rgba(0, 255, 136, 0.12);
+  color: #7dffb8;
+  font-size: 11px;
+  font-weight: 800;
+  cursor: pointer;
+  font-family: inherit;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.chart-live-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #00ff88;
+  box-shadow: 0 0 8px rgba(0, 255, 136, 0.8);
+  animation: live-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes live-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.55; transform: scale(0.85); }
+}
+
+.chart-toolbar {
+  flex-wrap: wrap;
+}
+
+.detail-live-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 85;
+  background: rgba(0, 0, 0, 0.52);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.22s ease;
+}
+
+.detail-live-backdrop.open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.detail-live-drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  z-index: 86;
+  width: min(100vw, 380px);
+  height: var(--app-height, 100dvh);
+  max-height: var(--app-height, 100dvh);
+  display: flex;
+  flex-direction: column;
+  background: rgba(8, 12, 18, 0.98);
+  border-left: 1px solid var(--border-strong);
+  box-shadow: -16px 0 48px rgba(0, 0, 0, 0.55);
+  transform: translateX(105%);
+  transition: transform 0.28s ease;
+  box-sizing: border-box;
+}
+
+.detail-live-drawer.open {
+  transform: translateX(0);
+}
+
+.detail-live-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  padding: calc(10px + var(--tg-content-safe-top, env(safe-area-inset-top, 0px))) 12px 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+.detail-live-title {
+  flex: 1;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.detail-live-close {
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--text);
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.detail-live-drawer .trades-tape {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+}
+
+.detail-live-drawer .trades-head {
+  padding: 8px 12px;
+  justify-content: space-between;
+}
+
+.detail-live-drawer .dex-trades-embed-wrap {
+  flex: 1;
+  min-height: 240px;
+}
+
+html.detail-live-open .detail-live-drawer {
+  transform: translateX(0);
+}
+
+html.detail-live-open .detail-live-backdrop {
+  opacity: 1;
+  pointer-events: auto;
 }
 
 html.detail-mode .view-detail {
