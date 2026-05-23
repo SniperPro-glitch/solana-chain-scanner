@@ -9,6 +9,7 @@
   --tg-content-safe-left: 0px;
   --tg-content-safe-right: 0px;
   --nav-h: 72px;
+  --bottom-nav-icon-size: 22px;
   --market-h: 88px;
   --footer-stack: calc(var(--nav-h) + var(--market-h) + var(--tg-safe-bottom, 0px) + 8px);
 }
@@ -35,6 +36,7 @@ html.tg-mini-app body {
   --radius: 12px;
   --w: 100%;
   --nav-h: 72px;
+  --bottom-nav-icon-size: 22px;
   --market-h: 88px;
 
   width: 100%;
@@ -1784,8 +1786,8 @@ html.scanner-mode .search-box {
 }
 
 .bnav-ico .scanner-ico-img {
-  width: 22px;
-  height: 22px;
+  width: var(--bottom-nav-icon-size);
+  height: var(--bottom-nav-icon-size);
 }
 
 .bnav.active .bnav-ico .scanner-ico-img {

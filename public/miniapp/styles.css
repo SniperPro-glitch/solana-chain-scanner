@@ -1,6 +1,7 @@
 :root {
   --trade-bar-h: 76px;
-  --detail-tab-nav-h: 64px;
+  --detail-tab-nav-h: 72px;
+  --bottom-nav-icon-size: 22px;
   --trade-row-h: 44px;
   --bg: #060910;
   --bg2: #0b101d;
@@ -777,27 +778,38 @@ html.detail-mode .trade-bar {
 }
 
 .dbn-btn {
-  flex: 1;
+  flex: 1 1 0;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 3px;
+  padding: 6px 2px;
   background: transparent;
   border: none;
-  border-top: 2px solid transparent;
   color: #758096;
-  font-size: 10px;
-  font-weight: 600;
   cursor: pointer;
   transition: color 0.15s, border-color 0.15s;
   -webkit-tap-highlight-color: transparent;
   font-family: inherit;
+  position: relative;
 }
 
 .dbn-btn.active {
   color: #00e5ff;
-  border-top-color: #00e5ff;
+}
+
+.dbn-btn.active::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 18%;
+  right: 18%;
+  height: 2px;
+  background: #00e5ff;
+  border-radius: 2px;
+  box-shadow: 0 0 8px #00e5ff;
 }
 
 .dbn-btn:hover {
@@ -808,28 +820,39 @@ html.detail-mode .trade-bar {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 30px;
-  height: 30px;
+  width: var(--bottom-nav-icon-size);
+  height: var(--bottom-nav-icon-size);
   line-height: 0;
 }
 
 .dbn-icon-img {
   display: block;
-  width: 30px;
-  height: 30px;
+  width: var(--bottom-nav-icon-size);
+  height: var(--bottom-nav-icon-size);
   object-fit: contain;
   flex-shrink: 0;
-  opacity: 0.82;
-  transition: opacity 0.15s ease, filter 0.15s ease;
+  transform: scale(1.15);
+  transform-origin: center;
+  transition: filter 0.15s ease;
+}
+
+.dbn-btn.active .dbn-icon {
+  filter: drop-shadow(0 0 6px rgba(0, 229, 255, 0.7));
 }
 
 .dbn-btn.active .dbn-icon-img {
-  opacity: 1;
-  filter: drop-shadow(0 0 6px rgba(0, 229, 255, 0.55));
+  filter: none;
 }
 
 .dbn-label {
-  font-size: 10px;
+  font-size: 9px;
+  font-weight: 600;
+  color: #758096;
+}
+
+.dbn-btn.active .dbn-label {
+  color: #00e5ff;
+  font-weight: 700;
 }
 
 /* ── Güvenlik sekmesi ── */
