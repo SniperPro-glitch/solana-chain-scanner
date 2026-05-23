@@ -663,11 +663,16 @@
       const el = $(id);
       if (el) el.textContent = val;
     };
-    set('tradeStatMcap', m.marketCapUsdFmt || fmtUsdShort(m.marketCapUsd));
     set('tradeStatLiq', m.liquidityUsdFmt || fmtUsdShort(m.liquidityUsd));
     set('tradeStatVol', m.volume24hFmt || fmtUsdShort(m.volume24h));
-    const holders = state.data?.market?.holdersCount ?? state.data?.holdersCount;
-    set('tradeStatHolders', holders != null ? fmtCompact(holders) : '—');
+    set(
+      'tradeStatBuyers',
+      typeof m.buys24h === 'number' ? fmtCompact(m.buys24h) : '—',
+    );
+    set(
+      'tradeStatSellers',
+      typeof m.sells24h === 'number' ? fmtCompact(m.sells24h) : '—',
+    );
   }
 
   function updateHeader() {
@@ -687,10 +692,7 @@
       chgEl.className = `trade-price-chg ${Number(chg) > 0 ? 'up' : Number(chg) < 0 ? 'down' : ''}`;
     }
     const venue = $('tradeVenueLabel');
-    if (venue) {
-      const dex = String(m.dex || state.data?.dex || 'DEX').replace(/_/g, ' ');
-      venue.textContent = dex;
-    }
+    if (venue) venue.textContent = 'Jupiter';
   }
 
   function updateBalanceUi() {
@@ -1101,6 +1103,7 @@
     if (!data) return;
     state.data = data;
     ensureAmountEquivEl();
+    upgradeTradeStatsIfNeeded();
     upgradeQuickBarIfNeeded();
     bindUi();
 
@@ -1132,6 +1135,16 @@
 
     const bar = $('tradeBar');
     if (bar) bar.classList.add('trade-bar--terminal');
+  }
+
+  function upgradeTradeStatsIfNeeded() {
+    if ($('tradeStatBuyers')) return;
+    const stats = document.querySelector('#tradeTerminal .trade-stats');
+    if (!stats) return;
+    stats.innerHTML = `<div class="trade-stat"><span class="trade-stat-lbl">Likidite</span><span class="trade-stat-val" id="tradeStatLiq">—</span></div>
+      <div class="trade-stat"><span class="trade-stat-lbl">24s hacim</span><span class="trade-stat-val" id="tradeStatVol">—</span></div>
+      <div class="trade-stat"><span class="trade-stat-lbl">Alıcı</span><span class="trade-stat-val" id="tradeStatBuyers">—</span></div>
+      <div class="trade-stat"><span class="trade-stat-lbl">Satıcı</span><span class="trade-stat-val" id="tradeStatSellers">—</span></div>`;
   }
 
   function upgradeQuickBarIfNeeded() {
@@ -1197,10 +1210,10 @@
           </div>
         </div>
         <div class="trade-stats">
-          <div class="trade-stat"><span class="trade-stat-lbl">MCAP</span><span class="trade-stat-val" id="tradeStatMcap">—</span></div>
-          <div class="trade-stat"><span class="trade-stat-lbl">Likidite</span><span class="trade-stat-val" id="tradeStatLiq">— <span class="lock-ico">🔒</span></span></div>
-          <div class="trade-stat"><span class="trade-stat-lbl">Hacim 24s</span><span class="trade-stat-val" id="tradeStatVol">—</span></div>
-          <div class="trade-stat"><span class="trade-stat-lbl">Holder</span><span class="trade-stat-val" id="tradeStatHolders">—</span></div>
+          <div class="trade-stat"><span class="trade-stat-lbl">Likidite</span><span class="trade-stat-val" id="tradeStatLiq">—</span></div>
+          <div class="trade-stat"><span class="trade-stat-lbl">24s hacim</span><span class="trade-stat-val" id="tradeStatVol">—</span></div>
+          <div class="trade-stat"><span class="trade-stat-lbl">Alıcı</span><span class="trade-stat-val" id="tradeStatBuyers">—</span></div>
+          <div class="trade-stat"><span class="trade-stat-lbl">Satıcı</span><span class="trade-stat-val" id="tradeStatSellers">—</span></div>
         </div>
       </header>
       <div class="trade-main">

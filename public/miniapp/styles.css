@@ -726,6 +726,10 @@ html.detail-mode .detail-tab .section-card {
   margin-right: 0;
 }
 
+#dtab-chart.active .detail-action-row {
+  display: none;
+}
+
 #dtab-chart .detail-action-row {
   padding: 0 0 12px;
 }
@@ -952,11 +956,21 @@ html.detail-mode .trade-bar {
 .sec-stat--bad .n { color: var(--red); }
 
 .sec-metrics {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border-radius: 16px;
+}
+
+.sec-metrics .sec-block-title {
+  margin: 0;
+}
+
+.sec-metrics-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
-  padding: 10px;
-  border-radius: 16px;
 }
 
 .sec-metric {
@@ -1036,11 +1050,11 @@ html.detail-mode .trade-bar {
 .sec-audit-item {
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: stretch;
   justify-content: center;
-  text-align: center;
+  text-align: left;
   min-height: 64px;
-  padding: 10px 8px;
+  padding: 12px 10px;
   border-radius: 10px;
   border: 1px solid rgba(255, 255, 255, 0.06);
   background: rgba(0, 0, 0, 0.2);
@@ -1060,11 +1074,32 @@ html.detail-mode .trade-bar {
   line-height: 1.25;
 }
 
+.sec-audit-val-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 6px;
+}
+
 .sec-audit-val {
   font-size: 12px;
   font-weight: 800;
   font-variant-numeric: tabular-nums;
 }
+
+.sec-audit-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: var(--muted);
+}
+
+.sec-audit-dot.good { background: var(--green); }
+.sec-audit-dot.warn { background: var(--warn); }
+.sec-audit-dot.bad { background: var(--red); }
+.sec-audit-dot.neutral { background: var(--muted); }
 
 .sec-rug {
   padding: 11px 12px;

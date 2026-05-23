@@ -2592,10 +2592,11 @@
     const total = buys + sells;
     const buyPct = Math.round((buys / total) * 100);
     wrap.classList.remove('hidden');
+    const sellPct = 100 - buyPct;
     rows.innerHTML = `<div class="info-act-block">
-      <div class="info-act-labels"><span class="buy-lbl">Alım</span><span class="sell-lbl">Satım</span></div>
+      <div class="info-act-labels"><span class="buy-lbl">Alım ${buyPct}%</span><span class="sell-lbl">Satım ${sellPct}%</span></div>
       <div class="info-act-bar"><span class="info-act-bar-fill" style="width:${buyPct}%"></span></div>
-      <div class="info-act-vals"><span class="buy-val">${buys.toLocaleString('tr-TR')}</span><span class="sell-val">${sells.toLocaleString('tr-TR')}</span></div>
+      <div class="info-act-vals"><span class="buy-val">${buys.toLocaleString('tr-TR')} al</span><span class="sell-val">${sells.toLocaleString('tr-TR')} sat</span></div>
     </div>`;
   }
 
@@ -3363,7 +3364,7 @@
         </div>
       </div>
       <div class="sec-stat-row">
-        <div class="sec-stat sec-stat--good"><span class="n">${c.good || 0}</span><span class="l">Geçti</span></div>
+        <div class="sec-stat sec-stat--good"><span class="n">${c.good || 0}</span><span class="l">Geçen</span></div>
         <div class="sec-stat sec-stat--warn"><span class="n">${c.warn || 0}</span><span class="l">Uyarı</span></div>
         <div class="sec-stat sec-stat--bad"><span class="n">${c.bad || 0}</span><span class="l">Kritik</span></div>
       </div>
@@ -3379,7 +3380,9 @@
       { k: 'Kontroller', v: `${c.total || 0}`, s: auditSub },
       { k: 'Kontrat', v: bd.contract || '—', s: data.levelLabel || '—' },
     ];
-    return `<section class="sec-metrics glass">${items
+    return `<section class="sec-metrics glass">
+      <h3 class="sec-block-title">Özet metrikler</h3>
+      <div class="sec-metrics-grid">${items
       .map(
         (i) => `<div class="sec-metric">
           <span class="sec-metric-k">${escHtml(i.k)}</span>
@@ -3387,7 +3390,7 @@
           <span class="sec-metric-s">${escHtml(String(i.s))}</span>
         </div>`,
       )
-      .join('')}</section>`;
+      .join('')}</div></section>`;
   }
 
   function secAlertsHtml(highlights) {
@@ -3408,14 +3411,18 @@
     const rows = sortAuditRows(card?.rows || []);
     if (!rows.length) return '';
     return `<section class="sec-block glass">
-      <h3 class="sec-block-title">Hızlı denetim</h3>
+      <h3 class="sec-block-title">Denetim özeti</h3>
       <div class="sec-audit-grid">${rows
-        .map(
-          (row) => `<div class="sec-audit-item sec-audit-item--${escHtml(row.status || 'neutral')}">
+        .map((row) => {
+          const st = escHtml(row.status || 'neutral');
+          return `<div class="sec-audit-item sec-audit-item--${st}">
             <span class="sec-audit-lbl">${escHtml(auditMockupLabel(row))}</span>
-            <span class="sec-audit-val">${escHtml(formatAuditValue(row.value))}</span>
-          </div>`,
-        )
+            <span class="sec-audit-val-row">
+              <span class="sec-audit-val">${escHtml(formatAuditValue(row.value))}</span>
+              <span class="sec-audit-dot ${st}" aria-hidden="true"></span>
+            </span>
+          </div>`;
+        })
         .join('')}</div>
     </section>`;
   }
