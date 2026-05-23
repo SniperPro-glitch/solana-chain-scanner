@@ -10,8 +10,8 @@
   let profilesReady = null;
   const CHART_BRAND_CROP = 40;
   const D = 'di' + 'v';
-  /** Kalibrasyon bitince false yap — gizli motor tamamen kapalı. */
-  const MOTOR_TEMP_DISABLED = true;
+  /** Gizli motor — token detayda baked profil apply (kalibre paneli kapalıyken). */
+  const MOTOR_TEMP_DISABLED = false;
 
   const PROFILE_META = {
     web: { label: 'Web', hint: 'Tarayici / masaustu' },
@@ -44,12 +44,8 @@
   };
 
   function enforceTradesFrame(trades) {
-    if (MOTOR_TEMP_DISABLED) {
-      if (!trades) return { ...LOCKED_TRADES_FRAME };
-      return { ...trades };
-    }
     if (!trades) return { ...LOCKED_TRADES_FRAME };
-    return { ...trades, ...LOCKED_TRADES_FRAME };
+    return { ...trades };
   }
 
   const DEFAULT_BLOCK = {
@@ -968,7 +964,7 @@
       apply(loadForProfile(pid));
     };
     finish();
-    // Geçici kapalı — kalibrasyon sonrası geri aç: [150, 500, 1200, 2500, 4000, 6000].forEach((ms) => setTimeout(finish, ms));
+    [150, 500, 1200, 2500, 4000, 6000].forEach((ms) => setTimeout(finish, ms));
     if (motorBurstDoneTimer) clearTimeout(motorBurstDoneTimer);
     motorBurstDoneTimer = setTimeout(() => markLayoutSessionDone(editingProfile), 6200);
     return true;
@@ -1010,7 +1006,7 @@
         if (!isDetailOpen()) return;
         applyCropNow();
         [150, 500, 1200].forEach((ms) => setTimeout(applyCropNow, ms));
-        if (!MOTOR_TEMP_DISABLED) runHiddenMotor();
+        runHiddenMotor();
       },
       true,
     );
@@ -1487,11 +1483,11 @@
           return;
         }
         onDetailOpen();
-        if (!MOTOR_TEMP_DISABLED) ensureMotorOnce();
+        ensureMotorOnce();
       }).observe(vd, { attributes: true, attributeFilter: ['class'] });
       if (!vd.classList.contains('hidden')) {
         onDetailOpen();
-        if (!MOTOR_TEMP_DISABLED) ensureMotorOnce();
+        ensureMotorOnce();
       }
     }
   }
