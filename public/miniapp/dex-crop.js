@@ -114,8 +114,23 @@
     return id;
   }
 
-  /** Koddaki ├Âl├ğ├╝ler + sunucudaki g├╝ncel profiller birle┼şir (bo┼ş sunucu varsay─▒lan─▒ ezmez). */
+  /** Sunucu API → dex-crop-baked.js → kod içi yedek. */
   function getBakedSource() {
+    if (serverBaked?.profiles) {
+      return {
+        version: serverBaked.version || 1,
+        updatedAt: serverBaked.updatedAt || null,
+        profiles: serverBaked.profiles,
+      };
+    }
+    const g = globalThis.__DEX_CROP_BAKED__;
+    if (g?.profiles) {
+      return {
+        version: g.version || 1,
+        updatedAt: g.updatedAt || null,
+        profiles: g.profiles,
+      };
+    }
     return { version: 1, profiles: BAKED_PROFILES };
   }
 
@@ -133,7 +148,15 @@
   }
 
   async function fetchServerBaked() {
-    return null;
+    try {
+      const r = await fetch('/api/crop-profiles', { cache: 'no-store' });
+      if (!r.ok) return serverBaked;
+      const data = await r.json();
+      if (data?.profiles) serverBaked = data;
+    } catch {
+      /* yoksay */
+    }
+    return serverBaked;
   }
 
   async function publishServerProfiles() {
