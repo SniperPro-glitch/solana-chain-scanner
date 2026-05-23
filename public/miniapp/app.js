@@ -451,12 +451,31 @@
     body.appendChild(sp);
   }
 
+  function switchDetailTab(tabId) {
+    const id = String(tabId || 'chart');
+    document.querySelectorAll('.detail-tab').forEach((el) => {
+      const on = el.id === `dtab-${id}`;
+      el.classList.toggle('active', on);
+      el.style.display = on ? 'block' : 'none';
+    });
+    document.querySelectorAll('.dbn-btn').forEach((btn) => {
+      btn.classList.toggle('active', btn.dataset.dtab === id);
+    });
+    const scrollEl = document.querySelector('.view-detail') || document.querySelector('.detail-body');
+    if (scrollEl) scrollEl.scrollTop = 0;
+  }
+
+  function openDetailWithChartTab() {
+    switchDetailTab('chart');
+  }
+
   function showDetailView() {
     hideAllViews();
     document.documentElement.classList.add('detail-mode');
     $('view-detail')?.classList.remove('hidden');
     ensureDetailSpacer();
     refreshTgViewport();
+    openDetailWithChartTab();
     if (globalThis.SniperDexCrop?.onDetailOpen) SniperDexCrop.onDetailOpen();
   }
 
@@ -2410,13 +2429,10 @@
   }
 
   function setupNav() {
-    document.querySelectorAll('.nav-tab').forEach((btn) => {
+    document.querySelectorAll('.dbn-btn').forEach((btn) => {
       btn.addEventListener('click', () => {
-        const tab = btn.dataset.tab;
-        document.querySelectorAll('.nav-tab').forEach((t) => t.classList.toggle('active', t === btn));
-        $('panel-info')?.classList.toggle('hidden', tab !== 'info');
-        $('panel-security')?.classList.toggle('hidden', tab !== 'security');
-        $('panel-trade')?.classList.toggle('hidden', tab !== 'trade');
+        const tab = btn.dataset.dtab;
+        if (tab) switchDetailTab(tab);
       });
     });
   }

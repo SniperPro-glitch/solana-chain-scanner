@@ -268,6 +268,29 @@ function createMiniAppServer() {
         }
       }
 
+      if (url.pathname === '/api/crop-pin-required' && req.method === 'GET') {
+        const cropProfiles = require('./cropProfiles');
+        sendJson(res, 200, { required: cropProfiles.cropSavePinRequired() });
+        return;
+      }
+
+      if (url.pathname === '/api/crop-verify-pin' && req.method === 'POST') {
+        const cropProfiles = require('./cropProfiles');
+        try {
+          const raw = await readBody(req);
+          const payload = JSON.parse(raw.toString('utf8') || '{}');
+          const ok = cropProfiles.verifyCropSavePin(payload.pin);
+          if (!ok) {
+            sendJson(res, 403, { ok: false, error: 'invalid_pin' });
+            return;
+          }
+          sendJson(res, 200, { ok: true });
+        } catch (e) {
+          sendJson(res, 400, { ok: false, error: 'bad_request', message: e.message });
+        }
+        return;
+      }
+
       if (url.pathname === '/api/crop-profiles') {
         const cropProfiles = require('./cropProfiles');
         if (req.method === 'GET') {

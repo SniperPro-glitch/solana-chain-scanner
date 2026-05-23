@@ -76,8 +76,30 @@ function writeBakedJs(data) {
   fs.writeFileSync(bakedOut, js, 'utf8');
 }
 
+function cropSavePinExpected() {
+  return String(
+    process.env.CROP_SAVE_PIN || process.env.CROP_PUBLISH_KEY || process.env.MINI_APP_CROP_KEY || '',
+  ).trim();
+}
+
+function cropSavePinRequired() {
+  return !!cropSavePinExpected();
+}
+
+function verifyCropSavePin(pin) {
+  const expected = cropSavePinExpected();
+  if (!expected) return true;
+  return String(pin || '').trim() === expected;
+}
+
 function isPublishAuthorized(req) {
   if (String(process.env.CROP_LOCK_PROFILES || '') === '1') return false;
+  if (cropSavePinRequired()) {
+    const pin = String(
+      req.headers['x-crop-save-pin'] || req.headers['x-crop-pin'] || '',
+    ).trim();
+    if (!verifyCropSavePin(pin)) return false;
+  }
   const key = String(process.env.CROP_PUBLISH_KEY || process.env.MINI_APP_CROP_KEY || '').trim();
   if (!key) return true;
   const got = String(req.headers['x-crop-key'] || req.headers['x-crop-publish-key'] || '').trim();
@@ -88,6 +110,8 @@ module.exports = {
   PROFILE_ORDER,
   loadBakedProfiles,
   saveBakedProfiles,
+  cropSavePinRequired,
+  verifyCropSavePin,
   isPublishAuthorized,
   DATA_FILE,
   PUBLIC_FALLBACK,

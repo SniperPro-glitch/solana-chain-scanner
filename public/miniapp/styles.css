@@ -1,5 +1,6 @@
 :root {
   --trade-bar-h: 76px;
+  --detail-tab-nav-h: 60px;
   --trade-row-h: 44px;
   --bg: #050811;
   --bg2: #070d14;
@@ -545,10 +546,98 @@ html.detail-mode body {
 .detail-body {
   --detail-pad: 10px;
   padding: 10px var(--detail-pad) 8px;
-  padding-bottom: calc(var(--trade-bar-h) + 32px);
+  padding-bottom: calc(var(--trade-bar-h) + var(--detail-tab-nav-h) + 32px);
   box-sizing: border-box;
   max-width: 100%;
   overflow-x: hidden;
+}
+
+/* ── Token detail 4-tab ── */
+.detail-tab-wrap {
+  display: block;
+}
+
+.detail-tab {
+  display: none;
+}
+
+.detail-tab.active {
+  display: block;
+}
+
+.detail-bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  width: 100%;
+  max-width: 480px;
+  margin: 0 auto;
+  height: var(--detail-tab-nav-h);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  box-sizing: content-box;
+  background: rgba(8, 12, 22, 0.97);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+  display: none;
+  align-items: stretch;
+  z-index: 52;
+}
+
+html.detail-mode .detail-bottom-nav {
+  display: flex;
+}
+
+html.detail-mode .scanner-home .bottom-nav {
+  display: none !important;
+}
+
+html.detail-mode .trade-bar {
+  bottom: calc(var(--detail-tab-nav-h) + env(safe-area-inset-bottom, 0px));
+}
+
+.dbn-btn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  background: transparent;
+  border: none;
+  border-top: 2px solid transparent;
+  color: #758096;
+  font-size: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+  -webkit-tap-highlight-color: transparent;
+  font-family: inherit;
+}
+
+.dbn-btn.active {
+  color: #00e5ff;
+  border-top-color: #00e5ff;
+}
+
+.dbn-btn:hover {
+  color: #00e5ff;
+}
+
+.dbn-icon {
+  font-size: 18px;
+  line-height: 1;
+}
+
+.dbn-label {
+  font-size: 10px;
+}
+
+html.detail-mode .view-detail {
+  padding-bottom: calc(
+    var(--trade-bar-h) + var(--detail-tab-nav-h) + var(--tg-safe-bottom, env(safe-area-inset-bottom, 0px)) + 20px
+  );
 }
 
 .glass {

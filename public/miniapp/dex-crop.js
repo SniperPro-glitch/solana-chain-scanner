@@ -5,6 +5,13 @@
 (function (global) {
   const STORAGE_KEY = 'sniperDexCropV4';
   const CROP_UNLOCK_KEY = 'sniperCropDevUnlock';
+  const CROP_UI_STATE_KEY = 'sniperCropUiState';
+  const CROP_PIN_SESSION_KEY = 'sniperCropPinOk';
+  const CROP_TAP_COUNT = 5;
+  const CROP_TAP_WINDOW_MS = 1400;
+  const TRADES_TAP_SEL =
+    '.trades-tape, #tradesTape, .trades-head, .trades-title, .trades-live, #dexTradesWrap';
+  let cropPinRequired = null;
   const LEGACY_KEYS = ['sniperDexCropV3', 'sniperDexCropV2', 'sniperDexCropV1'];
   let serverBaked = null;
   let profilesReady = null;
@@ -155,13 +162,19 @@
     return serverBaked;
   }
 
-  async function publishServerProfiles() {
+  async function publishServerProfiles(savePin) {
     const store = loadStore();
     store.profiles[editingProfile] = clone(current);
     saveStore(store);
+    const headers = { 'Content-Type': 'application/json' };
+    const pin = cropPinForPublish(savePin);
+    if (pin) {
+      headers['x-crop-save-pin'] = pin;
+      headers['x-crop-pin'] = pin;
+    }
     const r = await fetch('/api/crop-profiles', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers,
       body: JSON.stringify({ version: 1, profiles: store.profiles }),
     });
     const data = await r.json().catch(() => ({}));
@@ -354,6 +367,7 @@
   }
 
   function saveBlock(profileId, block) {
+    if (!isCropEditAllowed()) return;
     let lsStore = { profiles: {} };
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
@@ -655,24 +669,152 @@
   }
 
   function isCropDevUnlocked() {
+    return getCropUiState() === 'on';
+  }
+
+  function getCropUiState() {
     try {
-      return localStorage.getItem(CROP_UNLOCK_KEY) === '1';
+      const s = localStorage.getItem(CROP_UI_STATE_KEY);
+      if (s === 'on' || s === 'stealth' || s === 'off') return s;
+      if (localStorage.getItem(CROP_UNLOCK_KEY) === '1') return 'on';
+      return 'off';
+    } catch {
+      return 'off';
+    }
+  }
+
+  function setCropUiState(state) {
+    try {
+      localStorage.setItem(CROP_UI_STATE_KEY, state);
+      if (state === 'on') localStorage.setItem(CROP_UNLOCK_KEY, '1');
+      else localStorage.removeItem(CROP_UNLOCK_KEY);
+    } catch {
+      /* yoksay */
+    }
+    delete document.documentElement.dataset.cropStealth;
+    if (state === 'on') {
+      enableCalibrateSession();
+      syncCropUi();
+      toast('K\u0131rpma butonlar\u0131 a\u00e7\u0131ld\u0131');
+      return;
+    }
+    if (state === 'stealth') {
+      clearCalibrateSession();
+      closePanel();
+      document.documentElement.dataset.cropStealth = '1';
+      syncCropUi();
+      if (isDetailOpen()) {
+        applyCropNow();
+        runHiddenMotor();
+      }
+      toast('K\u0131rpma gizli \u2014 motor aktif');
+      return;
+    }
+    clearCalibrateSession();
+    closePanel();
+    syncCropUi();
+    toast('K\u0131rpma kapal\u0131');
+  }
+
+  function cycleCropUiState() {
+    const cur = getCropUiState();
+    const next = cur === 'off' ? 'on' : cur === 'on' ? 'stealth' : 'off';
+    setCropUiState(next);
+  }
+
+  async function loadCropPinPolicy() {
+    if (cropPinRequired !== null) return cropPinRequired;
+    try {
+      const r = await fetch('/api/crop-pin-required', { cache: 'no-store' });
+      if (r.ok) {
+        const j = await r.json();
+        cropPinRequired = !!j.required;
+        return cropPinRequired;
+      }
+    } catch {
+      /* yoksay */
+    }
+    cropPinRequired = false;
+    return false;
+  }
+
+  function isCropPinSessionOk() {
+    try {
+      return sessionStorage.getItem(CROP_PIN_SESSION_KEY) === '1';
     } catch {
       return false;
     }
   }
 
-  function enableCalibrateFromGesture() {
+  function grantCropPinSession(pin) {
     try {
-      sessionStorage.setItem('sniperCropCalibrate', '1');
-      localStorage.setItem(CROP_UNLOCK_KEY, '1');
+      sessionStorage.setItem(CROP_PIN_SESSION_KEY, '1');
+      if (pin) sessionStorage.setItem('sniperCropPinValue', String(pin));
     } catch {
       /* yoksay */
     }
-    document.documentElement.dataset.cropCalibrate = '1';
-    enableCalibrateSession();
-    syncCropUi();
-    toast('K\u0131rpma a\u00e7\u0131ld\u0131');
+    applyPanelEditLock();
+  }
+
+  function cropPinForPublish(explicitPin) {
+    if (explicitPin && explicitPin !== '__session__') return explicitPin;
+    try {
+      return sessionStorage.getItem('sniperCropPinValue') || '';
+    } catch {
+      return '';
+    }
+  }
+
+  function isCropEditAllowed() {
+    if (calibrateFromUrl()) return true;
+    if (document.documentElement.dataset.cropAdmin === '1') return true;
+    if (isFounderOrAdminSession()) return true;
+    if (cropPinRequired === false) return true;
+    if (cropPinRequired === null) return isCropPinSessionOk();
+    return isCropPinSessionOk();
+  }
+
+  async function promptCropSavePin(forcePrompt) {
+    await loadCropPinPolicy();
+    if (!cropPinRequired) return '';
+    if (!forcePrompt && isCropPinSessionOk()) return '__session__';
+    const pin = global.prompt?.('K\u0131rpma kay\u0131t \u015fifresi:') || '';
+    if (!pin.trim()) {
+      toast('Kay\u0131t i\u00e7in \u015fifre gerekli');
+      return null;
+    }
+    try {
+      const r = await fetch('/api/crop-verify-pin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pin: pin.trim() }),
+      });
+      if (!r.ok) {
+        toast('Yanl\u0131\u015f \u015fifre');
+        return null;
+      }
+      grantCropPinSession(pin.trim());
+      return pin.trim();
+    } catch {
+      toast('\u015eifre do\u011frulanamad\u0131');
+      return null;
+    }
+  }
+
+  function applyPanelEditLock() {
+    const panel = document.getElementById('dexCropPanel');
+    if (!panel) return;
+    const locked = !isCropEditAllowed();
+    panel.classList.toggle('crop-panel-locked', locked);
+    panel.querySelectorAll('input, button').forEach((el) => {
+      if (el.id === 'cropPinUnlockBtn' || el.id === 'cropCloseBtn') return;
+      if (locked) el.setAttribute('disabled', 'disabled');
+      else el.removeAttribute('disabled');
+    });
+    const hint = document.getElementById('cropPinHint');
+    if (hint) {
+      hint.classList.toggle('hidden', !locked);
+    }
   }
 
   function bindCalibrateGesture() {
@@ -681,21 +823,15 @@
     let taps = 0;
     let tapTimer = null;
     const onTap = (e) => {
-      if (
-        !e.target.closest?.(
-          '.trades-title, .trades-live, .trades-head, #btnBack, .detail-title',
-        )
-      ) {
-        return;
-      }
+      if (!e.target.closest?.(TRADES_TAP_SEL)) return;
       taps += 1;
       clearTimeout(tapTimer);
       tapTimer = setTimeout(() => {
         taps = 0;
-      }, 1000);
-      if (taps >= 3) {
+      }, CROP_TAP_WINDOW_MS);
+      if (taps >= CROP_TAP_COUNT) {
         taps = 0;
-        enableCalibrateFromGesture();
+        cycleCropUiState();
       }
     };
     document.addEventListener('touchend', onTap, { passive: true });
@@ -736,7 +872,7 @@
     if (cropHintShown || shouldShowCropButton() || !isDetailOpen()) return;
     if (!global.Telegram?.WebApp) return;
     cropHintShown = true;
-    toast('K\u0131rpma: \u2190 veya Canl\u0131 sat\u0131\u015fa 3 kez dokun');
+    toast('K\u0131rpma: Canl\u0131 al\u0131m/sat\u0131ma 5 kez dokun');
   }
 
   function layoutWidthPx() {
@@ -824,8 +960,7 @@
     if (calibrateFromUrl()) return true;
     if (document.documentElement.dataset.cropAdmin === '1') return true;
     if (isFounderOrAdminSession()) return true;
-    if (isCropDevUnlocked()) return true;
-    return isCalibrateMode();
+    return getCropUiState() === 'on';
   }
 
   function removeCalibrateButton() {
@@ -1109,6 +1244,11 @@
     const out = document.getElementById(`${id}Out`);
     if (!input) return;
     const handler = () => {
+      if (!isCropEditAllowed()) {
+        toast('D\u00fczenlemek i\u00e7in \u015fifre girin');
+        syncSlidersFromCurrent();
+        return;
+      }
       if (!current?.[section]) return;
       const v = Number(input.value);
       current[section][key] = v;
@@ -1123,6 +1263,11 @@
     const input = document.getElementById(id);
     if (!input) return;
     const handler = () => {
+      if (!isCropEditAllowed()) {
+        toast('D\u00fczenlemek i\u00e7in \u015fifre girin');
+        syncSlidersFromCurrent();
+        return;
+      }
       if (!current?.[section]) return;
       current[section][key] = input.checked;
       onChange();
@@ -1226,6 +1371,7 @@
     document.documentElement.classList.add('crop-panel-open');
     updateCropFabVisibility();
     refreshPreview();
+    void loadCropPinPolicy().then(() => applyPanelEditLock());
   }
 
   function closePanel() {
@@ -1279,6 +1425,8 @@
       '<header class="dex-crop-head"><strong>K\u0131rpma \u2014 5 ekran</strong>',
       '<button type="button" class="crop-close" id="cropCloseBtn" aria-label="Kapat">\u00d7</button></header>',
       '<p class="crop-intro"><b>Bu profili kaydet</b> = \u00f6l\u00e7\u00fcler kal\u0131r + sunucuya gider. <b>Sunucuya sabitle</b> = 5 cihaz + baked.js.</p>',
+      '<p class="crop-pin-hint hidden" id="cropPinHint">Kaydet ve slider i\u00e7in \u015fifre gerekli.</p>',
+      '<button type="button" class="crop-btn crop-btn-pin" id="cropPinUnlockBtn">\u015eifre gir</button>',
       '<p class="crop-detect" id="cropDetectLabel"></p>',
       '<div class="crop-profile-tabs" role="tablist">',
       ...PROFILE_ORDER.map(
@@ -1348,10 +1496,15 @@
     });
 
     document.getElementById('cropCloseBtn')?.addEventListener('click', closePanel);
+    document.getElementById('cropPinUnlockBtn')?.addEventListener('click', () => {
+      void promptCropSavePin(true);
+    });
     document.getElementById('cropSaveBtn')?.addEventListener('click', async () => {
+      const pin = await promptCropSavePin(true);
+      if (pin === null) return;
       saveBlock(editingProfile, current);
       try {
-        await publishServerProfiles();
+        await publishServerProfiles(pin === '__session__' ? '' : pin);
         baselineProfiles = clone(loadStore().profiles);
         refreshPreview();
         toast(`${PROFILE_META[editingProfile].label} kaydedildi + sunucu güncellendi`);
@@ -1360,8 +1513,10 @@
       }
     });
     document.getElementById('cropPublishBtn')?.addEventListener('click', async () => {
+      const pin = await promptCropSavePin(true);
+      if (pin === null) return;
       try {
-        await publishServerProfiles();
+        await publishServerProfiles(pin === '__session__' ? '' : pin);
         baselineProfiles = clone(loadStore().profiles);
         refreshPreview();
         toast('5 profil sunucuya yazıldı (json + baked.js) — redeploy');
@@ -1372,14 +1527,18 @@
     document.getElementById('cropCopyWebBtn')?.addEventListener('click', () => copyProfileFrom('web'));
     document.getElementById('cropCopy13pmBtn')?.addEventListener('click', () => copyProfileFrom('app13pm'));
     document.getElementById('cropCopy16pmBtn')?.addEventListener('click', () => copyProfileFrom('app16'));
-    document.getElementById('cropResetProfBtn')?.addEventListener('click', () => {
+    document.getElementById('cropResetProfBtn')?.addEventListener('click', async () => {
+      const pin = await promptCropSavePin(true);
+      if (pin === null) return;
       current = resetProfile(editingProfile);
       syncSlidersFromCurrent();
       apply(current);
       refreshPreview();
       toast('Bu profil sifirlandi');
     });
-    document.getElementById('cropResetAllBtn')?.addEventListener('click', () => {
+    document.getElementById('cropResetAllBtn')?.addEventListener('click', async () => {
+      const pin = await promptCropSavePin(true);
+      if (pin === null) return;
       current = reset();
       editingProfile = detectProfile();
       current = loadForProfile(editingProfile);
@@ -1388,6 +1547,7 @@
       refreshPreview();
       toast('5 profil sifirlandi');
     });
+    applyPanelEditLock();
     document.getElementById('cropCopyBtn')?.addEventListener('click', async () => {
       const store = loadStore();
       store.profiles[editingProfile] = clone(current);
@@ -1453,7 +1613,10 @@
     bindMotorOnEmbedReady();
     bindCalibrateGesture();
     bindStaticCropButtons();
-    if (isCropDevUnlocked()) enableCalibrateSession();
+    await loadCropPinPolicy();
+    const uiSt = getCropUiState();
+    if (uiSt === 'on') enableCalibrateSession();
+    if (uiSt === 'stealth') document.documentElement.dataset.cropStealth = '1';
     if (urlCal) {
       enableCalibrateSession();
       syncCropUi();

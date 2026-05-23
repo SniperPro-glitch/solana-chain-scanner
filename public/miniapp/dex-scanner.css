@@ -2851,6 +2851,24 @@ html.crop-panel-open .btn-crop-cal-fab {
   color: var(--cyan);
 }
 
+.crop-btn-pin {
+  flex: 1 1 100%;
+  border-color: rgba(255, 200, 100, 0.55);
+  color: #fcd34d;
+}
+
+.crop-pin-hint {
+  margin: 0 12px 8px;
+  font-size: 11px;
+  color: #fcd34d;
+}
+
+.dex-crop-panel.crop-panel-locked input:not([type="button"]),
+.dex-crop-panel.crop-panel-locked .crop-btn:not(#cropPinUnlockBtn):not(#cropCloseBtn) {
+  opacity: 0.45;
+  pointer-events: none;
+}
+
 .crop-btn-publish {
   flex: 1 1 100%;
   background: rgba(125, 255, 184, 0.18);
