@@ -649,6 +649,50 @@ html.detail-mode .trade-bar {
 
 #dtab-security .detail-badge-row {
   margin-bottom: 0;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.info-contract {
+  margin: 0 0 12px;
+  padding: 14px;
+  border-radius: 16px;
+}
+
+.info-section-title {
+  margin: 0 0 8px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
+
+.info-contract-addr {
+  margin: 0 0 10px;
+  font-size: 11px;
+  line-height: 1.45;
+  word-break: break-all;
+  color: var(--cyan);
+  font-family: ui-monospace, monospace;
+}
+
+.info-copy-mint {
+  width: 100%;
+}
+
+.info-link-line {
+  margin: 0 0 6px;
+  font-size: 12px;
+  color: var(--text);
+}
+
+#dtab-txns .trades-tape {
+  margin-bottom: 12px;
+}
+
+#dtab-txns .dex-trades-embed-wrap {
+  min-height: 280px;
 }
 
 html.detail-mode .view-detail {

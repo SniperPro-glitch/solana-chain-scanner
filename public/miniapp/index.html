@@ -13,7 +13,7 @@
   <script src="host-detect.js?v=1"></script>
   <script src="profile-bootstrap.js?v=5"></script>
   <script src="telegram-viewport.js?v=16"></script>
-  <link rel="stylesheet" href="styles.css?v=65" />
+  <link rel="stylesheet" href="styles.css?v=66" />
   <link rel="stylesheet" href="dex-scanner.css?v=126" />
   <link rel="stylesheet" href="new-pairs.css?v=120" />
   <link rel="stylesheet" href="dex-scanner-radar.css?v=2" />
@@ -377,33 +377,14 @@
         </div>
         <p id="chartNote" class="chart-source hidden">—</p>
       </section>
-
-      <section class="trades-tape glass trades-tape--dex-embed" id="tradesTape" aria-live="polite">
-        <div class="trades-head">
-          <span class="trades-title">Canlı alım / satım</span>
-          <span class="trades-live" aria-hidden="true"><span class="trades-live-dot"></span> LIVE</span>
-          <span class="trades-meta" id="tradesMeta">DexScreener</span>
-          <button type="button" id="btnCropInline" class="btn-crop-cal hidden" title="Dex kırpma">Kırpma</button>
-        </div>
-        <div class="trades-thead" aria-hidden="true">
-          <span>Zaman</span><span>Tip</span><span>USD</span><span id="tradesColToken">Token</span><span>Cüzdan</span>
-        </div>
-        <div id="dexTradesWrap" class="dex-trades-embed-wrap">
-          <iframe
-            id="dexTradesEmbed"
-            class="dex-trades-embed hidden"
-            title="DexScreener işlemler"
-            loading="eager"
-            referrerpolicy="no-referrer-when-downgrade"
-          ></iframe>
-          <div class="dex-mask dex-mask-top" aria-hidden="true"></div>
-          <div class="dex-mask dex-mask-foot" aria-hidden="true"></div>
-          <ul class="trades-list hidden" id="tradesList" aria-hidden="true"></ul>
-        </div>
-      </section>
       </div>
 
       <div id="dtab-info" class="detail-tab hidden">
+      <section class="info-contract glass" id="infoContractSection">
+        <h3 class="info-section-title">Kontrat</h3>
+        <p class="info-contract-addr" id="infoContractAddr">—</p>
+        <button type="button" class="detail-act-btn info-copy-mint" id="btnCopyMintInfo">Mint kopyala</button>
+      </section>
       <section class="metrics-dashboard" id="metricsDash"></section>
 
       <section class="txn-section glass hidden" id="txnSection">
@@ -428,6 +409,29 @@
       </div>
 
       <div id="dtab-txns" class="detail-tab hidden">
+      <section class="trades-tape glass trades-tape--dex-embed" id="tradesTape" aria-live="polite">
+        <div class="trades-head">
+          <span class="trades-title">Canlı alım / satım</span>
+          <span class="trades-live" aria-hidden="true"><span class="trades-live-dot"></span> LIVE</span>
+          <span class="trades-meta" id="tradesMeta">DexScreener</span>
+          <button type="button" id="btnCropInline" class="btn-crop-cal hidden" title="Dex kırpma">Kırpma</button>
+        </div>
+        <div class="trades-thead" aria-hidden="true">
+          <span>Zaman</span><span>Tip</span><span>USD</span><span id="tradesColToken">Token</span><span>Cüzdan</span>
+        </div>
+        <div id="dexTradesWrap" class="dex-trades-embed-wrap">
+          <iframe
+            id="dexTradesEmbed"
+            class="dex-trades-embed hidden"
+            title="DexScreener işlemler"
+            loading="eager"
+            referrerpolicy="no-referrer-when-downgrade"
+          ></iframe>
+          <div class="dex-mask dex-mask-top" aria-hidden="true"></div>
+          <div class="dex-mask dex-mask-foot" aria-hidden="true"></div>
+          <ul class="trades-list hidden" id="tradesList" aria-hidden="true"></ul>
+        </div>
+      </section>
         <div id="panel-trade" class="tab-panel active"></div>
       </div>
       </div>
@@ -545,7 +549,7 @@
   <button type="button" id="cropCalFab" class="btn-crop-cal-fab hidden" aria-label="Kırpma ayar">Kırpma</button>
   <script src="dex-crop-baked.js?v=20260523"></script>
   <script src="dex-crop.js?v=85"></script>
-  <script src="app.js?v=188"></script>
+  <script src="app.js?v=189"></script>
   <script src="boot-feed.js?v=5"></script>
 </body>
 </html>

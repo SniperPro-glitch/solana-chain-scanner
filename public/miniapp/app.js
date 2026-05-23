@@ -451,8 +451,11 @@
     body.appendChild(sp);
   }
 
+  let activeDetailTab = 'chart';
+
   function switchDetailTab(tabId) {
     const id = String(tabId || 'chart');
+    activeDetailTab = id;
     document.querySelectorAll('.detail-tab').forEach((el) => {
       const on = el.id === `dtab-${id}`;
       el.classList.toggle('active', on);
@@ -463,6 +466,13 @@
     });
     const scrollEl = document.querySelector('.view-detail') || document.querySelector('.detail-body');
     if (scrollEl) scrollEl.scrollTop = 0;
+    if (id === 'txns' && appData?.market) {
+      void startDexTradesPanel(appData.market);
+      scheduleDexTradesCrop();
+    }
+    if (id === 'chart' && appData?.market) {
+      void renderChart(appData.market).then(() => scheduleDexTradesCrop());
+    }
   }
 
   function openDetailWithChartTab() {
@@ -1718,6 +1728,17 @@
     }, 2500);
   }
 
+  async function copyMintAddress() {
+    const addr = appData?.address || appData?.market?.address;
+    if (!addr) return;
+    try {
+      await navigator.clipboard.writeText(addr);
+      showToast('Mint kopyalandı');
+    } catch {
+      showToast(shortMint(addr));
+    }
+  }
+
   function bindDetailShell() {
     if (detailShellBound) return;
     detailShellBound = true;
@@ -1725,6 +1746,22 @@
     setupTfButtons();
     setupChartType();
     setupCopy();
+    $('btnCopyMintInfo')?.addEventListener('click', () => void copyMintAddress());
+    $('btnAiSummary')?.addEventListener('click', () => switchDetailTab('security'));
+    $('btnShareReport')?.addEventListener('click', async () => {
+      const url = location.href;
+      try {
+        if (navigator.share) {
+          await navigator.share({ title: 'Sniper rapor', url });
+          return;
+        }
+        await navigator.clipboard.writeText(url);
+        showToast('Link kopyalandı');
+      } catch {
+        showToast('Paylaşım iptal');
+      }
+    });
+    $('btnWatchlist')?.addEventListener('click', () => showToast('Watchlist yakında'));
   }
 
   async function loadReportFlow() {
@@ -1926,13 +1963,16 @@
     if (!row) return;
     const score = data.trust?.score;
     const rb = riskBadgeLabel(data.level, score);
-    const m = data.market || {};
+    const c = data.counts || {};
+    const auditSub =
+      c.bad > 0 ? `${c.bad} kritik` : c.warn > 0 ? `${c.warn} uyarı` : `${c.good || 0} geçti`;
+    const auditCls = c.bad > 0 ? 'high' : c.warn > 0 ? 'mid' : 'low';
     const chips = [
       { label: 'Risk Score', val: score != null ? `${score}/100` : '—', sub: rb.text, cls: rb.cls },
-      { label: 'Audit', val: 'Verified', sub: 'SAFE', cls: 'low' },
-      { label: 'LP Locked', val: data.summary?.liquidityWord || '—', sub: 'LOCKED', cls: 'low' },
-      { label: 'Honeypot', val: 'No', sub: 'SAFE', cls: 'low' },
-      { label: 'Contract', val: 'Verified', sub: 'SAFE', cls: 'low' },
+      { label: 'Audit', val: `${c.total || 0} test`, sub: auditSub, cls: auditCls },
+      { label: 'LP Locked', val: data.summary?.liquidityWord || '—', sub: data.audit?.breakdown?.liquidity || '—', cls: 'low' },
+      { label: 'Honeypot', val: c.bad ? 'Kontrol' : 'Temiz', sub: c.bad ? 'RİSK' : 'SAFE', cls: c.bad ? 'high' : 'low' },
+      { label: 'Contract', val: data.levelLabel || '—', sub: data.audit?.breakdown?.contract || '—', cls: rb.cls },
     ];
     row.innerHTML = chips
       .map(
@@ -2315,23 +2355,48 @@
     </div>`;
   }
 
+  function renderInfoContract(data) {
+    const addr = data.address || data.market?.address || '';
+    const el = $('infoContractAddr');
+    if (el) el.textContent = addr || '—';
+  }
+
   function renderInfoPanel(data) {
     const panel = $('panel-info');
     if (!panel) return;
     const m = data.market || {};
+    renderInfoContract(data);
+
+    const links = (data.links || [])
+      .map((line) => {
+        const text = String(line || '').trim();
+        if (!text) return '';
+        const urlMatch = text.match(/https?:\/\/\S+/);
+        const url = urlMatch ? urlMatch[0] : '';
+        if (url) {
+          const label = text.replace(url, '').trim() || url;
+          return `<a class="trade-link ext" href="${escHtml(url)}" target="_blank" rel="noopener">${escHtml(label)}</a>`;
+        }
+        return `<p class="info-link-line">${escHtml(text)}</p>`;
+      })
+      .filter(Boolean)
+      .join('');
 
     panel.innerHTML = [
       sectionCard(
         'Token özeti',
         `<ul>
-          <li><b>Yaş:</b> ${data.summary?.age || '—'}</li>
-          <li><b>Likidite:</b> ${data.summary?.liquidityWord || '—'} (${data.summary?.liquidityUsd || '—'})</li>
-          <li><b>Çift:</b> ${m.pairLabel || `${m.symbol || '?'}/SOL`}</li>
-          <li><b>DEX:</b> ${(m.dex || data.dex || '—').toString()}</li>
+          <li><b>Sembol:</b> ${escHtml(data.symbol || m.symbol || '—')}</li>
+          <li><b>Yaş:</b> ${escHtml(data.summary?.age || '—')}</li>
+          <li><b>Likidite:</b> ${escHtml(data.summary?.liquidityWord || '—')} (${escHtml(data.summary?.liquidityUsd || '—')})</li>
+          <li><b>Çift:</b> ${escHtml(m.pairLabel || `${m.symbol || '?'}/SOL`)}</li>
+          <li><b>DEX:</b> ${escHtml((m.dex || data.dex || '—').toString())}</li>
+          <li><b>24s değişim:</b> ${escHtml(data.summary?.change24h || '—')}</li>
         </ul>`,
       ),
+      links ? sectionCard('Topluluk & linkler', links) : '',
       m.dexScreenerUrl
-        ? `<a class="trade-link ext" href="${m.dexScreenerUrl}" target="_blank" rel="noopener">DexScreener — tam grafik</a>`
+        ? `<a class="trade-link ext" href="${escHtml(m.dexScreenerUrl)}" target="_blank" rel="noopener">DexScreener — tam grafik</a>`
         : '',
     ].join('');
   }
@@ -2569,6 +2634,7 @@
     renderInfoPanel(data);
     renderSecurityPanel(data);
     renderTradePanel(data);
+    if (activeDetailTab === 'txns') void startDexTradesPanel(m);
 
     document.querySelectorAll('.tf').forEach((b) => {
       b.classList.toggle('active', b.dataset.tf === (m.chart?.timeframe || currentTf));
@@ -2667,6 +2733,7 @@
     loadReportFlow();
   };
   globalThis.onBottomNav = onBottomNav;
+  globalThis.switchDetailTab = switchDetailTab;
   globalThis.updateHeaderChainPill = updateHeaderChainPill;
   globalThis.fetchFeedForChain = (chainId) => {
     if (!chainId) return;
