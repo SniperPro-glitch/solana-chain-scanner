@@ -634,6 +634,23 @@ html.detail-mode .trade-bar {
   font-size: 10px;
 }
 
+.security-overview {
+  padding: 12px;
+  margin-bottom: 12px;
+  border-radius: 16px;
+}
+
+.security-overview .security-hero-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+#dtab-security .detail-badge-row {
+  margin-bottom: 0;
+}
+
 html.detail-mode .view-detail {
   padding-bottom: calc(
     var(--trade-bar-h) + var(--detail-tab-nav-h) + var(--tg-safe-bottom, env(safe-area-inset-bottom, 0px)) + 20px

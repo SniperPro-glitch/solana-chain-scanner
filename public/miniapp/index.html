@@ -13,7 +13,7 @@
   <script src="host-detect.js?v=1"></script>
   <script src="profile-bootstrap.js?v=5"></script>
   <script src="telegram-viewport.js?v=16"></script>
-  <link rel="stylesheet" href="styles.css?v=64" />
+  <link rel="stylesheet" href="styles.css?v=65" />
   <link rel="stylesheet" href="dex-scanner.css?v=126" />
   <link rel="stylesheet" href="new-pairs.css?v=120" />
   <link rel="stylesheet" href="dex-scanner-radar.css?v=2" />
@@ -335,8 +335,6 @@
             <p id="pairSub" class="mint-line">—</p>
             <div class="hero-badges">
               <span id="dexBadge" class="pill">—</span>
-              <span id="levelChip" class="pill">—</span>
-              <span id="trustMini" class="pill trust">—</span>
             </div>
           </div>
         </div>
@@ -344,7 +342,6 @@
         <div class="quote-changes" id="quoteChanges"></div>
       </section>
 
-      <div id="detailBadgeRow" class="detail-badge-row"></div>
       <div class="detail-action-row">
         <button type="button" class="detail-act-btn" id="btnWatchlist" disabled>Add to Watchlist</button>
         <button type="button" class="detail-act-btn" id="btnShareReport">Share Report</button>
@@ -420,6 +417,13 @@
       </div>
 
       <div id="dtab-security" class="detail-tab hidden">
+        <section class="security-overview glass">
+          <div class="hero-badges security-hero-badges">
+            <span id="levelChip" class="pill">—</span>
+            <span id="trustMini" class="pill trust">—</span>
+          </div>
+          <div id="detailBadgeRow" class="detail-badge-row"></div>
+        </section>
         <div id="panel-security" class="tab-panel active"></div>
       </div>
 
@@ -541,7 +545,7 @@
   <button type="button" id="cropCalFab" class="btn-crop-cal-fab hidden" aria-label="Kırpma ayar">Kırpma</button>
   <script src="dex-crop-baked.js?v=20260523"></script>
   <script src="dex-crop.js?v=85"></script>
-  <script src="app.js?v=187"></script>
+  <script src="app.js?v=188"></script>
   <script src="boot-feed.js?v=5"></script>
 </body>
 </html>

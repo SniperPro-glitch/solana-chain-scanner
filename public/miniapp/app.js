@@ -2319,13 +2319,8 @@
     const panel = $('panel-info');
     if (!panel) return;
     const m = data.market || {};
-    const bd = data.audit?.breakdown || {};
-    const highlights = (data.highlights || [])
-      .map((h) => `<div class="alert-row ${h.level || ''}">${h.text}</div>`)
-      .join('');
 
     panel.innerHTML = [
-      highlights ? sectionCard('Öne çıkan bulgular', highlights) : '',
       sectionCard(
         'Token özeti',
         `<ul>
@@ -2333,14 +2328,12 @@
           <li><b>Likidite:</b> ${data.summary?.liquidityWord || '—'} (${data.summary?.liquidityUsd || '—'})</li>
           <li><b>Çift:</b> ${m.pairLabel || `${m.symbol || '?'}/SOL`}</li>
           <li><b>DEX:</b> ${(m.dex || data.dex || '—').toString()}</li>
-          <li><b>Likidite kodu:</b> ${bd.liquidity || '—'} · <b>Yaş:</b> ${bd.age || '—'}</li>
         </ul>`,
       ),
       m.dexScreenerUrl
         ? `<a class="trade-link ext" href="${m.dexScreenerUrl}" target="_blank" rel="noopener">DexScreener — tam grafik</a>`
         : '',
     ].join('');
-    panel.innerHTML = panel.innerHTML.split('div').join('div');
   }
 
   function renderSecurityPanel(data) {
@@ -2348,11 +2341,25 @@
     if (!panel) return;
     const score = data.trust?.score ?? 0;
     const checks = data.checks || {};
+    const bd = data.audit?.breakdown || {};
     const generated = data.generatedAt
       ? new Date(data.generatedAt).toLocaleString('tr-TR')
       : '—';
+    const highlights = (data.highlights || [])
+      .map((h) => `<div class="alert-row ${h.level || ''}">${escHtml(h.text)}</div>`)
+      .join('');
 
     panel.innerHTML = [
+      highlights ? sectionCard('Öne çıkan bulgular', highlights) : '',
+      bd.liquidity || bd.age
+        ? sectionCard(
+            'Denetim özeti',
+            `<ul>
+              <li><b>Likidite kodu:</b> ${escHtml(bd.liquidity || '—')}</li>
+              <li><b>Yaş kodu:</b> ${escHtml(bd.age || '—')}</li>
+            </ul>`,
+          )
+        : '',
       `<article class="section-card"><div class="trust-hero">
         <div class="trust-score-big" style="--pct:${score};--ring-color:${scoreColor(score)}"><span>${score}</span></div>
         <div class="trust-detail">
