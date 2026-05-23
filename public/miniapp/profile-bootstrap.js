@@ -45,7 +45,7 @@
     const forced = fromUrl();
     if (forced) return forced;
     const w = layoutWidth();
-    if (!isTelegramApp() && w > 500) return 'web';
+    if (!isTelegramApp()) return 'web';
     if (isTelegramApp() && isTelegramDesktop() && w > 500) return 'web';
     return detectByWidth(w);
   }
