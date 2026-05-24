@@ -397,14 +397,35 @@
     const c = b.chart || {};
     const t = b.trades || {};
     c.stageH = Math.max(260, Math.min(520, Number(c.stageH) || 330));
-    c.top = Math.max(-120, Math.min(80, Number(c.top) || 0));
-    c.brandCrop = Math.max(0, Math.min(80, Number(c.brandCrop) || 0));
+    c.top = Math.max(-200, Math.min(80, Number(c.top) || 0));
+    c.brandCrop = Math.max(0, Math.min(96, Number(c.brandCrop) || 0));
     c.shiftDown = Math.max(0, Math.min(120, Number(c.shiftDown) || 0));
+    c.geckoLift = Math.max(200, Math.min(720, Number(c.geckoLift) || 0));
     t.viewH = Math.max(160, Math.min(400, Number(t.viewH) || 302));
     t.iframeH = Math.max(400, Math.min(1400, Number(t.iframeH) || 845));
     t.iframeTop = Math.max(-1200, Math.min(-120, Number(t.iframeTop) || -590));
     t.shiftDown = Math.max(0, Math.min(200, Number(t.shiftDown) || 0));
     return b;
+  }
+
+  function ensureGeckoChartDefaults(block, profileId) {
+    if (profileFamily(profileId) !== 'gecko') return block;
+    const baked = profileFromBaked(profileId);
+    const b = baked?.chart || {};
+    const c = block.chart || {};
+    const lift = Number(c.geckoLift) || 0;
+    const top = Number(c.top) || 0;
+    const needsFix = top > -80 || lift < 200;
+    if (!needsFix) return block;
+    block.chart = {
+      ...b,
+      ...c,
+      geckoLift: lift >= 200 ? lift : Number(b.geckoLift) || 340,
+      top: top > -80 ? Number(b.top) ?? -48 : top,
+      brandCrop: Math.max(Number(c.brandCrop) || 0, Number(b.brandCrop) || 56),
+      heightExtra: Math.max(Number(c.heightExtra) || 0, Number(b.heightExtra) || 48),
+    };
+    return block;
   }
 
   function loadForProfile(profileId) {
@@ -414,7 +435,8 @@
       (fam === 'gecko' ? store.profiles.webgecko : store.profiles.web)
       || store.profiles.web
       || defaultBlock();
-    return sanitizeCropBlock(store.profiles[profileId] || fallback);
+    const raw = store.profiles[profileId] || fallback;
+    return sanitizeCropBlock(ensureGeckoChartDefaults(clone(raw), profileId));
   }
 
   function load() {
@@ -606,8 +628,18 @@
       applyClip(stage, c.clipLeft, c.clipRight, c.clipTop, c.clipBottom);
     }
     if (chartIframe) {
-      const chartTop = `${Math.max(-80, c.top - brandCrop + chartDown)}px`;
-      const chartH = `${Math.max(c.stageH, c.stageH + c.heightExtra + brandCrop)}px`;
+      const isGeckoChart = cropEmbedFamily() === 'gecko';
+      let chartTop;
+      let chartH;
+      if (isGeckoChart) {
+        const lift = Number(c.geckoLift) || 340;
+        const iframeH = Math.max(760, c.stageH + (Number(c.heightExtra) || 0) + 560);
+        chartTop = `${Math.max(-920, c.top - brandCrop + chartDown - lift)}px`;
+        chartH = `${iframeH}px`;
+      } else {
+        chartTop = `${Math.max(-80, c.top - brandCrop + chartDown)}px`;
+        chartH = `${Math.max(c.stageH, c.stageH + c.heightExtra + brandCrop)}px`;
+      }
       setImp(chartIframe, 'position', 'absolute');
       setImp(chartIframe, 'top', chartTop);
       setImp(chartIframe, 'left', `${c.left}%`);
@@ -617,6 +649,8 @@
       setImp(chartIframe, 'margin', '0');
       setImp(chartIframe, 'border', '0');
       setImp(chartIframe, 'display', 'block');
+      setImp(chartIframe, 'visibility', 'visible');
+      setImp(chartIframe, 'opacity', '1');
     }
 
     const wrap = document.getElementById('dexTradesWrap');

@@ -2903,13 +2903,13 @@ html[data-dex-crop-profile="web"] {
 }
 
 html[data-dex-crop-profile="webgecko"] {
-  --chart-embed-h: 360px;
-  --chart-embed-top: 0px;
-  --chart-shift-down: 6px;
+  --chart-embed-h: 380px;
+  --chart-embed-top: -48px;
+  --chart-shift-down: 0px;
   --chart-embed-left: 0%;
   --chart-embed-width: 100%;
-  --chart-embed-extra: 0px;
-  --chart-brand-crop: 28px;
+  --chart-embed-extra: 48px;
+  --chart-brand-crop: 56px;
   --tape-shift-down: 0px;
   --dex-trades-view-h: 300px;
   --dex-iframe-h: 720px;

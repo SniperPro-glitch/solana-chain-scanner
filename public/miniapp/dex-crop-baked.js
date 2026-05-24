@@ -1,4 +1,4 @@
-/** Otomatik — crop save · 2026-05-24T04:17:53.930Z */
+/** Otomatik — dex-crop-profiles.json · 2026-05-24T04:17:53.930Z */
 globalThis.__DEX_CROP_BAKED__={
   "version": 1,
   "updatedAt": "2026-05-24T04:17:53.930Z",
@@ -176,17 +176,18 @@ globalThis.__DEX_CROP_BAKED__={
     },
     "webgecko": {
       "chart": {
-        "stageH": 360,
-        "top": 0,
+        "stageH": 380,
+        "top": -48,
         "left": 0,
         "width": 100,
-        "heightExtra": 0,
-        "brandCrop": 28,
+        "heightExtra": 48,
+        "brandCrop": 56,
+        "geckoLift": 340,
         "clipLeft": 0,
         "clipRight": 0,
         "clipTop": 0,
         "clipBottom": 0,
-        "shiftDown": 6
+        "shiftDown": 0
       },
       "tape": {
         "shiftDown": 0
