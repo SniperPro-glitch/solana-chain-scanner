@@ -280,17 +280,30 @@ html.tg-fullscreen .app-top-chrome {
   order: -1;
 }
 
-/* Yalnızca banner — toolbar 8px inset içinde kalır; banner ekrana 1px boşluk */
+/* Banner — viewport’a göre sağ/sol eşit boşluk (toolbar’a dokunmaz) */
 .app-top-chrome .promo-banner.app-promo-global {
   display: block;
   box-sizing: border-box;
-  width: calc(100% + 2 * (var(--app-chrome-inset) - var(--promo-banner-edge)));
+  width: calc(100vw - 2 * var(--promo-banner-edge));
   max-width: none;
-  margin-left: calc(var(--promo-banner-edge) - var(--app-chrome-inset));
-  margin-right: calc(var(--promo-banner-edge) - var(--app-chrome-inset));
   margin-bottom: 8px;
+  margin-left: calc(50% - 50vw + var(--promo-banner-edge));
+  margin-right: calc(50% - 50vw + var(--promo-banner-edge));
   border-radius: 10px;
   overflow: hidden;
+}
+
+html.tg-mini-app .app-top-chrome .promo-banner.app-promo-global {
+  width: calc(
+    100vw - 2 * var(--promo-banner-edge) - var(--tg-content-safe-left, 0px) -
+      var(--tg-content-safe-right, 0px)
+  );
+  margin-left: calc(
+    50% - 50vw + var(--promo-banner-edge) + var(--tg-content-safe-left, 0px)
+  );
+  margin-right: calc(
+    50% - 50vw + var(--promo-banner-edge) + var(--tg-content-safe-right, 0px)
+  );
 }
 
 .app-top-chrome .promo-banner.app-promo-global.hidden {

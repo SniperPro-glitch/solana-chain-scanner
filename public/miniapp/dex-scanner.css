@@ -135,8 +135,8 @@ body.sidebar-open {
   min-width: 0;
 }
 
-/* Üst reklam banner — src/bannerSpecs.js (desktop 12.5:1, tablet 80px, mobile 64px) */
-.promo-banner {
+/* Üst reklam banner — app chrome: app-chrome.css (.app-promo-global) */
+.promo-banner:not(.app-promo-global) {
   --promo-h: 96px;
   display: block;
   position: relative;
