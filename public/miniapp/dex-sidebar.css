@@ -1,7 +1,7 @@
 /* Yan panel — DexScreener tarzı (mobil + Telegram) */
 
 :root {
-  --sidebar-icon-col: 58px;
+  --sidebar-icon-col: 26px;
   --sidebar-watchlist-icon-size: 58px;
 }
 
@@ -221,15 +221,15 @@
 }
 
 .dex-sidebar-nav {
-  padding: 4px 8px;
+  padding: 2px 8px;
 }
 
 .dex-sidebar-link {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   width: 100%;
-  padding: 10px 12px;
+  padding: 5px 12px;
   box-sizing: border-box;
   border: none;
   border-radius: 10px;
@@ -260,7 +260,14 @@
   background: transparent;
 }
 
+.dex-sidebar-link[data-sidebar-nav='watchlist'] {
+  padding-top: 2px;
+  padding-bottom: 2px;
+}
+
 .dex-sidebar-link[data-sidebar-nav='watchlist'] .ico {
+  width: var(--sidebar-watchlist-icon-size);
+  min-width: var(--sidebar-watchlist-icon-size);
   height: var(--sidebar-watchlist-icon-size);
   min-height: var(--sidebar-watchlist-icon-size);
 }
