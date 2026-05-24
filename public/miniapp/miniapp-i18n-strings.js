@@ -70,6 +70,7 @@
     'nav.watch': S('Watchlist', 'İzleme listesi', 'Список отслеживания'),
 
     'sidebar.searchPh': S('Example: doge, bonk, mint address…', 'Örnek: doge, bonk, mint adresi…', 'Пример: doge, bonk, mint адрес…'),
+    'sidebar.drawerOpen': S('Open menu', 'Menüyü aç', 'Открыть меню'),
     'sidebar.networks': S('Networks', 'Ağlar', 'Сети'),
     'sidebar.watchEmpty': S('No lists yet — add a token', 'Henüz liste yok — token ekle', 'Списков пока нет — добавьте токен'),
     'sidebar.watchTitle': S('WATCHLIST', 'İZLEME LİSTESİ', 'СПИСОК ОТСЛЕЖИВАНИЯ'),

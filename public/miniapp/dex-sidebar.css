@@ -570,24 +570,77 @@
   padding: 10px;
 }
 
-/* Header menü butonu */
-.btn-sidebar-open {
-  flex-shrink: 0;
-  width: 40px;
-  height: 40px;
-  margin-right: 4px;
-  border-radius: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(255, 255, 255, 0.04);
-  color: #eef2ff;
-  font-size: 18px;
-  line-height: 1;
-  cursor: pointer;
+/* Sol kenar çekmece tutamacı — TG Kapat (X) ile çakışmaz */
+.sidebar-drawer-rail {
+  position: fixed;
+  left: 0;
+  top: 50%;
+  z-index: 6400;
+  transform: translateY(-50%);
+  pointer-events: none;
+  transition: opacity 0.2s ease, transform 0.2s ease;
 }
 
-.btn-sidebar-open:active {
-  transform: scale(0.96);
-  border-color: rgba(0, 229, 255, 0.4);
+.sidebar-drawer-rail.is-hidden {
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-50%) translateX(-120%);
+}
+
+.sidebar-drawer-handle {
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 64px;
+  padding: 0;
+  margin: 0;
+  border: 1px solid rgba(0, 229, 255, 0.35);
+  border-left: none;
+  border-radius: 0 14px 14px 0;
+  background: linear-gradient(90deg, rgba(6, 9, 16, 0.97) 0%, rgba(11, 16, 29, 0.94) 100%);
+  box-shadow: 4px 0 18px rgba(0, 0, 0, 0.45), 0 0 12px rgba(0, 229, 255, 0.12);
+  cursor: grab;
+  touch-action: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.sidebar-drawer-handle:active {
+  cursor: grabbing;
+}
+
+.sidebar-drawer-handle.is-dragging {
+  cursor: grabbing;
+  border-color: rgba(0, 229, 255, 0.55);
+  box-shadow: 6px 0 22px rgba(0, 229, 255, 0.2);
+}
+
+.sidebar-drawer-chevron {
+  display: block;
+  width: 8px;
+  height: 8px;
+  border-right: 2px solid #00e5ff;
+  border-bottom: 2px solid #00e5ff;
+  transform: rotate(-45deg) translateX(-1px);
+  filter: drop-shadow(0 0 4px rgba(0, 229, 255, 0.5));
+}
+
+.dex-sidebar--dragging {
+  pointer-events: auto;
+}
+
+.dex-sidebar--dragging .dex-sidebar-backdrop {
+  transition: none;
+}
+
+.dex-sidebar--dragging .dex-sidebar-panel {
+  transition: none;
+}
+
+body.sidebar-open .sidebar-drawer-rail {
+  opacity: 0;
+  pointer-events: none;
 }
 
 .scan-header .scan-brand {

@@ -110,13 +110,50 @@
     }
   }
 
+  function panelWidth() {
+    const panel = $('dexSidebar')?.querySelector('.dex-sidebar-panel');
+    return panel?.offsetWidth || 292;
+  }
+
+  function clearDragStyles() {
+    const root = $('dexSidebar');
+    const panel = root?.querySelector('.dex-sidebar-panel');
+    const backdrop = $('dexSidebarBackdrop');
+    root?.classList.remove('dex-sidebar--dragging');
+    if (panel) panel.style.transform = '';
+    if (backdrop) backdrop.style.opacity = '';
+  }
+
+  function setSidebarDrag(px) {
+    const root = $('dexSidebar');
+    const panel = root?.querySelector('.dex-sidebar-panel');
+    const backdrop = $('dexSidebarBackdrop');
+    if (!root || !panel) return;
+    const w = panelWidth();
+    const x = Math.max(0, Math.min(w, px));
+    root.classList.add('dex-sidebar--dragging');
+    root.style.pointerEvents = 'auto';
+    panel.style.transform = `translateX(calc(-100% + ${x}px))`;
+    if (backdrop) backdrop.style.opacity = String((x / w) * 0.62);
+    return x;
+  }
+
+  function syncDrawerRail() {
+    const rail = $('sidebarDrawerRail');
+    if (!rail) return;
+    rail.classList.toggle('is-hidden', open);
+    rail.setAttribute('aria-hidden', open ? 'true' : 'false');
+  }
+
   function openSidebar() {
     const root = $('dexSidebar');
     if (!root) return;
+    clearDragStyles();
     root.classList.add('open');
     root.setAttribute('aria-hidden', 'false');
     open = true;
     document.body.classList.add('sidebar-open');
+    syncDrawerRail();
     if (typeof global.syncTgBackButton === 'function') global.syncTgBackButton();
   }
 
@@ -127,6 +164,8 @@
     root.setAttribute('aria-hidden', 'true');
     open = false;
     document.body.classList.remove('sidebar-open');
+    clearDragStyles();
+    syncDrawerRail();
     if (typeof global.syncTgBackButton === 'function') global.syncTgBackButton();
   }
 
@@ -179,16 +218,113 @@
     closeSidebar();
   }
 
+  function bindDrawer() {
+    const handle = $('sidebarDrawerHandle');
+    const root = $('dexSidebar');
+    if (!handle || !root) return;
+
+    const OPEN_RATIO = 0.34;
+    const TAP_SLOP = 10;
+    const EDGE_PX = 22;
+    let tracking = false;
+    let originX = 0;
+    let dragPx = 0;
+    let edgeTracking = false;
+    let edgeStartY = 0;
+
+    function finishDrag(px) {
+      tracking = false;
+      edgeTracking = false;
+      handle.classList.remove('is-dragging');
+      const w = panelWidth();
+      if (px >= w * OPEN_RATIO) openSidebar();
+      else closeSidebar();
+    }
+
+    handle.addEventListener('pointerdown', (e) => {
+      if (open) return;
+      tracking = true;
+      originX = e.clientX;
+      dragPx = 0;
+      handle.classList.add('is-dragging');
+      handle.setPointerCapture(e.pointerId);
+      e.preventDefault();
+    });
+
+    handle.addEventListener('pointermove', (e) => {
+      if (!tracking) return;
+      dragPx = setSidebarDrag(e.clientX - originX);
+    });
+
+    handle.addEventListener('pointerup', (e) => {
+      if (!tracking) return;
+      if (handle.hasPointerCapture(e.pointerId)) handle.releasePointerCapture(e.pointerId);
+      const moved = Math.abs(e.clientX - originX);
+      if (moved < TAP_SLOP) {
+        tracking = false;
+        handle.classList.remove('is-dragging');
+        openSidebar();
+        return;
+      }
+      finishDrag(dragPx);
+    });
+
+    handle.addEventListener('pointercancel', () => {
+      if (!tracking) return;
+      finishDrag(dragPx);
+    });
+
+    document.addEventListener(
+      'touchstart',
+      (e) => {
+        if (open || e.touches.length !== 1) return;
+        const t = e.touches[0];
+        if (t.clientX > EDGE_PX) return;
+        edgeTracking = true;
+        originX = t.clientX;
+        edgeStartY = t.clientY;
+        dragPx = 0;
+      },
+      { passive: true },
+    );
+
+    document.addEventListener(
+      'touchmove',
+      (e) => {
+        if (!edgeTracking || open) return;
+        const t = e.touches[0];
+        const dx = t.clientX - originX;
+        const dy = Math.abs(t.clientY - edgeStartY);
+        if (dx < 8) return;
+        if (dy > dx * 1.15) {
+          edgeTracking = false;
+          clearDragStyles();
+          return;
+        }
+        dragPx = setSidebarDrag(dx);
+        if (dx > 10) e.preventDefault();
+      },
+      { passive: false },
+    );
+
+    document.addEventListener('touchend', (e) => {
+      if (!edgeTracking) return;
+      const x = e.changedTouches[0]?.clientX ?? originX;
+      const dx = x - originX;
+      edgeTracking = false;
+      if (dx < TAP_SLOP) return;
+      finishDrag(dragPx);
+    });
+  }
+
   function bind() {
     loadChain();
     syncChainUi();
+    syncDrawerRail();
     bindChainIcons();
     bindSocialIcons();
+    bindDrawer();
 
-    $('btnSidebarOpen')?.addEventListener('click', (e) => {
-      e.preventDefault();
-      toggleSidebar();
-    });
     $('btnSidebarClose')?.addEventListener('click', closeSidebar);
     $('dexSidebarBackdrop')?.addEventListener('click', closeSidebar);
 

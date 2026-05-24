@@ -69,12 +69,15 @@ html.tg-fullscreen .app-top-chrome {
   align-items: center;
   gap: 8px;
   min-height: var(--app-brand-h);
-  padding: 6px calc(10px + var(--tg-content-safe-right, 0px)) 6px calc(8px + var(--tg-content-safe-left, 0px));
+  padding: 6px calc(12px + var(--tg-content-safe-right, 0px)) 6px calc(12px + var(--tg-content-safe-left, 0px));
   box-sizing: border-box;
 }
 
-.app-brand-back,
-.app-top-chrome .btn-sidebar-open {
+html.tg-mini-app .app-brand-bar {
+  padding-left: calc(14px + var(--tg-content-safe-left, 0px));
+}
+
+.app-brand-back {
   flex-shrink: 0;
   width: 38px;
   height: 38px;
@@ -92,8 +95,7 @@ html.tg-fullscreen .app-top-chrome {
   box-shadow: 0 0 12px rgba(0, 229, 255, 0.12);
 }
 
-.app-brand-back:active,
-.app-top-chrome .btn-sidebar-open:active {
+.app-brand-back:active {
   transform: scale(0.97);
 }
 
@@ -252,10 +254,6 @@ html.detail-mode .app-brand-back {
 }
 
 html:not(.detail-mode) .app-brand-back {
-  display: none !important;
-}
-
-html.detail-mode .app-top-chrome .btn-sidebar-open {
   display: none !important;
 }
 
