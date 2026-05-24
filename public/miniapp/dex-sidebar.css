@@ -1,8 +1,8 @@
 /* Yan panel — DexScreener tarzı (mobil + Telegram) */
 
 :root {
-  --sidebar-watchlist-icon-size: 24px;
-  --sidebar-watchlist-icon-scale: 1.05;
+  --sidebar-watchlist-icon-size: 30px;
+  --sidebar-watchlist-icon-scale: 1.22;
 }
 
 .dex-sidebar {
@@ -431,12 +431,12 @@
 }
 
 .dex-sidebar-watch-head .watchlist-ico-img {
-  width: 22px;
-  height: 22px;
+  width: 26px;
+  height: 26px;
   object-fit: contain;
   object-position: center;
   flex-shrink: 0;
-  transform: scale(1.22);
+  transform: scale(1.15);
   transform-origin: center;
   background: transparent;
   mix-blend-mode: lighten;
