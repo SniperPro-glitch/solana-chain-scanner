@@ -3,6 +3,7 @@
 :root {
   --app-brand-h: 58px;
   --app-chrome-inset: 8px;
+  --promo-banner-inset: 4px;
   --sniper-bg: #060910;
   --sniper-card: #0b101d;
   --sniper-border: rgba(255, 255, 255, 0.06);
@@ -287,16 +288,14 @@ html.web-browser .app-chrome-toolbar {
   display: block;
   position: relative;
   box-sizing: border-box;
-  width: 100% !important;
+  width: calc(100% - 2 * var(--promo-banner-inset)) !important;
   max-width: none;
   height: var(--promo-h, 88px);
-  margin: 0 !important;
-  border-radius: 0;
+  margin: 0 var(--promo-banner-inset) 6px !important;
+  border-radius: 8px;
   overflow: hidden;
-  border: none;
-  border-top: 1px solid rgba(0, 229, 255, 0.25);
-  border-bottom: 1px solid rgba(0, 229, 255, 0.25);
-  box-shadow: none;
+  border: 1px solid rgba(0, 229, 255, 0.28);
+  box-shadow: 0 0 14px rgba(0, 229, 255, 0.1);
   flex-shrink: 0;
 }
 
