@@ -2871,10 +2871,10 @@
   function startDexTradesPanel(m) {
     const tape = $('tradesTape');
     if (tape) tape.classList.add('trades-tape--dex-embed');
-    mountDexTradesEmbed(m);
+    void mountDexTradesEmbed(m);
     if (!chartPoolRef(m)) {
       void ensurePoolOnMarket(m).then((pool) => {
-        if (pool && reportId) mountDexTradesEmbed(m);
+        if (pool && reportId) void mountDexTradesEmbed(m);
       });
     }
   }
