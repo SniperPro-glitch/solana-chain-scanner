@@ -2,6 +2,7 @@
 
 :root {
   --app-brand-h: 58px;
+  --app-brand-logo-size: 48px;
   --app-chrome-inset: 8px;
   --promo-banner-edge: 0px;
   --chrome-toolbar-pad-bottom: 8px;
@@ -173,9 +174,9 @@ html.tg-fullscreen .app-top-chrome {
 }
 
 .app-brand-core .brand-logo {
-  width: 40px;
-  height: 40px;
-  flex: 0 0 40px;
+  width: var(--app-brand-logo-size);
+  height: var(--app-brand-logo-size);
+  flex: 0 0 var(--app-brand-logo-size);
   flex-shrink: 0;
   border-radius: 10px;
   object-fit: contain;
