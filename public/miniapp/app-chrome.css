@@ -301,7 +301,7 @@ html.tg-fullscreen .app-top-chrome {
     0 0 18px rgba(0, 229, 255, 0.16);
   text-decoration: none;
   flex-shrink: 0;
-  transform: translateX(3px);
+  transform: translateX(5px);
 }
 
 html.web-browser .app-top-chrome .promo-banner.app-promo-global {
