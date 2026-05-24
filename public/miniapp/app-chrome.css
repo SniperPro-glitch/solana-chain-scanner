@@ -288,7 +288,7 @@ html.tg-fullscreen .app-top-chrome {
   position: relative;
   box-sizing: border-box;
   left: calc(var(--promo-banner-edge) - var(--app-chrome-inset));
-  right: calc(var(--promo-banner-edge) - var(--app-chrome-inset) - 1px);
+  right: calc(var(--promo-banner-edge) - var(--app-chrome-inset));
   width: auto;
   max-width: none;
   height: var(--promo-h);
