@@ -110,6 +110,22 @@
   const EMBED_PROVIDER_STORAGE = 'sniperEmbedProviderV1';
   const EMBED_DEX_WEB_FALLBACK_MS = 1500;
   const EMBED_PROVIDER_CHECK_MS = 3000;
+
+  /** Tarayıcıda eski session dex kilidi — Gecko’ya geçişi engeller. */
+  function migrateWebEmbedStorage() {
+    if (!isWebBrowser) return;
+    try {
+      for (let i = sessionStorage.length - 1; i >= 0; i -= 1) {
+        const k = sessionStorage.key(i);
+        if (k?.startsWith(`${EMBED_PROVIDER_STORAGE}:`) && sessionStorage.getItem(k) === 'dex') {
+          sessionStorage.removeItem(k);
+        }
+      }
+    } catch {
+      /* yoksay */
+    }
+  }
+  migrateWebEmbedStorage();
   let openingMint = false;
   let feedItemsFull = [];
   let feedEmptyMessage = '';
@@ -2814,6 +2830,7 @@
   }
 
   function setStoredEmbedProvider(pool, provider) {
+    if (isWebBrowser && provider === 'dex') return;
     try {
       sessionStorage.setItem(embedProviderStorageKey(pool), provider);
     } catch {
@@ -2822,17 +2839,27 @@
   }
 
   function getEmbedProviderForPool(pool) {
+    if (isWebBrowser) return 'gecko';
     return getStoredEmbedProvider(pool) || 'dex';
   }
 
   /** İlk çizim — API beklemeden iframe mount (boş ekran önlenir). */
   function initialEmbedProvider(embedRef) {
+    if (isWebBrowser) return 'gecko';
     const cached = getStoredEmbedProvider(embedRef);
     if (cached) return cached;
-    return isWebBrowser ? 'gecko' : 'dex';
+    return 'dex';
+  }
+
+  function pickEmbedProvider(embedRef, opts = {}) {
+    if (opts.forceProvider) return opts.forceProvider;
+    if (isWebBrowser) return 'gecko';
+    if (opts.skipResolve) return getEmbedProviderForPool(embedRef);
+    return initialEmbedProvider(embedRef);
   }
 
   function scheduleEmbedProviderRefine(embedRef, container, m, note, tf) {
+    if (isWebBrowser) return;
     void resolveEmbedProviderForPool(embedRef).then((resolved) => {
       if (!embedRef || !document.getElementById('priceChart')) return;
       const current = getStoredEmbedProvider(embedRef) || initialEmbedProvider(embedRef);
@@ -2880,6 +2907,7 @@
   async function resolveEmbedProviderForPool(ref) {
     const id = String(ref || '').trim();
     if (!id) return 'gecko';
+    if (isWebBrowser) return 'gecko';
     const cached = getStoredEmbedProvider(id);
     if (cached === 'gecko') return 'gecko';
     if (cached === 'dex') return 'dex';
@@ -3040,12 +3068,12 @@
       return;
     }
     if (pool && !m.poolAddress) m.poolAddress = pool;
-    const provider =
-      opts.forceProvider
-      || (opts.skipResolve ? getEmbedProviderForPool(embedRef) : initialEmbedProvider(embedRef));
-    const url = tradesEmbedUrlFor(m, provider, { useTokenPath: !!opts.geckoUseToken });
+    const provider = pickEmbedProvider(embedRef, opts);
+    const geckoUseToken =
+      opts.geckoUseToken ?? (provider === 'gecko' && !chartPoolRef(m));
+    const url = tradesEmbedUrlFor(m, provider, { useTokenPath: geckoUseToken });
     if (!url) return;
-    const refKey = `${provider}:${opts.geckoUseToken ? 'tok' : 'pool'}:${embedRef}`;
+    const refKey = `${provider}:${geckoUseToken ? 'tok' : 'pool'}:${embedRef}`;
     const srcChanged = dexTradesEmbedRef !== refKey || iframe.src !== url;
     if (srcChanged) {
       dexTradesEmbedRef = refKey;
@@ -3306,15 +3334,15 @@
       setChartEmbedMode(false);
       return false;
     }
-    const provider =
-      opts.forceProvider
-      || (opts.skipResolve ? getEmbedProviderForPool(embedRef) : initialEmbedProvider(embedRef));
+    const provider = pickEmbedProvider(embedRef, opts);
+    const geckoUseToken =
+      opts.geckoUseToken ?? (provider === 'gecko' && !chartPoolRef(m));
     if (!opts.forceProvider && !opts.skipResolve) {
       scheduleEmbedProviderRefine(embedRef, container, m, note, tf);
     }
     const embed =
       provider === 'gecko'
-        ? geckoChartUrlForMarket(m, tf, { useTokenPath: !!opts.geckoUseToken })
+        ? geckoChartUrlForMarket(m, tf, { useTokenPath: geckoUseToken })
         : chartEmbedUrlFor(m, tf, provider);
     const page = m?.chart?.dexScreenerPageUrl || m?.dexScreenerUrl;
     if (!embed) {
@@ -3326,7 +3354,7 @@
       container.innerHTML = `<div class="empty-chart">Grafik yüklenemedi. ${link}</div>`;
       return false;
     }
-    const mountKey = `${provider}:${opts.geckoUseToken ? 'tok' : 'pool'}:${embedRef}:${embed}`;
+    const mountKey = `${provider}:${geckoUseToken ? 'tok' : 'pool'}:${embedRef}:${embed}`;
     const existing = container.querySelector('iframe.dex-embed-chart');
     setChartEmbedMode(true);
     syncEmbedCropProfile(provider);
