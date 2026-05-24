@@ -67,15 +67,11 @@
     </div>
 
     <div class="nav-section">
-      <div class="nav-section-label">App</div>
-      <a class="nav-item" onclick="showPage('app-banner')">
-        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
-        Banner
-      </a>
-    </div>
-
-    <div class="nav-section">
       <div class="nav-section-label">Mini App</div>
+      <a class="nav-item" onclick="showPage('banner')">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+        Banner Stüdyosu
+      </a>
       <a class="nav-item" onclick="showPage('miniapp')">
         <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
         Mini App Ayarları
@@ -952,31 +948,24 @@
       <p id="trendStatus" class="banner-admin-status" role="status" style="margin:8px 0 0"></p>
     </div>
 
-<!-- ══════════ APP BANNER ══════════ -->
-    <div class="page" id="page-app-banner">
+<!-- ══════════ BANNER (Mini App) ══════════ -->
+    <div class="page" id="page-banner">
       <div class="card" id="adminBannerRoot">
         <div class="section-hdr" style="margin-bottom:12px">
-          <div class="card-title" style="margin:0">App Banner</div>
+          <div class="card-title" style="margin:0">Mini App Banner</div>
           <div style="display:flex;align-items:center;gap:10px">
             <span style="font-size:11px;color:var(--muted)">Yayında</span>
             <label class="toggle"><input type="checkbox" id="adminBannerEnabled" checked /><span class="toggle-slider"></span></label>
           </div>
         </div>
-        <p class="banner-admin-hint">Telegram ve uygulama üst şeridi (logo altı). Telegram için telefon, geniş ekran için tablet; web tarayıcıda tam genişlik banner ayrı ölçüde.</p>
+        <p class="banner-admin-hint">Bilgisayar, tablet ve telefon için ayrı görsel. Yönetim yalnızca bu admin panelinden yapılır.</p>
         <div class="banner-variant-tabs">
-          <button type="button" class="banner-variant-tab active" data-variant="mobile">Telegram / App<span class="banner-tab-size">414×88</span></button>
-          <button type="button" class="banner-variant-tab" data-variant="tablet">Tablet<span class="banner-tab-size">768×96</span></button>
-          <button type="button" class="banner-variant-tab" data-variant="desktop">Web<span class="banner-tab-size">12.5:1</span></button>
+          <button type="button" class="banner-variant-tab active" data-variant="desktop">Web tam ekran<span class="banner-tab-size">1920×154</span></button>
+          <button type="button" class="banner-variant-tab" data-variant="tablet">Tablet<span class="banner-tab-size">768×80</span></button>
+          <button type="button" class="banner-variant-tab" data-variant="mobile">Telefon<span class="banner-tab-size">414×64</span></button>
         </div>
-        <div class="admin-banner-app-chrome" id="adminBannerAppChrome" aria-hidden="true">
-          <div class="admin-banner-app-chrome-bar"></div>
-          <div class="admin-banner-app-chrome-toolbar">
-            <span class="admin-banner-app-chrome-logo"></span>
-            <span class="admin-banner-app-chrome-connect"></span>
-          </div>
-        </div>
-        <div class="admin-banner-stage admin-banner-stage--app" id="adminBannerStage" data-banner-variant="mobile">
-          <p class="admin-banner-size-hint" id="adminBannerSizeHint">Telegram — 414×88 px (üst şerit yüksekliği ile bire bir)</p>
+        <div class="admin-banner-stage" id="adminBannerStage" data-banner-variant="desktop">
+          <p class="admin-banner-size-hint" id="adminBannerSizeHint">Web tam ekran — Full HD: 1920×154 px (oran 12.5:1)</p>
           <div class="admin-banner-slot" id="adminBannerSlot">
             <img id="adminBannerPreview" class="admin-banner-preview-img" alt="" />
             <label class="banner-studio-upload" id="adminBannerUploadLabel">
@@ -1549,7 +1538,7 @@ const pages = {
   feed:        { title: 'Token Feed',             sub: 'Feedteki tokenler' },
   'add-token': { title: '+ Token Ekle',           sub: 'Yeni token feed listesine ekle' },
   trending:    { title: 'Trend Ayarları',          sub: 'Algoritma ve görünüm ayarları' },
-  'app-banner': { title: 'App Banner',            sub: 'Telegram · tablet · web üst reklam şeridi' },
+  banner:      { title: 'Mini App Banner',        sub: 'Bilgisayar · tablet · telefon görselleri' },
   miniapp:     { title: 'Mini App Ayarları',      sub: 'Özellik bayrakları ve seed verisi' },
   connections: { title: 'Bağlantılar & API',      sub: 'Endpoint ve bağlantı yönetimi' },
   env:         { title: 'Ortam Değişkenleri',     sub: 'Sistem çevre değişkenleri' },
@@ -1577,8 +1566,8 @@ function showPage(id) {
 <script src="admin-nav.js?v=4"></script>
 <script src="admin-live.js?v=9"></script>
 <script src="admin-action-auth.js?v=1"></script>
-<script src="banner-specs.js?v=3"></script>
-<script src="admin-banner.js?v=7"></script>
+<script src="banner-specs.js?v=2"></script>
+<script src="admin-banner.js?v=6"></script>
 <script src="admin-settings.js?v=2"></script>
 <script src="admin-trending.js?v=7"></script>
 <script src="admin-users.js?v=3"></script>

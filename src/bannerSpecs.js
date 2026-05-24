@@ -37,16 +37,16 @@ const BANNER_SPECS = {
   tablet: {
     key: 'tablet',
     width: 768,
-    height: 96,
+    height: 80,
     maxWidth: 768,
     label: 'Tablet',
   },
   mobile: {
     key: 'mobile',
     width: 414,
-    height: 88,
+    height: 64,
     maxWidth: 414,
-    label: 'Telegram / App',
+    label: 'Telefon (Telegram)',
   },
 };
 

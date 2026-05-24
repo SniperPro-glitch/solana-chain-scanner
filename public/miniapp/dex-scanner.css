@@ -135,8 +135,8 @@ body.sidebar-open {
   min-width: 0;
 }
 
-/* Üst reklam banner — src/bannerSpecs.js (app chrome: app-chrome.css) */
-.promo-banner:not(.app-promo-global) {
+/* Üst reklam banner — src/bannerSpecs.js (desktop 12.5:1, tablet 80px, mobile 64px) */
+.promo-banner {
   --promo-h: 96px;
   display: block;
   position: relative;
@@ -170,22 +170,22 @@ body.sidebar-open {
 }
 
 .promo-banner.promo-banner--tablet {
-  --promo-h: 96px;
+  --promo-h: 80px;
 }
 
 .promo-banner.promo-banner--mobile {
-  --promo-h: 88px;
+  --promo-h: 64px;
 }
 
 @media (max-width: 899px) {
   .promo-banner:not(.promo-banner--desktop) {
-    --promo-h: 96px;
+    --promo-h: 80px;
   }
 }
 
 @media (max-width: 479px) {
   .promo-banner:not(.promo-banner--desktop):not(.promo-banner--tablet) {
-    --promo-h: 88px;
+    --promo-h: 64px;
   }
 }
 
@@ -196,18 +196,18 @@ html.web-browser .scanner-home {
   margin: 0;
 }
 
-html.web-browser .promo-banner:not(.app-promo-global) {
+html.web-browser .promo-banner {
   height: auto;
   aspect-ratio: 1200 / 96;
   min-height: 56px;
 }
 
-html.web-browser .promo-banner:not(.app-promo-global) .promo-banner-picture {
+html.web-browser .promo-banner-picture {
   position: absolute;
   inset: 0;
 }
 
-html.web-browser .promo-banner:not(.app-promo-global) .promo-banner-img {
+html.web-browser .promo-banner-img {
   position: absolute;
   inset: 0;
 }

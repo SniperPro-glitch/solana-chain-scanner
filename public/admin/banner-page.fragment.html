@@ -1,32 +1,25 @@
-    <!-- ══════════ APP BANNER ══════════ -->
-    <div class="page" id="page-app-banner">
+    <!-- ══════════ BANNER (Mini App) ══════════ -->
+    <div class="page" id="page-banner">
       <div class="card" id="adminBannerRoot">
         <div class="section-hdr" style="margin-bottom:12px">
-          <div class="card-title" style="margin:0">App Banner</div>
+          <div class="card-title" style="margin:0">Mini App Banner</div>
           <div style="display:flex;align-items:center;gap:10px">
             <span style="font-size:11px;color:var(--muted)">Yayında</span>
             <label class="toggle"><input type="checkbox" id="adminBannerEnabled" checked /><span class="toggle-slider"></span></label>
           </div>
         </div>
-        <p class="banner-admin-hint">Telegram ve uygulama üst şeridi (logo altı). Telegram için telefon, geniş ekran için tablet; web tarayıcıda tam genişlik banner ayrı ölçüde.</p>
+        <p class="banner-admin-hint">Bilgisayar, tablet ve telefon için ayrı görsel. Yönetim yalnızca bu admin panelinden yapılır.</p>
         <div class="banner-variant-tabs">
-          <button type="button" class="banner-variant-tab active" data-variant="mobile">Telegram / App<span class="banner-tab-size">414×88</span></button>
-          <button type="button" class="banner-variant-tab" data-variant="tablet">Tablet<span class="banner-tab-size">768×96</span></button>
-          <button type="button" class="banner-variant-tab" data-variant="desktop">Web<span class="banner-tab-size">12.5:1</span></button>
+          <button type="button" class="banner-variant-tab active" data-variant="desktop">Web<span class="banner-tab-size">1200×96</span></button>
+          <button type="button" class="banner-variant-tab" data-variant="tablet">Tablet<span class="banner-tab-size">768×80</span></button>
+          <button type="button" class="banner-variant-tab" data-variant="mobile">Telefon<span class="banner-tab-size">414×64</span></button>
         </div>
-        <div class="admin-banner-app-chrome" id="adminBannerAppChrome" aria-hidden="true">
-          <div class="admin-banner-app-chrome-bar"></div>
-          <div class="admin-banner-app-chrome-toolbar">
-            <span class="admin-banner-app-chrome-logo"></span>
-            <span class="admin-banner-app-chrome-connect"></span>
-          </div>
-        </div>
-        <div class="admin-banner-stage admin-banner-stage--app" id="adminBannerStage" data-banner-variant="mobile">
-          <p class="admin-banner-size-hint" id="adminBannerSizeHint">Telegram — 414×88 px (üst şerit yüksekliği ile bire bir)</p>
+        <div class="admin-banner-stage" id="adminBannerStage" data-banner-variant="desktop">
+          <p class="admin-banner-size-hint" id="adminBannerSizeHint">Mini App: tam genişlik × 96 px — önerilen görsel 1200×96</p>
           <div class="admin-banner-slot" id="adminBannerSlot">
             <img id="adminBannerPreview" class="admin-banner-preview-img" alt="" />
             <label class="banner-studio-upload" id="adminBannerUploadLabel">
-              <span class="banner-studio-upload-text">📤 Telefon görseli seç</span>
+              <span class="banner-studio-upload-text">📤 Bilgisayar görseli seç</span>
               <input type="file" id="adminBannerFile" accept="image/png,image/jpeg,image/webp,image/gif" />
             </label>
           </div>
