@@ -590,6 +590,21 @@ function createMiniAppServer() {
         return;
       }
 
+      if (req.method === 'POST' && url.pathname === '/api/watchlist/quotes') {
+        try {
+          const raw = await readBody(req);
+          const body = JSON.parse(raw || '{}');
+          const mints = Array.isArray(body.mints) ? body.mints : [];
+          const { quotesForMints } = require('./miniAppWatchlistApi');
+          const items = await quotesForMints(mints);
+          sendJson(res, 200, { items }, { 'Cache-Control': 'private, no-store' });
+        } catch (e) {
+          console.warn('[miniApp] watchlist quotes:', e.message);
+          sendJson(res, 502, { error: 'watchlist_quotes_failed', message: e.message });
+        }
+        return;
+      }
+
       const openMatch = url.pathname.match(/^\/api\/open\/([1-9A-HJ-NP-Za-km-z]{32,44})$/);
       if (req.method === 'GET' && openMatch) {
         try {

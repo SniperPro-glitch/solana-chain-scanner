@@ -191,7 +191,7 @@
     return fmt || '—';
   }
 
-  const SCANNER_ICON = 'assets/sniper-scanner-icon.png?v=1';
+  const SCANNER_ICON = 'assets/sniper-scanner-icon.png?v=2';
 
   /** Üst DEX chip + arama — token satırında kullanılmaz */
   const DEX_LOGO_SRC = {
@@ -472,6 +472,16 @@
       setTimeout(() => $('radarMintInput')?.focus({ preventScroll: true }), 120);
       return;
     }
+    if (nav === 'watch') {
+      location.hash = '';
+      reportId = null;
+      feedListMode = 'top';
+      setFeedTab('watch');
+      showScannerHome();
+      clearSearch({ skipFetch: true });
+      void loadWatchlistView({ force: true });
+      return;
+    }
     showToast('Yakında');
   }
 
@@ -590,6 +600,7 @@
     } else {
       setScannerNav(false);
       if (tab === 'new') feedTab = 'new';
+      else if (tab === 'watch') feedTab = 'watch';
       else if (tab === 'trend' || tab === 'trending') feedTab = 'trending';
       else feedTab = 'home';
     }
@@ -599,7 +610,8 @@
         (n === 'scan' && scannerNavActive) ||
         (!scannerNavActive && n === 'home' && feedTab === 'home') ||
         (!scannerNavActive && n === 'trend' && feedTab === 'trending') ||
-        (!scannerNavActive && n === 'new' && feedTab === 'new');
+        (!scannerNavActive && n === 'new' && feedTab === 'new') ||
+        (!scannerNavActive && n === 'watch' && feedTab === 'watch');
       btn.classList.toggle('active', active);
     });
     updateFeedListTitle();
@@ -608,10 +620,51 @@
       feedEmptyKind = '';
     }
     syncNewPairsView();
+    syncWatchlistView();
     syncFeedToolbarUi();
   }
 
+  function syncWatchlistView() {
+    const isWl = feedTab === 'watch' && !scannerNavActive;
+    $('homeFeedPanel')?.classList.toggle('is-watch-tab', isWl);
+    $('watchlistPanel')?.classList.toggle('hidden', !isWl);
+    $('newPairsPanel')?.classList.toggle('hidden', feedTab !== 'new' || scannerNavActive);
+    $('feedToolbar')?.classList.toggle('hidden', isWl || (feedTab === 'new' && !scannerNavActive));
+    $('trendingBand')?.classList.toggle('hidden', isWl || (feedTab === 'new' && !scannerNavActive));
+    $('chainScroll')?.classList.toggle('hidden', isWl);
+    const meta = $('feedMetaBar');
+    if (isWl && meta) {
+      const wl = globalThis.SniperWatchlist;
+      const listName = wl?.getActiveList?.()?.name || 'Watchlist';
+      const n = wl?.getEntries?.()?.length ?? 0;
+      const txt = $('feedMetaText');
+      if (txt) {
+        txt.textContent = n ? `◎ ${listName} · ${n} token` : `◎ ${listName} · boş`;
+      }
+      wl?.renderListBar?.();
+      meta.classList.remove('hidden');
+    }
+  }
+
+  async function loadWatchlistView(opts = {}) {
+    if (globalThis.SniperWatchlist?.loadView) {
+      return globalThis.SniperWatchlist.loadView(opts);
+    }
+    setWatchlistFeedItems([], opts);
+  }
+
+  function setWatchlistFeedItems(items, opts = {}) {
+    feedEmptyMessage = '';
+    feedEmptyKind = '';
+    feedItemsFull = Array.isArray(items) ? items : [];
+    applySearchFilter();
+    if (opts.force && feedTab === 'watch') syncWatchlistView();
+  }
+
   function syncNewPairsView() {
+    syncWatchlistView();
+    const isWl = feedTab === 'watch' && !scannerNavActive;
+    if (isWl) return;
     const isNp = feedTab === 'new' && !scannerNavActive;
     $('homeFeedPanel')?.classList.toggle('is-new-pairs', isNp);
     $('homeFeedPanel')?.classList.toggle('is-home-tab', feedTab === 'home' && !scannerNavActive);
@@ -932,7 +985,7 @@
   function updateFeedListTitle() {
     const el = $('feedListTitle');
     if (!el) return;
-    if (scannerNavActive || feedTab === 'home') {
+    if (scannerNavActive || feedTab === 'home' || feedTab === 'watch') {
       el.textContent = '';
       el.classList.add('hidden');
       return;
@@ -971,6 +1024,10 @@
     applyChainHeaderUi(chainKey);
     homeFeedCacheKey = '';
     homeFeedInflight = null;
+    if (feedTab === 'watch') {
+      void loadWatchlistView({ force: true });
+      return;
+    }
     const uiTab = feedTab === 'scan' ? 'trending' : feedTab;
     void loadHomeFeed(feedTabForApi(resolveFeedTab(uiTab)), uiTab, { force: true });
   }
@@ -1022,6 +1079,12 @@
     let list = Array.isArray(items) ? [...items] : [];
     if (feedChainFilter && feedChainFilter !== 'all') {
       list = list.filter((it) => String(it.chain || 'solana').toLowerCase() === feedChainFilter);
+    }
+
+    if (feedTab === 'watch') {
+      list = enrichItemsWithLastReportAudit(list);
+      list.sort((a, b) => (b.watchAddedAt || 0) - (a.watchAddedAt || 0));
+      return list.map((it, i) => ({ ...it, rank: i + 1 }));
     }
 
     if (feedTab === 'new') {
@@ -1169,10 +1232,55 @@
     }
   }
 
-  function renderLastReportRow() {
+  function getLastReportMeta() {
     try {
-      const last = JSON.parse(sessionStorage.getItem('lastReport') || 'null');
+      return JSON.parse(sessionStorage.getItem('lastReport') || 'null');
+    } catch {
+      return null;
+    }
+  }
+
+  function symKey(s) {
+    return String(s || '')
+      .trim()
+      .toUpperCase();
+  }
+
+  function itemMatchesLastReport(it, last) {
+    if (!it || !last) return false;
+    if (last.mint && it.mint && last.mint === it.mint) return true;
+    if (last.id && it.reportId && last.id === it.reportId) return true;
+    const ls = symKey(last.symbol);
+    return ls && ls === symKey(it.symbol);
+  }
+
+  function enrichItemsWithLastReportAudit(items) {
+    const last = getLastReportMeta();
+    if (!last?.id) return items;
+    const r = riskBadgeLabel(last.level, last.score);
+    const riskObj = { band: r.cls === 'high' ? 'high' : r.cls === 'low' ? 'low' : 'mid', label: r.text };
+    return (items || []).map((it) => {
+      if (!itemMatchesLastReport(it, last)) return it;
+      const liveLbl = it.risk?.label;
+      const useLastRisk = !liveLbl || liveLbl === 'SCAN' || liveLbl === '—';
+      return {
+        ...it,
+        reportId: it.reportId || last.id,
+        level: it.level || last.level,
+        trustScore: it.trustScore ?? last.score,
+        risk: useLastRisk ? riskObj : it.risk,
+        priceUsdFmt: it.priceUsdFmt && it.priceUsdFmt !== '—' ? it.priceUsdFmt : last.price,
+        change24h: it.change24h ?? last.chg,
+      };
+    });
+  }
+
+  function renderLastReportRow(items = []) {
+    if (feedTab === 'watch') return '';
+    try {
+      const last = getLastReportMeta();
       if (!last?.id) return '';
+      if ((items || []).some((it) => itemMatchesLastReport(it, last))) return '';
       const r = riskBadgeLabel(last.level, last.score);
       const up = (last.chg || 0) >= 0;
       return `<article class="token-row token-row-last" data-report="${escHtml(last.id)}">
@@ -1385,10 +1493,15 @@
     const list = $('homeTokenList');
     if (!list) return;
     const searching = !!opts.searching || !!(searchQuery || '').trim();
-    const lastRow = searching ? '' : renderLastReportRow();
+    const prepared = Array.isArray(items) ? items : [];
+    const lastRow = searching ? '' : renderLastReportRow(prepared);
     list.classList.remove('np-list');
-    const rows = (items || []).map((it) => renderFeedRow(it)).join('');
+    const rows = prepared.map((it) => renderFeedRow(it)).join('');
     if (!rows) {
+      if (!searching && feedTab === 'watch') {
+        list.innerHTML = globalThis.SniperWatchlist?.renderEmptyHtml?.() || '<p class="home-cta">Watchlist boş</p>';
+        return;
+      }
       if (!searching && (feedTab === 'new' || feedEmptyKind === 'new_pairs_empty')) {
         list.innerHTML = renderNewPairsEmptyState();
         return;
@@ -1581,6 +1694,10 @@
 
   /** Ana liste — Scanner modundan çıkar, feed API çağır. */
   async function loadHomeFeed(apiTab = 'trending', uiTab = 'trending', opts = {}) {
+    if (uiTab === 'watch') {
+      setFeedTab('watch');
+      return loadWatchlistView(opts);
+    }
     // Ana liste tam feed; metin araması yalnızca search-overlay (/api/search).
     const q = '';
     const chain = getFeedChainParam();
@@ -1595,6 +1712,7 @@
     setScannerNav(false);
     toggleHomeRadarPanels();
     if (uiTab === 'new') feedTab = 'new';
+    else if (uiTab === 'watch') feedTab = 'watch';
     else if (uiTab === 'home') feedTab = 'home';
     else feedTab = 'trending';
     setFeedTab(feedTab);
@@ -1652,6 +1770,9 @@
     if (uiTab === 'scan') {
       setFeedTab('scan');
       return null;
+    }
+    if (uiTab === 'watch') {
+      return loadWatchlistView(opts);
     }
     return loadHomeFeed(feedTabForApi(resolveFeedTab(uiTab)), uiTab, opts);
   }
@@ -1837,7 +1958,6 @@
         showToast('Paylaşım iptal');
       }
     });
-    $('btnWatchlist')?.addEventListener('click', () => showToast('Watchlist yakında'));
   }
 
   async function loadReportFlow() {
@@ -1846,8 +1966,10 @@
     try {
       const data = await loadReport('15m');
       try {
+        const mint = data.address || data.market?.address;
         sessionStorage.setItem('lastReport', JSON.stringify({
           id: reportId,
+          mint,
           symbol: data.symbol,
           price: data.market?.priceUsdFmt || data.summary?.price,
           mcap: data.market?.marketCapUsdFmt,
@@ -1855,6 +1977,18 @@
           level: data.level,
           score: data.trust?.score,
         }));
+        if (mint && globalThis.SniperWatchlist?.patchAudit) {
+          globalThis.SniperWatchlist.patchAudit(mint, {
+            reportId,
+            symbol: data.symbol || data.market?.symbol,
+            level: data.level,
+            trustScore: data.trust?.score,
+            priceUsdFmt: data.market?.priceUsdFmt,
+            change24h: data.market?.priceChange24h,
+            imageUrl: data.market?.imageUrl,
+          });
+        }
+        if (feedTab === 'watch') applySearchFilter();
       } catch { /* yoksay */ }
     } catch (e) {
       if (e.message === 'expired') {
@@ -3649,6 +3783,7 @@
     document.querySelectorAll('.tf').forEach((b) => {
       b.classList.toggle('active', b.dataset.tf === (m.chart?.timeframe || currentTf));
     });
+    globalThis.SniperWatchlist?.syncDetailButton?.(data);
   }
 
   function showError(title, hint) {
@@ -3766,8 +3901,15 @@
 
   globalThis.loadHomeFeed = loadHomeFeed;
   globalThis.ingestFeedResponse = ingestFeedResponse;
-  globalThis.refreshHomeFeed = () =>
-    loadHomeFeed(feedTabForApi(feedTab), feedTab === 'scan' ? 'trending' : feedTab);
+  globalThis.refreshHomeFeed = () => {
+    if (feedTab === 'watch') return loadWatchlistView({ force: true });
+    return loadHomeFeed(feedTabForApi(feedTab), feedTab === 'scan' ? 'trending' : feedTab);
+  };
+  globalThis.getAppData = () => appData;
+  globalThis.getFeedTab = () => feedTab;
+  globalThis.loadWatchlistView = loadWatchlistView;
+  globalThis.setWatchlistFeedItems = setWatchlistFeedItems;
+  globalThis.openTokenByMint = openTokenByMint;
 
   main();
 })();

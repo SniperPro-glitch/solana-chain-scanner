@@ -94,8 +94,8 @@ html.radar-tab-active .scanner-home {
 }
 
 .radar-analyze-ico .scanner-ico-img {
-  width: 22px;
-  height: 22px;
+  width: 26px;
+  height: 26px;
   object-fit: contain;
 }
 
@@ -302,6 +302,13 @@ html.radar-tab-active .scanner-home {
 }
 
 .detail-act-btn:disabled { opacity: 0.45; }
+
+.detail-act-btn--watch-on {
+  border-color: rgba(0, 229, 255, 0.55);
+  background: rgba(0, 229, 255, 0.12);
+  color: var(--cyan, #00e5ff);
+  box-shadow: 0 0 12px rgba(0, 229, 255, 0.18);
+}
 
 .detail-act-ai {
   background: linear-gradient(135deg, #6b4cff, #9b5cff);

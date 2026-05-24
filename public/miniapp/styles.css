@@ -726,12 +726,10 @@ html.detail-mode .detail-tab .section-card {
   margin-right: 0;
 }
 
-#dtab-chart.active .detail-action-row {
-  display: none;
-}
-
 #dtab-chart .detail-action-row {
-  padding: 0 0 12px;
+  display: flex;
+  padding: 0 12px 12px;
+  gap: 8px;
 }
 
 #dtab-chart .chart-terminal {
