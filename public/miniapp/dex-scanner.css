@@ -2841,6 +2841,9 @@ html.web-browser.detail-mode[data-dex-crop-profile] .dex-trades-embed-wrap {
   border: 0;
   display: block;
   pointer-events: auto;
+  min-height: 240px;
+  min-width: 100%;
+  background: #0a0e1a;
 }
 
 .trades-tape--dex-embed .trades-thead,
