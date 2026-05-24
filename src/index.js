@@ -730,13 +730,39 @@ async function notifyAdminsChannelBackup(chatId, title, { isNew = false } = {}) 
 }
 
 function formatEmptyChannelsHelp() {
+  const { getOfficialFeedChannelIds } = require('./channelFeedPolicy');
+  const official = getOfficialFeedChannelIds();
+  const envIds = String(
+    process.env.TELEGRAM_CHANNEL_IDS || process.env.TELEGRAM_CHANNEL_ID || '',
+  ).trim();
+  const webApp = String(process.env.WEB_APP_URL || '').trim();
+
+  let block = '';
+  if (envIds || official.length) {
+    const want = official.length ? official.join(', ') : envIds;
+    block =
+      '<b>Variables’da kanal ID var ama kayıt yok</b> — bot o kanalda <b>admin değil</b> '
+      + 'veya yanlış <code>BOT_TOKEN</code> kullanılıyor.\n\n'
+      + `Beklenen ID: <code>${escapeHtmlLite(want)}</code>\n`
+      + '1) Resmi kanala <b>bu botu</b> admin ekleyin (mesaj gönderme yetkisi)\n'
+      + '2) Kanalda <code>/channelid</code> — ID aynı mı kontrol\n'
+      + '3) Railway <code>BOT_TOKEN</code> = BotFather’daki bot\n'
+      + '4) Redeploy → log: <code>env-sync: 1/1</code> veya <code>resmi kanal kayıt</code>\n\n';
+  } else {
+    block =
+      'Henüz kanal kaydı yok. Kanala botu <b>admin</b> yapınca otomatik kayıt + hoş geldin gelir.\n\n';
+  }
+
   return (
-    '⚠️ <b>Sunucu notu</b> (sadece bot sahibine — kanal kullanıcıları Railway görmez)\n\n'
-    + 'Henüz hiç kanal kaydı yok. Herkese açık botta kanallar <b>otomatik</b> eklenir:\n'
-    + 'biri kanala botu yönetici yapınca → kayıt + hoş geldin.\n\n'
-    + '<b>Sizin tek seferlik işiniz (Railway):</b>\n'
-    + 'Volume mount <code>/data</code> — tüm kanalların ayarı deploy sonrası kalır.\n\n'
-    + '<i>TELEGRAM_CHANNEL_IDS = acil yedek (tek kanal test); her kullanıcı için değil.</i>'
+    '⚠️ <b>Sunucu notu</b> (sadece bot sahibi — kanalda görünmez)\n\n'
+    + block
+    + '<b>Railway (tek sefer):</b>\n'
+    + '• Volume → mount <code>/app/data</code> → <code>DATA_DIR=/app/data</code>\n'
+    + '• <code>TELEGRAM_CHANNEL_IDS</code> + <code>MINI_APP_FEED_CHANNEL_IDS</code> '
+    + '(resmi ◎ Solana kanal, örn. <code>-1003992932638</code>)\n'
+    + '• <code>WEB_APP_URL</code> = public domain (Mini App)\n\n'
+    + (webApp ? `Mini App: <code>${escapeHtmlLite(webApp)}</code>\n` : '')
+    + 'Kanalda hoş geldin yoksa: <code>/welcome</code>'
   );
 }
 
@@ -791,6 +817,11 @@ async function canManageChat(msg) {
 }
 
 const { buildSniperDexWebAppButton, sniperDexMenuButton } = require('./dexAppButton');
+const {
+  sendChannelWelcome,
+  ensureOfficialChannelDefaults,
+  bootstrapOfficialChannels,
+} = require('./channelWelcome');
 
 function buildStartKeyboard(lang) {
   const rows = [];
@@ -1122,6 +1153,28 @@ async function handleSettings(msg) {
 
 bindTextCommand(/^\/settings(@\w+)?$/i, handleSettings);
 
+/** Kanalda hoş geldin mesajını yeniden gönder (yönetici). */
+bindTextCommand(/^\/welcome(@\w+)?$/i, async (msg) => {
+  if (!isBroadcastChat(msg.chat)) {
+    return bot.sendMessage(msg.chat.id, 'ℹ️ /welcome — use in a channel where the bot is admin.');
+  }
+  const uid = actorUserId(msg);
+  if (!uid || !(await isChatAdmin(msg.chat.id, uid))) {
+    return bot.sendMessage(msg.chat.id, t('cmd.notChannelAdmin', langForMsg(msg)));
+  }
+  channels.add(msg.chat, 'welcome-cmd', uid);
+  ensureOfficialChannelDefaults(msg.chat.id);
+  const oldId = channels.get(msg.chat.id)?.settings?.welcomeMessageId;
+  if (oldId) {
+    await bot.deleteMessage(msg.chat.id, oldId).catch(() => {});
+    channels.updateSetting(msg.chat.id, 'welcomeMessageId', null);
+  }
+  const ok = await sendChannelWelcome(bot, msg.chat, { userId: uid, force: true });
+  if (!ok) {
+    return bot.sendMessage(msg.chat.id, '❌ Hoş geldin gönderilemedi (bot kanalda admin mi?).');
+  }
+});
+
 bindTextCommand(/^\/dex(@\w+)?$/i, async (msg) => {
   const lang = langForMsg(msg);
   const dexBtn = buildSniperDexWebAppButton(lang);
@@ -1304,43 +1357,23 @@ bot.on('my_chat_member', async (upd) => {
   const newStatus = upd.new_chat_member?.status;
   const oldStatus = upd.old_chat_member?.status;
 
-  // Gerçek kanala giriş: önce left/kicked → sonra admin/member.
-  // Deploy/restart: oldStatus çoğu zaman yok → hoş geldin SPAM olmasın.
+  // Gerçek kanala giriş veya üye → admin yükseltme.
   const joinedChannel = ['administrator', 'member'].includes(newStatus)
     && ['left', 'kicked'].includes(oldStatus);
+  const promotedToAdmin = newStatus === 'administrator'
+    && ['member', 'restricted'].includes(oldStatus);
 
-  if (joinedChannel) {
+  if (joinedChannel || promotedToAdmin) {
     const { added, channel: chRec } = channels.add(chat, upd.from?.username || 'auto', upd.from?.id);
     console.log(`➕ ${chat.title || chat.id} (${chat.type}) — Toplam: ${channels.count().total}${added ? '' : ' (zaten kayıtlı)'}`);
+    ensureOfficialChannelDefaults(chat.id);
     if (added) await notifyAdminsChannelBackup(chat.id, chat.title, { isNew: true });
 
     if (newStatus === 'administrator' && chat.type !== 'private') {
-      const prevWelcomeId = chRec?.settings?.welcomeMessageId;
-      if (prevWelcomeId) {
-        console.log(`[welcome] atlandı (zaten gönderilmiş): ${chat.id}`);
-        return;
-      }
-      const channelName = chat.title || 'Channel';
-      const lang = channels.resolveCardLang(chRec, { userId: upd.from?.id });
-      const me = await bot.getMe().catch(() => null);
-      const username = me?.username || 'bot';
-      const deeplink = `https://t.me/${username}?start=settings_${channelIdToStartToken(chat.id)}`;
-      const welcomeMsg = t('welcome.added', lang, { name: channelName });
-      const sent = await bot.sendMessage(chat.id, welcomeMsg, {
-        parse_mode: 'Markdown',
-        disable_web_page_preview: true,
-        reply_markup: {
-          inline_keyboard: [[
-            { text: t('settings.open', lang), url: deeplink },
-          ]],
-        },
-      }).catch((e) => {
-        console.warn('[welcome] channel msg fail:', e?.message);
-        return null;
+      await sendChannelWelcome(bot, chat, {
+        userId: upd.from?.id,
+        addedBy: 'my_chat_member',
       });
-      if (sent?.message_id) {
-        channels.updateSetting(chat.id, 'welcomeMessageId', sent.message_id);
-      }
     }
     return;
   }
@@ -1349,10 +1382,14 @@ bot.on('my_chat_member', async (upd) => {
   if (['administrator', 'member'].includes(newStatus) && (oldStatus == null || oldStatus === '')) {
     const existed = Boolean(channels.get(chat.id));
     const { added } = channels.add(chat, 'boot-sync');
+    ensureOfficialChannelDefaults(chat.id);
     if (!existed || added) {
       console.log(`[channels] deploy sync: ${chat.title || chat.id} (◎ Solana otomatik)`);
     }
     if (added) await notifyAdminsChannelBackup(chat.id, chat.title, { isNew: true });
+    if (newStatus === 'administrator' && chat.type !== 'private') {
+      await sendChannelWelcome(bot, chat, { addedBy: 'boot-sync' });
+    }
     return;
   }
 
@@ -1688,6 +1725,7 @@ async function main() {
     { command: 'start', description: 'Başlangıç / dil' },
     { command: 'dex', description: 'Sniper DEX Mini App' },
     { command: 'settings', description: 'Kanal ayarları' },
+    { command: 'welcome', description: 'Hoş geldin mesajı (kanal)' },
     { command: 'post', description: 'Manuel token paylaş (DM)' },
     { command: 'channelid', description: 'Kanal ID (Railway yedek)' },
     { command: 'ping', description: 'Bot canlı mı?' },
@@ -1723,6 +1761,16 @@ async function main() {
   const rediscover = await channels.rediscoverAllChannels(bot, channels);
   if (rediscover.added > 0) {
     console.log(`[channels] açılış keşfi: +${rediscover.added} kanal (${rediscover.before} → ${rediscover.after})`);
+  }
+  const bootOfficial = await bootstrapOfficialChannels(bot);
+  if (bootOfficial.welcomed > 0) {
+    console.log(`[channels] resmi kanal hoş geldin: ${bootOfficial.welcomed}`);
+  }
+  const { getOfficialFeedChannelIds } = require('./channelFeedPolicy');
+  if (getOfficialFeedChannelIds().length && channels.count().total === 0) {
+    console.warn(
+      '[channels] Resmi kanal ID env’de var ama kayıt 0 — bot kanalda admin mi? BOT_TOKEN bu kanaldaki bot mu?',
+    );
   }
   channels.logBootSummary();
   const chTotal = channels.count().total;

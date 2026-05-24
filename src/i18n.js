@@ -770,9 +770,9 @@ const STRINGS = {
     ru: 'Привет! Я сканирую новые токены Solana и публикую те, что проходят ваши фильтры.',
   },
   'welcome.added': {
-    en: '✅ *{name}* — successfully added.\n\nManage settings using the button below.',
-    tr: '✅ *{name}* — başarıyla eklendim.\n\nAyarları aşağıdaki butondan yönet.',
-    ru: '✅ *{name}* — успешно добавлен.\n\nНастройки управляются кнопкой ниже.',
+    en: '✅ *{name}* — bot is ready.\n\n1️⃣ Tap *Open Settings (DM)* → pick network (TON / BSC / ◎ Solana) and filters\n2️⃣ *Sniper DEX* → Mini App feed & charts\n\nOfficial Solana channel posts also appear in the app.',
+    tr: '✅ *{name}* — bot hazır.\n\n1️⃣ *Ayarları aç (DM)* → ağ seç (TON / BSC / ◎ Solana) ve filtreler\n2️⃣ *Sniper DEX* → Mini App listesi ve grafik\n\nResmi Solana kanalı paylaşımları uygulamada da listelenir.',
+    ru: '✅ *{name}* — бот готов.\n\n1️⃣ *Настройки (ЛС)* → сеть (TON / BSC / ◎ Solana) и фильтры\n2️⃣ *Sniper DEX* → Mini App\n\nОфициальный Solana-канал попадает в ленту приложения.',
   },
   'welcome.start': {
     en: '👋 *Solana Chain Scanner*\n\nI automatically discover and audit new tokens on the Solana network and share them with the channels/groups I am added to.\n\n*Open the scanner:* tap *🎯 Sniper DEX* below (Mini App inside Telegram).\n\n*Quick start:*\n1. Add me to your channel as admin\n2. Tap *“Open Settings”* in the welcome message on the channel\n3. Configure your filters\n\n*Commands:* /dex /settings /ping /stats /post',

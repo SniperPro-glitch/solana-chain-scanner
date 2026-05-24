@@ -570,9 +570,15 @@ function createMiniAppServer() {
         const pg = require('./pgClient');
         const { isMiniAppOnlyMode } = require('../scripts/railway-env');
         const misconfigured = isMiniAppOnlyMode() && !pg.enabled() && isDexProxyLoop(req);
+        const { getOfficialFeedChannelIds } = require('./channelFeedPolicy');
+        const officialIds = getOfficialFeedChannelIds();
+        const botCount = await botFeedStore.feedCountAsync();
+        const feedEntries = (await botFeedStore.listRecentAsync(48, 'trending')).length;
         sendJson(res, misconfigured ? 503 : 200, {
-          botCount: await botFeedStore.feedCountAsync(),
+          botCount,
+          feedEntries,
           reportCount: await reportStore.reportCountAsync(),
+          officialChannelIds: officialIds,
           storage: pg.enabled() ? 'postgresql' : 'file',
           persistent: isPersistentDataDir(),
           feedFile: botFeedStore.FEED_FILE,
@@ -580,6 +586,12 @@ function createMiniAppServer() {
           botApiProxy: getBotApiBaseUrl() || null,
           dexMode: isMiniAppOnlyMode(),
           needsDatabaseUrl: misconfigured,
+          hint:
+            botCount === 0
+              ? 'Resmi kanala en az bir token paylaşın (tarama veya /post).'
+              : feedEntries === 0
+                ? 'MINI_APP_FEED_CHANNEL_IDS ile paylaşım kanalı eşleşmiyor olabilir.'
+                : null,
           fix: misconfigured
             ? 'DEX Variables: DATABASE_URL=${{ Postgres.DATABASE_URL }} then redeploy DEX'
             : null,

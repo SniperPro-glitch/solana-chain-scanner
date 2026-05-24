@@ -262,6 +262,10 @@ async function syncFromBotApi(bot) {
       const chat = await bot.getChat(id);
       const { added } = addChannel(chat, 'env-sync');
       if (added) synced += 1;
+      try {
+        const { ensureOfficialChannelDefaults } = require('./channelWelcome');
+        ensureOfficialChannelDefaults(id);
+      } catch (_) { /* yoksay */ }
       ok.push(id);
     } catch (e) {
       if (cache.channels[id] && isChatUnavailableError(e)) {

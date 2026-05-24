@@ -233,9 +233,13 @@ async function buildFeedFromBotShares(tab = 'trending', limit = 24, dexFilter = 
     rank += 1;
   }
 
-  // Son 48 saatte DEX'e düşen çiftler yalnızca New Pairs'te; Trending/Home'da gösterme.
+  // Son 48 saatte DEX'e düşen çiftler öncelikle New Pairs'te; Trending/Home'da gizle.
+  // Kanalda yalnızca bu penceredeki tokenler varsa Trending boş kalmasın (tek paylaşım senaryosu).
+  let hiddenAsNewPairs = 0;
   if (!isNewTab) {
-    items = items.filter((it) => !isWithinNewPairsWindowMs(it.listedAt, now));
+    const mature = items.filter((it) => !isWithinNewPairsWindowMs(it.listedAt, now));
+    hiddenAsNewPairs = items.length - mature.length;
+    items = mature.length > 0 ? mature : items;
   }
 
   const { loadConfig } = require('./trendConfigStore');
@@ -284,6 +288,8 @@ async function buildFeedFromBotShares(tab = 'trending', limit = 24, dexFilter = 
 
   const finalItems = ranked;
   const feedSource = 'bot_channel_live';
+  const rawBotCount = await botFeedStore.feedCountAsync();
+  const feedEntries = entries.length;
 
   let newPairs = 0;
   if (isNewTab) {
@@ -301,7 +307,9 @@ async function buildFeedFromBotShares(tab = 'trending', limit = 24, dexFilter = 
     source: feedSource,
     sortMode: tab === 'new' ? 'listedAt_desc' : tab === 'home' ? 'marketCap_desc' : 'volume24h_desc',
     updatedAt: Date.now(),
-    botCount: await botFeedStore.feedCountAsync(),
+    botCount: rawBotCount,
+    feedEntries,
+    hiddenAsNewPairs: !isNewTab ? hiddenAsNewPairs : 0,
     promo: getPromoBanner(),
     trendingTicker: (() => {
       const { loadConfig } = require('./trendConfigStore');
@@ -326,7 +334,11 @@ async function buildFeedFromBotShares(tab = 'trending', limit = 24, dexFilter = 
     emptyMessage: finalItems.length === 0
       ? (isNewTab
         ? null
-        : 'Liste boş — canlı piyasa veya bot kanalından veri alınamadı.')
+        : rawBotCount === 0
+          ? 'Liste boş — resmi kanala henüz token paylaşılmadı. Bot tarama veya /post ile paylaşım yapın.'
+          : feedEntries === 0
+            ? 'Liste boş — kayıtlı paylaşımlar süresi dolmuş veya resmi kanal dışı.'
+            : 'Liste boş — trend filtreleri veya DEX verisi eşleşmedi; «Yeni» sekmesini deneyin.')
       : null,
     liveRefresh: true,
     newPairsWindowHours: NEW_PAIRS_MAX_AGE_HOURS,
