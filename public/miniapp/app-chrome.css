@@ -35,6 +35,7 @@ body {
   flex: 0 0 auto;
   position: relative;
   z-index: 260;
+  overflow-x: clip;
   pointer-events: none;
   background: linear-gradient(180deg, rgba(6, 9, 16, 0.99) 0%, rgba(6, 9, 16, 0.96) 100%);
   border-bottom: 1px solid var(--sniper-border-cyan);
@@ -280,37 +281,24 @@ html.tg-fullscreen .app-top-chrome {
   order: -1;
 }
 
-/* Banner — viewport’a göre sağ/sol eşit boşluk (toolbar’a dokunmaz) */
+/* Banner — sağ/sol eşit 6px; toolbar 8px inset içinde kalır */
 .app-top-chrome .promo-banner.app-promo-global {
   --promo-h: 96px;
   display: block;
   position: relative;
   box-sizing: border-box;
-  width: calc(100vw - 2 * var(--promo-banner-edge));
+  width: calc(100% + 2 * (var(--app-chrome-inset) - var(--promo-banner-edge)));
   max-width: none;
   height: var(--promo-h);
-  margin-bottom: 8px;
-  margin-left: calc(50% - 50vw + var(--promo-banner-edge));
-  margin-right: calc(50% - 50vw + var(--promo-banner-edge));
+  margin: 0 calc(var(--promo-banner-edge) - var(--app-chrome-inset)) 8px;
   border-radius: 10px;
   overflow: hidden;
-  border: 1px solid rgba(0, 229, 255, 0.25);
-  box-shadow: 0 0 20px rgba(0, 229, 255, 0.12);
+  border: 1px solid rgba(0, 229, 255, 0.38);
+  box-shadow:
+    0 0 0 1px rgba(0, 229, 255, 0.12),
+    0 0 18px rgba(0, 229, 255, 0.16);
   text-decoration: none;
   flex-shrink: 0;
-}
-
-html.tg-mini-app .app-top-chrome .promo-banner.app-promo-global {
-  width: calc(
-    100vw - 2 * var(--promo-banner-edge) - var(--tg-content-safe-left, 0px) -
-      var(--tg-content-safe-right, 0px)
-  );
-  margin-left: calc(
-    50% - 50vw + var(--promo-banner-edge) + var(--tg-content-safe-left, 0px)
-  );
-  margin-right: calc(
-    50% - 50vw + var(--promo-banner-edge) + var(--tg-content-safe-right, 0px)
-  );
 }
 
 .app-top-chrome .promo-banner.app-promo-global.hidden {
