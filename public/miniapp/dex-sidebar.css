@@ -1,7 +1,9 @@
 /* Yan panel — DexScreener tarzı (mobil + Telegram) */
 
 :root {
-  --sidebar-icon-col: 26px;
+  /* Tüm menü satırları: aynı ikon sütunu → yazılar aynı hizada */
+  --sidebar-icon-col: 58px;
+  --sidebar-icon-row-h: 22px;
   --sidebar-watchlist-icon-size: 58px;
 }
 
@@ -228,10 +230,12 @@
 .dex-sidebar-link {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   width: 100%;
-  padding: 5px 12px;
+  padding: 6px 12px;
+  min-height: calc(var(--sidebar-icon-row-h) + 12px);
   box-sizing: border-box;
+  overflow: visible;
   border: none;
   border-radius: 10px;
   background: transparent;
@@ -245,10 +249,11 @@
 }
 
 .dex-sidebar-link .ico {
+  position: relative;
   width: var(--sidebar-icon-col);
   min-width: var(--sidebar-icon-col);
-  height: 20px;
-  min-height: 20px;
+  height: var(--sidebar-icon-row-h);
+  min-height: var(--sidebar-icon-row-h);
   text-align: center;
   font-size: 15px;
   line-height: 1;
@@ -261,22 +266,10 @@
   background: transparent;
 }
 
-/* Watchlist görseli büyük; satır yüksekliği diğer menü ile aynı (taşma) */
-.dex-sidebar-link[data-sidebar-nav='watchlist'] {
-  position: relative;
-  z-index: 2;
-  overflow: visible;
-}
-
-.dex-sidebar-link[data-sidebar-nav='watchlist'] .ico {
-  position: relative;
-  overflow: visible;
-}
-
 .dex-sidebar-link > span:not(.ico) {
   flex: 1;
   min-width: 0;
-  line-height: 1.25;
+  line-height: 1.3;
   align-self: center;
 }
 
@@ -286,15 +279,19 @@
   object-fit: contain;
 }
 
+.dex-sidebar-link[data-sidebar-nav='watchlist'] {
+  z-index: 2;
+}
+
 .dex-sidebar-link .watchlist-ico-img {
   position: absolute;
-  left: 50%;
+  left: 0;
   top: 50%;
   width: var(--sidebar-watchlist-icon-size);
   height: var(--sidebar-watchlist-icon-size);
-  transform: translate(-50%, -50%);
+  transform: translateY(-50%);
   object-fit: contain;
-  object-position: center;
+  object-position: left center;
   display: block;
   pointer-events: none;
   background: transparent;
