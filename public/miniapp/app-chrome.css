@@ -28,6 +28,8 @@ body {
 
 /* Üst şerit — akışta, fixed değil */
 .app-top-chrome {
+  display: flex;
+  flex-direction: column;
   flex: 0 0 auto;
   position: relative;
   z-index: 260;
@@ -221,11 +223,6 @@ html.tg-mini-app .app-brand-bar {
   font-weight: 600;
   color: var(--muted, #758096);
   order: -1;
-}
-
-.app-top-chrome {
-  display: flex;
-  flex-direction: column;
 }
 
 html.detail-mode .app-top-chrome .feed-meta-bar {
