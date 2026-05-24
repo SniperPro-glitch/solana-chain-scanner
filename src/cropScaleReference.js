@@ -1,17 +1,17 @@
 /**
- * Tek referans profilden 5 cihaz (web, app11, app13, app13pm, app16) ölçü üretir.
- * Canonical genişlikler: Apple HIG / Telegram WebApp viewport (portrait CSS px).
+ * Dex + Gecko kırpma — referanstan 5 cihaz ölçeği (her aile ayrı).
  */
-const PROFILE_ORDER = ['web', 'webgecko', 'app11', 'app13', 'app13pm', 'app16'];
+const DEX_PROFILE_ORDER = ['web', 'app11', 'app13', 'app13pm', 'app16'];
+const GECKO_PROFILE_ORDER = ['webgecko', 'app11gecko', 'app13gecko', 'app13pmgecko', 'app16gecko'];
+const PROFILE_ORDER = [...DEX_PROFILE_ORDER, ...GECKO_PROFILE_ORDER];
 
 /** Profil → tipik cihaz genişliği (layoutWidth) */
 const CANONICAL_WIDTH = {
   web: 1200,
-  webgecko: 1200,
-  app11: 414, // iPhone 11, XR, 11 Pro Max
-  app13: 390, // iPhone 12 / 12 Pro / 13 / 14 / 15
-  app13pm: 428, // iPhone 12–15 Pro Max, Plus
-  app16: 440, // iPhone 16 Pro Max (Telegram ~440px; detect >= 429)
+  app11: 414,
+  app13: 390,
+  app13pm: 428,
+  app16: 440,
 };
 
 const DEVICE_HINTS = {
@@ -20,7 +20,23 @@ const DEVICE_HINTS = {
   app13: 'iPhone 12, 13, 14, 15 (~390px)',
   app13pm: 'iPhone 12–15 Pro Max (~428px)',
   app16: 'iPhone 16 Pro / Pro Max (~430px)',
+  webgecko: 'Gecko · masaüstü tarayıcı (~1200px)',
+  app11gecko: 'Gecko · iPhone 11 / XR (~414px)',
+  app13gecko: 'Gecko · iPhone 12–15 (~390px)',
+  app13pmgecko: 'Gecko · Pro Max (~428px)',
+  app16gecko: 'Gecko · iPhone 16 Pro Max (~440px)',
 };
+
+function geckoBaseId(geckoProfileId) {
+  if (geckoProfileId === 'webgecko') return 'web';
+  return String(geckoProfileId || '').replace('gecko', '');
+}
+
+function canonicalWidthFor(profileId) {
+  const id = String(profileId || '');
+  if (id.endsWith('gecko')) return CANONICAL_WIDTH[geckoBaseId(id)] || 390;
+  return CANONICAL_WIDTH[id] || 390;
+}
 
 function round(n) {
   return Math.round(Number(n) || 0);
@@ -76,7 +92,7 @@ function cloneBlock(block) {
 }
 
 function ratioFor(refWidth, targetId) {
-  const tw = CANONICAL_WIDTH[targetId];
+  const tw = canonicalWidthFor(targetId);
   const rw = Math.max(320, Number(refWidth) || CANONICAL_WIDTH.app13);
   return tw / rw;
 }
@@ -161,7 +177,7 @@ function scaleFromReference(refProfileId, refBlock, refWidth, existingProfiles =
       : CANONICAL_WIDTH[refId] || CANONICAL_WIDTH.app13;
 
   const profiles = {};
-  PROFILE_ORDER.forEach((targetId) => {
+  DEX_PROFILE_ORDER.forEach((targetId) => {
     if (targetId === refId) {
       profiles[targetId] = cloneBlock(refBlock);
       return;
@@ -181,16 +197,123 @@ function scaleFromReference(refProfileId, refBlock, refWidth, existingProfiles =
   return {
     refProfileId: refId,
     refWidth: rw,
+    family: 'dex',
     canonical: { ...CANONICAL_WIDTH },
     hints: { ...DEVICE_HINTS },
     profiles,
-    note: `Referans ${refId} @ ${rw}px → 5 profil (ölçeklenmiş)`,
+    note: `Dex referans ${refId} @ ${rw}px → 5 profil`,
+  };
+}
+
+/** GeckoTerminal — webgecko referansından 5 Gecko profili. */
+function webGeckoBlockFromMobile(refBlock) {
+  const t = refBlock.trades;
+  const c = refBlock.chart;
+  return {
+    chart: {
+      ...c,
+      stageH: 360,
+      top: 0,
+      left: 0,
+      width: 100,
+      heightExtra: 0,
+      brandCrop: 28,
+      shiftDown: 6,
+    },
+    trades: {
+      ...t,
+      viewH: 300,
+      iframeH: 720,
+      iframeTop: -400,
+      shiftDown: 44,
+      left: 0,
+      width: 100,
+      maskTop: 48,
+      maskFoot: 12,
+      maskTopOn: true,
+      maskFootOn: true,
+    },
+    tape: { shiftDown: 0 },
+  };
+}
+
+function geckoMobileFromDex(dexBlock, geckoRef) {
+  const d = dexBlock;
+  const g = geckoRef;
+  return {
+    chart: {
+      ...d.chart,
+      top: 0,
+      left: 0,
+      width: 100,
+      brandCrop: g.chart.brandCrop,
+      shiftDown: Math.max(g.chart.shiftDown, d.chart.shiftDown > 24 ? 8 : d.chart.shiftDown),
+      heightExtra: Math.min(d.chart.heightExtra || 0, 12),
+    },
+    trades: {
+      ...d.trades,
+      maskTop: g.trades.maskTop,
+      maskFoot: g.trades.maskFoot,
+      maskTopOn: true,
+      maskFootOn: true,
+    },
+    tape: { shiftDown: 0 },
+  };
+}
+
+function scaleGeckoFromReference(refProfileId, refBlock, refWidth, existingProfiles = {}) {
+  if (!refBlock?.chart || !refBlock?.trades) {
+    throw new Error('refBlock.chart ve refBlock.trades gerekli');
+  }
+  const refId = String(refProfileId || 'webgecko');
+  if (!GECKO_PROFILE_ORDER.includes(refId)) {
+    throw new Error(`Gecko referans profili gerekli: ${GECKO_PROFILE_ORDER.join(', ')}`);
+  }
+  const rw =
+    Number(refWidth) > 0 ? Number(refWidth) : canonicalWidthFor(refId);
+
+  const profiles = {};
+  GECKO_PROFILE_ORDER.forEach((targetId) => {
+    if (targetId === refId) {
+      profiles[targetId] = cloneBlock(refBlock);
+      return;
+    }
+    if (targetId === 'webgecko') {
+      profiles[targetId] = webGeckoBlockFromMobile(refBlock);
+      return;
+    }
+    const dexId = geckoBaseId(targetId);
+    const dexBlock = existingProfiles[dexId];
+    if (refId === 'webgecko' && dexBlock?.chart) {
+      profiles[targetId] = geckoMobileFromDex(dexBlock, refBlock);
+      return;
+    }
+    const targetBase = geckoBaseId(targetId);
+    const ratio = ratioFor(rw, targetBase);
+    profiles[targetId] = {
+      chart: scaleChart(refBlock.chart, ratio, null),
+      trades: scaleTrades(refBlock.trades, ratio, null),
+      tape: scaleTape(refBlock.tape, ratio),
+    };
+  });
+
+  return {
+    refProfileId: refId,
+    refWidth: rw,
+    family: 'gecko',
+    canonical: { ...CANONICAL_WIDTH },
+    hints: { ...DEVICE_HINTS },
+    profiles,
+    note: `Gecko referans ${refId} @ ${rw}px → 5 profil`,
   };
 }
 
 module.exports = {
   PROFILE_ORDER,
+  DEX_PROFILE_ORDER,
+  GECKO_PROFILE_ORDER,
   CANONICAL_WIDTH,
   DEVICE_HINTS,
   scaleFromReference,
+  scaleGeckoFromReference,
 };

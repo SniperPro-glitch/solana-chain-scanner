@@ -3,7 +3,18 @@
  * dex-crop.js DOM/iframe üzerine !important uygular; burada sadece :root değişkenleri.
  */
 (function (global) {
-  const ORDER = ['web', 'webgecko', 'app11', 'app13', 'app13pm', 'app16'];
+  const ORDER = [
+    'web',
+    'webgecko',
+    'app11',
+    'app11gecko',
+    'app13',
+    'app13gecko',
+    'app13pm',
+    'app13pmgecko',
+    'app16',
+    'app16gecko',
+  ];
 
   function getBakedProfiles() {
     const g = global.__DEX_CROP_BAKED__;

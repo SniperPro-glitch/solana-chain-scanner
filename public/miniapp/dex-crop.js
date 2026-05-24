@@ -22,7 +22,11 @@
 
   const PROFILE_META = {
     web: { label: 'Web', hint: 'Tarayici / Dex embed' },
-    webgecko: { label: 'Web GK', hint: 'Tarayici · GeckoTerminal (~1200px)' },
+    webgecko: { label: 'Web GK', hint: 'Gecko · masaustu (~1200px)' },
+    app11gecko: { label: '11 GK', hint: 'Gecko · iPhone 11 / XR (~414px)' },
+    app13gecko: { label: '13 GK', hint: 'Gecko · iPhone 12–15 (~390px)' },
+    app13pmgecko: { label: '13 PM GK', hint: 'Gecko · Pro Max (~428px)' },
+    app16gecko: { label: '16 PM GK', hint: 'Gecko · iPhone 16 Pro Max (~440px)' },
     app11: { label: '11', hint: 'iPhone 11, XR, 11 Pro Max (~414px)' },
     app13: { label: '13', hint: 'iPhone 12–15, 12 Pro (~390px)' },
     app13pm: { label: '13 PM', hint: 'iPhone 12–15 Pro Max (~428px)' },
@@ -30,11 +34,11 @@
   };
 
   const DEX_PROFILE_ORDER = ['web', 'app11', 'app13', 'app13pm', 'app16'];
-  const GECKO_PROFILE_ORDER = ['webgecko'];
+  const GECKO_PROFILE_ORDER = ['webgecko', 'app11gecko', 'app13gecko', 'app13pmgecko', 'app16gecko'];
   const PROFILE_ORDER = [...DEX_PROFILE_ORDER, ...GECKO_PROFILE_ORDER];
 
   function profileFamily(profileId) {
-    return GECKO_PROFILE_ORDER.includes(profileId) ? 'gecko' : 'dex';
+    return String(profileId || '').endsWith('gecko') ? 'gecko' : 'dex';
   }
 
   function cropEmbedFamily() {
@@ -225,6 +229,14 @@
     return 'app13';
   }
 
+  function detectGeckoProfileByWidth(w) {
+    const width = Math.round(Number(w) || 0);
+    if (width >= 429) return 'app16gecko';
+    if (width >= 426) return 'app13pmgecko';
+    if (width >= 400) return 'app11gecko';
+    return 'app13gecko';
+  }
+
   function cropLayoutWidth() {
     if (typeof global.SniperCropProfile?.layoutWidth === 'function') {
       return Math.round(global.SniperCropProfile.layoutWidth());
@@ -238,7 +250,10 @@
     const forced = profileFromUrl();
     if (forced) return forced;
     const w = cropLayoutWidth();
-    if (cropEmbedFamily() === 'gecko') return 'webgecko';
+    if (cropEmbedFamily() === 'gecko') {
+      if (w > 500) return 'webgecko';
+      return detectGeckoProfileByWidth(w);
+    }
     if (!isTelegram() && w > 500) return 'web';
     return detectProfileByWidth(w);
   }
@@ -1089,7 +1104,7 @@
     const fam = provider === 'gecko' ? 'gecko' : 'dex';
     document.documentElement.dataset.cropEmbedFamily = fam;
     document.documentElement.dataset.chartEmbedProvider = provider;
-    const pid = fam === 'gecko' ? 'webgecko' : resolveMotorProfileId();
+    const pid = resolveMotorProfileId();
     document.documentElement.dataset.dexCropProfile = pid;
     if (global.SniperDexCropEarly?.applyEarly) global.SniperDexCropEarly.applyEarly();
     apply(loadForProfile(pid));
@@ -1624,7 +1639,7 @@
         await publishServerProfiles(pin === '__session__' ? '' : pin);
         baselineProfiles = clone(loadStore().profiles);
         refreshPreview();
-        toast('5 profil sunucuya yazıldı (json + baked.js) — redeploy');
+        toast('Tum profiller sunucuya yazildi (json + baked.js) — redeploy');
       } catch (e) {
         toast(e.message || 'Sunucuya kayıt başarısız');
       }
@@ -1638,12 +1653,17 @@
         const r = await fetch('/api/crop-profiles/scale-reference', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ refProfile: refId, refBlock: current, refWidth }),
+          body: JSON.stringify({
+            refProfile: refId,
+            refBlock: current,
+            refWidth,
+            family: editingFamily,
+          }),
         });
         const data = await r.json();
         if (!r.ok) throw new Error(data.message || data.error || 'scale failed');
         const store = loadStore();
-        PROFILE_ORDER.forEach((id) => {
+        profilesInFamily(editingFamily).forEach((id) => {
           if (data.profiles?.[id]) store.profiles[id] = normalizeBlock(data.profiles[id]);
         });
         localStorage.setItem(STORAGE_KEY, JSON.stringify(store));
@@ -1651,7 +1671,8 @@
         syncSlidersFromCurrent();
         apply(current);
         refreshPreview();
-        toast(`Referans (${PROFILE_META[refId].label}, ${refWidth}px) → 5 cihaz. Sunucuya sabitle.`);
+        const famLabel = editingFamily === 'gecko' ? 'Gecko' : 'Dex';
+        toast(`Referans (${PROFILE_META[refId].label}, ${refWidth}px) → 5 ${famLabel} cihaz. Sunucuya sabitle.`);
       } catch (e) {
         toast(e.message || '5 cihaza yayma başarısız');
       }

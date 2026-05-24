@@ -2,7 +2,18 @@
  * Kayıtlı profil — genişlik: max(innerWidth, TG viewportWidth).
  */
 (function () {
-  const IDS = ['web', 'webgecko', 'app11', 'app13', 'app13pm', 'app16'];
+  const IDS = [
+    'web',
+    'app11',
+    'app13',
+    'app13pm',
+    'app16',
+    'webgecko',
+    'app11gecko',
+    'app13gecko',
+    'app13pmgecko',
+    'app16gecko',
+  ];
 
   function fromUrl() {
     try {
@@ -41,11 +52,21 @@
     return 'app13';
   }
 
+  function detectGeckoByWidth(w) {
+    if (w >= 429) return 'app16gecko';
+    if (w >= 426) return 'app13pmgecko';
+    if (w >= 400) return 'app11gecko';
+    return 'app13gecko';
+  }
+
   function detect() {
     const forced = fromUrl();
     if (forced) return forced;
     const w = layoutWidth();
-    if (!isTelegramApp()) return 'webgecko';
+    if (!isTelegramApp()) {
+      if (w > 500) return 'webgecko';
+      return detectGeckoByWidth(w);
+    }
     if (isTelegramApp() && isTelegramDesktop() && w > 500) return 'web';
     return detectByWidth(w);
   }
@@ -55,7 +76,7 @@
     document.documentElement.dataset.dexCropProfile = id;
     document.documentElement.dataset.dexCropW = String(layoutWidth());
     document.documentElement.dataset.cropEmbedFamily =
-      id === 'webgecko' || String(id).includes('gecko') ? 'gecko' : 'dex';
+      String(id).endsWith('gecko') ? 'gecko' : 'dex';
     return id;
   }
 

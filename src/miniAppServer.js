@@ -300,11 +300,21 @@ function createMiniAppServer() {
           const refProfile = String(body.refProfile || 'app13');
           const refBlock = body.refBlock || body.profiles?.[refProfile];
           const refWidth = Number(body.refWidth) || 0;
+          const family = String(body.family || 'dex').toLowerCase();
           if (!refBlock?.chart || !refBlock?.trades) {
             sendJson(res, 400, { error: 'bad_request', message: 'refBlock.chart ve refBlock.trades gerekli' });
             return;
           }
-          const scaled = cropScaleReference.scaleFromReference(refProfile, refBlock, refWidth);
+          const baked = cropProfiles.loadBakedProfiles();
+          const scaled =
+            family === 'gecko'
+              ? cropScaleReference.scaleGeckoFromReference(
+                  refProfile,
+                  refBlock,
+                  refWidth,
+                  baked?.profiles || {},
+                )
+              : cropScaleReference.scaleFromReference(refProfile, refBlock, refWidth);
           sendJson(res, 200, { ok: true, ...scaled });
         } catch (e) {
           sendJson(res, 400, { error: 'scale_failed', message: e.message });

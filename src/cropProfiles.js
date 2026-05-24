@@ -8,7 +8,18 @@ const { DATA_DIR, ensureDataDir } = require('./data-path');
 const DATA_FILE = path.join(DATA_DIR, 'dex-crop-profiles.json');
 const PUBLIC_FALLBACK = path.join(__dirname, '..', 'public', 'miniapp', 'dex-crop-profiles.json');
 
-const PROFILE_ORDER = ['web', 'webgecko', 'app11', 'app13', 'app13pm', 'app16'];
+const PROFILE_ORDER = [
+  'web',
+  'app11',
+  'app13',
+  'app13pm',
+  'app16',
+  'webgecko',
+  'app11gecko',
+  'app13gecko',
+  'app13pmgecko',
+  'app16gecko',
+];
 
 /** Railway CROP_SAVE_PIN yoksa — panel açılır, düzenleme/kayıt bu şifreyle */
 const DEFAULT_CROP_SAVE_PIN = 'SniperKirpma9';

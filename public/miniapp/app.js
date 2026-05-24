@@ -2835,8 +2835,6 @@
     const isGecko = provider === 'gecko';
     document.documentElement.dataset.chartEmbedProvider = provider;
     document.documentElement.dataset.cropEmbedFamily = isGecko ? 'gecko' : 'dex';
-    const profileId = isGecko ? 'webgecko' : null;
-    if (profileId) document.documentElement.dataset.dexCropProfile = profileId;
     if (global.SniperDexCropEarly?.applyEarly) global.SniperDexCropEarly.applyEarly();
     if (global.SniperDexCrop?.applyForProvider) {
       global.SniperDexCrop.applyForProvider(provider);

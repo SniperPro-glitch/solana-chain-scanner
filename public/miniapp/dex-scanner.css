@@ -2873,7 +2873,7 @@ html.web-browser .dex-trades-embed:not(.hidden) {
 }
 
 /* AUTO_DEX_CROP_PROFILES_START */
-/* Otomatik — sync-dex-crop-css.js · 2026-05-24T04:09:42.134Z */
+/* Otomatik — sync-dex-crop-css.js · 2026-05-24T04:17:53.930Z */
 
 html:not([data-dex-crop-profile]) {
   --dex-trades-view-h: 302px;
@@ -2937,6 +2937,25 @@ html[data-dex-crop-profile="app11"] {
   --dex-mask-foot-h: 0px;
 }
 
+html[data-dex-crop-profile="app11gecko"] {
+  --chart-embed-h: 398px;
+  --chart-embed-top: 0px;
+  --chart-shift-down: 9px;
+  --chart-embed-left: 0%;
+  --chart-embed-width: 100%;
+  --chart-embed-extra: 8px;
+  --chart-brand-crop: 28px;
+  --tape-shift-down: 0px;
+  --dex-trades-view-h: 280px;
+  --dex-iframe-h: 866px;
+  --dex-iframe-top: -580px;
+  --dex-trades-shift-down: 45px;
+  --dex-iframe-left: 0%;
+  --dex-iframe-width: 100%;
+  --dex-mask-top-h: 48px;
+  --dex-mask-foot-h: 12px;
+}
+
 html[data-dex-crop-profile="app13"] {
   --chart-embed-h: 374px;
   --chart-embed-top: 25px;
@@ -2954,6 +2973,25 @@ html[data-dex-crop-profile="app13"] {
   --dex-iframe-width: 100%;
   --dex-mask-top-h: 0px;
   --dex-mask-foot-h: 0px;
+}
+
+html[data-dex-crop-profile="app13gecko"] {
+  --chart-embed-h: 374px;
+  --chart-embed-top: 0px;
+  --chart-shift-down: 9px;
+  --chart-embed-left: 0%;
+  --chart-embed-width: 100%;
+  --chart-embed-extra: 7px;
+  --chart-brand-crop: 28px;
+  --tape-shift-down: 0px;
+  --dex-trades-view-h: 264px;
+  --dex-iframe-h: 816px;
+  --dex-iframe-top: -545px;
+  --dex-trades-shift-down: 43px;
+  --dex-iframe-left: 0%;
+  --dex-iframe-width: 100%;
+  --dex-mask-top-h: 48px;
+  --dex-mask-foot-h: 12px;
 }
 
 html[data-dex-crop-profile="app13pm"] {
@@ -2975,6 +3013,25 @@ html[data-dex-crop-profile="app13pm"] {
   --dex-mask-foot-h: 0px;
 }
 
+html[data-dex-crop-profile="app13pmgecko"] {
+  --chart-embed-h: 410px;
+  --chart-embed-top: 0px;
+  --chart-shift-down: 10px;
+  --chart-embed-left: 0%;
+  --chart-embed-width: 100%;
+  --chart-embed-extra: 8px;
+  --chart-brand-crop: 28px;
+  --tape-shift-down: 0px;
+  --dex-trades-view-h: 290px;
+  --dex-iframe-h: 894px;
+  --dex-iframe-top: -600px;
+  --dex-trades-shift-down: 47px;
+  --dex-iframe-left: 0%;
+  --dex-iframe-width: 100%;
+  --dex-mask-top-h: 48px;
+  --dex-mask-foot-h: 12px;
+}
+
 html[data-dex-crop-profile="app16"] {
   --chart-embed-h: 422px;
   --chart-embed-top: 28px;
@@ -2992,6 +3049,25 @@ html[data-dex-crop-profile="app16"] {
   --dex-iframe-width: 100%;
   --dex-mask-top-h: 0px;
   --dex-mask-foot-h: 0px;
+}
+
+html[data-dex-crop-profile="app16gecko"] {
+  --chart-embed-h: 422px;
+  --chart-embed-top: 0px;
+  --chart-shift-down: 10px;
+  --chart-embed-left: 0%;
+  --chart-embed-width: 100%;
+  --chart-embed-extra: 8px;
+  --chart-brand-crop: 28px;
+  --tape-shift-down: 0px;
+  --dex-trades-view-h: 298px;
+  --dex-iframe-h: 920px;
+  --dex-iframe-top: -615px;
+  --dex-trades-shift-down: 48px;
+  --dex-iframe-left: 0%;
+  --dex-iframe-width: 100%;
+  --dex-mask-top-h: 48px;
+  --dex-mask-foot-h: 12px;
 }
 
 /* AUTO_DEX_CROP_PROFILES_END */

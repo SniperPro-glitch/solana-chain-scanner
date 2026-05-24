@@ -1,7 +1,7 @@
-/** Otomatik — crop save · 2026-05-24T04:09:42.134Z */
+/** Otomatik — crop save · 2026-05-24T04:17:53.930Z */
 globalThis.__DEX_CROP_BAKED__={
   "version": 1,
-  "updatedAt": "2026-05-24T04:09:42.134Z",
+  "updatedAt": "2026-05-24T04:17:53.930Z",
   "note": "5 cihaz — POST birleştirilir (web, 11, 13, 13pm, 16pm)",
   "profiles": {
     "web": {
@@ -36,40 +36,6 @@ globalThis.__DEX_CROP_BAKED__={
       },
       "tape": {
         "shiftDown": 0
-      }
-    },
-    "webgecko": {
-      "chart": {
-        "stageH": 360,
-        "top": 0,
-        "left": 0,
-        "width": 100,
-        "heightExtra": 0,
-        "brandCrop": 28,
-        "clipLeft": 0,
-        "clipRight": 0,
-        "clipTop": 0,
-        "clipBottom": 0,
-        "shiftDown": 6
-      },
-      "tape": {
-        "shiftDown": 0
-      },
-      "trades": {
-        "viewH": 300,
-        "iframeH": 720,
-        "iframeTop": -400,
-        "shiftDown": 44,
-        "left": 0,
-        "width": 100,
-        "maskTop": 48,
-        "maskFoot": 12,
-        "maskTopOn": true,
-        "maskFootOn": true,
-        "clipLeft": 0,
-        "clipRight": 0,
-        "clipTop": 0,
-        "clipBottom": 0
       }
     },
     "app11": {
@@ -206,6 +172,176 @@ globalThis.__DEX_CROP_BAKED__={
         "clipRight": 0,
         "clipTop": 0,
         "clipBottom": 0
+      }
+    },
+    "webgecko": {
+      "chart": {
+        "stageH": 360,
+        "top": 0,
+        "left": 0,
+        "width": 100,
+        "heightExtra": 0,
+        "brandCrop": 28,
+        "clipLeft": 0,
+        "clipRight": 0,
+        "clipTop": 0,
+        "clipBottom": 0,
+        "shiftDown": 6
+      },
+      "tape": {
+        "shiftDown": 0
+      },
+      "trades": {
+        "viewH": 300,
+        "iframeH": 720,
+        "iframeTop": -400,
+        "shiftDown": 44,
+        "left": 0,
+        "width": 100,
+        "maskTop": 48,
+        "maskFoot": 12,
+        "maskTopOn": true,
+        "maskFootOn": true,
+        "clipLeft": 0,
+        "clipRight": 0,
+        "clipTop": 0,
+        "clipBottom": 0
+      }
+    },
+    "app11gecko": {
+      "chart": {
+        "stageH": 398,
+        "top": 0,
+        "left": 0,
+        "width": 100,
+        "heightExtra": 8,
+        "brandCrop": 28,
+        "clipLeft": 0,
+        "clipRight": 0,
+        "clipTop": 0,
+        "clipBottom": 0,
+        "shiftDown": 9
+      },
+      "trades": {
+        "viewH": 280,
+        "iframeH": 866,
+        "iframeTop": -580,
+        "shiftDown": 45,
+        "left": 0,
+        "width": 100,
+        "maskTop": 48,
+        "maskFoot": 12,
+        "maskTopOn": true,
+        "maskFootOn": true,
+        "clipLeft": 0,
+        "clipRight": 0,
+        "clipTop": 0,
+        "clipBottom": 0
+      },
+      "tape": {
+        "shiftDown": 0
+      }
+    },
+    "app13gecko": {
+      "chart": {
+        "stageH": 374,
+        "top": 0,
+        "left": 0,
+        "width": 100,
+        "heightExtra": 7,
+        "brandCrop": 28,
+        "clipLeft": 0,
+        "clipRight": 0,
+        "clipTop": 0,
+        "clipBottom": 0,
+        "shiftDown": 9
+      },
+      "trades": {
+        "viewH": 264,
+        "iframeH": 816,
+        "iframeTop": -545,
+        "shiftDown": 43,
+        "left": 0,
+        "width": 100,
+        "maskTop": 48,
+        "maskFoot": 12,
+        "maskTopOn": true,
+        "maskFootOn": true,
+        "clipLeft": 0,
+        "clipRight": 0,
+        "clipTop": 0,
+        "clipBottom": 0
+      },
+      "tape": {
+        "shiftDown": 0
+      }
+    },
+    "app13pmgecko": {
+      "chart": {
+        "stageH": 410,
+        "top": 0,
+        "left": 0,
+        "width": 100,
+        "heightExtra": 8,
+        "brandCrop": 28,
+        "clipLeft": 0,
+        "clipRight": 0,
+        "clipTop": 0,
+        "clipBottom": 0,
+        "shiftDown": 10
+      },
+      "trades": {
+        "viewH": 290,
+        "iframeH": 894,
+        "iframeTop": -600,
+        "shiftDown": 47,
+        "left": 0,
+        "width": 100,
+        "maskTop": 48,
+        "maskFoot": 12,
+        "maskTopOn": true,
+        "maskFootOn": true,
+        "clipLeft": 0,
+        "clipRight": 0,
+        "clipTop": 0,
+        "clipBottom": 0
+      },
+      "tape": {
+        "shiftDown": 0
+      }
+    },
+    "app16gecko": {
+      "chart": {
+        "stageH": 422,
+        "top": 0,
+        "left": 0,
+        "width": 100,
+        "heightExtra": 8,
+        "brandCrop": 28,
+        "clipLeft": 0,
+        "clipRight": 0,
+        "clipTop": 0,
+        "clipBottom": 0,
+        "shiftDown": 10
+      },
+      "trades": {
+        "viewH": 298,
+        "iframeH": 920,
+        "iframeTop": -615,
+        "shiftDown": 48,
+        "left": 0,
+        "width": 100,
+        "maskTop": 48,
+        "maskFoot": 12,
+        "maskTopOn": true,
+        "maskFootOn": true,
+        "clipLeft": 0,
+        "clipRight": 0,
+        "clipTop": 0,
+        "clipBottom": 0
+      },
+      "tape": {
+        "shiftDown": 0
       }
     }
   }
