@@ -135,8 +135,8 @@ body.sidebar-open {
   min-width: 0;
 }
 
-/* Üst reklam banner — src/bannerSpecs.js (desktop 12.5:1, tablet 96px, mobile 88px) */
-.promo-banner {
+/* Üst reklam banner — src/bannerSpecs.js (app chrome: app-chrome.css) */
+.promo-banner:not(.app-promo-global) {
   --promo-h: 96px;
   display: block;
   position: relative;
@@ -196,18 +196,18 @@ html.web-browser .scanner-home {
   margin: 0;
 }
 
-html.web-browser .promo-banner {
+html.web-browser .promo-banner:not(.app-promo-global) {
   height: auto;
   aspect-ratio: 1200 / 96;
   min-height: 56px;
 }
 
-html.web-browser .promo-banner-picture {
+html.web-browser .promo-banner:not(.app-promo-global) .promo-banner-picture {
   position: absolute;
   inset: 0;
 }
 
-html.web-browser .promo-banner-img {
+html.web-browser .promo-banner:not(.app-promo-global) .promo-banner-img {
   position: absolute;
   inset: 0;
 }
