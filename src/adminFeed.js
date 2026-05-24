@@ -3,7 +3,7 @@
 const solana = require('./chains/solana');
 const reportStore = require('./reportStore');
 const botFeedStore = require('./botFeedStore');
-const { recordMiniAppShare } = require('./recordMiniAppShare');
+const { recordMiniAppShareAsync } = require('./recordMiniAppShare');
 const { tokenToFeedItem } = require('./miniAppFeed');
 
 function duplicateFeedError(existing, token) {
@@ -65,7 +65,7 @@ async function addTokenToFeed(input, lang = 'tr') {
   const level = cardLevelFromAudit(audit);
   const reportId = await reportStore.saveReportAsync({ token, audit, lang, level });
 
-  recordMiniAppShare(
+  await recordMiniAppShareAsync(
     { id: 'admin-panel', title: 'Admin Panel' },
     token,
     audit,

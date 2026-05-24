@@ -67,6 +67,15 @@ async function recordSharePg(entry) {
   ).catch(() => {});
 }
 
+function recordShareFile(entry) {
+  const data = load();
+  prune(data);
+  data.items = (data.items || []).filter((it) => it.mint !== entry.mint);
+  data.items.unshift(entry);
+  prune(data);
+  save(data);
+}
+
 function recordShare(opts) {
   if (!opts.token?.tokenAddress) return null;
   const entry = buildEntry(opts);
@@ -77,12 +86,23 @@ function recordShare(opts) {
     return entry.id;
   }
 
-  const data = load();
-  prune(data);
-  data.items = (data.items || []).filter((it) => it.mint !== entry.mint);
-  data.items.unshift(entry);
-  prune(data);
-  save(data);
+  recordShareFile(entry);
+  console.log(`[botFeed] +1 ${opts.token.tokenSymbol || entry.mint.slice(0, 8)} → Mini App listesi`);
+  return entry.id;
+}
+
+/** Admin ekleme — kayıt bitmeden API dönmesin (PostgreSQL). */
+async function recordShareAsync(opts) {
+  if (!opts.token?.tokenAddress) return null;
+  const entry = buildEntry(opts);
+
+  if (pg.enabled()) {
+    await recordSharePg(entry);
+    console.log(`[botFeed] +1 ${opts.token.tokenSymbol || entry.mint.slice(0, 8)} → PostgreSQL (await)`);
+    return entry.id;
+  }
+
+  recordShareFile(entry);
   console.log(`[botFeed] +1 ${opts.token.tokenSymbol || entry.mint.slice(0, 8)} → Mini App listesi`);
   return entry.id;
 }
@@ -206,6 +226,7 @@ async function migrateFileToPg() {
 
 module.exports = {
   recordShare,
+  recordShareAsync,
   listRecent,
   listRecentAsync,
   listAllAsync,

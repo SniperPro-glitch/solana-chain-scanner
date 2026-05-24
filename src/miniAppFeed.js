@@ -177,6 +177,13 @@ function mergeLiveToken(stored, live) {
   };
 }
 
+/** Admin panelden manuel eklenen — Trending filtrelerinden muaf. */
+function isAdminListedEntry(entry) {
+  const id = String(entry?.channelId || '').toLowerCase();
+  const title = String(entry?.channelTitle || '').toLowerCase();
+  return id === 'admin-panel' || title.includes('admin');
+}
+
 function tokenForFeed(entry, liveMap, fallbackToken) {
   const mint = entry?.token?.tokenAddress || fallbackToken?.tokenAddress;
   const live = mint ? liveMap.get(mint) : null;
@@ -218,14 +225,17 @@ async function buildFeedFromBotShares(tab = 'trending', limit = 24, dexFilter = 
     item.txns24hFmt = item.txns24h > 0 ? String(item.txns24h) : '—';
     item.channelTitle = entry.channelTitle;
     item.fromBot = true;
+    item.adminListed = isAdminListedEntry(entry);
     item.liveAt = now;
     items.push(item);
     rank += 1;
   }
 
-  // ≤48s DEX listelemesi yalnızca New Pairs sekmesinde; Trending/Home'da gösterme.
+  // Son 48 saatte DEX'e düşen çiftler: yalnızca New Pairs'te (admin manuel ekleme hariç).
   if (!isNewTab) {
-    items = items.filter((it) => !isWithinNewPairsWindowMs(it.listedAt, now));
+    items = items.filter(
+      (it) => it.adminListed || !isWithinNewPairsWindowMs(it.listedAt, now),
+    );
   }
 
   const { loadConfig } = require('./trendConfigStore');
@@ -235,10 +245,13 @@ async function buildFeedFromBotShares(tab = 'trending', limit = 24, dexFilter = 
     let out = list;
     const minVol = Number(trendCfg.view?.minVolumeUsd) || 0;
     if (minVol > 0) {
-      out = out.filter((it) => (Number(it.volume24h) || 0) >= minVol);
+      out = out.filter(
+        (it) => it.adminListed || (Number(it.volume24h) || 0) >= minVol,
+      );
     }
     if (trendCfg.view?.hideHighRisk) {
       out = out.filter((it) => {
+        if (it.adminListed) return true;
         const band = it.risk?.band || it.level;
         return band !== 'high' && it.level !== 'red' && it.level !== 'critical';
       });
