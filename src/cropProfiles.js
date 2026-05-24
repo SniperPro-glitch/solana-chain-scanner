@@ -10,6 +10,9 @@ const PUBLIC_FALLBACK = path.join(__dirname, '..', 'public', 'miniapp', 'dex-cro
 
 const PROFILE_ORDER = ['web', 'webgecko', 'app11', 'app13', 'app13pm', 'app16'];
 
+/** Railway CROP_SAVE_PIN yoksa — panel açılır, düzenleme/kayıt bu şifreyle */
+const DEFAULT_CROP_SAVE_PIN = 'SniperKirpma9';
+
 function readJsonFile(filePath) {
   try {
     if (!fs.existsSync(filePath)) return null;
@@ -85,13 +88,14 @@ function writeBakedJs(data) {
 }
 
 function cropSavePinExpected() {
-  return String(
+  const fromEnv = String(
     process.env.CROP_SAVE_PIN || process.env.CROP_PUBLISH_KEY || process.env.MINI_APP_CROP_KEY || '',
   ).trim();
+  return fromEnv || DEFAULT_CROP_SAVE_PIN;
 }
 
 function cropSavePinRequired() {
-  return !!cropSavePinExpected();
+  return true;
 }
 
 function verifyCropSavePin(pin) {

@@ -11,7 +11,7 @@
   const CROP_TAP_WINDOW_MS = 1400;
   const TRADES_TAP_SEL =
     '.trades-tape, #tradesTape, .trades-head, .trades-title, .trades-live, #dexTradesWrap';
-  let cropPinRequired = null;
+  let cropPinRequired = true;
   const LEGACY_KEYS = ['sniperDexCropV3', 'sniperDexCropV2', 'sniperDexCropV1'];
   let serverBaked = null;
   let profilesReady = null;
@@ -736,8 +736,8 @@
     } catch {
       /* yoksay */
     }
-    cropPinRequired = false;
-    return false;
+    cropPinRequired = true;
+    return true;
   }
 
   function isCropPinSessionOk() {
@@ -768,11 +768,9 @@
   }
 
   function isCropEditAllowed() {
-    if (calibrateFromUrl()) return true;
     if (document.documentElement.dataset.cropAdmin === '1') return true;
     if (isFounderOrAdminSession()) return true;
-    if (cropPinRequired === false) return true;
-    if (cropPinRequired === null) return isCropPinSessionOk();
+    if (!cropPinRequired) return true;
     return isCropPinSessionOk();
   }
 
@@ -1347,6 +1345,10 @@
 
   function switchProfile(nextId) {
     if (!PROFILE_META[nextId] || nextId === editingProfile) return;
+    if (!isCropEditAllowed()) {
+      toast('Profil de\u011fi\u015ftirmek i\u00e7in \u00f6nce \u015fifre girin');
+      return;
+    }
     saveBlock(editingProfile, current);
     editingProfile = nextId;
     current = loadForProfile(editingProfile);
@@ -1358,6 +1360,10 @@
 
   function copyProfileFrom(sourceId) {
     if (!PROFILE_META[sourceId]) return;
+    if (!isCropEditAllowed()) {
+      toast('D\u00fczenlemek i\u00e7in \u015fifre girin');
+      return;
+    }
     current = loadForProfile(sourceId);
     syncSlidersFromCurrent();
     apply(current);
@@ -1433,7 +1439,7 @@
       '<header class="dex-crop-head"><strong>K\u0131rpma \u2014 5 ekran</strong>',
       '<button type="button" class="crop-close" id="cropCloseBtn" aria-label="Kapat">\u00d7</button></header>',
       '<p class="crop-intro"><b>1)</b> Kendi telefonunda grafik + al\u0131m/sat\u0131m oturunca <b>Referans \u2192 5 cihaz</b>. <b>2)</b> <b>Sunucuya sabitle</b>. Ekran g\u00f6r\u00fcnt\u00fcs\u00fcn\u00fc geli\u015ftiriciye at.</p>',
-      '<p class="crop-pin-hint hidden" id="cropPinHint">Kaydet ve slider i\u00e7in \u015fifre gerekli.</p>',
+      '<p class="crop-pin-hint hidden" id="cropPinHint">Panel a\u00e7\u0131k \u2014 d\u00fczenlemek i\u00e7in \u015eifre gir.</p>',
       '<button type="button" class="crop-btn crop-btn-pin" id="cropPinUnlockBtn">\u015eifre gir</button>',
       '<p class="crop-detect" id="cropDetectLabel"></p>',
       '<div class="crop-profile-tabs" role="tablist">',
@@ -1535,6 +1541,8 @@
       }
     });
     document.getElementById('cropSpreadRefBtn')?.addEventListener('click', async () => {
+      const pin = await promptCropSavePin(true);
+      if (pin === null) return;
       const refId = editingProfile;
       const refWidth = cropLayoutWidth();
       try {
