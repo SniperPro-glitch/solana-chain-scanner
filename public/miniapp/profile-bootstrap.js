@@ -54,6 +54,8 @@
     const id = detect();
     document.documentElement.dataset.dexCropProfile = id;
     document.documentElement.dataset.dexCropW = String(layoutWidth());
+    document.documentElement.dataset.cropEmbedFamily =
+      id === 'webgecko' || String(id).includes('gecko') ? 'gecko' : 'dex';
     return id;
   }
 

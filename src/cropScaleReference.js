@@ -7,6 +7,7 @@ const PROFILE_ORDER = ['web', 'webgecko', 'app11', 'app13', 'app13pm', 'app16'];
 /** Profil → tipik cihaz genişliği (layoutWidth) */
 const CANONICAL_WIDTH = {
   web: 1200,
+  webgecko: 1200,
   app11: 414, // iPhone 11, XR, 11 Pro Max
   app13: 390, // iPhone 12 / 12 Pro / 13 / 14 / 15
   app13pm: 428, // iPhone 12–15 Pro Max, Plus

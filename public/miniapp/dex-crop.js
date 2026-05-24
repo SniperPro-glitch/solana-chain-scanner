@@ -29,7 +29,25 @@
     app16: { label: '16 PM', hint: 'iPhone 16 Pro / Pro Max (~440px) — referans' },
   };
 
-  const PROFILE_ORDER = ['web', 'webgecko', 'app11', 'app13', 'app13pm', 'app16'];
+  const DEX_PROFILE_ORDER = ['web', 'app11', 'app13', 'app13pm', 'app16'];
+  const GECKO_PROFILE_ORDER = ['webgecko'];
+  const PROFILE_ORDER = [...DEX_PROFILE_ORDER, ...GECKO_PROFILE_ORDER];
+
+  function profileFamily(profileId) {
+    return GECKO_PROFILE_ORDER.includes(profileId) ? 'gecko' : 'dex';
+  }
+
+  function cropEmbedFamily() {
+    const fam = document.documentElement.dataset.cropEmbedFamily;
+    if (fam === 'gecko' || fam === 'dex') return fam;
+    if (document.documentElement.dataset.chartEmbedProvider === 'gecko') return 'gecko';
+    if (document.documentElement.classList.contains('web-browser')) return 'gecko';
+    return 'dex';
+  }
+
+  function profilesInFamily(family) {
+    return family === 'gecko' ? GECKO_PROFILE_ORDER : DEX_PROFILE_ORDER;
+  }
 
   const BAKED_PROFILES = {"web":{"chart":{"stageH":330,"top":40,"left":1,"width":104,"heightExtra":0,"brandCrop":39,"clipLeft":0,"clipRight":0,"clipTop":0,"clipBottom":0,"shiftDown":0},"tape":{"shiftDown":0},"trades":{"viewH":302,"iframeH":845,"iframeTop":-590,"shiftDown":0,"left":1,"width":98,"maskTop":0,"maskFoot":0,"maskTopOn":true,"maskFootOn":true,"clipLeft":0,"clipRight":0,"clipTop":0,"clipBottom":0}},"app11":{"chart":{"stageH":424,"top":-104,"left":0,"width":100,"heightExtra":0,"brandCrop":40,"clipLeft":0,"clipRight":0,"clipTop":0,"clipBottom":0,"shiftDown":142},"tape":{"shiftDown":0},"trades":{"viewH":294,"iframeH":845,"iframeTop":-555,"shiftDown":44,"left":0,"width":101,"maskTop":0,"maskFoot":0,"maskTopOn":true,"maskFootOn":false,"clipLeft":0,"clipRight":0,"clipTop":0,"clipBottom":0}},"app13":{"chart":{"stageH":314,"top":-15,"left":-1,"width":102,"heightExtra":0,"brandCrop":0,"clipLeft":0,"clipRight":0,"clipTop":0,"clipBottom":0,"shiftDown":55},"tape":{"shiftDown":0},"trades":{"viewH":302,"iframeH":845,"iframeTop":-590,"shiftDown":0,"left":1,"width":98,"maskTop":0,"maskFoot":0,"maskTopOn":true,"maskFootOn":true,"clipLeft":0,"clipRight":0,"clipTop":0,"clipBottom":0}},"app13pm":{"chart":{"stageH":344,"top":40,"left":-1,"width":108,"heightExtra":36,"brandCrop":39,"clipLeft":0,"clipRight":0,"clipTop":0,"clipBottom":0,"shiftDown":0},"tape":{"shiftDown":0},"trades":{"viewH":268,"iframeH":980,"iframeTop":-755,"shiftDown":166,"left":-1,"width":108,"maskTop":0,"maskFoot":0,"maskTopOn":true,"maskFootOn":true,"clipLeft":0,"clipRight":0,"clipTop":0,"clipBottom":0}},"app16":{"chart":{"stageH":418,"top":26,"left":-2,"width":103,"heightExtra":6,"brandCrop":0,"clipLeft":0,"clipRight":0,"clipTop":0,"clipBottom":0,"shiftDown":13},"tape":{"shiftDown":0},"trades":{"viewH":250,"iframeH":745,"iframeTop":-585,"shiftDown":137,"left":0,"width":100,"maskTop":0,"maskFoot":0,"maskTopOn":false,"maskFootOn":false,"clipLeft":0,"clipRight":0,"clipTop":0,"clipBottom":0}}};
 
@@ -220,8 +238,13 @@
     const forced = profileFromUrl();
     if (forced) return forced;
     const w = cropLayoutWidth();
-    if (!isTelegram() && w > 500) return 'webgecko';
+    if (cropEmbedFamily() === 'gecko') return 'webgecko';
+    if (!isTelegram() && w > 500) return 'web';
     return detectProfileByWidth(w);
+  }
+
+  function resolveMotorProfileId() {
+    return detectProfile();
   }
 
   function normalizeBlock(patch) {
@@ -356,7 +379,11 @@
 
   function loadForProfile(profileId) {
     const store = loadStore();
-    const fallback = store.profiles.webgecko || store.profiles.web;
+    const fam = profileFamily(profileId);
+    const fallback =
+      (fam === 'gecko' ? store.profiles.webgecko : store.profiles.web)
+      || store.profiles.web
+      || defaultBlock();
     return clone(normalizeBlock(store.profiles[profileId] || fallback));
   }
 
@@ -501,8 +528,9 @@
   }
 
   function apply(settings) {
-    const profileId = activeProfileId();
+    const profileId = resolveMotorProfileId();
     document.documentElement.dataset.dexCropProfile = profileId;
+    document.documentElement.dataset.cropEmbedFamily = profileFamily(profileId);
     const s = settings || loadForProfile(profileId);
     const root = document.documentElement;
     const c = s.chart;
@@ -1049,8 +1077,23 @@
   function applyCropNow() {
     if (shouldSkipAutoCrop()) return refreshCropProfile();
     if (!isCalibrateMode()) clearCalibrateSession();
-    const pid = refreshCropProfile();
-    apply(profileFromBaked(pid));
+    const pid = resolveMotorProfileId();
+    document.documentElement.dataset.dexCropProfile = pid;
+    document.documentElement.dataset.cropEmbedFamily = profileFamily(pid);
+    apply(loadForProfile(pid));
+    lastMotorProfileId = pid;
+    return pid;
+  }
+
+  function applyForProvider(provider) {
+    const fam = provider === 'gecko' ? 'gecko' : 'dex';
+    document.documentElement.dataset.cropEmbedFamily = fam;
+    document.documentElement.dataset.chartEmbedProvider = provider;
+    const pid = fam === 'gecko' ? 'webgecko' : resolveMotorProfileId();
+    document.documentElement.dataset.dexCropProfile = pid;
+    if (global.SniperDexCropEarly?.applyEarly) global.SniperDexCropEarly.applyEarly();
+    apply(loadForProfile(pid));
+    lastMotorProfileId = pid;
     return pid;
   }
 
@@ -1226,6 +1269,7 @@
   let panelEl = null;
   let current = defaultBlock();
   let editingProfile = 'web';
+  let editingFamily = 'dex';
   let panelBuilt = false;
   /** Panel açılınca dosyadaki değerler — kayıttan sonra fark gösterilir */
   let baselineProfiles = null;
@@ -1328,7 +1372,27 @@
     });
   }
 
+  function updateFamilyTabs() {
+    panelEl?.querySelectorAll('[data-crop-family]').forEach((btn) => {
+      const fam = btn.getAttribute('data-crop-family');
+      const active = fam === editingFamily;
+      btn.classList.toggle('active', active);
+      btn.setAttribute('aria-pressed', active ? 'true' : 'false');
+    });
+    panelEl?.querySelectorAll('[data-crop-profile]').forEach((btn) => {
+      const id = btn.getAttribute('data-crop-profile');
+      const inFam = profilesInFamily(editingFamily).includes(id);
+      btn.classList.toggle('hidden', !inFam);
+    });
+    const chartHead = panelEl?.querySelector('.crop-chart-head');
+    if (chartHead) {
+      chartHead.textContent =
+        editingFamily === 'gecko' ? 'Grafik (GeckoTerminal embed)' : 'Grafik (DexScreener embed)';
+    }
+  }
+
   function updateProfileTabs() {
+    updateFamilyTabs();
     panelEl?.querySelectorAll('[data-crop-profile]').forEach((btn) => {
       const active = btn.getAttribute('data-crop-profile') === editingProfile;
       btn.classList.toggle('active', active);
@@ -1339,8 +1403,25 @@
     const det = document.getElementById('cropDetectLabel');
     if (det) {
       const auto = detectProfile();
-      det.textContent = `Otomatik: ${PROFILE_META[auto]?.label || auto} (${window.innerWidth}x${window.innerHeight})`;
+      const fam = cropEmbedFamily();
+      det.textContent = `Otomatik: ${PROFILE_META[auto]?.label || auto} · ${fam === 'gecko' ? 'Gecko' : 'Dex'} (${window.innerWidth}x${window.innerHeight})`;
     }
+  }
+
+  function switchFamily(nextFamily) {
+    if (nextFamily !== 'dex' && nextFamily !== 'gecko') return;
+    if (nextFamily === editingFamily) return;
+    if (isCropEditAllowed()) saveBlock(editingProfile, current);
+    editingFamily = nextFamily;
+    const order = profilesInFamily(editingFamily);
+    if (!order.includes(editingProfile)) {
+      editingProfile = order[0];
+      current = loadForProfile(editingProfile);
+      syncSlidersFromCurrent();
+      apply(current);
+    }
+    updateProfileTabs();
+    refreshPreview();
   }
 
   function switchProfile(nextId) {
@@ -1376,6 +1457,7 @@
     enableCalibrateSession();
     if (!panelBuilt) buildPanel();
     editingProfile = profileFromUrl() || detectProfile();
+    editingFamily = profileFamily(editingProfile);
     baselineProfiles = clone(loadStore().profiles);
     current = loadForProfile(editingProfile);
     syncSlidersFromCurrent();
@@ -1436,12 +1518,16 @@
     panelEl.id = 'dexCropPanel';
     panelEl.className = 'dex-crop-panel hidden';
     panelEl.innerHTML = [
-      '<header class="dex-crop-head"><strong>K\u0131rpma \u2014 5 ekran</strong>',
+      '<header class="dex-crop-head"><strong>K\u0131rpma motoru</strong>',
       '<button type="button" class="crop-close" id="cropCloseBtn" aria-label="Kapat">\u00d7</button></header>',
-      '<p class="crop-intro"><b>1)</b> Kendi telefonunda grafik + al\u0131m/sat\u0131m oturunca <b>Referans \u2192 5 cihaz</b>. <b>2)</b> <b>Sunucuya sabitle</b>. Ekran g\u00f6r\u00fcnt\u00fcs\u00fcn\u00fc geli\u015ftiriciye at.</p>',
+      '<p class="crop-intro"><b>Dex</b> = Telegram / DexScreener. <b>Gecko</b> = taray\u0131c\u0131. Her sekmede cihaz profilleri ayr\u0131 kaydedilir.</p>',
       '<p class="crop-pin-hint hidden" id="cropPinHint">Panel a\u00e7\u0131k \u2014 d\u00fczenlemek i\u00e7in \u015eifre gir.</p>',
       '<button type="button" class="crop-btn crop-btn-pin" id="cropPinUnlockBtn">\u015eifre gir</button>',
       '<p class="crop-detect" id="cropDetectLabel"></p>',
+      '<div class="crop-family-tabs" role="tablist">',
+      '<button type="button" class="crop-family-tab active" data-crop-family="dex" role="tab">DexScreener</button>',
+      '<button type="button" class="crop-family-tab" data-crop-family="gecko" role="tab">GeckoTerminal</button>',
+      `</${D}>`,
       '<div class="crop-profile-tabs" role="tablist">',
       ...PROFILE_ORDER.map(
         (id) =>
@@ -1449,7 +1535,7 @@
       ),
       `</${D}>`,
       '<p class="crop-profile-hint" id="cropProfileHint"></p>',
-      '<section class="crop-section"><h3>Grafik (Dex embed)</h3>',
+      '<section class="crop-section"><h3 class="crop-chart-head">Grafik (DexScreener embed)</h3>',
       sliderRow('Kutu y\u00fcksekli\u011fi', 'cropChartStageH', 240, 480, 2, c.stageH, 'px'),
       sliderRow('\u00dcst kayd\u0131r', 'cropChartTop', -180, 40, 1, c.top, 'px \u2014 negatif = yukar\u0131'),
       sliderRow('A\u015fa\u011f\u0131 kayd\u0131r', 'cropChartDown', 0, 200, 1, c.shiftDown, 'px \u2014 grafik i\u00e7eri\u011fi'),
@@ -1509,6 +1595,9 @@
 
     panelEl.querySelectorAll('[data-crop-profile]').forEach((btn) => {
       btn.addEventListener('click', () => switchProfile(btn.getAttribute('data-crop-profile')));
+    });
+    panelEl.querySelectorAll('[data-crop-family]').forEach((btn) => {
+      btn.addEventListener('click', () => switchFamily(btn.getAttribute('data-crop-family')));
     });
 
     document.getElementById('cropCloseBtn')?.addEventListener('click', closePanel);
@@ -1737,6 +1826,11 @@
     applyAsync,
     refreshCropProfile,
     applyCropNow,
+    applyForProvider,
+    cropEmbedFamily,
+    profileFamily,
+    DEX_PROFILE_ORDER,
+    GECKO_PROFILE_ORDER,
     shouldSkipAutoCrop,
     cropPanelIsOpen,
     handleCropProfileChange,

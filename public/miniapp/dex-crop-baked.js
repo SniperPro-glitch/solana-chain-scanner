@@ -1,7 +1,7 @@
-/** Otomatik — crop save · 2026-05-24T03:54:16.866Z */
+/** Otomatik — crop save · 2026-05-24T04:09:42.134Z */
 globalThis.__DEX_CROP_BAKED__={
   "version": 1,
-  "updatedAt": "2026-05-24T03:54:16.866Z",
+  "updatedAt": "2026-05-24T04:09:42.134Z",
   "note": "5 cihaz — POST birleştirilir (web, 11, 13, 13pm, 16pm)",
   "profiles": {
     "web": {
@@ -40,30 +40,30 @@ globalThis.__DEX_CROP_BAKED__={
     },
     "webgecko": {
       "chart": {
-        "stageH": 388,
+        "stageH": 360,
         "top": 0,
         "left": 0,
         "width": 100,
-        "heightExtra": 10,
-        "brandCrop": 44,
+        "heightExtra": 0,
+        "brandCrop": 28,
         "clipLeft": 0,
         "clipRight": 0,
         "clipTop": 0,
         "clipBottom": 0,
-        "shiftDown": 14
+        "shiftDown": 6
       },
       "tape": {
         "shiftDown": 0
       },
       "trades": {
-        "viewH": 312,
-        "iframeH": 690,
-        "iframeTop": -412,
-        "shiftDown": 68,
+        "viewH": 300,
+        "iframeH": 720,
+        "iframeTop": -400,
+        "shiftDown": 44,
         "left": 0,
         "width": 100,
-        "maskTop": 60,
-        "maskFoot": 14,
+        "maskTop": 48,
+        "maskFoot": 12,
         "maskTopOn": true,
         "maskFootOn": true,
         "clipLeft": 0,

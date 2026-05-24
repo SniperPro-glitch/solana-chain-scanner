@@ -2873,7 +2873,7 @@ html.web-browser .dex-trades-embed:not(.hidden) {
 }
 
 /* AUTO_DEX_CROP_PROFILES_START */
-/* Otomatik — sync-dex-crop-css.js · 2026-05-24T03:54:16.866Z */
+/* Otomatik — sync-dex-crop-css.js · 2026-05-24T04:09:42.134Z */
 
 html:not([data-dex-crop-profile]) {
   --dex-trades-view-h: 302px;
@@ -2900,22 +2900,22 @@ html[data-dex-crop-profile="web"] {
 }
 
 html[data-dex-crop-profile="webgecko"] {
-  --chart-embed-h: 388px;
+  --chart-embed-h: 360px;
   --chart-embed-top: 0px;
-  --chart-shift-down: 14px;
+  --chart-shift-down: 6px;
   --chart-embed-left: 0%;
   --chart-embed-width: 100%;
-  --chart-embed-extra: 10px;
-  --chart-brand-crop: 44px;
+  --chart-embed-extra: 0px;
+  --chart-brand-crop: 28px;
   --tape-shift-down: 0px;
-  --dex-trades-view-h: 312px;
-  --dex-iframe-h: 690px;
-  --dex-iframe-top: -412px;
-  --dex-trades-shift-down: 68px;
+  --dex-trades-view-h: 300px;
+  --dex-iframe-h: 720px;
+  --dex-iframe-top: -400px;
+  --dex-trades-shift-down: 44px;
   --dex-iframe-left: 0%;
   --dex-iframe-width: 100%;
-  --dex-mask-top-h: 60px;
-  --dex-mask-foot-h: 14px;
+  --dex-mask-top-h: 48px;
+  --dex-mask-foot-h: 12px;
 }
 
 html[data-dex-crop-profile="app11"] {
@@ -3156,6 +3156,34 @@ html.crop-panel-open .btn-crop-cal-fab {
   color: var(--cyan);
   margin: 0 0 10px;
   font-variant-numeric: tabular-nums;
+}
+
+.crop-family-tabs {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.crop-family-tab {
+  flex: 1 1 50%;
+  padding: 9px 6px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--glass);
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.crop-family-tab.active {
+  border-color: var(--cyan);
+  color: var(--cyan);
+  background: rgba(0, 229, 255, 0.12);
+}
+
+.crop-profile-tab.hidden {
+  display: none !important;
 }
 
 .crop-profile-tabs {

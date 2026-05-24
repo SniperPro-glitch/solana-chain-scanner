@@ -34,6 +34,14 @@
     root.style.setProperty('--dex-mask-foot-h', `${Number(t.maskFoot) || 0}px`);
   }
 
+  function cropEmbedFamily() {
+    const fam = document.documentElement.dataset.cropEmbedFamily;
+    if (fam === 'gecko' || fam === 'dex') return fam;
+    if (document.documentElement.dataset.chartEmbedProvider === 'gecko') return 'gecko';
+    if (document.documentElement.classList.contains('web-browser')) return 'gecko';
+    return 'dex';
+  }
+
   function detectProfileId() {
     if (global.SniperCropProfile?.apply) return global.SniperCropProfile.apply();
     try {
@@ -55,7 +63,9 @@
     if (!profiles) return;
     const id = detectProfileId();
     document.documentElement.dataset.dexCropProfile = id;
-    applyRootVars(profiles[id] || profiles.webgecko || profiles.web);
+    const fam = cropEmbedFamily();
+    const fallback = fam === 'gecko' ? profiles.webgecko : profiles.web;
+    applyRootVars(profiles[id] || fallback || profiles.web);
   }
 
   applyEarly();

@@ -2800,14 +2800,21 @@
     return !!isWebBrowser;
   }
 
+  function geckoTfResolution(tf) {
+    const map = { '1m': '1m', '5m': '5m', '15m': '15m', '1h': '1h', '4h': '4h', '1d': '1d' };
+    return map[String(tf || '15m').toLowerCase()] || '15m';
+  }
+
   function geckoChartEmbedUrl(poolAddress, tf) {
     const pool = String(poolAddress || '').trim();
     if (!pool) return null;
-    void tf;
     const q = new URLSearchParams({
       embed: '1',
       info: '0',
       swaps: '0',
+      light_chart: '1',
+      chart_type: 'price',
+      resolution: geckoTfResolution(tf),
     });
     return `https://www.geckoterminal.com/solana/pools/${encodeURIComponent(pool)}?${q.toString()}`;
   }
@@ -2819,15 +2826,28 @@
       embed: '1',
       info: '0',
       swaps: '1',
+      light_chart: '1',
     });
     return `https://www.geckoterminal.com/solana/pools/${encodeURIComponent(pool)}?${q.toString()}`;
   }
 
+  function syncEmbedCropProfile(provider) {
+    const isGecko = provider === 'gecko';
+    document.documentElement.dataset.chartEmbedProvider = provider;
+    document.documentElement.dataset.cropEmbedFamily = isGecko ? 'gecko' : 'dex';
+    const profileId = isGecko ? 'webgecko' : null;
+    if (profileId) document.documentElement.dataset.dexCropProfile = profileId;
+    if (global.SniperDexCropEarly?.applyEarly) global.SniperDexCropEarly.applyEarly();
+    if (global.SniperDexCrop?.applyForProvider) {
+      global.SniperDexCrop.applyForProvider(provider);
+    } else if (global.SniperDexCrop?.applyCropNow) {
+      global.SniperDexCrop.applyCropNow();
+    }
+  }
+
   function syncWebGeckoCropProfile() {
     if (!useGeckoEmbedOnWeb()) return;
-    document.documentElement.dataset.dexCropProfile = 'webgecko';
-    if (global.SniperDexCropEarly?.applyEarly) global.SniperDexCropEarly.applyEarly();
-    if (global.SniperDexCrop?.applyCropNow) global.SniperDexCrop.applyCropNow();
+    syncEmbedCropProfile('gecko');
   }
 
   async function resolvePoolForEmbeds(m) {
@@ -2875,7 +2895,8 @@
     } else {
       iframe.classList.remove('hidden');
     }
-    syncWebGeckoCropProfile();
+    if (useGeckoEmbedOnWeb()) syncEmbedCropProfile('gecko');
+    else syncEmbedCropProfile('dex');
     const meta = $('tradesMeta');
     if (meta) meta.textContent = i18n('detail.tradesLive');
   }
@@ -3128,8 +3149,7 @@
       const mountKey = `${provider}:${poolRef}:${embed}`;
       const existing = container.querySelector('iframe.dex-embed-chart');
       setChartEmbedMode(true);
-      document.documentElement.dataset.chartEmbedProvider = provider;
-      syncWebGeckoCropProfile();
+      syncEmbedCropProfile(provider);
       if (existing && chartEmbedMountKey === mountKey) {
         if (note) {
           note.textContent = `${(tf || '15m').toUpperCase()} · canlı`;
