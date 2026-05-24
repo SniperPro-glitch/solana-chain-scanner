@@ -303,6 +303,7 @@
     'meta.listEmpty': S('◎ {name} · empty', '◎ {name} · boş', '◎ {name} · пусто'),
     'meta.demoList': S(' · sample list', ' · örnek liste', ' · демо список'),
     'meta.instant': S(' · live', ' · anlık', ' · live'),
+    'meta.detail': S('◎ {sym} · {price}{chg}{live}', '◎ {sym} · {price}{chg}{live}', '◎ {sym} · {price}{chg}{live}'),
     'feed.src.dev': S('Sample', 'Örnek', 'Демо'),
     'feed.src.botLive': S('Bot · live price', 'Bot · canlı fiyat', 'Бот · живая цена'),
     'feed.src.hybrid': S('Bot + live DEX', 'Bot + canlı DEX', 'Бот + live DEX'),

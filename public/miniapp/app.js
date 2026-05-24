@@ -1565,11 +1565,29 @@
     });
   }
 
+  function updateDetailMetaBar(data) {
+    const bar = $('feedMetaBar');
+    const txt = $('feedMetaText');
+    if (!bar || !txt || !data) return;
+    const m = data.market || {};
+    const sym = m.symbol || data.symbol || '?';
+    const price = fmtPriceDisplay({ priceUsd: m.priceUsd, priceUsdFmt: m.priceUsdFmt }) || '—';
+    const chgRaw = formatPct(m.priceChange24h);
+    const chg = chgRaw ? ` · 24H ${chgRaw}` : '';
+    txt.textContent = i18n('meta.detail', { sym, price, chg, live: i18n('meta.instant') });
+    delete txt.dataset.lockChain;
+    bar.classList.remove('hidden');
+  }
+
   function updateFeedMetaBar(body) {
     const bar = $('feedMetaBar');
     const txt = $('feedMetaText');
     if (!bar || !txt) return;
     if (!body) {
+      if (document.documentElement.classList.contains('detail-mode') && appData) {
+        updateDetailMetaBar(appData);
+        return;
+      }
       bar.classList.add('hidden');
       return;
     }
@@ -3056,7 +3074,10 @@
       el.classList.add(Number(next) > Number(prev) ? 'flash-up' : 'flash-down');
     }
     el.dataset.lastPx = next;
-    if (appData) renderHeroShell(appData);
+    if (appData) {
+      renderHeroShell(appData);
+      if (document.documentElement.classList.contains('detail-mode')) updateDetailMetaBar(appData);
+    }
     renderQuoteChanges(m);
     globalThis.SniperTrade?.tickLive?.(m);
   }
@@ -3938,6 +3959,7 @@
     $('priceUsd').textContent = fmtPriceDisplay({ priceUsd: m.priceUsd, priceUsdFmt: m.priceUsdFmt })
       || data.summary?.price || '—';
 
+    updateDetailMetaBar(data);
     renderHeroShell(data);
     renderQuoteChanges(m);
     renderMetrics(m, data);
