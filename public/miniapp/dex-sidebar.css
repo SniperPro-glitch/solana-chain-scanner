@@ -404,7 +404,6 @@
 
 .dex-sidebar-foot {
   flex-shrink: 0;
-  flex-shrink: 0;
   border-top: 1px solid rgba(255, 255, 255, 0.08);
   background: #080c14;
   padding: 10px 12px calc(12px + env(safe-area-inset-bottom, 0px));
