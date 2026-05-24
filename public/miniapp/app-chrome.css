@@ -282,15 +282,22 @@ html.tg-fullscreen .app-top-chrome {
 
 /* Banner — viewport’a göre sağ/sol eşit boşluk (toolbar’a dokunmaz) */
 .app-top-chrome .promo-banner.app-promo-global {
+  --promo-h: 96px;
   display: block;
+  position: relative;
   box-sizing: border-box;
   width: calc(100vw - 2 * var(--promo-banner-edge));
   max-width: none;
+  height: var(--promo-h);
   margin-bottom: 8px;
   margin-left: calc(50% - 50vw + var(--promo-banner-edge));
   margin-right: calc(50% - 50vw + var(--promo-banner-edge));
   border-radius: 10px;
   overflow: hidden;
+  border: 1px solid rgba(0, 229, 255, 0.25);
+  box-shadow: 0 0 20px rgba(0, 229, 255, 0.12);
+  text-decoration: none;
+  flex-shrink: 0;
 }
 
 html.tg-mini-app .app-top-chrome .promo-banner.app-promo-global {
