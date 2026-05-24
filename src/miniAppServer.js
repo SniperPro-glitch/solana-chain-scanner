@@ -292,6 +292,26 @@ function createMiniAppServer() {
         return;
       }
 
+      if (url.pathname === '/api/crop-profiles/scale-reference' && req.method === 'POST') {
+        try {
+          const cropScaleReference = require('./cropScaleReference');
+          const raw = await readBody(req);
+          const body = JSON.parse(raw.toString('utf8') || '{}');
+          const refProfile = String(body.refProfile || 'app13');
+          const refBlock = body.refBlock || body.profiles?.[refProfile];
+          const refWidth = Number(body.refWidth) || 0;
+          if (!refBlock?.chart || !refBlock?.trades) {
+            sendJson(res, 400, { error: 'bad_request', message: 'refBlock.chart ve refBlock.trades gerekli' });
+            return;
+          }
+          const scaled = cropScaleReference.scaleFromReference(refProfile, refBlock, refWidth);
+          sendJson(res, 200, { ok: true, ...scaled });
+        } catch (e) {
+          sendJson(res, 400, { error: 'scale_failed', message: e.message });
+        }
+        return;
+      }
+
       if (url.pathname === '/api/crop-profiles') {
         const cropProfiles = require('./cropProfiles');
         if (req.method === 'GET') {

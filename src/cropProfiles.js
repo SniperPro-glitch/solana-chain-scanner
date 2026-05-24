@@ -74,6 +74,14 @@ function writeBakedJs(data) {
   const stamp = data.updatedAt || new Date().toISOString();
   const js = `/** Otomatik — crop save · ${stamp} */\nglobalThis.__DEX_CROP_BAKED__=${JSON.stringify(data, null, 2)};\n`;
   fs.writeFileSync(bakedOut, js, 'utf8');
+  try {
+    const { execFileSync } = require('child_process');
+    execFileSync(process.execPath, [path.join(__dirname, '..', 'scripts', 'sync-dex-crop-css.js')], {
+      stdio: 'inherit',
+    });
+  } catch (e) {
+    console.warn('[cropProfiles] CSS sync skipped:', e.message);
+  }
 }
 
 function cropSavePinExpected() {

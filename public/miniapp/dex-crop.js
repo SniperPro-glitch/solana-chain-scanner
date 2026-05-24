@@ -22,10 +22,10 @@
 
   const PROFILE_META = {
     web: { label: 'Web', hint: 'Tarayici / masaustu' },
-    app11: { label: '11', hint: 'iPhone 11 / XR (~414px)' },
-    app13: { label: '13', hint: 'iPhone 13 / 14 / 15 (~390px)' },
-    app13pm: { label: '13 PM', hint: 'iPhone 13 Pro Max (~428px)' },
-    app16: { label: '16 PM', hint: 'iPhone 16 Pro Max (~430px)' },
+    app11: { label: '11', hint: 'iPhone 11, XR, 11 Pro Max (~414px)' },
+    app13: { label: '13', hint: 'iPhone 12–15, 12 Pro (~390px)' },
+    app13pm: { label: '13 PM', hint: 'iPhone 12–15 Pro Max (~428px)' },
+    app16: { label: '16 PM', hint: 'iPhone 16 Pro / Pro Max (~440px) — referans' },
   };
 
   const PROFILE_ORDER = ['web', 'app11', 'app13', 'app13pm', 'app16'];
@@ -1060,6 +1060,7 @@
     const next = refreshCropProfile();
     if (prev && prev !== next) {
       clearLayoutSession();
+      if (global.SniperDexCropEarly?.applyEarly) global.SniperDexCropEarly.applyEarly();
       if (isDetailOpen() && !cropPanelIsOpen()) {
         applyCropNow();
         runHiddenMotor();
@@ -1110,6 +1111,7 @@
     if (MOTOR_TEMP_DISABLED) return false;
     handleCropProfileChange();
     const profileId = refreshCropProfile();
+    applyCropNow();
     if (layoutSessionDone(profileId)) return false;
     if (!isDetailOpen()) return false;
     void ensureProfilesReady().then(() => {
@@ -1154,8 +1156,12 @@
   }
 
   function onDetailOpen() {
+    clearLayoutSession();
+    document.documentElement.classList.add('crop-motor-on');
     syncCropUi();
+    applyCropNow();
     burstApplyOnDetail();
+    if (global.SniperDexCropEarly?.applyEarly) global.SniperDexCropEarly.applyEarly();
     setTimeout(maybeCropUnlockHint, 1800);
     if (!shouldShowCropButton()) {
       void tryEnableAdminCalibrate().then(() => syncCropUi());
@@ -1424,7 +1430,7 @@
     panelEl.innerHTML = [
       '<header class="dex-crop-head"><strong>K\u0131rpma \u2014 5 ekran</strong>',
       '<button type="button" class="crop-close" id="cropCloseBtn" aria-label="Kapat">\u00d7</button></header>',
-      '<p class="crop-intro"><b>Bu profili kaydet</b> = \u00f6l\u00e7\u00fcler kal\u0131r + sunucuya gider. <b>Sunucuya sabitle</b> = 5 cihaz + baked.js.</p>',
+      '<p class="crop-intro"><b>1)</b> Kendi telefonunda grafik + al\u0131m/sat\u0131m oturunca <b>Referans \u2192 5 cihaz</b>. <b>2)</b> <b>Sunucuya sabitle</b>. Ekran g\u00f6r\u00fcnt\u00fcs\u00fcn\u00fc geli\u015ftiriciye at.</p>',
       '<p class="crop-pin-hint hidden" id="cropPinHint">Kaydet ve slider i\u00e7in \u015fifre gerekli.</p>',
       '<button type="button" class="crop-btn crop-btn-pin" id="cropPinUnlockBtn">\u015eifre gir</button>',
       '<p class="crop-detect" id="cropDetectLabel"></p>',
@@ -1471,7 +1477,9 @@
       '</section>',
       `<${D} class="crop-actions">`,
       '<button type="button" class="crop-btn crop-btn-save" id="cropSaveBtn">Bu profili kaydet</button>',
+      '<button type="button" class="crop-btn crop-btn-publish" id="cropSpreadRefBtn">Referans \u2192 5 cihaz</button>',
       '<button type="button" class="crop-btn crop-btn-publish" id="cropPublishBtn">Sunucuya sabitle (5 profil)</button>',
+      '<button type="button" class="crop-btn crop-btn-copy" id="cropExportRefBtn">Referans JSON kopyala</button>',
       '<button type="button" class="crop-btn crop-btn-copy" id="cropCopyWebBtn">Web \u2192</button>',
       '<button type="button" class="crop-btn crop-btn-copy" id="cropCopy13pmBtn">13 PM \u2192</button>',
       '<button type="button" class="crop-btn crop-btn-copy" id="cropCopy16pmBtn">16 PM \u2192</button>',
@@ -1522,6 +1530,53 @@
         toast('5 profil sunucuya yazıldı (json + baked.js) — redeploy');
       } catch (e) {
         toast(e.message || 'Sunucuya kayıt başarısız');
+      }
+    });
+    document.getElementById('cropSpreadRefBtn')?.addEventListener('click', async () => {
+      const refId = editingProfile;
+      const refWidth = cropLayoutWidth();
+      try {
+        const r = await fetch('/api/crop-profiles/scale-reference', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ refProfile: refId, refBlock: current, refWidth }),
+        });
+        const data = await r.json();
+        if (!r.ok) throw new Error(data.message || data.error || 'scale failed');
+        const store = loadStore();
+        PROFILE_ORDER.forEach((id) => {
+          if (data.profiles?.[id]) store.profiles[id] = normalizeBlock(data.profiles[id]);
+        });
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(store));
+        baselineProfiles = clone(store.profiles);
+        syncSlidersFromCurrent();
+        apply(current);
+        refreshPreview();
+        toast(`Referans (${PROFILE_META[refId].label}, ${refWidth}px) → 5 cihaz. Sunucuya sabitle.`);
+      } catch (e) {
+        toast(e.message || '5 cihaza yayma başarısız');
+      }
+    });
+    document.getElementById('cropExportRefBtn')?.addEventListener('click', async () => {
+      const payload = {
+        refProfile: editingProfile,
+        refWidth: cropLayoutWidth(),
+        refBlock: clone(current),
+        userAgent: navigator.userAgent,
+        telegram: {
+          platform: global.Telegram?.WebApp?.platform,
+          viewportWidth: global.Telegram?.WebApp?.viewportWidth,
+          viewportHeight: global.Telegram?.WebApp?.viewportHeight,
+        },
+      };
+      const text = JSON.stringify(payload, null, 2);
+      try {
+        await navigator.clipboard.writeText(text);
+        toast('Referans JSON kopyalandı — geliştiriciye yapıştır');
+      } catch {
+        const pre = document.getElementById('cropJsonPreview');
+        if (pre) pre.textContent = text;
+        toast('Panoya yazılamadı — alttaki JSON’u kopyala');
       }
     });
     document.getElementById('cropCopyWebBtn')?.addEventListener('click', () => copyProfileFrom('web'));

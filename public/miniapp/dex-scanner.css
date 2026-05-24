@@ -2708,10 +2708,10 @@ html.detail-mode .wl-modal {
 /* DexScreener canl─▒ i┼şlemler ÔÇö iframe k─▒rpma (Transactions paneli) */
 .dex-trades-embed-wrap {
   position: relative;
-  /* ├ûl├ğ├╝ler: html[data-dex-crop-profile] ÔåÆ dex-crop-profiles.css */
-  height: var(--dex-trades-view-h);
-  min-height: var(--dex-trades-view-h);
-  max-height: var(--dex-trades-view-h);
+  /* Ölçüler: html[data-dex-crop-profile] → baked + dex-crop.js */
+  height: var(--dex-trades-view-h, 302px);
+  min-height: var(--dex-trades-view-h, 302px);
+  max-height: var(--dex-trades-view-h, 302px);
   overflow: hidden;
   background: #0a0e1a;
   isolation: isolate;
@@ -2815,10 +2815,24 @@ html.detail-mode .wl-modal {
 
 .chart-terminal--dex-embed .chart-canvas {
   height: 100%;
-  min-height: 0;
+  min-height: var(--chart-embed-h, 330px);
   max-height: 100%;
   overflow: hidden;
   position: relative;
+}
+
+html.web-browser.detail-mode .chart-terminal--dex-embed .chart-stage,
+html.web-browser.detail-mode[data-dex-crop-profile] .chart-terminal--dex-embed .chart-stage {
+  height: var(--chart-embed-h, 356px) !important;
+  min-height: var(--chart-embed-h, 356px) !important;
+  max-height: var(--chart-embed-h, 356px) !important;
+}
+
+html.web-browser.detail-mode .dex-trades-embed-wrap,
+html.web-browser.detail-mode[data-dex-crop-profile] .dex-trades-embed-wrap {
+  height: var(--dex-trades-view-h, 302px) !important;
+  min-height: var(--dex-trades-view-h, 302px) !important;
+  max-height: var(--dex-trades-view-h, 302px) !important;
 }
 
 /* Grafik iframe ÔÇö ├Âl├ğ├╝ler dex-crop.js apply() ile !important atan─▒r */
@@ -2839,178 +2853,143 @@ html.detail-mode .wl-modal {
   width: 100%;
 }
 
-html.tg-mini-app .trades-tape--dex-embed {
+html.tg-mini-app .trades-tape--dex-embed,
+html.web-browser .trades-tape--dex-embed {
   min-height: var(--dex-trades-view-h, 302px);
+  flex-shrink: 0;
 }
 
-html.tg-mini-app .trades-tape--dex-embed .dex-trades-embed-wrap {
+html.tg-mini-app .trades-tape--dex-embed .dex-trades-embed-wrap,
+html.web-browser .trades-tape--dex-embed .dex-trades-embed-wrap {
   height: var(--dex-trades-view-h, 302px) !important;
   min-height: var(--dex-trades-view-h, 302px) !important;
   max-height: var(--dex-trades-view-h, 302px) !important;
 }
 
-html.tg-mini-app .dex-trades-embed:not(.hidden) {
+html.tg-mini-app .dex-trades-embed:not(.hidden),
+html.web-browser .dex-trades-embed:not(.hidden) {
   display: block !important;
+  visibility: visible !important;
 }
+
+/* AUTO_DEX_CROP_PROFILES_START */
+/* Otomatik — sync-dex-crop-css.js · 2026-05-24T03:24:15.858Z */
 
 html:not([data-dex-crop-profile]) {
   --dex-trades-view-h: 302px;
   --chart-embed-h: 330px;
 }
-/* Otomatik ÔÇö scripts/sync-dex-crop-baked.js ÔÇö kay─▒tl─▒ 5 cihaz profili */
+
 html[data-dex-crop-profile="web"] {
-  --chart-embed-h: 330px;
-  --chart-embed-top: 40px;
+  --chart-embed-h: 356px;
+  --chart-embed-top: 32px;
   --chart-shift-down: 0px;
   --chart-embed-left: 1%;
   --chart-embed-width: 104%;
-  --chart-embed-extra: 0px;
-  --chart-brand-crop: 39px;
+  --chart-embed-extra: 4px;
+  --chart-brand-crop: 32px;
   --tape-shift-down: 0px;
   --dex-trades-view-h: 302px;
-  --dex-iframe-h: 845px;
-  --dex-iframe-top: -590px;
+  --dex-iframe-h: 920px;
+  --dex-iframe-top: -612px;
   --dex-trades-shift-down: 0px;
-  --dex-iframe-left: 1%;
-  --dex-iframe-width: 98%;
+  --dex-iframe-left: 0%;
+  --dex-iframe-width: 100%;
   --dex-mask-top-h: 0px;
   --dex-mask-foot-h: 0px;
-}
-
-html[data-dex-crop-profile="web"] .chart-terminal--dex-embed .chart-stage {
-  height: 330px !important;
-  min-height: 330px !important;
-  max-height: 330px !important;
-}
-
-html[data-dex-crop-profile="web"] .dex-trades-embed-wrap {
-  height: 302px !important;
-  min-height: 302px !important;
-  max-height: 302px !important;
 }
 
 html[data-dex-crop-profile="app11"] {
-  --chart-embed-h: 330px;
-  --chart-embed-top: 20px;
-  --chart-shift-down: 0px;
-  --chart-embed-left: 1%;
-  --chart-embed-width: 98%;
-  --chart-embed-extra: 14px;
-  --chart-brand-crop: 40px;
+  --chart-embed-h: 398px;
+  --chart-embed-top: 26px;
+  --chart-shift-down: 9px;
+  --chart-embed-left: -1%;
+  --chart-embed-width: 102%;
+  --chart-embed-extra: 8px;
+  --chart-brand-crop: 0px;
   --tape-shift-down: 0px;
-  --dex-trades-view-h: 302px;
-  --dex-iframe-h: 845px;
-  --dex-iframe-top: -590px;
-  --dex-trades-shift-down: 0px;
-  --dex-iframe-left: 1%;
-  --dex-iframe-width: 98%;
+  --dex-trades-view-h: 280px;
+  --dex-iframe-h: 866px;
+  --dex-iframe-top: -580px;
+  --dex-trades-shift-down: 45px;
+  --dex-iframe-left: 0%;
+  --dex-iframe-width: 100%;
   --dex-mask-top-h: 0px;
   --dex-mask-foot-h: 0px;
-}
-
-html[data-dex-crop-profile="app11"] .chart-terminal--dex-embed .chart-stage {
-  height: 330px !important;
-  min-height: 330px !important;
-  max-height: 330px !important;
-}
-
-html[data-dex-crop-profile="app11"] .dex-trades-embed-wrap {
-  height: 302px !important;
-  min-height: 302px !important;
-  max-height: 302px !important;
 }
 
 html[data-dex-crop-profile="app13"] {
-  --chart-embed-h: 314px;
-  --chart-embed-top: -15px;
-  --chart-shift-down: 55px;
+  --chart-embed-h: 374px;
+  --chart-embed-top: 25px;
+  --chart-shift-down: 9px;
   --chart-embed-left: -1%;
   --chart-embed-width: 102%;
-  --chart-embed-extra: 0px;
+  --chart-embed-extra: 7px;
   --chart-brand-crop: 0px;
   --tape-shift-down: 0px;
-  --dex-trades-view-h: 302px;
-  --dex-iframe-h: 845px;
-  --dex-iframe-top: -590px;
-  --dex-trades-shift-down: 0px;
-  --dex-iframe-left: 1%;
-  --dex-iframe-width: 98%;
+  --dex-trades-view-h: 264px;
+  --dex-iframe-h: 816px;
+  --dex-iframe-top: -545px;
+  --dex-trades-shift-down: 43px;
+  --dex-iframe-left: 0%;
+  --dex-iframe-width: 100%;
   --dex-mask-top-h: 0px;
   --dex-mask-foot-h: 0px;
-}
-
-html[data-dex-crop-profile="app13"] .chart-terminal--dex-embed .chart-stage {
-  height: 314px !important;
-  min-height: 314px !important;
-  max-height: 314px !important;
-}
-
-html[data-dex-crop-profile="app13"] .dex-trades-embed-wrap {
-  height: 302px !important;
-  min-height: 302px !important;
-  max-height: 302px !important;
 }
 
 html[data-dex-crop-profile="app13pm"] {
-  --chart-embed-h: 344px;
-  --chart-embed-top: 40px;
-  --chart-shift-down: 0px;
+  --chart-embed-h: 410px;
+  --chart-embed-top: 27px;
+  --chart-shift-down: 10px;
   --chart-embed-left: -1%;
-  --chart-embed-width: 108%;
-  --chart-embed-extra: 36px;
-  --chart-brand-crop: 39px;
+  --chart-embed-width: 102%;
+  --chart-embed-extra: 8px;
+  --chart-brand-crop: 0px;
   --tape-shift-down: 0px;
-  --dex-trades-view-h: 302px;
-  --dex-iframe-h: 845px;
-  --dex-iframe-top: -590px;
-  --dex-trades-shift-down: 0px;
-  --dex-iframe-left: 1%;
-  --dex-iframe-width: 98%;
+  --dex-trades-view-h: 290px;
+  --dex-iframe-h: 894px;
+  --dex-iframe-top: -600px;
+  --dex-trades-shift-down: 47px;
+  --dex-iframe-left: 0%;
+  --dex-iframe-width: 100%;
   --dex-mask-top-h: 0px;
   --dex-mask-foot-h: 0px;
-}
-
-html[data-dex-crop-profile="app13pm"] .chart-terminal--dex-embed .chart-stage {
-  height: 344px !important;
-  min-height: 344px !important;
-  max-height: 344px !important;
-}
-
-html[data-dex-crop-profile="app13pm"] .dex-trades-embed-wrap {
-  height: 302px !important;
-  min-height: 302px !important;
-  max-height: 302px !important;
 }
 
 html[data-dex-crop-profile="app16"] {
-  --chart-embed-h: 328px;
-  --chart-embed-top: 37px;
-  --chart-shift-down: 0px;
-  --chart-embed-left: 1%;
-  --chart-embed-width: 98%;
-  --chart-embed-extra: 0px;
-  --chart-brand-crop: 36px;
+  --chart-embed-h: 422px;
+  --chart-embed-top: 28px;
+  --chart-shift-down: 10px;
+  --chart-embed-left: -1%;
+  --chart-embed-width: 102%;
+  --chart-embed-extra: 8px;
+  --chart-brand-crop: 0px;
   --tape-shift-down: 0px;
-  --dex-trades-view-h: 302px;
-  --dex-iframe-h: 845px;
-  --dex-iframe-top: -590px;
-  --dex-trades-shift-down: 0px;
-  --dex-iframe-left: 1%;
-  --dex-iframe-width: 98%;
+  --dex-trades-view-h: 298px;
+  --dex-iframe-h: 920px;
+  --dex-iframe-top: -615px;
+  --dex-trades-shift-down: 48px;
+  --dex-iframe-left: 0%;
+  --dex-iframe-width: 100%;
   --dex-mask-top-h: 0px;
   --dex-mask-foot-h: 0px;
 }
 
-html[data-dex-crop-profile="app16"] .chart-terminal--dex-embed .chart-stage {
-  height: 328px !important;
-  min-height: 328px !important;
-  max-height: 328px !important;
+/* AUTO_DEX_CROP_PROFILES_END */
+
+/* Grafik / alım-satım kutusu — yükseklik yalnızca --chart-embed-h ve --dex-trades-view-h */
+html.detail-mode[data-dex-crop-profile] .chart-terminal--dex-embed .chart-stage,
+html.detail-mode.crop-motor-on .chart-terminal--dex-embed .chart-stage {
+  height: var(--chart-embed-h, 330px) !important;
+  min-height: var(--chart-embed-h, 330px) !important;
+  max-height: var(--chart-embed-h, 330px) !important;
 }
 
-html[data-dex-crop-profile="app16"] .dex-trades-embed-wrap {
-  height: 302px !important;
-  min-height: 302px !important;
-  max-height: 302px !important;
+html.detail-mode[data-dex-crop-profile] .dex-trades-embed-wrap,
+html.detail-mode.crop-motor-on .dex-trades-embed-wrap {
+  height: var(--dex-trades-view-h, 302px) !important;
+  min-height: var(--dex-trades-view-h, 302px) !important;
+  max-height: var(--dex-trades-view-h, 302px) !important;
 }
 
 html.detail-mode[data-dex-crop-profile] .dex-trades-embed-wrap,

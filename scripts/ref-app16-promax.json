@@ -1,0 +1,32 @@
+{
+  "chart": {
+    "stageH": 422,
+    "top": 28,
+    "left": -1,
+    "width": 102,
+    "heightExtra": 8,
+    "brandCrop": 0,
+    "clipLeft": 0,
+    "clipRight": 0,
+    "clipTop": 0,
+    "clipBottom": 0,
+    "shiftDown": 10
+  },
+  "tape": { "shiftDown": 0 },
+  "trades": {
+    "viewH": 298,
+    "iframeH": 920,
+    "iframeTop": -615,
+    "shiftDown": 48,
+    "left": 0,
+    "width": 100,
+    "maskTop": 0,
+    "maskFoot": 0,
+    "maskTopOn": false,
+    "maskFootOn": false,
+    "clipLeft": 0,
+    "clipRight": 0,
+    "clipTop": 0,
+    "clipBottom": 0
+  }
+}

@@ -3076,6 +3076,14 @@ html.web-browser .chart-stage {
   max-height: 420px;
 }
 
+/* Dex iframe — clamp yerine crop değişkeni (web/TG) */
+html.tg-mini-app .chart-terminal--dex-embed .chart-stage,
+html.web-browser .chart-terminal--dex-embed .chart-stage {
+  height: var(--chart-embed-h, 330px) !important;
+  min-height: var(--chart-embed-h, 330px) !important;
+  max-height: var(--chart-embed-h, 420px) !important;
+}
+
 html.tg-mini-app .chart-canvas,
 html.web-browser .chart-canvas {
   height: 100%;
