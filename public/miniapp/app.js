@@ -103,7 +103,9 @@
   let feedPollTimer = null;
   let feedRefreshSec = 45;
   let dexTradesEmbedRef = '';
+  let chartEmbedMountKey = '';
   const CHART_LIVE_POLL_MS = 2000;
+  const CHART_LIVE_POLL_MS_WEB = 15000;
   let openingMint = false;
   let feedItemsFull = [];
   let feedEmptyMessage = '';
@@ -2846,26 +2848,31 @@
     return dexScreenerTradesUrl(pool);
   }
 
-  async function mountDexTradesEmbed(m) {
+  async function mountDexTradesEmbed(m, opts = {}) {
     const iframe = $('dexTradesEmbed');
     if (!iframe) return;
-    const pool = (await resolvePoolForEmbeds(m)) || '';
+    const pool = chartPoolRef(m) || (opts.skipResolve ? '' : (await resolvePoolForEmbeds(m)) || '');
     if (!pool) {
       iframe.classList.add('hidden');
       iframe.src = 'about:blank';
+      dexTradesEmbedRef = '';
       return;
     }
+    if (!m.poolAddress) m.poolAddress = pool;
     const url = tradesEmbedUrlFor(m);
     if (!url) return;
     const refKey = `${useGeckoEmbedOnWeb() ? 'gecko' : 'dex'}:${pool}`;
-    if (dexTradesEmbedRef !== refKey || iframe.src !== url) {
+    const srcChanged = dexTradesEmbedRef !== refKey || iframe.src !== url;
+    if (srcChanged) {
       dexTradesEmbedRef = refKey;
       iframe.src = url;
+      iframe.classList.remove('hidden');
+      scheduleDexTradesCrop();
+    } else {
+      iframe.classList.remove('hidden');
     }
-    iframe.classList.remove('hidden');
     const meta = $('tradesMeta');
     if (meta) meta.textContent = i18n('detail.tradesLive');
-    scheduleDexTradesCrop();
   }
 
   function startDexTradesPanel(m) {
@@ -3053,9 +3060,10 @@
     stopLivePoll();
     void startDexTradesPanel(m);
     void refreshChartAndPrice(m);
+    const pollMs = isWebBrowser ? CHART_LIVE_POLL_MS_WEB : CHART_LIVE_POLL_MS;
     livePollTimer = setInterval(() => {
       if (reportId && appData?.market) void refreshChartAndPrice(appData.market);
-    }, CHART_LIVE_POLL_MS);
+    }, pollMs);
   }
 
   function scheduleDexTradesCrop() {
@@ -3111,8 +3119,19 @@
     const embed = chartEmbedUrlFor(m, tf);
     const page = m?.chart?.dexScreenerPageUrl || m?.dexScreenerUrl;
     if (embed && poolRef) {
+      const provider = useGeckoEmbedOnWeb() ? 'gecko' : 'dex';
+      const mountKey = `${provider}:${poolRef}:${embed}`;
+      const existing = container.querySelector('iframe.dex-embed-chart');
       setChartEmbedMode(true);
-      document.documentElement.dataset.chartEmbedProvider = useGeckoEmbedOnWeb() ? 'gecko' : 'dex';
+      document.documentElement.dataset.chartEmbedProvider = provider;
+      if (existing && chartEmbedMountKey === mountKey) {
+        if (note) {
+          note.textContent = `${(tf || '15m').toUpperCase()} · canlı`;
+          note.classList.remove('hidden');
+        }
+        return true;
+      }
+      chartEmbedMountKey = mountKey;
       container.innerHTML = `<iframe class="dex-embed-chart" src="${escHtml(embed)}" title="Canlı grafik" loading="eager" allow="fullscreen; clipboard-write" referrerpolicy="origin-when-cross-origin"></iframe>`;
       const chartIfr = container.querySelector('iframe.dex-embed-chart');
       if (note) {
@@ -3120,11 +3139,12 @@
         note.classList.remove('hidden');
       }
       if (chartIfr) {
-        chartIfr.addEventListener('load', scheduleDexTradesCrop);
+        chartIfr.addEventListener('load', scheduleDexTradesCrop, { once: true });
         scheduleDexTradesCrop();
       }
       return true;
     }
+    chartEmbedMountKey = '';
     setChartEmbedMode(false);
     const link = page
       ? `<a class="dex-chart-link" href="${escHtml(page)}" target="_blank" rel="noopener">Harici grafikte aç</a>`
@@ -3154,6 +3174,7 @@
   function destroyChart() {
     const container = $('priceChart');
     if (container) container.innerHTML = '';
+    chartEmbedMountKey = '';
     document.querySelector('.chart-terminal')?.classList.remove('chart-terminal--dex-embed');
   }
 
@@ -3217,11 +3238,13 @@
         globalThis.SniperTrade?.tickLive?.(m);
       }
       if (live.poolAddress) {
+        const prevPool = chartPoolRef(m);
         m.poolAddress = live.poolAddress;
         if (appData?.market) appData.market.poolAddress = live.poolAddress;
         if (m.chart) m.chart.poolAddress = live.poolAddress;
-        void mountDexTradesEmbed(m);
-        if (isWebBrowser && activeDetailTab === 'chart') void renderChart(m);
+        if (live.poolAddress !== prevPool) {
+          void mountDexTradesEmbed(m, { skipResolve: true });
+        }
       }
     } catch (e) {
       console.warn('live refresh', e);
