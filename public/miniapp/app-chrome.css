@@ -2,6 +2,7 @@
 
 :root {
   --app-brand-h: 58px;
+  --app-chrome-inset: 8px;
   --sniper-bg: #060910;
   --sniper-card: #0b101d;
   --sniper-border: rgba(255, 255, 255, 0.06);
@@ -69,13 +70,22 @@ html.tg-fullscreen .app-top-chrome {
   pointer-events: auto;
 }
 
+/* Logo + Connect — kenar boşluğu; yeşil bar ve banner tam genişlik kalır */
 .app-chrome-toolbar {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 2px 0 8px;
   box-sizing: border-box;
   width: 100%;
+  min-height: var(--app-brand-h);
+  padding: 2px var(--app-chrome-inset) 8px;
+  padding-left: max(var(--app-chrome-inset), var(--tg-content-safe-left, 0px));
+  padding-right: max(var(--app-chrome-inset), var(--tg-content-safe-right, 0px));
+}
+
+html.web-browser .app-chrome-toolbar {
+  padding-left: var(--app-chrome-inset);
+  padding-right: var(--app-chrome-inset);
 }
 
 .app-chrome-toolbar-spacer {
@@ -87,6 +97,7 @@ html.tg-fullscreen .app-top-chrome {
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  flex-shrink: 0;
   max-width: 140px;
   padding: 8px 14px;
   font-size: 12px;
@@ -111,8 +122,13 @@ html.tg-fullscreen .app-top-chrome {
 .app-chrome-toolbar .app-brand-core {
   flex: 0 1 auto;
   min-width: 0;
+  max-width: min(100%, calc(100% - 148px));
   margin: 0;
   padding: 0;
+}
+
+.app-chrome-toolbar .app-brand-back {
+  flex-shrink: 0;
 }
 
 .app-brand-back {
@@ -157,6 +173,8 @@ html.tg-fullscreen .app-top-chrome {
 .app-brand-core .brand-logo {
   width: 40px;
   height: 40px;
+  max-width: 40px;
+  max-height: 40px;
   flex-shrink: 0;
   border-radius: 10px;
   object-fit: contain;
@@ -269,10 +287,10 @@ html.tg-fullscreen .app-top-chrome {
   display: block;
   position: relative;
   box-sizing: border-box;
-  width: 100%;
+  width: 100% !important;
   max-width: none;
   height: var(--promo-h, 88px);
-  margin: 0;
+  margin: 0 !important;
   border-radius: 0;
   overflow: hidden;
   border: none;
@@ -280,6 +298,12 @@ html.tg-fullscreen .app-top-chrome {
   border-bottom: 1px solid rgba(0, 229, 255, 0.25);
   box-shadow: none;
   flex-shrink: 0;
+}
+
+.app-top-chrome .promo-banner.app-promo-global .promo-banner-img {
+  object-fit: cover;
+  width: 100%;
+  height: 100%;
 }
 
 .app-top-chrome .promo-banner.app-promo-global.promo-banner--tablet {
