@@ -4,6 +4,9 @@
   --app-brand-h: 58px;
   --app-chrome-inset: 8px;
   --promo-banner-edge: 2px;
+  --chrome-toolbar-pad-bottom: 2px;
+  --chrome-banner-pull: 28px;
+  --home-feed-pull: 12px;
   --sniper-bg: #060910;
   --sniper-card: #0b101d;
   --sniper-border: rgba(255, 255, 255, 0.06);
@@ -82,7 +85,7 @@ html.tg-fullscreen .app-top-chrome {
   box-sizing: border-box;
   width: 100%;
   min-height: var(--app-brand-h);
-  padding: 2px 0 8px;
+  padding: 2px 0 var(--chrome-toolbar-pad-bottom);
 }
 
 .app-chrome-toolbar-spacer {
@@ -292,7 +295,7 @@ html.tg-fullscreen .app-top-chrome {
   width: auto;
   max-width: none;
   height: var(--promo-h);
-  margin: 0 0 8px;
+  margin: calc(-1 * var(--chrome-banner-pull)) 0 8px;
   border-radius: 10px;
   overflow: hidden;
   border: 1px solid rgba(0, 229, 255, 0.38);
@@ -364,6 +367,7 @@ html:not(.detail-mode) .app-brand-back {
 
 #scanner-home.scanner-home {
   min-height: 0 !important;
+  margin-top: calc(-1 * var(--home-feed-pull));
   padding-bottom: var(--footer-stack, calc(var(--nav-h, 72px) + 88px));
 }
 
