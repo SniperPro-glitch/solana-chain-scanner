@@ -3,7 +3,6 @@
 :root {
   --app-brand-h: 58px;
   --app-chrome-inset: 8px;
-  --toolbar-inset-x: 4px;
   --sniper-bg: #060910;
   --sniper-card: #0b101d;
   --sniper-border: rgba(255, 255, 255, 0.06);
@@ -40,8 +39,8 @@ body {
   border-bottom: 1px solid var(--sniper-border-cyan);
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
   padding-top: var(--sniper-content-top, var(--tg-content-safe-top, 0px));
-  padding-left: 0;
-  padding-right: 0;
+  padding-left: var(--app-chrome-inset);
+  padding-right: var(--app-chrome-inset);
   box-sizing: border-box;
 }
 
@@ -71,21 +70,23 @@ html.tg-fullscreen .app-top-chrome {
   pointer-events: auto;
 }
 
-/* Logo + Connect — sola yakın; yeşil bar / banner ayrı inset kullanır */
+/* Logo solda · Connect sağda (spacer) */
 .app-chrome-toolbar {
   display: flex;
+  flex-direction: row;
   align-items: center;
-  gap: 4px;
+  justify-content: flex-start;
+  gap: 6px;
   box-sizing: border-box;
   width: 100%;
   min-height: var(--app-brand-h);
-  padding: 2px var(--toolbar-inset-x) 8px;
-  padding-right: max(var(--toolbar-inset-x), var(--tg-content-safe-right, 0px));
+  padding: 2px 0 8px;
 }
 
 .app-chrome-toolbar-spacer {
-  flex: 1 1 auto;
-  min-width: 8px;
+  flex: 1 1 0;
+  min-width: 12px;
+  width: auto;
 }
 
 .app-chrome-toolbar .btn-connect {
@@ -117,12 +118,13 @@ html.tg-fullscreen .app-top-chrome {
 .app-chrome-toolbar .app-brand-core {
   flex: 0 1 auto;
   min-width: 0;
-  max-width: min(100%, calc(100% - 148px));
   margin: 0;
   padding: 0;
 }
 
-.app-chrome-toolbar .app-brand-back {
+.app-chrome-toolbar .app-brand-back,
+.app-chrome-toolbar .btn-connect,
+.app-chrome-toolbar .btn-crop-detail {
   flex-shrink: 0;
 }
 
@@ -168,8 +170,7 @@ html.tg-fullscreen .app-top-chrome {
 .app-brand-core .brand-logo {
   width: 40px;
   height: 40px;
-  max-width: 40px;
-  max-height: 40px;
+  flex: 0 0 40px;
   flex-shrink: 0;
   border-radius: 10px;
   object-fit: contain;
