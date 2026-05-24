@@ -22,7 +22,9 @@
   <link rel="stylesheet" href="app-chrome.css?v=7" />
   <link rel="stylesheet" href="search-overlay.css?v=2" />
   <link rel="stylesheet" href="support.css?v=3" />
-  <link rel="stylesheet" href="account-login.css?v=3" />
+  <link rel="stylesheet" href="account-login.css?v=4" />
+  <script src="miniapp-i18n-strings.js?v=3"></script>
+  <script src="miniapp-i18n.js?v=5"></script>
 </head>
 <body>
   <div id="dexSidebar" class="dex-sidebar" aria-hidden="true">
@@ -36,27 +38,27 @@
             <span>DEX SCANNER</span>
           </div>
         </div>
-        <button type="button" class="dex-sidebar-collapse" id="btnSidebarClose" aria-label="Kapat">«</button>
+        <button type="button" class="dex-sidebar-collapse" id="btnSidebarClose" data-i18n-aria="aria.close" aria-label="Close">«</button>
       </div>
       <div class="dex-sidebar-search">
-        <button type="button" class="dex-sidebar-search-box" id="sidebarSearchTrigger" aria-label="Token ara">
+        <button type="button" class="dex-sidebar-search-box" id="sidebarSearchTrigger" data-i18n-aria="aria.searchToken" aria-label="Search token">
           <span class="ico" aria-hidden="true">⌕</span>
-          <span class="dex-sidebar-search-ph">Örnek: doge, bonk, mint adresi…</span>
+          <span class="dex-sidebar-search-ph" data-i18n="sidebar.searchPh">Example: doge, bonk, mint address…</span>
         </button>
         <input type="search" id="sidebarSearchInput" class="visually-hidden" tabindex="-1" aria-hidden="true" autocomplete="off" />
-        <button type="button" class="dex-sidebar-search-clear hidden" id="sidebarSearchClear" aria-label="Temizle">✕</button>
+        <button type="button" class="dex-sidebar-search-clear hidden" id="sidebarSearchClear" data-i18n-aria="aria.clear" aria-label="Clear">✕</button>
         <p id="sidebarSearchHint" class="dex-sidebar-search-hint hidden" aria-live="polite"></p>
       </div>
       <div class="dex-sidebar-scroll">
         <nav class="dex-sidebar-nav" aria-label="Ana menü">
-          <button type="button" class="dex-sidebar-link" data-sidebar-nav="watchlist"><span class="ico"><img class="watchlist-ico-img" src="assets/watchlist-icon.png?v=5" alt="" width="28" height="28" decoding="async" /></span> Watchlist</button>
-          <button type="button" class="dex-sidebar-link" data-sidebar-nav="alerts"><span class="ico">🔔</span> Alerts</button>
-          <button type="button" class="dex-sidebar-link" data-sidebar-nav="newpairs"><span class="ico">✦</span> New Pairs</button>
-          <button type="button" class="dex-sidebar-link" data-sidebar-nav="gainers"><span class="ico">↕</span> Gainers &amp; Losers</button>
-          <button type="button" class="dex-sidebar-link" data-sidebar-nav="scanner"><span class="ico"><img class="scanner-ico-img" src="assets/sniper-scanner-icon.png?v=2" alt="" width="22" height="22" decoding="async" /></span> Scanner</button>
-          <button type="button" class="dex-sidebar-link" data-sidebar-nav="support"><span class="ico">💬</span> Canlı Destek</button>
+          <button type="button" class="dex-sidebar-link" data-sidebar-nav="watchlist"><span class="ico"><img class="watchlist-ico-img" src="assets/watchlist-icon.png?v=5" alt="" width="28" height="28" decoding="async" /></span><span data-i18n="nav.watchlist">Watchlist</span></button>
+          <button type="button" class="dex-sidebar-link" data-sidebar-nav="alerts"><span class="ico">🔔</span><span data-i18n="nav.alerts">Alerts</span></button>
+          <button type="button" class="dex-sidebar-link" data-sidebar-nav="newpairs"><span class="ico">✦</span><span data-i18n="nav.newPairs">New Pairs</span></button>
+          <button type="button" class="dex-sidebar-link" data-sidebar-nav="gainers"><span class="ico">↕</span><span data-i18n="nav.gainers">Gainers &amp; Losers</span></button>
+          <button type="button" class="dex-sidebar-link" data-sidebar-nav="scanner"><span class="ico"><img class="scanner-ico-img" src="assets/sniper-scanner-icon.png?v=2" alt="" width="22" height="22" decoding="async" /></span><span data-i18n="nav.scanner">Scanner</span></button>
+          <button type="button" class="dex-sidebar-link" data-sidebar-nav="support"><span class="ico">💬</span><span data-i18n="nav.support">Live Support</span></button>
         </nav>
-        <p class="dex-sidebar-section-title">Ağlar</p>
+        <p class="dex-sidebar-section-title" data-i18n="sidebar.networks">Networks</p>
         <div class="dex-sidebar-chains" role="list">
           <button type="button" class="dex-sidebar-chain active" data-chain="solana" role="listitem">
             <span class="chain-ico"><img src="assets/chains/chain-solana.png?v=1" alt="" width="22" height="22" data-chain="solana" data-dot="sol" data-fallback="◎" loading="lazy" decoding="async" /></span> Solana
@@ -73,9 +75,9 @@
         </div>
       </div>
       <footer class="dex-sidebar-foot">
-        <div class="dex-sidebar-watch-head"><img class="watchlist-ico-img" src="assets/watchlist-icon.png?v=5" alt="" width="24" height="24" decoding="async" /><span>WATCHLIST</span></div>
+        <div class="dex-sidebar-watch-head"><img class="watchlist-ico-img" src="assets/watchlist-icon.png?v=5" alt="" width="24" height="24" decoding="async" /><span data-i18n="sidebar.watchTitle">WATCHLIST</span></div>
         <div class="dex-sidebar-watch-body" id="dexSidebarWatchBody">
-          <p class="dex-sidebar-watch-empty" id="dexSidebarWatchEmpty">Henüz liste yok — token ekle</p>
+          <p class="dex-sidebar-watch-empty" id="dexSidebarWatchEmpty" data-i18n="sidebar.watchEmpty">No lists yet — add a token</p>
           <div class="dex-sidebar-watch-list hidden" id="dexSidebarWatchList" role="list"></div>
         </div>
         <div class="dex-sidebar-user">
@@ -85,6 +87,14 @@
             <span id="sidebarUserSub" data-i18n="sidebar.guest">Guest</span>
           </div>
           <button type="button" class="dex-sidebar-signin" id="sidebarSignIn" data-i18n="sidebar.signIn">Sign in</button>
+        </div>
+        <div class="dex-sidebar-lang" id="sidebarLang" role="group" data-i18n-aria="account.login.lang" aria-label="Language">
+          <span class="miniapp-lang-label" data-i18n="account.login.lang">Language</span>
+          <div class="miniapp-lang-btns">
+            <button type="button" class="miniapp-lang-btn account-login-lang-btn active" data-lang="en" aria-pressed="true" data-i18n="lang.en">English</button>
+            <button type="button" class="miniapp-lang-btn account-login-lang-btn" data-lang="tr" aria-pressed="false" data-i18n="lang.tr">Türkçe</button>
+            <button type="button" class="miniapp-lang-btn account-login-lang-btn" data-lang="ru" aria-pressed="false" data-i18n="lang.ru">Русский</button>
+          </div>
         </div>
         <button type="button" class="dex-sidebar-admin hidden" id="sidebarAdminPanel" data-i18n="sidebar.adminPanel">⚙ Admin panel</button>
         <div class="dex-sidebar-socials">
@@ -101,9 +111,9 @@
 
   <div id="appTopChrome" class="app-top-chrome" aria-label="SNIPER marka">
     <header class="app-brand-bar">
-      <button type="button" class="btn-sidebar-open" id="btnSidebarOpen" aria-label="Menü">☰</button>
-      <button type="button" class="app-brand-back" id="btnBack" aria-label="Ana ekrana dön">←</button>
-      <button type="button" class="app-brand-core" id="appBrandHome" aria-label="SNIPER DEX SCANNER ana sayfa">
+      <button type="button" class="btn-sidebar-open" id="btnSidebarOpen" data-i18n-aria="aria.menu" aria-label="Menu">☰</button>
+      <button type="button" class="app-brand-back" id="btnBack" data-i18n-aria="aria.backHome" aria-label="Back to home">←</button>
+      <button type="button" class="app-brand-core" id="appBrandHome" data-i18n-aria="aria.brandHome" aria-label="SNIPER DEX SCANNER home">
         <img src="assets/sniper-logo.png?v=3" alt="" class="brand-logo" width="44" height="44" decoding="async" fetchpriority="high" />
         <span class="brand-titles">
           <span class="brand-main">SNIPER</span>
@@ -115,8 +125,8 @@
         </span>
       </button>
       <div class="app-brand-actions">
-        <button type="button" id="btnCropDetail" class="btn-crop-detail app-chrome-detail-only hidden" title="Dex kırpma ayarı">Kırpma</button>
-        <button type="button" class="btn-connect" id="btnConnect"><span class="wallet-ico">👛</span> Connect</button>
+        <button type="button" id="btnCropDetail" class="btn-crop-detail app-chrome-detail-only hidden" data-i18n-title="crop.btn" title="Crop">Kırpma</button>
+        <button type="button" class="btn-connect" id="btnConnect"><span class="wallet-ico">👛</span><span data-i18n="connect.wallet">Connect</span></button>
       </div>
     </header>
     <div class="feed-meta-bar app-chrome-home-only hidden" id="feedMetaBar">
@@ -129,20 +139,20 @@
         <source id="promoBannerSrcTablet" media="(max-width: 899px)" srcset="" />
         <img class="promo-banner-img" id="promoBannerImg" alt="Reklam" loading="lazy" decoding="async" />
       </picture>
-      <span class="promo-banner-badge">AD</span>
+      <span class="promo-banner-badge" data-i18n="promo.ad">AD</span>
     </a>
   </div>
 
   <div id="loading" class="boot-screen">
     <div class="boot-logo">SNIPER DEX SCANNER</div>
     <div class="boot-spinner"></div>
-    <p>Veriler yükleniyor…</p>
+    <p data-i18n="boot.loading">Loading data…</p>
   </div>
 
   <div id="error" class="boot-screen hidden">
-    <p class="boot-error" id="errorText">Rapor yüklenemedi</p>
+    <p class="boot-error" id="errorText" data-i18n="boot.error">Report could not load</p>
     <p class="boot-hint" id="errorHint"></p>
-    <button type="button" class="btn-neon" id="btnErrorHome">Ana ekrana dön</button>
+    <button type="button" class="btn-neon" id="btnErrorHome" data-i18n="boot.errorHome">Back to home</button>
   </div>
 
   <!-- SNIPER DEX SCANNER home -->
@@ -151,7 +161,7 @@
     <section class="trending-band hidden" id="trendingBand" aria-label="Trending">
       <div class="trending-band-head">
         <span class="trending-band-icon">🔥</span>
-        <span class="trending-band-title">TRENDING</span>
+        <span class="trending-band-title" data-i18n="trending.title">TRENDING</span>
         <span class="trending-band-sub" id="trendingSortLabel">24H VOL ↓</span>
       </div>
       <div class="trending-band-scroll">
@@ -161,8 +171,8 @@
 
 
     <section id="scannerCardSlot" class="scanner-card-slot hidden" aria-live="polite"></section>
-    <div class="chain-scroll" id="chainScroll" role="tablist" aria-label="Ağ filtresi">
-      <button type="button" class="chain-chip active" data-chain="all"><span class="chain-chip-label">Tümü</span></button>
+    <div class="chain-scroll" id="chainScroll" role="tablist" data-i18n-aria="feed.filter" aria-label="Filter">
+      <button type="button" class="chain-chip active" data-chain="all"><span class="chain-chip-label" data-i18n="chain.all">All</span></button>
       <button type="button" class="chain-chip" data-chain="solana"><img class="chain-chip-ico" src="assets/chains/chain-solana.png?v=1" alt="" width="16" height="16" decoding="async" /><span class="chain-chip-label">Solana</span></button>
       <button type="button" class="chain-chip" data-chain="ton"><img class="chain-chip-ico" src="assets/chains/chain-ton.png?v=1" alt="" width="16" height="16" decoding="async" /><span class="chain-chip-label">TON</span></button>
       <button type="button" class="chain-chip" data-chain="bsc"><img class="chain-chip-ico" src="assets/chains/chain-bsc.png?v=1" alt="" width="16" height="16" decoding="async" /><span class="chain-chip-label">BSC</span></button>
@@ -175,30 +185,30 @@
       <div class="np-head">
         <div class="np-title-block">
           <div class="np-title-row">
-            <h2 class="np-title">New Pairs</h2>
+            <h2 class="np-title" data-i18n="np.title">New Pairs</h2>
             <div class="feed-tf-dropdown np-age-dropdown" id="npAgeDropdown">
               <button type="button" class="feed-tf-trigger" id="npAgeTrigger" aria-expanded="false" aria-haspopup="listbox" aria-controls="npAgeMenu">
                 <svg class="feed-tf-ico" width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8"/><path d="M12 7v5l3 2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
                 <span class="feed-tf-trigger-label" id="npAgeTriggerLabel">
-                  <span class="feed-tf-label-full" id="npAgeLabelFull">24 saat</span>
-                  <span class="feed-tf-label-compact" id="npAgeLabelCompact">24 saat</span>
+                  <span class="feed-tf-label-full" id="npAgeLabelFull" data-i18n="npAge.24h">Last 24 hours</span>
+                  <span class="feed-tf-label-compact" id="npAgeLabelCompact" data-i18n="npAge.24h">Last 24 hours</span>
                 </span>
                 <svg class="feed-tf-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
               </button>
-              <div class="feed-tf-menu hidden" id="npAgeMenu" role="listbox" aria-label="Listeleme süresi">
-                <button type="button" class="feed-tf-option" role="option" data-np-age="1h"><span class="feed-tf-check" aria-hidden="true">✓</span>Son 1 saat</button>
-                <button type="button" class="feed-tf-option" role="option" data-np-age="6h"><span class="feed-tf-check" aria-hidden="true">✓</span>Son 6 saat</button>
-                <button type="button" class="feed-tf-option" role="option" data-np-age="12h"><span class="feed-tf-check" aria-hidden="true">✓</span>Son 12 saat</button>
-                <button type="button" class="feed-tf-option active" role="option" data-np-age="24h"><span class="feed-tf-check" aria-hidden="true">✓</span>Son 24 saat</button>
-                <button type="button" class="feed-tf-option" role="option" data-np-age="48h"><span class="feed-tf-check" aria-hidden="true">✓</span>Son 48 saat</button>
+              <div class="feed-tf-menu hidden" id="npAgeMenu" role="listbox" data-i18n-aria="np.ageMenu" aria-label="Listing period">
+                <button type="button" class="feed-tf-option" role="option" data-np-age="1h" data-i18n-np-age="1h"><span class="feed-tf-check" aria-hidden="true">✓</span><span class="feed-tf-option-label">Last 1 hour</span></button>
+                <button type="button" class="feed-tf-option" role="option" data-np-age="6h" data-i18n-np-age="6h"><span class="feed-tf-check" aria-hidden="true">✓</span><span class="feed-tf-option-label">Last 6 hours</span></button>
+                <button type="button" class="feed-tf-option" role="option" data-np-age="12h" data-i18n-np-age="12h"><span class="feed-tf-check" aria-hidden="true">✓</span><span class="feed-tf-option-label">Last 12 hours</span></button>
+                <button type="button" class="feed-tf-option active" role="option" data-np-age="24h" data-i18n-np-age="24h"><span class="feed-tf-check" aria-hidden="true">✓</span><span class="feed-tf-option-label">Last 24 hours</span></button>
+                <button type="button" class="feed-tf-option" role="option" data-np-age="48h" data-i18n-np-age="48h"><span class="feed-tf-check" aria-hidden="true">✓</span><span class="feed-tf-option-label">Last 48 hours</span></button>
               </div>
             </div>
           </div>
-          <p class="np-sub">DEX'te yeni listelenen tokenler · max 48 saat</p>
+          <p class="np-sub" data-i18n="np.sub">Newly listed on DEX · max 48h</p>
         </div>
         <div class="np-live" id="newPairsLive">
           <span class="np-live-dot" aria-hidden="true"></span>
-          <span id="newPairsLiveText">CANLI</span>
+          <span id="newPairsLiveText" data-i18n="np.live">LIVE</span>
         </div>
       </div>
     </section>
@@ -206,53 +216,53 @@
     <section class="watchlist-panel hidden" id="watchlistPanel" aria-label="Watchlist">
       <div class="wl-head">
         <div class="wl-title-row">
-          <h2 class="wl-title" id="watchlistActiveTitle">Watchlist</h2>
+          <h2 class="wl-title" id="watchlistActiveTitle" data-i18n="wl.title">Watchlist</h2>
           <span class="wl-count" aria-live="polite">
             <span class="wl-count-dot" aria-hidden="true"></span>
             <span id="watchlistLiveText">—</span>
           </span>
-          <button type="button" class="wl-refresh" id="watchlistRefresh" aria-label="Yenile" title="Yenile">
+          <button type="button" class="wl-refresh" id="watchlistRefresh" data-i18n-aria="aria.refresh" data-i18n-title="aria.refresh" aria-label="Refresh" title="Refresh">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M21 12a9 9 0 1 1-2.64-6.36" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M21 3v6h-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
           </button>
         </div>
-        <p class="wl-sub" id="watchlistActiveNote">Takip ettiğin tokenler · bu cihazda saklanır</p>
+        <p class="wl-sub" id="watchlistActiveNote" data-i18n="wl.sub">Tokens you track · saved on this device</p>
       </div>
       <div class="wl-list-bar">
         <div class="wl-list-scroll" id="watchlistListChips" role="tablist" aria-label="Watchlist listeleri"></div>
         <div class="wl-list-actions">
-          <button type="button" class="wl-edit-btn" id="watchlistEditList" aria-label="Listeyi düzenle" title="Liste adı ve not">
+          <button type="button" class="wl-edit-btn" id="watchlistEditList" data-i18n-aria="wl.editList" data-i18n-title="wl.editList" aria-label="Edit list" title="Edit list">
             <svg class="wl-edit-ico" width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 20h4l10.5-10.5a2.12 2.12 0 0 0 0-3L16.5 4.5a2.12 2.12 0 0 0-3 0L3 15v5z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M13.5 6.5l4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
           </button>
-          <button type="button" class="wl-list-new" id="watchlistNewList" aria-label="Yeni liste oluştur" title="Yeni liste"><span aria-hidden="true">+</span></button>
+          <button type="button" class="wl-list-new" id="watchlistNewList" data-i18n-aria="wl.newList" data-i18n-title="wl.newList" aria-label="Create new list" title="Create new list"><span aria-hidden="true">+</span></button>
         </div>
       </div>
     </section>
 
-    <section class="feed-toolbar" id="feedToolbar" aria-label="Liste">
+    <section class="feed-toolbar" id="feedToolbar" data-i18n-aria="feed.toolbarList" aria-label="List">
       <div class="feed-toolbar-group feed-toolbar-trend">
-        <span class="feed-toolbar-label">Trending</span>
+        <span class="feed-toolbar-label" data-i18n="feed.trending">Trending</span>
         <div class="feed-tf-dropdown" id="feedTfDropdown">
           <button type="button" class="feed-tf-trigger" id="feedTfTrigger" aria-expanded="false" aria-haspopup="listbox" aria-controls="feedTfMenu">
             <svg class="feed-tf-ico" width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8"/><path d="M12 7v5l3 2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
             <span class="feed-tf-trigger-label" id="feedTfTriggerLabel">
-              <span class="feed-tf-label-full" id="feedTfLabelFull">Last 24 hours</span>
-              <span class="feed-tf-label-compact" id="feedTfLabelCompact" aria-hidden="true">24 hours</span>
+              <span class="feed-tf-label-full" id="feedTfLabelFull" data-i18n="tf.24h">Last 24 hours</span>
+              <span class="feed-tf-label-compact" id="feedTfLabelCompact" data-i18n="tf.24h.short" aria-hidden="true">24 hours</span>
             </span>
             <svg class="feed-tf-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
           </button>
-          <div class="feed-tf-menu hidden" id="feedTfMenu" role="listbox" aria-label="Zaman dilimi">
-            <button type="button" class="feed-tf-option" role="option" data-tf="5m"><span class="feed-tf-check" aria-hidden="true">✓</span>Last 5 minutes</button>
-            <button type="button" class="feed-tf-option" role="option" data-tf="1h"><span class="feed-tf-check" aria-hidden="true">✓</span>Last hour</button>
-            <button type="button" class="feed-tf-option" role="option" data-tf="6h"><span class="feed-tf-check" aria-hidden="true">✓</span>Last 6 hours</button>
-            <button type="button" class="feed-tf-option active" role="option" data-tf="24h"><span class="feed-tf-check" aria-hidden="true">✓</span>Last 24 hours</button>
+          <div class="feed-tf-menu hidden" id="feedTfMenu" role="listbox" data-i18n-aria="tf.menu" aria-label="Timeframe">
+            <button type="button" class="feed-tf-option" role="option" data-tf="5m" data-i18n-tf="5m"><span class="feed-tf-check" aria-hidden="true">✓</span><span class="feed-tf-option-label">Last 5 minutes</span></button>
+            <button type="button" class="feed-tf-option" role="option" data-tf="1h" data-i18n-tf="1h"><span class="feed-tf-check" aria-hidden="true">✓</span><span class="feed-tf-option-label">Last hour</span></button>
+            <button type="button" class="feed-tf-option" role="option" data-tf="6h" data-i18n-tf="6h"><span class="feed-tf-check" aria-hidden="true">✓</span><span class="feed-tf-option-label">Last 6 hours</span></button>
+            <button type="button" class="feed-tf-option active" role="option" data-tf="24h" data-i18n-tf="24h"><span class="feed-tf-check" aria-hidden="true">✓</span><span class="feed-tf-option-label">Last 24 hours</span></button>
           </div>
         </div>
       </div>
       <span class="feed-toolbar-sep" aria-hidden="true"></span>
       <div class="feed-toolbar-group feed-toolbar-modes">
-        <div class="feed-list-modes" role="group" aria-label="Liste türü">
-        <button type="button" class="feed-mode-chip active" data-list-mode="top">Top</button>
-        <button type="button" class="feed-mode-chip" data-list-mode="gainers">Gainers</button>
+        <div class="feed-list-modes" role="group" data-i18n-aria="feed.listType" aria-label="List type">
+        <button type="button" class="feed-mode-chip active" data-list-mode="top" data-i18n="feed.top">Top</button>
+        <button type="button" class="feed-mode-chip" data-list-mode="gainers" data-i18n="feed.gainers">Gainers</button>
         </div>
       </div>
     </section>
@@ -260,63 +270,63 @@
     <div class="token-table-scroll" id="tokenTableScroll">
       <div class="token-table-inner" id="tokenTableInner">
         <div class="token-thead" id="tokenTheadMain" aria-hidden="false">
-          <span>#</span><span>TOKEN</span><span>MCAP</span><span>PRICE</span><span>AGE</span><span class="th-chg">24H %</span><span class="th-vol">VOL</span><span class="th-liq">LIQ</span><span>RISK</span>
+          <span data-i18n="table.rank">#</span><span data-i18n="table.token">TOKEN</span><span data-i18n="table.mcap">MCAP</span><span data-i18n="table.price">PRICE</span><span data-i18n="table.age">AGE</span><span class="th-chg" data-i18n="table.chg">24H %</span><span class="th-vol" data-i18n="table.vol">VOL</span><span class="th-liq" data-i18n="table.liq">LIQ</span><span data-i18n="table.risk">RISK</span>
         </div>
-        <div class="feed-loading hidden" id="feedLoading">Bot paylaşımları yükleniyor…</div>
+        <div class="feed-loading hidden" id="feedLoading" data-i18n="feed.loading">Loading bot posts…</div>
         <div class="token-list" id="homeTokenList"></div>
       </div>
     </div>
 
-    <p class="market-overview-label">Market Overview</p>
+    <p class="market-overview-label" data-i18n="market.overview">Market Overview</p>
     <div class="market-footer" id="marketFooter">
-      <div class="mf-item"><span>24H VOLUME</span><strong id="statVol">—</strong><em class="up" id="statVolChg"></em></div>
-      <div class="mf-item"><span>NEW PAIRS</span><strong id="statNew">—</strong><em class="up" id="statNewChg"></em></div>
-      <div class="mf-item"><span>LIQUIDITY</span><strong id="statLiq">—</strong><em class="up" id="statLiqChg"></em></div>
-      <div class="mf-item"><span>ACTIVE NOW</span><strong id="statActive">—</strong><em class="up" id="statActiveChg"></em></div>
+      <div class="mf-item"><span data-i18n="market.vol24">24H VOLUME</span><strong id="statVol">—</strong><em class="up" id="statVolChg"></em></div>
+      <div class="mf-item"><span data-i18n="market.newPairs">NEW PAIRS</span><strong id="statNew">—</strong><em class="up" id="statNewChg"></em></div>
+      <div class="mf-item"><span data-i18n="market.liquidity">LIQUIDITY</span><strong id="statLiq">—</strong><em class="up" id="statLiqChg"></em></div>
+      <div class="mf-item"><span data-i18n="market.active">ACTIVE NOW</span><strong id="statActive">—</strong><em class="up" id="statActiveChg"></em></div>
     </div>
     </div>
 
     <section id="radarScanPanel" class="radar-scan-panel hidden" aria-label="Radar scanner">
       <div class="radar-hero">
-        <h2 class="radar-hero-title">Analyze any Solana token</h2>
-        <p class="radar-hero-sub">Paste contract address or search token</p>
+        <h2 class="radar-hero-title" data-i18n="radar.title">Analyze any Solana token</h2>
+        <p class="radar-hero-sub" data-i18n="radar.sub">Paste contract address or search token</p>
       </div>
       <div class="radar-input-wrap">
-        <input type="text" id="radarMintInput" class="radar-mint-input" placeholder="Paste contract address" spellcheck="false" autocomplete="off" />
-        <button type="button" class="radar-paste-btn" id="radarPasteBtn" aria-label="Paste">📋</button>
+        <input type="text" id="radarMintInput" class="radar-mint-input" data-i18n-placeholder="radar.placeholder" placeholder="Paste contract address" spellcheck="false" autocomplete="off" />
+        <button type="button" class="radar-paste-btn" id="radarPasteBtn" data-i18n-aria="aria.paste" aria-label="Paste">📋</button>
       </div>
       <button type="button" class="radar-analyze-btn" id="radarAnalyzeBtn">
         <span class="radar-analyze-ico" aria-hidden="true"><img class="scanner-ico-img" src="assets/sniper-scanner-icon.png?v=2" alt="" width="26" height="26" decoding="async" /></span>
-        Analyze token
+        <span data-i18n="radar.analyze">Analyze token</span>
       </button>
       <section class="radar-how">
-        <h3 class="radar-how-title">How it works?</h3>
+        <h3 class="radar-how-title" data-i18n="radar.how">How it works?</h3>
         <div class="radar-steps">
           <article class="radar-step">
             <span class="radar-step-num">1</span>
             <span class="radar-step-ico" aria-hidden="true">📋</span>
-            <p>Paste contract address</p>
+            <p data-i18n="radar.step1">Paste contract address</p>
           </article>
           <article class="radar-step">
             <span class="radar-step-num">2</span>
             <span class="radar-step-ico" aria-hidden="true">🤖</span>
-            <p>Analyze our AI engine</p>
+            <p data-i18n="radar.step2">Analyze with our AI engine</p>
           </article>
           <article class="radar-step">
             <span class="radar-step-num">3</span>
             <span class="radar-step-ico" aria-hidden="true">📊</span>
-            <p>Get report risk + insights</p>
+            <p data-i18n="radar.step3">Get risk report + insights</p>
           </article>
         </div>
       </section>
       <section id="radarActive" class="radar-active hidden" aria-live="polite">
-        <p class="radar-scan-title" id="radarScanTitle">Scanning token...</p>
+        <p class="radar-scan-title" id="radarScanTitle" data-i18n="radar.scanning">Scanning token...</p>
         <div class="radar-ring" aria-hidden="true">
           <div class="radar-ring-grid"></div>
           <div class="radar-sweep"></div>
           <span class="radar-ring-center"><img class="scanner-ico-img" src="assets/sniper-scanner-icon.png?v=2" alt="" width="44" height="44" decoding="async" /></span>
         </div>
-        <p class="radar-scan-sub" id="radarScanSub">Parsing contract</p>
+        <p class="radar-scan-sub" id="radarScanSub" data-i18n="radar.parsing">Parsing contract</p>
         <div class="radar-progress-track">
           <div class="radar-progress-fill" id="radarProgressFill"></div>
         </div>
@@ -325,11 +335,11 @@
     </section>
 
     <nav class="bottom-nav">
-      <button type="button" class="bnav active" data-nav="home"><span class="bnav-ico">⌂</span><span class="bnav-lbl">Home</span></button>
-      <button type="button" class="bnav" data-nav="trend"><span class="bnav-ico">🔥</span><span class="bnav-lbl">Trending</span></button>
-      <button type="button" class="bnav" data-nav="new"><span class="bnav-ico">✦</span><span class="bnav-lbl">New Pairs</span></button>
-      <button type="button" class="bnav" data-nav="scan"><span class="bnav-ico"><img class="scanner-ico-img" src="assets/sniper-scanner-icon.png?v=2" alt="" width="24" height="24" decoding="async" /></span><span class="bnav-lbl">Scanner</span></button>
-      <button type="button" class="bnav" data-nav="watch"><span class="bnav-ico bnav-ico--watchlist"><img class="watchlist-ico-img" src="assets/watchlist-icon.png?v=5" alt="" width="40" height="40" decoding="async" /></span><span class="bnav-lbl">Watchlist</span></button>
+      <button type="button" class="bnav active" data-nav="home"><span class="bnav-ico">⌂</span><span class="bnav-lbl" data-i18n="nav.home">Home</span></button>
+      <button type="button" class="bnav" data-nav="trend"><span class="bnav-ico">🔥</span><span class="bnav-lbl" data-i18n="nav.trending">Trending</span></button>
+      <button type="button" class="bnav" data-nav="new"><span class="bnav-ico">✦</span><span class="bnav-lbl" data-i18n="nav.new">New Pairs</span></button>
+      <button type="button" class="bnav" data-nav="scan"><span class="bnav-ico"><img class="scanner-ico-img" src="assets/sniper-scanner-icon.png?v=2" alt="" width="24" height="24" decoding="async" /></span><span class="bnav-lbl" data-i18n="nav.scan">Scanner</span></button>
+      <button type="button" class="bnav" data-nav="watch"><span class="bnav-ico bnav-ico--watchlist"><img class="watchlist-ico-img" src="assets/watchlist-icon.png?v=5" alt="" width="40" height="40" decoding="async" /></span><span class="bnav-lbl" data-i18n="nav.watch">Watchlist</span></button>
     </nav>
   </div>
 
@@ -347,7 +357,7 @@
           <div class="hero-meta">
             <div class="hero-title-row">
               <h1 id="pairTitle">—</h1>
-              <button type="button" id="copyMint" class="icon-btn" title="Mint kopyala">⧉</button>
+              <button type="button" id="copyMint" class="icon-btn" data-i18n-title="detail.copyMint" title="Copy mint">⧉</button>
             </div>
             <p id="pairSub" class="mint-line">—</p>
             <div class="hero-badges">
@@ -357,17 +367,17 @@
           <span id="heroRiskChip" class="hero-risk-chip">—</span>
         </div>
         <div class="hero-price-row">
-          <button type="button" class="hero-price hero-price-live" id="priceUsd" aria-label="Güncel fiyat — bu fiyattan al">—</button>
+          <button type="button" class="hero-price hero-price-live" id="priceUsd" data-i18n-aria="detail.livePrice" aria-label="Live price — buy at this price">—</button>
           <span id="heroChg24" class="hero-chg24">—</span>
         </div>
-        <div class="hero-stats" id="heroStats" aria-label="Özet metrikler"></div>
+        <div class="hero-stats" id="heroStats" data-i18n-aria="detail.metrics" aria-label="Summary metrics"></div>
         <div class="quote-changes" id="quoteChanges"></div>
       </section>
 
       <div class="detail-action-row">
-        <button type="button" class="detail-act-btn" id="btnWatchlist">Listelere ekle</button>
-        <button type="button" class="detail-act-btn" id="btnShareReport">Share Report</button>
-        <button type="button" class="detail-act-btn detail-act-ai" id="btnAiSummary">AI Summary</button>
+        <button type="button" class="detail-act-btn" id="btnWatchlist" data-i18n="detail.addWatch">Add to lists</button>
+        <button type="button" class="detail-act-btn" id="btnShareReport" data-i18n="detail.share">Share Report</button>
+        <button type="button" class="detail-act-btn detail-act-ai" id="btnAiSummary" data-i18n="detail.ai">AI Summary</button>
       </div>
 
       <section class="chart-terminal glass">
@@ -381,8 +391,8 @@
             <button type="button" class="tf" data-tf="1d">1D</button>
           </div>
           <div class="chart-type-group">
-            <button type="button" class="ctype active" data-type="candle">Mum</button>
-            <button type="button" class="ctype" data-type="line">Çizgi</button>
+            <button type="button" class="ctype active" data-type="candle" data-i18n="detail.candles">Candles</button>
+            <button type="button" class="ctype" data-type="line" data-i18n="detail.line">Line</button>
           </div>
         </div>
         <div class="ohlc-bar" id="ohlcBar">
@@ -402,19 +412,20 @@
 
       <section class="trades-tape glass trades-tape--dex-embed" id="tradesTape" aria-live="polite">
         <div class="trades-head">
-          <span class="trades-title">Canlı alım / satım</span>
-          <span class="trades-live" aria-hidden="true"><span class="trades-live-dot"></span> LIVE</span>
-          <span class="trades-meta" id="tradesMeta">Canlı işlemler</span>
-          <button type="button" id="btnCropInline" class="btn-crop-cal hidden" title="Dex kırpma">Kırpma</button>
+          <span class="trades-title" data-i18n="detail.liveTrades">Live buys / sells</span>
+          <span class="trades-live" aria-hidden="true"><span class="trades-live-dot"></span> <span data-i18n="detail.live">LIVE</span></span>
+          <span class="trades-meta" id="tradesMeta" data-i18n="detail.tradesLive">Live trades</span>
+          <button type="button" id="btnCropInline" class="btn-crop-cal hidden" data-i18n-title="crop.btn" title="Crop">Kırpma</button>
         </div>
         <div class="trades-thead" aria-hidden="true">
-          <span>Zaman</span><span>Tip</span><span>USD</span><span id="tradesColToken">Token</span><span>Cüzdan</span>
+          <span data-i18n="detail.time">Time</span><span data-i18n="detail.type">Type</span><span data-i18n="detail.usd">USD</span><span id="tradesColToken" data-i18n="detail.tokenCol">Token</span><span data-i18n="detail.wallet">Wallet</span>
         </div>
         <div id="dexTradesWrap" class="dex-trades-embed-wrap">
           <iframe
             id="dexTradesEmbed"
             class="dex-trades-embed hidden"
-            title="Canlı işlemler"
+            data-i18n-title="detail.tradesEmbed"
+            title="Live trades"
             loading="eager"
             referrerpolicy="no-referrer-when-downgrade"
           ></iframe>
@@ -451,8 +462,8 @@
             <header class="info-audit-head">
               <button type="button" class="info-audit-toggle" id="infoAuditToggle" aria-expanded="true" aria-controls="infoAuditBody">
                 <svg class="info-audit-chevron" width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 7.5L6 4l3.5 3.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                <span class="info-audit-title">Denetim</span>
-                <span class="info-audit-hint" title="Zincir üstü güvenlik verileri" aria-hidden="true"><span>i</span></span>
+                <span class="info-audit-title" data-i18n="detail.audit">Audit</span>
+                <span class="info-audit-hint" data-i18n-title="detail.auditHint" title="On-chain security data" aria-hidden="true"><span>i</span></span>
               </button>
               <span class="info-audit-badge" id="infoAuditBadge">
                 <svg class="audit-shield-ico" width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 2 4 6v6c0 5.55 3.84 10.74 8 12 4.16-1.26 8-6.45 8-12V6l-8-4z" stroke="currentColor" stroke-width="1.5"/><path d="M12 8v4M12 15.5h.01" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
@@ -463,18 +474,18 @@
             <div class="info-audit-foot">
               <button type="button" class="info-audit-cta" id="infoAuditCta">
                 <svg class="audit-shield-ico" width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 2 4 6v6c0 5.55 3.84 10.74 8 12 4.16-1.26 8-6.45 8-12V6l-8-4z" stroke="currentColor" stroke-width="1.5"/><path d="M12 8v4M12 15.5h.01" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
-                <span id="infoAuditCtaLbl">Denetimleri gör</span>
+                <span id="infoAuditCtaLbl" data-i18n="detail.viewAudits">View audits</span>
               </button>
             </div>
           </section>
 
           <section class="info-panel glass info-activity-panel hidden" id="txnSection">
-            <h3 class="info-panel-title">24s işlem sayısı</h3>
+            <h3 class="info-panel-title" data-i18n="detail.txn24">24h transaction count</h3>
             <div class="info-activity-rows" id="infoActivityRows"></div>
           </section>
 
           <section class="info-panel glass info-contract-panel">
-            <h3 class="info-panel-title">Kontrat bilgisi</h3>
+            <h3 class="info-panel-title" data-i18n="detail.contract">Contract info</h3>
             <div class="info-addr-list" id="infoAddrList"></div>
             <div class="info-chain-foot" id="infoChainFoot"></div>
           </section>
@@ -493,36 +504,36 @@
 
     <footer class="trade-bar" id="tradeBar"></footer>
 
-    <div id="tradeAlertModal" class="trade-alert-modal hidden" role="dialog" aria-modal="true" aria-label="Fiyat alarmı kur">
+    <div id="tradeAlertModal" class="trade-alert-modal hidden" role="dialog" aria-modal="true" data-i18n-aria="alert.dialog" aria-label="Set price alert">
       <div class="trade-alert-backdrop" id="tradeAlertBackdrop"></div>
       <div class="trade-alert-sheet">
         <header class="trade-alert-head">
           <div class="trade-alert-head-main">
             <span class="trade-alert-badge" aria-hidden="true">🔔</span>
             <div>
-              <h3 id="tradeAlertTitle">Fiyat alarmı</h3>
-              <p class="trade-alert-lead" id="tradeAlertLead">Hedef fiyata ulaşınca bildirim alın</p>
+              <h3 id="tradeAlertTitle" data-i18n="alert.title">Price alert</h3>
+              <p class="trade-alert-lead" id="tradeAlertLead" data-i18n="alert.lead">Get notified when target price is reached</p>
             </div>
           </div>
-          <button type="button" class="trade-alert-close" id="tradeAlertClose" aria-label="Paneli kapat">✕</button>
+          <button type="button" class="trade-alert-close" id="tradeAlertClose" data-i18n-aria="aria.close" aria-label="Close">✕</button>
         </header>
 
         <div class="trade-alert-token-card">
           <div class="trade-alert-token-row">
             <span class="trade-alert-token-sym" id="tradeAlertTokenSym">$TOKEN</span>
-            <span class="trade-alert-token-pill">Canlı izleme</span>
+            <span class="trade-alert-token-pill" data-i18n="alert.liveWatch">Live monitoring</span>
           </div>
           <span class="trade-alert-token-mint" id="tradeAlertTokenMint">—</span>
         </div>
 
         <div class="trade-alert-price-card">
-          <span class="trade-alert-price-lbl">Güncel fiyat</span>
+          <span class="trade-alert-price-lbl" data-i18n="alert.current">Current price</span>
           <strong class="trade-alert-price-val" id="tradeAlertNow">—</strong>
-          <span class="trade-alert-price-note" id="tradeAlertSub">USD · token detayı açıkken kontrol</span>
+          <span class="trade-alert-price-note" id="tradeAlertSub" data-i18n="alert.subOpen">USD · checked while detail is open</span>
         </div>
 
         <label class="trade-alert-field">
-          <span class="trade-alert-field-lbl">Hedef fiyat</span>
+          <span class="trade-alert-field-lbl" data-i18n="alert.target">Target price</span>
           <div class="trade-alert-input-wrap">
             <span class="trade-alert-input-prefix" aria-hidden="true">$</span>
             <input type="text" inputmode="decimal" id="tradeAlertTarget" placeholder="0.000000" autocomplete="off" />
@@ -531,34 +542,34 @@
         </label>
 
         <div class="trade-alert-dir-block">
-          <span class="trade-alert-dir-lbl">Ne zaman haber verilsin?</span>
-          <div class="trade-alert-dir" role="group" aria-label="Alarm koşulu">
+          <span class="trade-alert-dir-lbl" data-i18n="alert.when">When to notify?</span>
+          <div class="trade-alert-dir" role="group" data-i18n-aria="alert.when" aria-label="When to notify?">
             <button type="button" class="trade-alert-dir-btn active" data-dir="above" id="tradeAlertDirAbove">
               <span class="trade-alert-dir-ico" aria-hidden="true">↑</span>
-              <span class="trade-alert-dir-txt">Fiyat yükselince</span>
+              <span class="trade-alert-dir-txt" data-i18n="alert.above">When price rises</span>
             </button>
             <button type="button" class="trade-alert-dir-btn" data-dir="below" id="tradeAlertDirBelow">
               <span class="trade-alert-dir-ico" aria-hidden="true">↓</span>
-              <span class="trade-alert-dir-txt">Fiyat düşünce</span>
+              <span class="trade-alert-dir-txt" data-i18n="alert.below">When price falls</span>
             </button>
           </div>
         </div>
 
-        <button type="button" class="trade-alert-save" id="tradeAlertSave">Alarmı etkinleştir</button>
-        <p class="trade-alert-footnote">Uygulama açıkken canlı fiyatla kontrol edilir. İsteğe bağlı tarayıcı bildirimi isteyebilirsiniz.</p>
+        <button type="button" class="trade-alert-save" id="tradeAlertSave" data-i18n="alert.enable">Enable alert</button>
+        <p class="trade-alert-footnote" data-i18n="alert.footnote">Checked with live price while app is open. Optional browser notification.</p>
 
         <section class="trade-alert-list-section" aria-labelledby="tradeAlertListTitle">
-          <h4 class="trade-alert-list-title" id="tradeAlertListTitle">Bu token için aktif alarmlar</h4>
+          <h4 class="trade-alert-list-title" id="tradeAlertListTitle" data-i18n="alert.activeList">Active alerts for this token</h4>
           <ul class="trade-alert-list" id="tradeAlertList"></ul>
         </section>
       </div>
     </div>
 
-    <div id="tradeWalletModal" class="trade-wallet-modal hidden" role="dialog" aria-modal="true" aria-label="Cüzdan bağla">
+    <div id="tradeWalletModal" class="trade-wallet-modal hidden" role="dialog" aria-modal="true" data-i18n-aria="wallet.dialog" aria-label="Connect wallet">
       <div class="trade-wallet-backdrop" id="tradeWalletBackdrop"></div>
       <div class="trade-wallet-sheet">
-        <h3>Cüzdanınızı bağlayın</h3>
-        <p>İşlem cüzdanınızda onaylanır. Sniper yalnızca bağlantı köprüsüdür; anahtarlarınıza erişmez.</p>
+        <h3 data-i18n="wallet.title">Connect your wallet</h3>
+        <p data-i18n="wallet.lead">Trades are confirmed in your wallet. Sniper only bridges; no access to keys.</p>
         <div class="trade-wallet-options">
           <button type="button" class="trade-wallet-opt" id="tradeWalletPhantom">
             <span class="trade-wallet-opt-ico phantom">👻</span>
@@ -569,49 +580,49 @@
             <span>Solflare</span>
           </button>
         </div>
-        <button type="button" class="trade-wallet-close" id="tradeWalletClose">Vazgeç</button>
+        <button type="button" class="trade-wallet-close" id="tradeWalletClose" data-i18n="wallet.cancel">Cancel</button>
       </div>
     </div>
 
-    <nav class="detail-bottom-nav" id="detailBottomNav" aria-label="Token detay sekmeleri">
+    <nav class="detail-bottom-nav" id="detailBottomNav" data-i18n-aria="detail.tabs" aria-label="Token detail tabs">
       <button type="button" class="dbn-btn active" data-dtab="chart">
         <span class="dbn-icon" aria-hidden="true"><img class="dbn-icon-img" src="assets/detail-nav/nav-chart.png?v=1" alt="" width="26" height="26" decoding="async" /></span>
-        <span class="dbn-label">Grafik</span>
+        <span class="dbn-label" data-i18n="detail.chart">Chart</span>
       </button>
       <button type="button" class="dbn-btn" data-dtab="info">
         <span class="dbn-icon" aria-hidden="true"><img class="dbn-icon-img" src="assets/detail-nav/nav-info.png?v=1" alt="" width="26" height="26" decoding="async" /></span>
-        <span class="dbn-label">Bilgi</span>
+        <span class="dbn-label" data-i18n="detail.info">Info</span>
       </button>
       <button type="button" class="dbn-btn" data-dtab="security">
         <span class="dbn-icon" aria-hidden="true"><img class="dbn-icon-img" src="assets/detail-nav/nav-security.png?v=1" alt="" width="26" height="26" decoding="async" /></span>
-        <span class="dbn-label">Güvenlik</span>
+        <span class="dbn-label" data-i18n="detail.security">Security</span>
       </button>
       <button type="button" class="dbn-btn" data-dtab="txns">
         <span class="dbn-icon" aria-hidden="true"><img class="dbn-icon-img" src="assets/detail-nav/nav-trade.png?v=1" alt="" width="26" height="26" decoding="async" /></span>
-        <span class="dbn-label">Trade</span>
+        <span class="dbn-label" data-i18n="detail.trade">Trade</span>
       </button>
     </nav>
   </div>
 
   <div id="supportOverlay" class="support-overlay hidden" aria-hidden="true">
     <div class="support-overlay-backdrop" id="supportOverlayBackdrop"></div>
-    <div class="support-overlay-panel" role="dialog" aria-label="Canlı destek">
+    <div class="support-overlay-panel" role="dialog" data-i18n-aria="support.dialog" aria-label="Live support">
       <div class="support-head">
         <div class="support-head-user">
           <div class="support-avatar" id="supportUserAvatar">💬</div>
           <div>
-            <strong>Destek Sohbeti</strong>
-            <span class="support-sub" id="supportTicketId">SNIPER · Kullanıcı</span>
-            <span class="support-live-pill">Çevrimiçi</span>
+            <strong data-i18n="support.title">Support Chat</strong>
+            <span class="support-sub" id="supportTicketId" data-i18n="support.user">SNIPER · User</span>
+            <span class="support-live-pill" data-i18n="support.online">Online</span>
           </div>
         </div>
-        <button type="button" class="support-close" id="supportOverlayClose" aria-label="Kapat">✕</button>
+        <button type="button" class="support-close" id="supportOverlayClose" data-i18n-aria="aria.close" aria-label="Close">✕</button>
       </div>
       <div class="support-messages" id="supportMessages"></div>
       <p class="support-status" id="supportStatus" aria-live="polite"></p>
       <div class="support-compose">
-        <textarea id="supportInput" rows="3" placeholder="Mesajınızı yazın…" maxlength="2000"></textarea>
-        <button type="button" class="support-send" id="supportSend">Gönder ➤</button>
+        <textarea id="supportInput" rows="3" data-i18n-placeholder="support.placeholder" placeholder="Type your message…" maxlength="2000"></textarea>
+        <button type="button" class="support-send" id="supportSend" data-i18n="support.send">Send ➤</button>
       </div>
     </div>
   </div>
@@ -630,9 +641,9 @@
       <div class="account-login-lang" id="accountLoginLang" role="group" aria-label="Language" data-i18n-aria="account.login.lang">
         <span class="account-login-lang-label" data-i18n="account.login.lang">Language</span>
         <div class="account-login-lang-btns">
-          <button type="button" class="account-login-lang-btn active" data-lang="en" aria-pressed="true" data-i18n="lang.en">English</button>
-          <button type="button" class="account-login-lang-btn" data-lang="tr" aria-pressed="false" data-i18n="lang.tr">Türkçe</button>
-          <button type="button" class="account-login-lang-btn" data-lang="ru" aria-pressed="false" data-i18n="lang.ru">Русский</button>
+          <button type="button" class="miniapp-lang-btn account-login-lang-btn active" data-lang="en" aria-pressed="true" data-i18n="lang.en">English</button>
+          <button type="button" class="miniapp-lang-btn account-login-lang-btn" data-lang="tr" aria-pressed="false" data-i18n="lang.tr">Türkçe</button>
+          <button type="button" class="miniapp-lang-btn account-login-lang-btn" data-lang="ru" aria-pressed="false" data-i18n="lang.ru">Русский</button>
         </div>
       </div>
       <form id="accountLoginForm" class="account-login-block" autocomplete="on">
@@ -657,18 +668,18 @@
 
   <div id="searchOverlay" class="search-overlay hidden" aria-hidden="true">
     <div class="search-overlay-backdrop" id="searchOverlayBackdrop"></div>
-    <div class="search-overlay-panel" role="dialog" aria-modal="true" aria-label="Token ara">
+    <div class="search-overlay-panel" role="dialog" aria-modal="true" data-i18n-aria="search.title" aria-label="Search token">
       <div class="search-overlay-head">
         <label class="search-overlay-input-wrap">
           <span class="ico" aria-hidden="true">⌕</span>
-          <input type="search" id="searchOverlayInput" placeholder="Ara: doge, bonk, token adı veya mint…" autocomplete="off" spellcheck="false" enterkeyhint="search" />
-          <button type="button" class="search-overlay-clear hidden" id="searchOverlayClear">Clear</button>
+          <input type="search" id="searchOverlayInput" data-i18n-placeholder="search.placeholder" placeholder="Search: doge, bonk, name or mint…" autocomplete="off" spellcheck="false" enterkeyhint="search" />
+          <button type="button" class="search-overlay-clear hidden" id="searchOverlayClear" data-i18n="search.clear">Clear</button>
         </label>
-        <button type="button" class="search-overlay-close" id="searchOverlayClose" aria-label="Kapat">✕</button>
+        <button type="button" class="search-overlay-close" id="searchOverlayClose" data-i18n-aria="aria.close" aria-label="Close">✕</button>
       </div>
       <p class="search-overlay-status" id="searchOverlayStatus" aria-live="polite"></p>
       <div class="search-overlay-results" id="searchOverlayResults">
-        <p class="sr-hint">Örnek: doge, do, bonk — listelenen tokenler arasında arar</p>
+        <p class="sr-hint" data-i18n="search.hint">Example: doge, do, bonk — searches listed tokens</p>
       </div>
     </div>
   </div>
@@ -676,21 +687,21 @@
   <div id="watchlistListModal" class="wl-modal hidden" aria-hidden="true">
     <div class="wl-modal-backdrop" id="watchlistModalBackdrop"></div>
     <div class="wl-modal-panel" role="dialog" aria-modal="true" aria-labelledby="watchlistModalTitle">
-      <h3 class="wl-modal-title" id="watchlistModalTitle">Liste oluştur</h3>
+      <h3 class="wl-modal-title" id="watchlistModalTitle" data-i18n="wl.modalCreate">Create list</h3>
       <div class="wl-modal-body">
         <label class="wl-modal-field">
-          <span>Liste adı</span>
-          <input type="text" id="watchlistListName" maxlength="48" placeholder="Örn: Solana ağındaki tokenler" autocomplete="off" />
+          <span data-i18n="wl.listName">List name</span>
+          <input type="text" id="watchlistListName" maxlength="48" data-i18n-placeholder="wl.listNamePh" placeholder="e.g. Solana tokens" autocomplete="off" />
         </label>
         <label class="wl-modal-field">
-          <span>Not (isteğe bağlı)</span>
-          <textarea id="watchlistListNote" rows="3" maxlength="240" placeholder="Bu listede ne takip ediyorsun?"></textarea>
+          <span data-i18n="wl.listNote">Note (optional)</span>
+          <textarea id="watchlistListNote" rows="3" maxlength="240" data-i18n-placeholder="wl.listNotePh" placeholder="What are you tracking in this list?"></textarea>
         </label>
       </div>
       <div class="wl-modal-actions">
-        <button type="button" class="wl-modal-del hidden" id="watchlistListDelete">Listeyi sil</button>
-        <button type="button" class="wl-modal-ghost" id="watchlistListCancel">İptal</button>
-        <button type="button" class="wl-modal-primary" id="watchlistListSave">Kaydet</button>
+        <button type="button" class="wl-modal-del hidden" id="watchlistListDelete" data-i18n="wl.deleteList">Delete list</button>
+        <button type="button" class="wl-modal-ghost" id="watchlistListCancel" data-i18n="wl.cancel">Cancel</button>
+        <button type="button" class="wl-modal-primary" id="watchlistListSave" data-i18n="wl.save">Save</button>
       </div>
     </div>
   </div>
@@ -698,32 +709,31 @@
   <div id="watchlistPickModal" class="wl-modal hidden" aria-hidden="true">
     <div class="wl-modal-backdrop" id="watchlistPickBackdrop"></div>
     <div class="wl-modal-panel" role="dialog" aria-modal="true" aria-labelledby="watchlistPickTitle">
-      <h3 class="wl-modal-title" id="watchlistPickTitle">Hangi listelere eklensin?</h3>
+      <h3 class="wl-modal-title" id="watchlistPickTitle" data-i18n="wl.pickTitle">Add to which lists?</h3>
       <p class="wl-pick-lead" id="watchlistPickSymbol">—</p>
       <div class="wl-modal-body">
-        <div class="wl-pick-lists" id="watchlistPickLists" role="group" aria-label="Watchlist listeleri"></div>
-        <button type="button" class="wl-pick-new" id="watchlistPickNewList">+ Yeni liste oluştur</button>
+        <div class="wl-pick-lists" id="watchlistPickLists" role="group" data-i18n-aria="wl.title" aria-label="Watchlist lists"></div>
+        <button type="button" class="wl-pick-new" id="watchlistPickNewList" data-i18n="wl.pickNew">+ Create new list</button>
       </div>
       <div class="wl-modal-actions">
-        <button type="button" class="wl-modal-ghost" id="watchlistPickCancel">İptal</button>
-        <button type="button" class="wl-modal-primary" id="watchlistPickSave">Kaydet</button>
+        <button type="button" class="wl-modal-ghost" id="watchlistPickCancel" data-i18n="wl.cancel">Cancel</button>
+        <button type="button" class="wl-modal-primary" id="watchlistPickSave" data-i18n="wl.save">Save</button>
       </div>
     </div>
   </div>
 
   <script src="wallet.js?v=3"></script>
-  <script src="trade.js?v=16"></script>
+  <script src="trade.js?v=18"></script>
   <script src="feed-badges.js?v=1"></script>
-<script src="watchlist.js?v=4"></script>
-<script src="dex-sidebar.js?v=8"></script>
-  <script src="search-overlay.js?v=5"></script>
+<script src="watchlist.js?v=5"></script>
+  <script src="dex-sidebar.js?v=9"></script>
+  <script src="search-overlay.js?v=7"></script>
   <script src="support.js?v=3"></script>
-  <script src="miniapp-i18n.js?v=2"></script>
   <script src="sidebar-account.js?v=6"></script>
-  <button type="button" id="cropCalFab" class="btn-crop-cal-fab hidden" aria-label="Kırpma ayar">Kırpma</button>
+  <button type="button" id="cropCalFab" class="btn-crop-cal-fab hidden" data-i18n-aria="crop.aria" aria-label="Crop settings">Crop</button>
   <script src="dex-crop-baked.js?v=20260523"></script>
   <script src="dex-crop.js?v=85"></script>
-  <script src="app.js?v=230"></script>
+  <script src="app.js?v=232"></script>
   <script src="boot-feed.js?v=5"></script>
 </body>
 </html>

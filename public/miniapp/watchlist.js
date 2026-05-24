@@ -27,6 +27,10 @@
       .replace(/"/g, '&quot;');
   }
 
+  function i18n(k, vars) {
+    return global.MiniAppI18n?.t(k, vars) ?? k;
+  }
+
   function toast(msg) {
     if (typeof global.showToast === 'function') global.showToast(msg);
   }
@@ -270,7 +274,7 @@
   function createList(name, note) {
     const title = String(name || '').trim().slice(0, 48);
     if (!title) {
-      toast('Liste adı girin');
+      toast(i18n('wl.toastNameRequired'));
       return null;
     }
     const state = readState();
@@ -399,11 +403,11 @@
     const list = getActiveList();
     const title = $('watchlistActiveTitle');
     const note = $('watchlistActiveNote');
-    if (title) title.textContent = list?.name || 'Watchlist';
+    if (title) title.textContent = list?.name || i18n('wl.title');
     if (note) {
       note.textContent = list?.note?.trim()
         ? list.note.trim()
-        : 'Aktif listeye token eklemek için detayda Listeye ekle kullanın.';
+        : i18n('wl.noteDefault');
     }
   }
 
@@ -446,12 +450,12 @@
     if (mode === 'edit' && listId) {
       const list = findList(state, listId);
       if (!title || !list) return;
-      title.textContent = 'Listeyi düzenle';
+      title.textContent = i18n('wl.modalEdit');
       nameInp.value = list.name;
       noteInp.value = list.note || '';
       delBtn?.classList.toggle('hidden', state.lists.length <= 1);
     } else {
-      if (title) title.textContent = 'Liste oluştur';
+      if (title) title.textContent = i18n('wl.modalCreate');
       nameInp.value = '';
       noteInp.value = '';
       delBtn?.classList.add('hidden');
@@ -477,15 +481,15 @@
     const name = ($('watchlistListName')?.value || '').trim();
     const note = ($('watchlistListNote')?.value || '').trim();
     if (!name) {
-      toast('Liste adı girin');
+      toast(i18n('wl.toastNameRequired'));
       return;
     }
     if (modalMode === 'edit' && modalListId) {
       updateList(modalListId, { name, note });
-      toast('Liste güncellendi');
+      toast(i18n('wl.toastUpdated'));
     } else {
       const newId = createList(name, note);
-      toast('Liste oluşturuldu');
+      toast(i18n('wl.toastCreated'));
       if (typeof global.getFeedTab === 'function' && global.getFeedTab() === 'watch') {
         void loadView({ force: true });
       }
@@ -595,16 +599,16 @@
     return `<div class="feed-empty-pro wl-empty" role="status">
       <span class="feed-empty-pro-glow" aria-hidden="true"></span>
       <span class="feed-empty-pro-icon wl-empty-ico" aria-hidden="true"><img class="watchlist-ico-img" src="assets/watchlist-icon.png?v=5" alt="" width="40" height="40" decoding="async" /></span>
-      <strong class="feed-empty-pro-title">${escHtml(list?.name || 'Watchlist')} BOŞ</strong>
-      <p class="feed-empty-pro-lead">Token detayında <b>Listeye ekle</b> ile <b>${escHtml(list?.name || 'bu listeye')}</b> ekle. Üstteki <b>+</b> ile yeni liste (ör. Solana tokenleri) oluşturabilirsin.</p>
-      <span class="feed-empty-pro-tag">YEREL · NOTLU LİSTELER</span>
+      <strong class="feed-empty-pro-title">${escHtml(i18n('wl.emptyTitle', { name: list?.name || i18n('wl.title') }))}</strong>
+      <p class="feed-empty-pro-lead">${i18n('wl.emptyLead', { name: escHtml(list?.name || i18n('wl.title')) })}</p>
+      <span class="feed-empty-pro-tag">${escHtml(i18n('wl.emptyTag'))}</span>
     </div>`;
   }
 
   function updateWatchLiveText(n) {
     const el = $('watchlistLiveText');
     if (!el) return;
-    el.textContent = n ? `${n} token` : 'BOŞ';
+    el.textContent = n ? i18n('wl.tokenCount', { n }) : i18n('wl.empty');
   }
 
   async function loadView(opts = {}) {
@@ -631,7 +635,7 @@
     const list = getActiveList();
     if (!entries.length) {
       empty.classList.remove('hidden');
-      empty.textContent = list?.note?.trim() || 'Henüz liste yok — token ekle';
+      empty.textContent = list?.note?.trim() || i18n('wl.emptyHint');
       listEl.classList.add('hidden');
       listEl.innerHTML = '';
       return;
@@ -685,9 +689,9 @@
     const on = lists.length > 0;
     btn.disabled = false;
     btn.classList.toggle('detail-act-btn--watch-on', on);
-    if (!on) btn.textContent = 'Listelere ekle';
-    else if (lists.length === 1) btn.textContent = `${lists[0].name} · düzenle`;
-    else btn.textContent = `${lists.length} listede · düzenle`;
+    if (!on) btn.textContent = i18n('wl.addToLists');
+    else if (lists.length === 1) btn.textContent = i18n('wl.editInList', { name: lists[0].name });
+    else btn.textContent = i18n('wl.inLists', { n: lists.length });
     btn.setAttribute('aria-pressed', on ? 'true' : 'false');
   }
 
@@ -701,7 +705,7 @@
 
     $('watchlistRefresh')?.addEventListener('click', () => {
       if (typeof global.getFeedTab === 'function' && global.getFeedTab() === 'watch') void loadView({ force: true });
-      else toast('Watchlist sekmesinde yenileyin');
+      else toast(i18n('wl.toastRefreshTab'));
     });
     $('watchlistNewList')?.addEventListener('click', () => openListModal('create'));
     $('watchlistEditList')?.addEventListener('click', () => {
@@ -715,7 +719,7 @@
       if (!modalListId) return;
       if (!deleteList(modalListId)) return;
       closeListModal();
-      toast('Liste silindi');
+      toast(i18n('wl.toastDeleted'));
       if (typeof global.getFeedTab === 'function' && global.getFeedTab() === 'watch') {
         void loadView({ force: true });
       }
@@ -753,7 +757,17 @@
     renderListBar();
   }
 
+  function refreshI18n() {
+    syncActiveListHeader();
+    renderListBar();
+    renderSidebar();
+    const data = typeof global.getAppData === 'function' ? global.getAppData() : null;
+    syncDetailButton(data);
+    global.MiniAppI18n?.applyDocument?.();
+  }
+
   global.SniperWatchlist = {
+    refreshI18n,
     getEntries,
     getLists,
     getActiveList,

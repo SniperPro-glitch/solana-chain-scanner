@@ -115,10 +115,52 @@ body.account-login-open {
   border-color: var(--border-strong, rgba(255, 255, 255, 0.2));
 }
 
-.account-login-lang-btn.active {
+.account-login-lang-btn.active,
+.miniapp-lang-btn.active {
   color: #f0b429;
   border-color: rgba(240, 180, 41, 0.45);
   background: rgba(240, 180, 41, 0.08);
+}
+
+.miniapp-lang-btn {
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.12));
+  border-radius: 8px;
+  background: rgba(13, 17, 23, 0.85);
+  color: var(--muted, #8b949e);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 8px 4px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+
+.miniapp-lang-btn:hover {
+  color: var(--text, #e6edf3);
+  border-color: var(--border-strong, rgba(255, 255, 255, 0.2));
+}
+
+.dex-sidebar-lang {
+  padding: 10px 14px 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.dex-sidebar-lang .account-login-lang-label,
+.dex-sidebar-lang .miniapp-lang-label {
+  display: block;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted, #8b949e);
+  margin-bottom: 8px;
+}
+
+.dex-sidebar-lang .account-login-lang-btns,
+.dex-sidebar-lang .miniapp-lang-btns {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
 }
 
 .account-login-head strong {

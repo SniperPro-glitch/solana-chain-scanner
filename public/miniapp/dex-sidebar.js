@@ -82,6 +82,10 @@
     syncChainUi();
   }
 
+  function i18n(k, vars) {
+    return global.MiniAppI18n?.t(k, vars) ?? k;
+  }
+
   function toast(msg) {
     if (typeof global.showToast === 'function') global.showToast(msg);
   }
@@ -101,9 +105,8 @@
     }
     const meta = $('feedMetaText');
     if (meta && !meta.dataset.lockChain) {
-      const live = chain.live ? 'live' : 'soon';
-      const src = chain.live ? 'bot kanalı' : 'yakında';
-      meta.textContent = `◎ ${chain.label} · ${src}`;
+      const c = global.MiniAppI18n?.chainUi?.(activeChain) || chain;
+      meta.textContent = i18n('meta.chainLoading', { chain: c.label || chain.label, src: c.src || i18n('chain.soon') });
     }
   }
 
@@ -151,9 +154,9 @@
     if (action === 'alerts') {
       const n = global.SniperTrade?.listPriceAlerts?.()?.length ?? 0;
       if (n > 0) {
-        toast(`${n} aktif fiyat alarmı · token detayında düzenleyin`);
+        toast(i18n('sidebar.alertsActive', { n }));
       } else {
-        toast('Alarm yok — Trade sekmesinde 🔔 Fiyat hedefi ile kurun');
+        toast(i18n('sidebar.alertsNone'));
       }
       if (typeof global.switchDetailTab === 'function' && document.documentElement.classList.contains('detail-mode')) {
         global.switchDetailTab('txns');
@@ -161,14 +164,14 @@
       }
       return;
     }
-    toast('Yakında');
+    toast(i18n('toast.soon'));
   }
 
   function pickChain(id) {
     const c = CHAINS.find((x) => x.id === id);
     if (!c) return;
     if (!c.live) {
-      toast(`${c.label}: henüz paylaşım yok — tokenler Solana bot kanalından eklenir`);
+      toast(i18n('sidebar.chainSoon', { chain: c.label }));
     }
     if (typeof global.closeSearchOverlay === 'function') global.closeSearchOverlay();
     $('sidebarSearchInput')?.blur();

@@ -34,6 +34,10 @@
     return document.getElementById(id);
   }
 
+  function i18n(k, vars) {
+    return global.MiniAppI18n?.t(k, vars) ?? k;
+  }
+
   function esc(s) {
     return String(s || '').replace(/[&<>"']/g, (c) => ({
       '&': '&amp;',
@@ -129,7 +133,9 @@
       global.openTokenByMint(item.mint);
       return;
     }
-    if (typeof global.showToast === 'function') global.showToast('Token açılamadı');
+    if (typeof global.showToast === 'function') {
+      global.showToast(global.MiniAppI18n?.t('toast.tokenOpenFail') ?? 'Token açılamadı');
+    }
   }
 
   async function runSearch(q) {
@@ -141,7 +147,7 @@
       activeIdx = -1;
       lastItems = [];
       setStatus('');
-      setResultsHtml('<p class="sr-hint">Token adı, pair veya kontrat adresi yazın…</p>');
+      setResultsHtml(`<p class="sr-hint">${esc(i18n('search.typeHint'))}</p>`);
       return;
     }
 
@@ -153,7 +159,7 @@
     const ac = typeof AbortController !== 'undefined' ? new AbortController() : null;
     inflight = ac;
 
-    setStatus('Aranıyor…');
+    setStatus(i18n('search.searching'));
 
     try {
       const res = await fetch(url, {
@@ -178,7 +184,7 @@
 
       if (!lastItems.length) {
         setStatus('');
-        setResultsHtml('<p class="sr-hint">Listede eşleşen token yok. Yalnızca kanala paylaşılan / listelenen tokenler gösterilir.</p>');
+        setResultsHtml(`<p class="sr-hint">${esc(i18n('search.noMatch'))}</p>`);
         return;
       }
 
@@ -188,8 +194,10 @@
     } catch (e) {
       if (e?.name === 'AbortError') return;
       setStatus('');
-      setResultsHtml('<p class="sr-hint">Arama başarısız — tekrar deneyin.</p>');
-      if (typeof global.showToast === 'function') global.showToast('Arama hatası');
+      setResultsHtml(`<p class="sr-hint">${esc(i18n('search.fail'))}</p>`);
+      if (typeof global.showToast === 'function') {
+        global.showToast(global.MiniAppI18n?.t('toast.searchError') ?? 'Arama hatası');
+      }
     } finally {
       if (inflight === ac) inflight = null;
     }

@@ -178,7 +178,7 @@
 
     if (state.side === 'buy') {
       if (!solPer || solPer <= 0) {
-        setEquivText('Canlı fiyat bekleniyor…', false);
+        setEquivText(i18n('trade.waitPrice'), false);
         return;
       }
       const rough = amt / solPer;
@@ -216,6 +216,10 @@
       `≈ ${solOut.toLocaleString('tr-TR', { minimumFractionDigits: 4, maximumFractionDigits: 4 })} SOL karşılığı`,
       false,
     );
+  }
+
+  function i18n(k, vars) {
+    return global.MiniAppI18n?.t(k, vars) ?? k;
   }
 
   function toast(msg) {
@@ -334,7 +338,7 @@
     const tokenMint = mint();
     const rows = listPriceAlerts(tokenMint);
     if (!rows.length) {
-      ul.innerHTML = '<li class="trade-alert-empty">Henüz alarm yok — yukarıdan hedef belirleyin</li>';
+      ul.innerHTML = `<li class="trade-alert-empty">${i18n('alert.empty')}</li>`;
       return;
     }
     ul.innerHTML = rows
@@ -395,12 +399,12 @@
   function savePriceAlertFromModal() {
     const tokenMint = mint();
     if (!tokenMint) {
-      toast('Token mint yok');
+      toast(i18n('trade.noMint'));
       return;
     }
     const target = Number(String($('tradeAlertTarget')?.value || '').replace(',', '.'));
     if (!Number.isFinite(target) || target <= 0) {
-      toast('Geçerli hedef fiyat girin');
+      toast(i18n('trade.invalidTarget'));
       return;
     }
     const m = state.data?.market || {};
@@ -451,7 +455,7 @@
     const w = global.SniperWallet;
     const tokenMint = mint();
     if (!tokenMint) {
-      toast('Token mint yok');
+      toast(i18n('trade.noMint'));
       return;
     }
     if (!w?.pubkey) {
@@ -459,11 +463,11 @@
       openWalletModal();
       return;
     }
-    setStatus('Bakiye okunuyor…');
+    setStatus(i18n('trade.readingBal'));
     const bal = await fetchTokenBalance(w.pubkey, tokenMint);
     const ui = Number(bal?.uiAmount);
     if (!bal || !Number.isFinite(ui) || ui <= 0) {
-      toast('Cüzdanda bu token yok');
+      toast(i18n('trade.noTokenBal'));
       setStatus('Hazır');
       return;
     }
@@ -848,7 +852,7 @@
       return;
     }
     if (!tokenMint) {
-      toast('Token mint yok');
+      toast(i18n('trade.noMint'));
       return;
     }
 
@@ -1306,7 +1310,47 @@
     bindUi();
   }
 
+  function applyTradePanelI18n() {
+    const map = [
+      ['tradeTabBuy', 'trade.tabBuy'],
+      ['tradeTabSell', 'trade.tabSell'],
+      ['tradeAmountUnit', null],
+    ];
+    const buy = $('tradeTabBuy');
+    const sell = $('tradeTabSell');
+    if (buy) buy.textContent = i18n('trade.tabBuy');
+    if (sell) sell.textContent = i18n('trade.tabSell');
+    document.querySelectorAll('#tradeTerminal .trade-stat-lbl').forEach((el, i) => {
+      const keys = ['trade.liquidity', 'trade.vol24', 'trade.buyers', 'trade.sellers'];
+      if (keys[i]) el.textContent = i18n(keys[i]);
+    });
+    const submit = document.querySelector('#tradeTerminal .trade-submit');
+    if (submit) submit.textContent = state.side === 'buy' ? i18n('trade.buyNow') : i18n('trade.sellNow');
+    document.querySelectorAll('.trade-field-lbl').forEach((el) => {
+      if (el.textContent?.includes('Miktar') || el.closest('.trade-field')) el.textContent = i18n('trade.amount');
+    });
+    document.querySelectorAll('.trade-quick-caption').forEach((el) => {
+      el.textContent = i18n('trade.quick');
+    });
+    document.querySelectorAll('.trade-quick-btn .tqb-lbl').forEach((el, i) => {
+      const keys = ['trade.quickBuy', 'trade.quickSell', 'trade.sellAll', 'trade.alertBtn'];
+      if (keys[i]) el.textContent = i18n(keys[i]);
+    });
+    const status = $('tradeStatusLine');
+    if (status && state.status === 'Hazır') status.textContent = i18n('trade.ready');
+  }
+
+  function refreshI18n() {
+    const root = $('panel-trade');
+    if (!root?.dataset.tradeMounted) return;
+    global.MiniAppI18n?.applyDocument?.();
+    applyTradePanelI18n();
+    renderAlertList();
+    syncTradeModeStatus();
+  }
+
   global.SniperTrade = {
+    refreshI18n,
     init,
     render,
     tickLive,

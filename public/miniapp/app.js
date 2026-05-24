@@ -24,7 +24,7 @@
   function applyTrendConfigDefaults(trend) {
     if (!trend) return;
     const tf = String(trend.defaults?.timeframe || '').trim();
-    if (tf && FEED_TF_META[tf]) feedTimeframe = tf;
+    if (tf && feedTfMeta(tf).changeKey) feedTimeframe = tf;
     const dex = String(trend.defaults?.dexFilter || '').trim();
     if (dex) dexFilter = dex;
     const sec = parseInt(trend.refresh?.intervalSec, 10);
@@ -61,6 +61,31 @@
   }
 
   const $ = (id) => document.getElementById(id);
+  function i18n(k, vars) {
+    return window.MiniAppI18n?.t(k, vars) ?? k;
+  }
+  function feedTfMeta(tf) {
+    return window.MiniAppI18n?.feedTfMeta?.(tf) ?? {
+      label: tf,
+      short: tf,
+      col: '24H %',
+      changeKey: 'change24h',
+      volKey: 'volume24h',
+      volFmtKey: 'volume24hFmt',
+    };
+  }
+  function npAgeMeta(age) {
+    return window.MiniAppI18n?.npAgeMeta?.(age) ?? { label: age, short: age };
+  }
+  function getChainUi(chain) {
+    return window.MiniAppI18n?.chainUi?.(chain) ?? {
+      short: 'SOL',
+      label: 'Solana',
+      src: i18n('chain.solana.src'),
+      live: true,
+    };
+  }
+  let lastFeedBody = null;
   let reportId = null;
   let appData = null;
   let currentTf = '15m';
@@ -84,8 +109,9 @@
   let feedEmptyMessage = '';
   let feedEmptyKind = '';
   const NEW_PAIRS_MAX_AGE_MS = 48 * 60 * 60 * 1000;
-  const DUMP_VOLATILITY_TIP =
-    'Bu token ani yükseliş ve ani düşüş yaşayabiliyor. Dikkatli olun.';
+  function dumpVolatilityTip() {
+    return i18n('toast.volatility');
+  }
   const NEW_PAIRS_AGE_MS = {
     '1h': 1 * 60 * 60 * 1000,
     '6h': 6 * 60 * 60 * 1000,
@@ -95,21 +121,8 @@
   };
   let newPairsAgeFilter = '24h';
   let npAgeMenuOpen = false;
-  const NEW_PAIRS_AGE_META = {
-    '1h': { label: 'Son 1 saat', short: '1 saat' },
-    '6h': { label: 'Son 6 saat', short: '6 saat' },
-    '12h': { label: 'Son 12 saat', short: '12 saat' },
-    '24h': { label: 'Son 24 saat', short: '24 saat' },
-    '48h': { label: 'Son 48 saat', short: '48 saat' },
-  };
   let feedListMode = 'top';
   let feedTimeframe = '24h';
-  const FEED_TF_META = {
-    '5m': { label: 'Last 5 minutes', short: '5 min', col: '5M %', changeKey: 'change5m', volKey: 'volume5m', volFmtKey: 'volume5mFmt' },
-    '1h': { label: 'Last hour', short: '1 hour', col: '1H %', changeKey: 'change1h', volKey: 'volume1h', volFmtKey: 'volume1hFmt' },
-    '6h': { label: 'Last 6 hours', short: '6 hours', col: '6H %', changeKey: 'change6h', volKey: 'volume6h', volFmtKey: 'volume6hFmt' },
-    '24h': { label: 'Last 24 hours', short: '24 hours', col: '24H %', changeKey: 'change24h', volKey: 'volume24h', volFmtKey: 'volume24hFmt' },
-  };
   let feedTfMenuOpen = false;
   let searchQuery = '';
   let searchDebounce = null;
@@ -133,7 +146,7 @@
     const spark = feedShowsSparklines() ? miniSparkline(up24) : '';
     const b = band === 'none' || label === '—' ? 'none' : band;
     const lbl = label === '—' ? '—' : label;
-    const title = b === 'none' ? ' title="Henüz SNIPER taraması yok"' : '';
+    const title = b === 'none' ? ` title="${escHtml(i18n('badge.noScan'))}"` : '';
     return `<div class="tr-risk-col">${spark}<span class="risk-badge ${b}"${title}>${escHtml(lbl)}</span></div>`;
   }
 
@@ -284,23 +297,23 @@
     const kind = resolveMomentumBadge(item);
     if (kind === 'dump') {
       parts.push(
-        `<span class="tr-badge tr-badge-dump" title="${escHtml(DUMP_VOLATILITY_TIP)}">` +
+        `<span class="tr-badge tr-badge-dump" title="${escHtml(dumpVolatilityTip())}">` +
           `<span class="tr-badge-dump-lbl">📉 DUMP</span>` +
-          `<span class="tr-badge-info-ico" role="img" aria-label="${escHtml(DUMP_VOLATILITY_TIP)}" title="${escHtml(DUMP_VOLATILITY_TIP)}">ℹ</span>` +
+          `<span class="tr-badge-info-ico" role="img" aria-label="${escHtml(dumpVolatilityTip())}" title="${escHtml(dumpVolatilityTip())}">ℹ</span>` +
           `</span>`,
       );
       return `<span class="tr-badges">${parts.join('')}</span>`;
     }
     if (showNewListingBadge(item)) {
-      parts.push('<span class="tr-badge tr-badge-new" title="Son 48 saat içinde listelendi">NEW</span>');
+      parts.push(`<span class="tr-badge tr-badge-new" title="${escHtml(i18n('badge.new48h'))}">NEW</span>`);
     }
     if (kind === 'ath') {
       parts.push(
-        '<span class="tr-badge tr-badge-ath" title="Güçlü kısa vadeli yükseliş ve alım baskısı">ATH</span>',
+        `<span class="tr-badge tr-badge-ath" title="${escHtml(i18n('badge.ath'))}">ATH</span>`,
       );
     } else if (kind === 'hot') {
       parts.push(
-        '<span class="tr-badge tr-badge-hot" title="Yoğun alım-satım / hızlı işlem"><span class="tr-badge-hot-ico" aria-hidden="true">🔥</span>HOT</span>',
+        `<span class="tr-badge tr-badge-hot" title="${escHtml(i18n('badge.hot'))}"><span class="tr-badge-hot-ico" aria-hidden="true">🔥</span>HOT</span>`,
       );
     }
     return parts.length ? `<span class="tr-badges">${parts.join('')}</span>` : '';
@@ -482,7 +495,7 @@
       void loadWatchlistView({ force: true });
       return;
     }
-    showToast('Yakında');
+    showToast(i18n('toast.soon'));
   }
 
   function ensureDetailSpacer() {
@@ -689,10 +702,6 @@
     txt.textContent = n ? `${n} çift · ${label}` : `Boş · ${label}`;
   }
 
-  function npAgeMeta(ageKey) {
-    return NEW_PAIRS_AGE_META[ageKey] || NEW_PAIRS_AGE_META['24h'];
-  }
-
   function syncNewPairsAgeUi() {
     const meta = npAgeMeta(newPairsAgeFilter);
     const full = $('npAgeLabelFull');
@@ -840,7 +849,7 @@
     const inp = $('radarMintInput');
     const mint = (inp?.value || '').trim();
     if (!isSolanaMint(mint)) {
-      showToast('Paste a valid Solana contract address');
+      showToast(i18n('toast.invalidMint'));
       inp?.focus();
       return;
     }
@@ -877,7 +886,7 @@
       await loadReportFlow();
     } catch (e) {
       hideRadarActive();
-      showToast(e.message || 'Analysis failed');
+      showToast(e.message || i18n('toast.analysisFailed'));
     } finally {
       scannerAnalyzing = false;
       $('radarAnalyzeBtn')?.removeAttribute('disabled');
@@ -953,13 +962,6 @@
     void loadHomeFeed(feedTabForApi(resolveFeedTab(uiTab)), uiTab, { force: true });
   }
 
-  const CHAIN_UI = {
-    solana: { short: 'SOL', label: 'Solana', src: 'Bot kanalı' },
-    ton: { short: 'TON', label: 'TON', src: 'Henüz paylaşım yok' },
-    bsc: { short: 'BSC', label: 'BSC', src: 'Henüz paylaşım yok' },
-    eth: { short: 'ETH', label: 'Ethereum', src: 'Henüz paylaşım yok' },
-  };
-
   const CHAIN_PILL_ICONS = {
     solana: 'assets/chains/chain-solana.png?v=1',
     ton: 'assets/chains/chain-ton.png?v=1',
@@ -970,7 +972,7 @@
   function updateHeaderChainPill(chain) {
     const pill = $('headerChainPill');
     if (!pill) return;
-    const c = CHAIN_UI[chain] || { short: String(chain || '').toUpperCase().slice(0, 4) };
+    const c = getChainUi(chain) || { short: String(chain || '').toUpperCase().slice(0, 4) };
     const icon = CHAIN_PILL_ICONS[chain] || CHAIN_PILL_ICONS.solana;
     let txt = pill.querySelector('.chain-pill-txt');
     let img = pill.querySelector('.chain-pill-ico');
@@ -991,7 +993,7 @@
       return;
     }
     const title = feedTab === 'trending'
-      ? 'Trading List'
+      ? i18n('feed.tradingList')
       : feedTab === 'new'
         ? ''
         : '';
@@ -1005,13 +1007,13 @@
   }
 
   function applyChainHeaderUi(chain) {
-    const c = CHAIN_UI[chain] || { short: String(chain || '').toUpperCase().slice(0, 4), label: chain, src: 'Canlı piyasa' };
+    const c = getChainUi(chain) || { short: String(chain || '').toUpperCase().slice(0, 4), label: chain, src: i18n('chain.liveMarket') };
     updateHeaderChainPill(chain);
     const meta = $('feedMetaText');
     const bar = $('feedMetaBar');
     if (meta) {
       meta.dataset.lockChain = '1';
-      meta.textContent = `◎ ${c.label} · ${c.src} · yükleniyor…`;
+      meta.textContent = i18n('meta.chainLoading', { chain: c.label, src: c.src });
     }
     bar?.classList.remove('hidden');
   }
@@ -1045,16 +1047,12 @@
       const chain = getActiveChain();
       setSearchHint(
         chain === 'solana'
-          ? 'Bu token listemizde mevcut değil.'
-          : 'Bu ağda token bulunamadı.',
+          ? i18n('toast.notInList')
+          : i18n('toast.notOnChain'),
       );
       return;
     }
-    setSearchHint(`${feedItemsFull.length} sonuç`);
-  }
-
-  function feedTfMeta(tf) {
-    return FEED_TF_META[tf] || FEED_TF_META['24h'];
+    setSearchHint(i18n('toast.results', { n: feedItemsFull.length }));
   }
 
   function getFeedChange(item) {
@@ -1132,12 +1130,12 @@
     const toolbarLabel = document.querySelector('.feed-toolbar-label');
     if (toolbarLabel) {
       toolbarLabel.textContent =
-        feedTab === 'home' ? 'Market Cap' : feedTab === 'trending' ? 'Trending' : 'Filter';
+        feedTab === 'home' ? i18n('feed.marketCap') : feedTab === 'trending' ? i18n('feed.trending') : i18n('feed.filter');
     }
     const topChip = document.querySelector('.feed-mode-chip[data-list-mode="top"]');
     if (topChip) {
-      topChip.textContent = feedTab === 'home' ? 'MCap' : 'Top';
-      topChip.title = feedTab === 'home' ? 'Piyasa değerine göre sırala' : 'Trend skoruna göre sırala';
+      topChip.textContent = feedTab === 'home' ? i18n('feed.mcapSort') : i18n('feed.top');
+      topChip.title = feedTab === 'home' ? i18n('feed.mcapSortTitle') : i18n('feed.topSortTitle');
     }
     document.querySelectorAll('.feed-tf-option[data-tf]').forEach((btn) => {
       const on = btn.dataset.tf === feedTimeframe;
@@ -1154,7 +1152,7 @@
   }
 
   function setFeedTimeframe(tf) {
-    const next = FEED_TF_META[tf] ? tf : '24h';
+    const next = feedTfMeta(tf).changeKey ? tf : '24h';
     if (next === feedTimeframe) {
       setFeedTfMenuOpen(false);
       return;
@@ -1285,7 +1283,7 @@
       const up = (last.chg || 0) >= 0;
       return `<article class="token-row token-row-last" data-report="${escHtml(last.id)}">
         <span class="tr-rank">★</span>
-        <div class="tr-token"><span class="tr-avatar">${escHtml((last.symbol || '?').slice(0, 2))}</span><div class="tr-meta"><div class="tr-name">${escHtml(last.symbol)}</div><div class="tr-sub">Son analiz · Tekrar aç</div></div></div>
+        <div class="tr-token"><span class="tr-avatar">${escHtml((last.symbol || '?').slice(0, 2))}</span><div class="tr-meta"><div class="tr-name">${escHtml(last.symbol)}</div><div class="tr-sub">${escHtml(i18n('row.lastReportOpen'))}</div></div></div>
         <span class="tr-mcap">—</span>
         <span class="tr-price">${escHtml(last.price || '—')}</span>
         <span class="tr-age">—</span>
@@ -1447,9 +1445,9 @@
       return;
     }
     if (label) {
-      if (sortMode === 'listedAt_desc' || sortMode === 'postedAt_desc') label.textContent = 'NEW ↓';
-      else if (sortMode === 'marketCap_desc') label.textContent = 'MCAP ↓';
-      else label.textContent = '24H VOL ↓';
+      if (sortMode === 'listedAt_desc' || sortMode === 'postedAt_desc') label.textContent = i18n('trending.sortNew');
+      else if (sortMode === 'marketCap_desc') label.textContent = i18n('trending.sortMcap');
+      else label.textContent = i18n('trending.sortVol');
     }
     const chipHtml = ticker.map((t) => {
       const up = t.change24h == null || Number(t.change24h) >= 0;
@@ -1486,13 +1484,13 @@
   }
 
   function renderNewPairsEmptyState() {
-    const ageLbl = newPairsAgeFilter || '24h';
+    const ageLbl = npAgeMeta(newPairsAgeFilter || '24h').label;
     return `<div class="feed-empty-pro" role="status">
       <span class="feed-empty-pro-glow" aria-hidden="true"></span>
       <span class="feed-empty-pro-icon" aria-hidden="true">✦</span>
-      <strong class="feed-empty-pro-title">YENİ LİSTELEME HENÜZ YOK</strong>
-      <p class="feed-empty-pro-lead">Seçili sürede (<b>${escHtml(ageLbl)}</b>) DEX'te yeni listelenen çift yok. Listelenince burada görünür; <b>48 saat</b> sonra bu listeden düşer, Trending'de kalır.</p>
-      <span class="feed-empty-pro-tag">NEW PAIRS · MAX 48H</span>
+      <strong class="feed-empty-pro-title">${escHtml(i18n('np.emptyTitle'))}</strong>
+      <p class="feed-empty-pro-lead">${i18n('feed.emptyNp', { age: escHtml(ageLbl) })}</p>
+      <span class="feed-empty-pro-tag">${escHtml(i18n('np.emptyTag'))}</span>
     </div>`;
   }
 
@@ -1506,7 +1504,7 @@
     const rows = prepared.map((it) => renderFeedRow(it)).join('');
     if (!rows) {
       if (!searching && feedTab === 'watch') {
-        list.innerHTML = globalThis.SniperWatchlist?.renderEmptyHtml?.() || '<p class="home-cta">Watchlist boş</p>';
+        list.innerHTML = globalThis.SniperWatchlist?.renderEmptyHtml?.() || `<p class="home-cta">${escHtml(i18n('feed.emptyWatch'))}</p>`;
         return;
       }
       if (!searching && (feedTab === 'new' || feedEmptyKind === 'new_pairs_empty')) {
@@ -1515,9 +1513,7 @@
       }
       const emptyMsg =
         opts.emptyMessage ||
-        (searching
-          ? 'Eşleşen token yok.'
-          : 'Henüz bot paylaşımı yok. Tokenler yalnızca Solana bot kanalına düştükçe listelenir.');
+        (searching ? i18n('feed.emptySearch') : i18n('feed.emptyBot'));
       list.innerHTML = `<p class="home-cta">${escHtml(emptyMsg)}</p>`;
       return;
     }
@@ -1559,14 +1555,14 @@
       return;
     }
     const chainKey = body.chain || activeChain || 'solana';
-    const c = CHAIN_UI[chainKey] || { label: chainKey, src: 'Canlı piyasa' };
+    const c = getChainUi(chainKey) || { label: chainKey, src: i18n('chain.liveMarket') };
     if (body.tab === 'new' || feedTab === 'new') {
       const n = body.items?.length ?? 0;
-      const live = body.liveRefresh ? ' · canlı DEX' : '';
+      const live = body.liveRefresh ? i18n('meta.liveDex') : '';
       if (body.empty) {
-        txt.textContent = `◎ ${c.label} · New Pairs · DEX listeleme 48h · boş`;
+        txt.textContent = i18n('meta.newPairsEmpty', { chain: c.label });
       } else {
-        txt.textContent = `◎ ${c.label} · New Pairs · DEX 48h · ${n} çift${live}`;
+        txt.textContent = i18n('meta.newPairs', { chain: c.label, n, live });
       }
       delete txt.dataset.lockChain;
       bar.classList.remove('hidden');
@@ -1578,23 +1574,23 @@
     }
     const n = body.botCount ?? body.items?.length ?? 0;
     const vol = body.stats?.volume24hFmt || '—';
-    const demo = body.previewDemo ? ' · örnek liste' : '';
+    const demo = body.previewDemo ? i18n('meta.demoList') : '';
     const src =
       body.source === 'dev_seed'
-        ? 'Örnek'
+        ? i18n('feed.src.dev')
         : body.source === 'bot_channel_live'
-          ? 'Bot · canlı fiyat'
+          ? i18n('feed.src.botLive')
           : body.source === 'dex_live_hybrid'
-            ? 'Bot + canlı DEX'
+            ? i18n('feed.src.hybrid')
             : body.source === 'dexscreener_live'
-              ? 'Canlı DEX'
+              ? i18n('feed.src.dexLive')
               : body.source === 'bot_channel'
-                ? 'Bot kanal'
+                ? i18n('feed.src.botChannel')
                 : c.src;
-    const live = body.liveRefresh ? ' · anlık' : '';
+    const live = body.liveRefresh ? i18n('meta.instant') : '';
     const dv = document.documentElement.dataset.build || '';
     const dvTag = dv && !dv.includes('BUILD') ? ` · ${dv.slice(0, 8)}` : '';
-    txt.textContent = `◎ ${c.label} · ${src} · ${n} token · ${vol} 24h${live}${demo}${dvTag}`;
+    txt.textContent = i18n('meta.feed', { chain: c.label, src, n, vol, live, demo: `${demo}${dvTag}` });
     delete txt.dataset.lockChain;
     bar.classList.remove('hidden');
   }
@@ -1649,6 +1645,7 @@
   }
 
   function ingestFeedResponse(body, q) {
+    lastFeedBody = body || null;
     let items = body?.items?.length ? body.items : [];
     if (!items.length && isLocalDevHost()) {
       items = PLACEHOLDER_TOKENS.map((x) => ({ ...x }));
@@ -1694,7 +1691,7 @@
     if (body.chain) activeChain = body.chain;
     applySearchFilter();
     if (body.empty && body.emptyMessage && feedEmptyKind !== 'new_pairs_empty') {
-      showToast('Liste boş — /post ile kanala paylaşın');
+      showToast(i18n('toast.feedEmpty'));
     }
     return body;
   }
@@ -1757,7 +1754,7 @@
         updateFeedMetaBar(null);
         feedItemsFull = [];
         applySearchFilter();
-        showToast('Liste yüklenemedi — tekrar deneyin');
+        showToast(i18n('toast.feedLoadFail'));
         return null;
       } finally {
         loadingEl?.classList.add('hidden');
@@ -1789,7 +1786,7 @@
     openingMint = true;
     const list = $('homeTokenList');
     list?.classList.add('dimmed');
-    showToast('Token analiz ediliyor…');
+    showToast(i18n('toast.analyzing'));
     try {
       const res = await fetch(apiPath(`/api/open/${encodeURIComponent(mint)}`));
       const body = await res.json().catch(() => ({}));
@@ -1801,7 +1798,7 @@
       location.hash = `r=${id}`;
       await loadReportFlow();
     } catch (e) {
-      showToast(e.message || 'Açılamadı');
+      showToast(e.message || i18n('toast.openFail'));
     } finally {
       openingMint = false;
       list?.classList.remove('dimmed');
@@ -1857,7 +1854,7 @@
         const inp = $('radarMintInput');
         if (inp && text) inp.value = text.trim();
       } catch {
-        showToast('Could not paste from clipboard');
+        showToast(i18n('toast.pasteFail'));
       }
     });
 
@@ -1926,7 +1923,7 @@
     if (!addr) return;
     try {
       await navigator.clipboard.writeText(addr);
-      showToast('Mint kopyalandı');
+      showToast(i18n('toast.mintCopied'));
     } catch {
       showToast(shortMint(addr));
     }
@@ -1946,7 +1943,7 @@
       if (!addr) return;
       try {
         await navigator.clipboard.writeText(addr);
-        showToast('Adres kopyalandı');
+        showToast(i18n('toast.addrCopied'));
       } catch {
         showToast(shortMint(addr));
       }
@@ -1960,9 +1957,9 @@
           return;
         }
         await navigator.clipboard.writeText(url);
-        showToast('Link kopyalandı');
+        showToast(i18n('toast.linkCopied'));
       } catch {
-        showToast('Paylaşım iptal');
+        showToast(i18n('toast.shareCancel'));
       }
     });
   }
@@ -2074,8 +2071,8 @@
       btn.title = `${w.label} · ${w.pubkey} (çıkmak için dokun)`;
       return;
     }
-    btn.innerHTML = '<span class="wallet-ico">👛</span> Connect';
-    btn.title = 'Phantom / Solflare bağla';
+    btn.innerHTML = `<span class="wallet-ico">👛</span> ${escHtml(i18n('connect.wallet'))}`;
+    btn.title = i18n('connect.titleConnect');
   }
 
   function bindTradeBar() {
@@ -2111,16 +2108,16 @@
       try {
         if (w.pubkey) {
           await w.disconnect();
-          showToast('Bağlantı kesildi');
+          showToast(i18n('toast.walletDisconnected'));
         } else {
           globalThis.SniperTrade?.openWalletModal?.();
         }
       } catch (e) {
         if (e?.code === 'deeplink') {
-          showToast('Phantom açılıyor — orada onayla');
+          showToast(i18n('toast.phantomOpen'));
           return;
         }
-        showToast(e?.message || 'Cüzdan bağlanamadı');
+        showToast(e?.message || i18n('toast.walletFail'));
       }
       updateConnectButton();
     });
@@ -2670,44 +2667,46 @@
     const totalTxns =
       typeof m.buys24h === 'number' && typeof m.sells24h === 'number' ? m.buys24h + m.sells24h : null;
     const quoteSym = (m.quoteSymbol || 'SOL').toUpperCase();
-    const pooledTokenLbl = m.symbol ? `Havuz ${String(m.symbol).toUpperCase()}` : 'Havuz token';
-    const pooledQuoteLbl = `Havuz ${quoteSym}`;
+    const pooledTokenLbl = m.symbol
+      ? i18n('metric.poolToken', { sym: String(m.symbol).toUpperCase() })
+      : i18n('metric.poolToken', { sym: 'token' });
+    const pooledQuoteLbl = i18n('metric.poolToken', { sym: quoteSym });
 
     const cells = [
-      { lbl: 'Piyasa değeri', val: infoMetricVal(m.marketCapUsdFmt) },
-      { lbl: 'Likidite', val: infoMetricVal(m.liquidityUsdFmt) },
-      { lbl: 'Toplam değer (FDV)', val: infoMetricVal(m.fdvUsdFmt) },
-      { lbl: '24s hacim', val: infoMetricVal(m.volume24hFmt) },
+      { lbl: i18n('metric.mcap'), val: infoMetricVal(m.marketCapUsdFmt) },
+      { lbl: i18n('metric.liq'), val: infoMetricVal(m.liquidityUsdFmt) },
+      { lbl: i18n('metric.fdv'), val: infoMetricVal(m.fdvUsdFmt) },
+      { lbl: i18n('metric.vol24'), val: infoMetricVal(m.volume24hFmt) },
       {
-        lbl: 'MCAP / FDV',
+        lbl: i18n('metric.mcapFdv'),
         val:
           m.circSupplyPct != null && Number.isFinite(m.circSupplyPct)
             ? `${m.circSupplyPct.toFixed(2)}%`
             : null,
         barPct: m.circSupplyPct,
       },
-      { lbl: '6s hacim', val: infoMetricVal(m.volume6hFmt) },
+      { lbl: i18n('metric.vol6h'), val: infoMetricVal(m.volume6hFmt) },
       {
-        lbl: 'Fiyat',
+        lbl: i18n('metric.price'),
         val: infoMetricVal(fmtPriceDisplay(m)),
         sub: chgText,
         subCls: chgClass(chg24),
       },
-      { lbl: '1s hacim', val: infoMetricVal(m.volume1hFmt) },
+      { lbl: i18n('metric.vol1h'), val: infoMetricVal(m.volume1hFmt) },
       { lbl: pooledTokenLbl, val: infoMetricVal(m.liquidityBaseFmt) },
       { lbl: pooledQuoteLbl, val: infoMetricVal(m.liquidityQuoteFmt) },
       {
-        lbl: 'Toplam işlem (24s)',
+        lbl: i18n('metric.txns24'),
         val: totalTxns != null && totalTxns > 0 ? fmtCompactCount(totalTxns) : null,
       },
-      { lbl: 'Havuz oluşturma', val: infoMetricVal(m.poolCreatedAtFmt) },
+      { lbl: i18n('metric.poolCreated'), val: infoMetricVal(m.poolCreatedAtFmt) },
       {
-        lbl: 'Fiyat SOL',
+        lbl: i18n('metric.priceSol'),
         val: infoMetricVal(m.priceNativeFmt ? `${m.priceNativeFmt} SOL` : null),
       },
-      { lbl: 'Çift yaşı', val: infoMetricVal(m.pairAge) },
+      { lbl: i18n('metric.pairAge'), val: infoMetricVal(m.pairAge) },
       {
-        lbl: 'Holder',
+        lbl: i18n('metric.holders'),
         val: m.holdersCount != null && m.holdersCount > 0 ? fmtCompactCount(m.holdersCount) : null,
       },
     ];
@@ -2735,9 +2734,9 @@
     wrap.classList.remove('hidden');
     const sellPct = 100 - buyPct;
     rows.innerHTML = `<div class="info-act-block">
-      <div class="info-act-labels"><span class="buy-lbl">Alım ${buyPct}%</span><span class="sell-lbl">Satım ${sellPct}%</span></div>
+      <div class="info-act-labels"><span class="buy-lbl">${escHtml(i18n('metric.buyPct', { n: buyPct }))}</span><span class="sell-lbl">${escHtml(i18n('metric.sellPct', { n: sellPct }))}</span></div>
       <div class="info-act-bar"><span class="info-act-bar-fill" style="width:${buyPct}%"></span></div>
-      <div class="info-act-vals"><span class="buy-val">${buys.toLocaleString('tr-TR')} al</span><span class="sell-val">${sells.toLocaleString('tr-TR')} sat</span></div>
+      <div class="info-act-vals"><span class="buy-val">${escHtml(i18n('metric.buyCount', { n: buys.toLocaleString(window.MiniAppI18n?.getLang?.() === 'tr' ? 'tr-TR' : 'en-US') }))}</span><span class="sell-val">${escHtml(i18n('metric.sellCount', { n: sells.toLocaleString(window.MiniAppI18n?.getLang?.() === 'tr' ? 'tr-TR' : 'en-US') }))}</span></div>
     </div>`;
   }
 
@@ -2810,7 +2809,7 @@
     }
     iframe.classList.remove('hidden');
     const meta = $('tradesMeta');
-    if (meta) meta.textContent = 'Canlı işlemler';
+    if (meta) meta.textContent = i18n('detail.tradesLive');
     scheduleDexTradesCrop();
   }
 
@@ -3417,7 +3416,7 @@
     const ctaLbl = $('infoAuditCtaLbl');
     if (ctaLbl) {
       const count = n > 0 ? n : 1;
-      ctaLbl.textContent = count > 1 ? `${count} denetimi incele` : 'Denetimleri gör';
+      ctaLbl.textContent = count > 1 ? i18n('detail.viewAuditsN', { n: count }) : i18n('detail.viewAudits');
     }
 
     body.innerHTML = rows
@@ -3699,7 +3698,7 @@
       await applyChartTimeframe(appData.market, tf);
     } catch (e) {
       console.warn('switchChartTimeframe', e);
-      showToast('Grafik yenilenemedi — birkaç sn sonra tekrar dene');
+      showToast(i18n('toast.chartRefreshFail'));
     } finally {
       document.querySelectorAll('.tf').forEach((b) => b.classList.remove('loading'));
     }
@@ -3727,7 +3726,7 @@
       if (!addr) return;
       try {
         await navigator.clipboard.writeText(addr);
-        showToast('Mint kopyalandı');
+        showToast(i18n('toast.mintCopied'));
       } catch {
         showToast(shortMint(addr));
       }
@@ -3862,6 +3861,25 @@
       }
     });
   }
+
+  function onLangChange() {
+    syncFeedToolbarUi();
+    updateFeedListTitle();
+    syncNewPairsView();
+    updateConnectButton();
+    if (lastFeedBody) updateFeedMetaBar(lastFeedBody);
+    applySearchHintFromFeed();
+    applySearchFilter();
+    if (appData) {
+      renderInfoPanel(appData);
+      renderSecurityPanel(appData);
+    }
+    window.SniperWatchlist?.refreshI18n?.();
+    window.SniperTrade?.refreshI18n?.();
+    if (appData) window.SniperWatchlist?.syncDetailButton?.(appData);
+  }
+
+  document.addEventListener('miniapp:langchange', onLangChange);
 
   async function main() {
     setupShell();

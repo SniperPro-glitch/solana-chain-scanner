@@ -382,6 +382,13 @@
   border: 1px solid rgba(245, 166, 35, 0.35);
 }
 
+.dex-sidebar-lang,
+.dex-sidebar-lang .miniapp-lang-btn {
+  position: relative;
+  z-index: 2;
+  pointer-events: auto;
+}
+
 .dex-sidebar-foot {
   flex-shrink: 0;
   border-top: 1px solid rgba(255, 255, 255, 0.08);

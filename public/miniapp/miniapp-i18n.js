@@ -2,117 +2,37 @@
  * Mini App UI — EN (default) / TR / RU
  */
 (function () {
+  const root = typeof globalThis !== 'undefined' ? globalThis : typeof window !== 'undefined' ? window : this;
   const LANG_KEY = 'sniperMiniAppLang';
   const SUPPORTED = ['en', 'tr', 'ru'];
   const DEFAULT_LANG = 'en';
+  const STRINGS = root.__MiniAppI18nStrings || {};
 
-  const STRINGS = {
-    'account.login.lang': { en: 'Language', tr: 'Dil', ru: 'Язык' },
-    'account.login.tab': { en: 'Sign in', tr: 'Giriş yap', ru: 'Вход' },
-    'account.register.tab': { en: 'Create account', tr: 'Hesap oluştur', ru: 'Создать аккаунт' },
-    'account.login.title': { en: 'Sign in', tr: 'Giriş yap', ru: 'Вход' },
-    'account.register.title': { en: 'Create account', tr: 'Hesap oluştur', ru: 'Создать аккаунт' },
-    'account.login.lead': {
-      en: 'Sign in with your username and password. Admin panel is only available on authorized accounts.',
-      tr: 'Kullanıcı adı ve şifrenle giriş yap. Yönetim paneli yalnızca yetkili hesaplarda görünür.',
-      ru: 'Войдите с именем пользователя и паролем. Панель администратора только для авторизованных аккаунтов.',
-    },
-    'account.register.lead': {
-      en: 'Pick a username and password (min. 6 characters). You will be signed in automatically after registration.',
-      tr: 'Kullanıcı adı ve şifre seçin (en az 6 karakter). Kayıttan sonra otomatik giriş yapılır.',
-      ru: 'Выберите имя пользователя и пароль (мин. 6 символов). После регистрации вход выполняется автоматически.',
-    },
-    'account.login.username': { en: 'Username', tr: 'Kullanıcı adı', ru: 'Имя пользователя' },
-    'account.login.password': { en: 'Password', tr: 'Şifre', ru: 'Пароль' },
-    'account.login.submit': { en: 'Sign in', tr: 'Giriş yap', ru: 'Войти' },
-    'account.register.submit': { en: 'Create account', tr: 'Hesap oluştur', ru: 'Создать' },
-    'account.login.cancel': { en: 'Cancel', tr: 'Vazgeç', ru: 'Отмена' },
-    'account.login.hint': {
-      en: 'For wallet use <b>Connect Wallet</b> above. Panel: founder (.env) or accounts defined in admin panel.',
-      tr: 'Cüzdan için üstteki <b>Connect Wallet</b>. Panel: kurucu (.env) veya admin panelinde tanımlı hesaplar.',
-      ru: 'Для кошелька — <b>Connect Wallet</b> сверху. Панель: основатель (.env) или учётные записи в админ-панели.',
-    },
-    'account.login.close': { en: 'Close', tr: 'Kapat', ru: 'Закрыть' },
-    'account.login.errRequired': {
-      en: 'Username and password are required.',
-      tr: 'Kullanıcı adı ve şifre gerekli.',
-      ru: 'Требуются имя пользователя и пароль.',
-    },
-    'account.login.err503': {
-      en: 'Sign-in is disabled on the server. Set ADMIN_USERNAME and ADMIN_PASSWORD.',
-      tr: 'Giriş sunucuda kapalı. ADMIN_USERNAME ve ADMIN_PASSWORD tanımlayın.',
-      ru: 'Вход отключён на сервере. Укажите ADMIN_USERNAME и ADMIN_PASSWORD.',
-    },
-    'account.login.err401': {
-      en: 'Invalid username or password.',
-      tr: 'Kullanıcı adı veya şifre hatalı.',
-      ru: 'Неверное имя пользователя или пароль.',
-    },
-    'account.login.errGeneric': {
-      en: 'Sign-in failed. Try again.',
-      tr: 'Giriş başarısız. Tekrar deneyin.',
-      ru: 'Ошибка входа. Попробуйте снова.',
-    },
-    'account.login.errNetwork': {
-      en: 'Connection error. Check your internet.',
-      tr: 'Bağlantı hatası. İnterneti kontrol edin.',
-      ru: 'Ошибка соединения. Проверьте интернет.',
-    },
-    'account.register.err409': {
-      en: 'This username is already taken.',
-      tr: 'Bu kullanıcı adı zaten kullanılıyor.',
-      ru: 'Это имя пользователя уже занято.',
-    },
-    'account.register.err400': {
-      en: 'Invalid username or password (min. 2 / 6 characters).',
-      tr: 'Geçersiz kullanıcı adı veya şifre (en az 2 / 6 karakter).',
-      ru: 'Неверное имя или пароль (мин. 2 / 6 символов).',
-    },
-    'account.register.errGeneric': {
-      en: 'Registration failed. Try again.',
-      tr: 'Kayıt başarısız. Tekrar deneyin.',
-      ru: 'Ошибка регистрации. Попробуйте снова.',
-    },
-    'sidebar.anon': { en: 'anon', tr: 'anon', ru: 'anon' },
-    'sidebar.guest': { en: 'Guest', tr: 'Misafir', ru: 'Гость' },
-    'sidebar.signIn': { en: 'Sign in', tr: 'Giriş yap', ru: 'Войти' },
-    'sidebar.signOut': { en: 'Sign out', tr: 'Çıkış', ru: 'Выйти' },
-    'sidebar.adminPanel': { en: 'Admin panel', tr: 'Yönetim Paneli', ru: 'Панель админа' },
-    'lang.en': { en: 'English', tr: 'English', ru: 'English' },
-    'lang.tr': { en: 'Türkçe', tr: 'Türkçe', ru: 'Türkçe' },
-    'lang.ru': { en: 'Русский', tr: 'Русский', ru: 'Русский' },
-  };
+  let currentLang = DEFAULT_LANG;
 
   function normalizeLang(lang) {
     const l = String(lang || '').toLowerCase().slice(0, 2);
     return SUPPORTED.includes(l) ? l : DEFAULT_LANG;
   }
 
-  function getLang() {
+  function loadStoredLang() {
     try {
-      return normalizeLang(localStorage.getItem(LANG_KEY) || DEFAULT_LANG);
-    } catch {
-      return DEFAULT_LANG;
-    }
-  }
-
-  function setLang(lang) {
-    const l = normalizeLang(lang);
-    try {
-      localStorage.setItem(LANG_KEY, l);
+      const raw = localStorage.getItem(LANG_KEY);
+      if (raw) return normalizeLang(raw);
     } catch {
       /* yoksay */
     }
-    document.documentElement.lang = l;
-    applyAll();
-    return l;
+    return DEFAULT_LANG;
+  }
+
+  function getLang() {
+    return currentLang;
   }
 
   function t(key, vars) {
-    const l = getLang();
     const entry = STRINGS[key];
     if (!entry) return key;
-    let s = entry[l] ?? entry[DEFAULT_LANG] ?? key;
+    let s = entry[currentLang] ?? entry[DEFAULT_LANG] ?? key;
     if (vars) {
       for (const [k, v] of Object.entries(vars)) {
         s = s.replace(new RegExp(`\\{${k}\\}`, 'g'), String(v));
@@ -122,23 +42,47 @@
   }
 
   function applyNode(el) {
-    if (!el) return;
+    if (!el || el.classList.contains('miniapp-lang-btn')) return;
     const key = el.getAttribute('data-i18n');
-    if (!key) return;
-    const html = el.getAttribute('data-i18n-html') === '1';
-    const val = t(key);
-    if (html) el.innerHTML = val;
-    else el.textContent = val;
-    const aria = el.getAttribute('data-i18n-aria');
-    if (aria) el.setAttribute('aria-label', t(aria));
+    if (key) {
+      const html = el.getAttribute('data-i18n-html') === '1';
+      const val = t(key);
+      if (html) el.innerHTML = val;
+      else el.textContent = val;
+    }
+    const phKey = el.getAttribute('data-i18n-placeholder');
+    if (phKey) el.placeholder = t(phKey);
+    const titleKey = el.getAttribute('data-i18n-title');
+    if (titleKey) el.title = t(titleKey);
+    const ariaKey = el.getAttribute('data-i18n-aria');
+    if (ariaKey) el.setAttribute('aria-label', t(ariaKey));
   }
 
-  function applyLoginLangButtons() {
+  function applyTfMenus() {
+    document.querySelectorAll('[data-i18n-tf]').forEach((btn) => {
+      const tf = btn.getAttribute('data-i18n-tf');
+      if (!tf) return;
+      const label = btn.querySelector('.feed-tf-option-label');
+      const check = btn.querySelector('.feed-tf-check');
+      const text = t(`tf.${tf}`);
+      if (label) label.textContent = text;
+      else if (!check) btn.textContent = text;
+    });
+    document.querySelectorAll('[data-i18n-np-age]').forEach((btn) => {
+      const age = btn.getAttribute('data-i18n-np-age');
+      const label = btn.querySelector('.feed-tf-option-label');
+      const text = t(`npAge.${age}`);
+      if (label) label.textContent = text;
+    });
+  }
+
+  function applyLangButtons() {
     const lang = getLang();
-    document.querySelectorAll('.account-login-lang-btn').forEach((btn) => {
+    document.querySelectorAll('.miniapp-lang-btn').forEach((btn) => {
       const code = btn.dataset.lang;
-      btn.classList.toggle('active', code === lang);
-      btn.setAttribute('aria-pressed', code === lang ? 'true' : 'false');
+      const on = code === lang;
+      btn.classList.toggle('active', on);
+      btn.setAttribute('aria-pressed', on ? 'true' : 'false');
     });
   }
 
@@ -154,18 +98,19 @@
       const on = btn.dataset.mode === m;
       btn.classList.toggle('active', on);
       btn.setAttribute('aria-selected', on ? 'true' : 'false');
+      const tabKey = btn.getAttribute('data-i18n');
+      if (tabKey) btn.textContent = t(tabKey);
     });
     const pass = document.getElementById('accountLoginPass');
     if (pass) pass.setAttribute('autocomplete', m === 'register' ? 'new-password' : 'current-password');
   }
 
   function applyLogin() {
-    document.querySelectorAll('#accountLoginModal [data-i18n]').forEach(applyNode);
-    document.querySelectorAll('#accountLoginModal [data-i18n-aria]').forEach((el) => {
-      const key = el.getAttribute('data-i18n-aria');
-      if (key) el.setAttribute('aria-label', t(key));
-    });
-    applyLoginLangButtons();
+    const modal = document.getElementById('accountLoginModal');
+    if (modal) {
+      modal.querySelectorAll('[data-i18n], [data-i18n-placeholder], [data-i18n-title], [data-i18n-aria]').forEach(applyNode);
+    }
+    applyLangButtons();
     const mode = window.SniperSidebarAccount?.getModalMode?.() || 'login';
     applyAccountModal(mode);
   }
@@ -184,27 +129,91 @@
       if (name) name.textContent = t('sidebar.anon');
       if (sub) sub.textContent = t('sidebar.guest');
     }
+    const watchHead = document.querySelector('.dex-sidebar-watch-head span:last-child');
+    if (watchHead) watchHead.textContent = t('sidebar.watchTitle');
+    const watchEmpty = document.getElementById('dexSidebarWatchEmpty');
+    if (watchEmpty && !watchEmpty.dataset.dynamic) watchEmpty.textContent = t('sidebar.watchEmpty');
   }
 
-  function applyAll() {
+  function applyDocument() {
+    document.querySelectorAll('[data-i18n], [data-i18n-placeholder], [data-i18n-title], [data-i18n-aria]').forEach(applyNode);
+    applyTfMenus();
+    applyLangButtons();
     applyLogin();
     applySidebarStatic();
   }
 
-  function bindLangSelector() {
-    const wrap = document.getElementById('accountLoginLang');
-    if (!wrap || wrap.dataset.bound) return;
-    wrap.dataset.bound = '1';
-    wrap.addEventListener('click', (e) => {
-      const btn = e.target.closest('.account-login-lang-btn');
-      if (!btn?.dataset.lang) return;
-      setLang(btn.dataset.lang);
-    });
+  function feedTfMeta(tf) {
+    const key = ['5m', '1h', '6h', '24h'].includes(tf) ? tf : '24h';
+    return {
+      label: t(`tf.${key}`),
+      short: t(`tf.${key}.short`),
+      col: t(`tf.${key}.col`),
+      changeKey: { '5m': 'change5m', '1h': 'change1h', '6h': 'change6h', '24h': 'change24h' }[key],
+      volKey: { '5m': 'volume5m', '1h': 'volume1h', '6h': 'volume6h', '24h': 'volume24h' }[key],
+      volFmtKey: { '5m': 'volume5mFmt', '1h': 'volume1hFmt', '6h': 'volume6hFmt', '24h': 'volume24hFmt' }[key],
+    };
+  }
+
+  function npAgeMeta(age) {
+    const key = ['1h', '6h', '12h', '24h', '48h'].includes(age) ? age : '24h';
+    return { label: t(`npAge.${key}`), short: t(`npAge.${key}`) };
+  }
+
+  function chainUi(chain) {
+    const id = String(chain || 'solana').toLowerCase();
+    const labels = { solana: 'Solana', ton: 'TON', bsc: 'BSC', eth: 'Ethereum' };
+    const shorts = { solana: 'SOL', ton: 'TON', bsc: 'BSC', eth: 'ETH' };
+    const srcKey = `chain.${id}.src`;
+    return {
+      short: shorts[id] || id.toUpperCase().slice(0, 4),
+      label: labels[id] || id,
+      src: STRINGS[srcKey] ? t(srcKey) : t('chain.liveMarket'),
+      live: id === 'solana',
+    };
+  }
+
+  function emitLangChange() {
+    document.dispatchEvent(new CustomEvent('miniapp:langchange', { detail: { lang: getLang() } }));
+  }
+
+  function setLang(lang) {
+    currentLang = normalizeLang(lang);
+    try {
+      localStorage.setItem(LANG_KEY, currentLang);
+    } catch {
+      /* yoksay */
+    }
+    document.documentElement.lang = currentLang;
+    applyAll();
+    emitLangChange();
+    return currentLang;
+  }
+
+  function applyAll() {
+    applyDocument();
+  }
+
+  function bindLangClicks() {
+    if (document.documentElement.dataset.i18nLangBound) return;
+    document.documentElement.dataset.i18nLangBound = '1';
+    document.addEventListener(
+      'click',
+      (e) => {
+        const btn = e.target.closest?.('.miniapp-lang-btn[data-lang]');
+        if (!btn) return;
+        e.preventDefault();
+        e.stopPropagation();
+        setLang(btn.dataset.lang);
+      },
+      true,
+    );
   }
 
   function init() {
-    document.documentElement.lang = getLang();
-    bindLangSelector();
+    currentLang = loadStoredLang();
+    document.documentElement.lang = currentLang;
+    bindLangClicks();
     applyAll();
   }
 
@@ -214,9 +223,13 @@
     getLang,
     setLang,
     t,
+    feedTfMeta,
+    npAgeMeta,
+    chainUi,
     applyLogin,
     applyAccountModal,
     applySidebarStatic,
+    applyDocument,
     applyAll,
     normalizeLang,
   };
