@@ -1,5 +1,10 @@
 /* Yan panel — DexScreener tarzı (mobil + Telegram) */
 
+:root {
+  --sidebar-watchlist-icon-size: 24px;
+  --sidebar-watchlist-icon-scale: 1.05;
+}
+
 .dex-sidebar {
   position: fixed !important;
   left: 0;
@@ -251,7 +256,8 @@
 }
 
 .dex-sidebar-link[data-sidebar-nav='watchlist'] .ico {
-  width: 30px;
+  width: var(--sidebar-watchlist-icon-size);
+  min-height: var(--sidebar-watchlist-icon-size);
   background: transparent;
 }
 
@@ -262,11 +268,11 @@
 }
 
 .dex-sidebar-link .watchlist-ico-img {
-  width: 25px;
-  height: 25px;
+  width: var(--sidebar-watchlist-icon-size);
+  height: var(--sidebar-watchlist-icon-size);
   object-fit: contain;
   object-position: center;
-  transform: scale(1.28);
+  transform: scale(var(--sidebar-watchlist-icon-scale));
   transform-origin: center;
   background: transparent;
   mix-blend-mode: lighten;
