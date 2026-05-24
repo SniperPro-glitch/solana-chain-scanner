@@ -395,10 +395,6 @@
     bindDrawer();
     bindPanelCloseDrag();
 
-    $('btnSidebarOpen')?.addEventListener('click', (e) => {
-      e.preventDefault();
-      toggleSidebar();
-    });
     $('btnSidebarClose')?.addEventListener('click', closeSidebar);
     $('dexSidebarBackdrop')?.addEventListener('click', closeSidebar);
 
