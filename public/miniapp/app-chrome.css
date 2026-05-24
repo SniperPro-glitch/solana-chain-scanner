@@ -3,7 +3,7 @@
 :root {
   --app-brand-h: 58px;
   --app-chrome-inset: 8px;
-  --promo-banner-edge: 2px;
+  --promo-banner-edge: 0px;
   --chrome-toolbar-pad-bottom: 8px;
   --chrome-banner-pull: 7px;
   --home-feed-pull: 3px;
@@ -304,7 +304,7 @@ html.tg-fullscreen .app-top-chrome {
     0 0 18px rgba(0, 229, 255, 0.16);
   text-decoration: none;
   flex-shrink: 0;
-  transform: translateX(5px);
+  transform: translateX(0);
 }
 
 html.web-browser .app-top-chrome .promo-banner.app-promo-global {
