@@ -648,11 +648,14 @@
     const meta = $('feedMetaBar');
     if (isWl && meta) {
       const wl = globalThis.SniperWatchlist;
-      const listName = wl?.getActiveList?.()?.name || 'Watchlist';
+      const list = wl?.getActiveList?.();
+      const listName = wl?.displayListName?.(list) || i18n('wl.title');
       const n = wl?.getEntries?.()?.length ?? 0;
       const txt = $('feedMetaText');
       if (txt) {
-        txt.textContent = n ? `◎ ${listName} · ${n} token` : `◎ ${listName} · boş`;
+        txt.textContent = n
+          ? i18n('meta.list', { name: listName, n })
+          : i18n('meta.listEmpty', { name: listName });
       }
       wl?.renderListBar?.();
       meta.classList.remove('hidden');
@@ -3865,6 +3868,7 @@
   function onLangChange() {
     syncFeedToolbarUi();
     updateFeedListTitle();
+    syncWatchlistView();
     syncNewPairsView();
     updateConnectButton();
     if (lastFeedBody) updateFeedMetaBar(lastFeedBody);

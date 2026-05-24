@@ -39,6 +39,12 @@
     return `list_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 7)}`;
   }
 
+  function displayListName(list) {
+    if (!list) return i18n('wl.title');
+    if (list.id === DEFAULT_LIST_ID) return i18n('wl.title');
+    return list.name || i18n('wl.title');
+  }
+
   function defaultState() {
     const t = Date.now();
     return {
@@ -403,7 +409,7 @@
     const list = getActiveList();
     const title = $('watchlistActiveTitle');
     const note = $('watchlistActiveNote');
-    if (title) title.textContent = list?.name || i18n('wl.title');
+    if (title) title.textContent = displayListName(list);
     if (note) {
       note.textContent = list?.note?.trim()
         ? list.note.trim()
@@ -420,7 +426,7 @@
       .map((l) => {
         const on = l.id === activeId;
         const n = l.mints.length;
-        return `<button type="button" class="wl-list-chip${on ? ' active' : ''}" role="tab" aria-selected="${on ? 'true' : 'false'}" data-list-id="${escHtml(l.id)}">${escHtml(l.name)}<span class="wl-chip-count">${n}</span></button>`;
+        return `<button type="button" class="wl-list-chip${on ? ' active' : ''}" role="tab" aria-selected="${on ? 'true' : 'false'}" data-list-id="${escHtml(l.id)}">${escHtml(displayListName(l))}<span class="wl-chip-count">${n}</span></button>`;
       })
       .join('');
     root.querySelectorAll('[data-list-id]').forEach((btn) => {
@@ -662,8 +668,8 @@
 
   function syncNavBadge() {
     const n = countAllUniqueMints();
+    const base = i18n('nav.watch');
     document.querySelectorAll('.bnav[data-nav="watch"] .bnav-lbl').forEach((el) => {
-      const base = 'Watchlist';
       el.textContent = n ? `${base} (${n})` : base;
     });
   }
@@ -761,6 +767,7 @@
     syncActiveListHeader();
     renderListBar();
     renderSidebar();
+    syncNavBadge();
     const data = typeof global.getAppData === 'function' ? global.getAppData() : null;
     syncDetailButton(data);
     global.MiniAppI18n?.applyDocument?.();
@@ -768,6 +775,7 @@
 
   global.SniperWatchlist = {
     refreshI18n,
+    displayListName,
     getEntries,
     getLists,
     getActiveList,
