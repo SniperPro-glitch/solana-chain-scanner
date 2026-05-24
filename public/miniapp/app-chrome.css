@@ -3,6 +3,7 @@
 :root {
   --app-brand-h: 58px;
   --app-chrome-inset: 8px;
+  --promo-banner-edge: 1px;
   --sniper-bg: #060910;
   --sniper-card: #0b101d;
   --sniper-border: rgba(255, 255, 255, 0.06);
@@ -279,11 +280,15 @@ html.tg-fullscreen .app-top-chrome {
   order: -1;
 }
 
+/* Yalnızca banner — toolbar 8px inset içinde kalır; banner ekrana 1px boşluk */
 .app-top-chrome .promo-banner.app-promo-global {
   display: block;
   box-sizing: border-box;
-  width: calc(100% - 16px);
-  margin: 0 8px 8px;
+  width: calc(100% + 2 * (var(--app-chrome-inset) - var(--promo-banner-edge)));
+  max-width: none;
+  margin-left: calc(var(--promo-banner-edge) - var(--app-chrome-inset));
+  margin-right: calc(var(--promo-banner-edge) - var(--app-chrome-inset));
+  margin-bottom: 8px;
   border-radius: 10px;
   overflow: hidden;
 }
