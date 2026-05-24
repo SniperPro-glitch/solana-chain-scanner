@@ -232,7 +232,7 @@
     let edgeTracking = false;
     let edgeStartY = 0;
 
-    function finishDrag(px) {
+    function finishOpenDrag(px) {
       tracking = false;
       edgeTracking = false;
       handle.classList.remove('is-dragging');
@@ -266,12 +266,12 @@
         openSidebar();
         return;
       }
-      finishDrag(dragPx);
+      finishOpenDrag(dragPx);
     });
 
     handle.addEventListener('pointercancel', () => {
       if (!tracking) return;
-      finishDrag(dragPx);
+      finishOpenDrag(dragPx);
     });
 
     document.addEventListener(
@@ -313,7 +313,74 @@
       const dx = x - originX;
       edgeTracking = false;
       if (dx < TAP_SLOP) return;
-      finishDrag(dragPx);
+      finishOpenDrag(dragPx);
+    });
+  }
+
+  function bindPanelCloseDrag() {
+    const root = $('dexSidebar');
+    const panel = root?.querySelector('.dex-sidebar-panel');
+    if (!panel) return;
+
+    const CLOSE_RATIO = 0.34;
+    const TAP_SLOP = 10;
+    let closing = false;
+    let originX = 0;
+    let originY = 0;
+    let dragPx = 0;
+
+    function finishCloseDrag(px) {
+      closing = false;
+      const w = panelWidth();
+      if (px <= w * (1 - CLOSE_RATIO)) closeSidebar();
+      else openSidebar();
+    }
+
+    panel.addEventListener(
+      'pointerdown',
+      (e) => {
+        if (!open) return;
+        if (e.pointerType === 'mouse' && e.button !== 0) return;
+        closing = true;
+        originX = e.clientX;
+        originY = e.clientY;
+        dragPx = panelWidth();
+        panel.setPointerCapture(e.pointerId);
+      },
+      { passive: true },
+    );
+
+    panel.addEventListener('pointermove', (e) => {
+      if (!closing || !open) return;
+      const dx = e.clientX - originX;
+      const dy = Math.abs(e.clientY - originY);
+      if (Math.abs(dx) < 6 && dy < 6) return;
+      if (dy > Math.abs(dx) * 1.15) {
+        closing = false;
+        clearDragStyles();
+        if (panel.hasPointerCapture(e.pointerId)) panel.releasePointerCapture(e.pointerId);
+        return;
+      }
+      if (dx > 0) return;
+      dragPx = setSidebarDrag(Math.max(0, panelWidth() + dx));
+      if (Math.abs(dx) > 8) e.preventDefault();
+    });
+
+    panel.addEventListener('pointerup', (e) => {
+      if (!closing) return;
+      if (panel.hasPointerCapture(e.pointerId)) panel.releasePointerCapture(e.pointerId);
+      const dx = e.clientX - originX;
+      if (Math.abs(dx) < TAP_SLOP) {
+        closing = false;
+        clearDragStyles();
+        return;
+      }
+      finishCloseDrag(dragPx);
+    });
+
+    panel.addEventListener('pointercancel', () => {
+      if (!closing) return;
+      finishCloseDrag(dragPx);
     });
   }
 
@@ -324,6 +391,7 @@
     bindChainIcons();
     bindSocialIcons();
     bindDrawer();
+    bindPanelCloseDrag();
 
     $('btnSidebarOpen')?.addEventListener('click', (e) => {
       e.preventDefault();

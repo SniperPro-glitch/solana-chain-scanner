@@ -2,9 +2,15 @@
 
 .dex-sidebar {
   position: fixed !important;
-  inset: 0;
+  left: 0;
+  right: 0;
+  top: 0;
+  width: 100%;
+  height: var(--app-height, 100dvh);
+  max-height: var(--app-height, 100dvh);
   z-index: 6500;
   pointer-events: none;
+  overflow: hidden;
 }
 
 .dex-sidebar.open {
@@ -27,17 +33,22 @@
   position: absolute;
   top: 0;
   left: 0;
-  bottom: 0;
+  height: 100%;
+  max-height: 100%;
   width: min(292px, 88vw);
   max-width: 100%;
   display: flex;
   flex-direction: column;
+  box-sizing: border-box;
+  padding-top: var(--sniper-content-top, var(--tg-content-safe-top, 0px));
+  padding-bottom: var(--tg-safe-bottom, env(safe-area-inset-bottom, 0px));
   background: #0a0e18;
   border-right: 1px solid rgba(255, 255, 255, 0.08);
   box-shadow: 8px 0 40px rgba(0, 0, 0, 0.55);
   transform: translateX(-105%);
   transition: transform 0.32s cubic-bezier(0.22, 1, 0.36, 1);
   overflow: hidden;
+  touch-action: pan-y;
 }
 
 .dex-sidebar.open .dex-sidebar-panel {
@@ -191,11 +202,13 @@
 }
 
 .dex-sidebar-scroll {
-  flex: 1;
+  flex: 1 1 auto;
+  min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
   padding: 4px 0 8px;
   -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
 }
 
 .dex-sidebar-nav {
@@ -390,6 +403,7 @@
 }
 
 .dex-sidebar-foot {
+  flex-shrink: 0;
   flex-shrink: 0;
   border-top: 1px solid rgba(255, 255, 255, 0.08);
   background: #080c14;
