@@ -1,6 +1,8 @@
 // Admin panel — feed'e manuel token ekleme.
 
 const solana = require('./chains/solana');
+const adapter = require('./chains/solana/adapter');
+const { getPairListedAtMs } = require('./miniAppFeed');
 const reportStore = require('./reportStore');
 const botFeedStore = require('./botFeedStore');
 const { recordMiniAppShareAsync } = require('./recordMiniAppShare');
@@ -55,6 +57,19 @@ async function addTokenToFeed(input, lang = 'tr') {
 
   token.chain = 'solana';
   token.initialLiquidity = token.liquidityUsd || 0;
+
+  if (!getPairListedAtMs(token)) {
+    try {
+      const pair = await adapter.fetchTopPairForToken(token.tokenAddress);
+      const norm = pair ? adapter.normalizePair(pair) : null;
+      if (norm?.pairCreatedAt) {
+        token.pairCreatedAt = norm.pairCreatedAt;
+        token.createdAt = norm.createdAt;
+      }
+    } catch {
+      /* yoksay */
+    }
+  }
 
   await assertNotInFeed(token.tokenAddress, token);
 

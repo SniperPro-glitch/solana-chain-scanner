@@ -174,14 +174,17 @@ function mergeLiveToken(stored, live) {
     reportId: stored.reportId,
     poolId: live.poolId || stored.poolId,
     tokenAddress: live.tokenAddress || stored.tokenAddress,
+    pairCreatedAt: live.pairCreatedAt ?? stored.pairCreatedAt,
+    createdAt: live.createdAt ?? stored.createdAt,
   };
 }
 
-/** Admin panelden manuel eklenen — Trending filtrelerinden muaf. */
-function isAdminListedEntry(entry) {
-  const id = String(entry?.channelId || '').toLowerCase();
-  const title = String(entry?.channelTitle || '').toLowerCase();
-  return id === 'admin-panel' || title.includes('admin');
+/** DEX pairCreatedAt yoksa kanala/admin düşme zamanı (New Pairs için). */
+function resolveListedAtForFeed(entry, token) {
+  const listedAt = getPairListedAtMs(token) ?? getPairListedAtMs(entry?.token);
+  if (listedAt) return listedAt;
+  if (entry?.postedAt) return entry.postedAt;
+  return null;
 }
 
 function tokenForFeed(entry, liveMap, fallbackToken) {
@@ -215,27 +218,24 @@ async function buildFeedFromBotShares(tab = 'trending', limit = 24, dexFilter = 
     }
     if (!audit) audit = auditFromFeedEntry(entry);
 
-    const listedAt = getPairListedAtMs(token) ?? getPairListedAtMs(entry.token);
-    if (isNewTab && !isWithinNewPairsWindowMs(listedAt, now)) continue;
+    const listedAt = resolveListedAtForFeed(entry, token);
+    if (isNewTab && (!listedAt || !isWithinNewPairsWindowMs(listedAt, now))) continue;
 
     const item = tokenToFeedItem(token, audit, rank, entry.reportId);
     item.postedAt = entry.postedAt;
     item.listedAt = listedAt;
-    item.ageFmt = ageFmtForToken(token, listedAt);
+    item.ageFmt = ageFmtForToken(token, listedAt ?? entry.postedAt);
     item.txns24hFmt = item.txns24h > 0 ? String(item.txns24h) : '—';
     item.channelTitle = entry.channelTitle;
     item.fromBot = true;
-    item.adminListed = isAdminListedEntry(entry);
     item.liveAt = now;
     items.push(item);
     rank += 1;
   }
 
-  // Son 48 saatte DEX'e düşen çiftler: yalnızca New Pairs'te (admin manuel ekleme hariç).
+  // Son 48 saatte DEX'e düşen çiftler yalnızca New Pairs'te; Trending/Home'da gösterme.
   if (!isNewTab) {
-    items = items.filter(
-      (it) => it.adminListed || !isWithinNewPairsWindowMs(it.listedAt, now),
-    );
+    items = items.filter((it) => !isWithinNewPairsWindowMs(it.listedAt, now));
   }
 
   const { loadConfig } = require('./trendConfigStore');
@@ -245,13 +245,10 @@ async function buildFeedFromBotShares(tab = 'trending', limit = 24, dexFilter = 
     let out = list;
     const minVol = Number(trendCfg.view?.minVolumeUsd) || 0;
     if (minVol > 0) {
-      out = out.filter(
-        (it) => it.adminListed || (Number(it.volume24h) || 0) >= minVol,
-      );
+      out = out.filter((it) => (Number(it.volume24h) || 0) >= minVol);
     }
     if (trendCfg.view?.hideHighRisk) {
       out = out.filter((it) => {
-        if (it.adminListed) return true;
         const band = it.risk?.band || it.level;
         return band !== 'high' && it.level !== 'red' && it.level !== 'critical';
       });
@@ -259,7 +256,8 @@ async function buildFeedFromBotShares(tab = 'trending', limit = 24, dexFilter = 
     return out;
   }
 
-  let ranked = applyTrendViewFilters(items);
+  // Yeni çiftler: trend hacim/risk eşiği uygulanmaz (admin eklemeleri dahil).
+  let ranked = isNewTab ? items : applyTrendViewFilters(items);
   if (tab === 'trending') {
     let trendItems = ranked;
     if (trendCfg.ticker?.minVolumeUsd > 0) {
