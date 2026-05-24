@@ -111,21 +111,21 @@
   const EMBED_DEX_WEB_FALLBACK_MS = 1500;
   const EMBED_PROVIDER_CHECK_MS = 3000;
 
-  /** Tarayıcıda eski session dex kilidi — Gecko’ya geçişi engeller. */
-  function migrateWebEmbedStorage() {
-    if (!isWebBrowser) return;
+  /** Eski oturumda yanlış sağlayıcı kilidi (web→dex, TG→gecko) temizle. */
+  function migrateEmbedProviderStorage() {
     try {
       for (let i = sessionStorage.length - 1; i >= 0; i -= 1) {
         const k = sessionStorage.key(i);
-        if (k?.startsWith(`${EMBED_PROVIDER_STORAGE}:`) && sessionStorage.getItem(k) === 'dex') {
-          sessionStorage.removeItem(k);
-        }
+        if (!k?.startsWith(`${EMBED_PROVIDER_STORAGE}:`)) continue;
+        const v = sessionStorage.getItem(k);
+        if (isWebBrowser && v === 'dex') sessionStorage.removeItem(k);
+        if (!isWebBrowser && v === 'gecko') sessionStorage.removeItem(k);
       }
     } catch {
       /* yoksay */
     }
   }
-  migrateWebEmbedStorage();
+  migrateEmbedProviderStorage();
   let openingMint = false;
   let feedItemsFull = [];
   let feedEmptyMessage = '';
@@ -2830,7 +2830,6 @@
   }
 
   function setStoredEmbedProvider(pool, provider) {
-    if (isWebBrowser && provider === 'dex') return;
     try {
       sessionStorage.setItem(embedProviderStorageKey(pool), provider);
     } catch {
@@ -2839,13 +2838,11 @@
   }
 
   function getEmbedProviderForPool(pool) {
-    if (isWebBrowser) return 'gecko';
     return getStoredEmbedProvider(pool) || 'dex';
   }
 
   /** İlk çizim — API beklemeden iframe mount (boş ekran önlenir). */
   function initialEmbedProvider(embedRef) {
-    if (isWebBrowser) return 'gecko';
     const cached = getStoredEmbedProvider(embedRef);
     if (cached) return cached;
     return 'dex';
@@ -2853,13 +2850,11 @@
 
   function pickEmbedProvider(embedRef, opts = {}) {
     if (opts.forceProvider) return opts.forceProvider;
-    if (isWebBrowser) return 'gecko';
     if (opts.skipResolve) return getEmbedProviderForPool(embedRef);
     return initialEmbedProvider(embedRef);
   }
 
   function scheduleEmbedProviderRefine(embedRef, container, m, note, tf) {
-    if (isWebBrowser) return;
     void resolveEmbedProviderForPool(embedRef).then((resolved) => {
       if (!embedRef || !document.getElementById('priceChart')) return;
       const current = getStoredEmbedProvider(embedRef) || initialEmbedProvider(embedRef);
@@ -2882,6 +2877,38 @@
   function embedRefForMarket(m) {
     return chartPoolRef(m) || tokenMintRef(m) || '';
   }
+
+  /** Dex iframe yalnızca havuz adresi ile çalışır — mint “Failed connecting” verir. */
+  function dexEmbedPoolRef(m) {
+    return chartPoolRef(m) || '';
+  }
+
+  function applyPoolToMarket(m, pool) {
+    if (!pool || !m) return;
+    m.poolAddress = pool;
+    if (appData?.market) appData.market.poolAddress = pool;
+    if (m.chart) {
+      m.chart.poolAddress = pool;
+      m.chart.pairRef = pool;
+      m.chart.dexScreenerEmbedUrl = null;
+      m.chart.dexTradesEmbedUrl = null;
+    }
+  }
+
+  async function ensureDexPoolForEmbed(m, opts = {}) {
+    let pool = dexEmbedPoolRef(m);
+    if (pool) return pool;
+    const timeout = opts.timeoutMs ?? 6000;
+    pool = await Promise.race([
+      resolvePoolForEmbeds(m),
+      new Promise((resolve) => setTimeout(() => resolve(''), timeout)),
+    ]);
+    if (pool) applyPoolToMarket(m, pool);
+    return pool || '';
+  }
+
+  const EMBED_IFRAME_ATTRS =
+    'title="Canlı grafik" loading="eager" allow="fullscreen; clipboard-write" referrerpolicy="no-referrer"';
 
   async function dexPairHasData(ref) {
     const id = String(ref || '').trim();
@@ -2907,7 +2934,6 @@
   async function resolveEmbedProviderForPool(ref) {
     const id = String(ref || '').trim();
     if (!id) return 'gecko';
-    if (isWebBrowser) return 'gecko';
     const cached = getStoredEmbedProvider(id);
     if (cached === 'gecko') return 'gecko';
     if (cached === 'dex') return 'dex';
@@ -3007,8 +3033,9 @@
     if (!ref) return null;
     const prov = provider || getEmbedProviderForPool(ref);
     if (prov === 'gecko') return geckoChartUrlForMarket(m, tf);
-    const pool = chartPoolRef(m) || ref;
-    return m?.chart?.dexScreenerEmbedUrl || dexEmbedUrlFor(pool, tf, chartType);
+    const pool = dexEmbedPoolRef(m);
+    if (!pool) return null;
+    return dexEmbedUrlFor(pool, tf, chartType);
   }
 
   function tradesEmbedUrlFor(m, provider, opts = {}) {
@@ -3016,7 +3043,8 @@
     if (!ref) return null;
     const prov = provider || getEmbedProviderForPool(ref);
     if (prov === 'gecko') return geckoTradesUrlForMarket(m, opts);
-    const pool = chartPoolRef(m) || ref;
+    const pool = dexEmbedPoolRef(m);
+    if (!pool) return null;
     return dexScreenerTradesUrl(pool);
   }
 
@@ -3033,7 +3061,7 @@
   function bindDexChartEmbedFallback(iframe, embedRef, container, m, note, tf) {
     clearChartEmbedFallbackTimer();
     const onFail = () => {
-      const useToken = !chartPoolRef(m);
+      const useToken = !dexEmbedPoolRef(m);
       fallbackEmbedsToGecko(embedRef, container, m, note, tf, { useTokenPath: useToken });
     };
     iframe.addEventListener('error', onFail, { once: true });
@@ -3050,16 +3078,29 @@
     );
   }
 
+  function bindDexTradesEmbedFallback(iframe, embedRef, container, m, note, tf) {
+    const onFail = () => {
+      const useToken = !dexEmbedPoolRef(m);
+      fallbackEmbedsToGecko(embedRef, container, m, note, tf, { useTokenPath: useToken });
+    };
+    iframe.addEventListener('error', onFail, { once: true });
+    if (isWebBrowser) {
+      iframe.addEventListener(
+        'load',
+        () => setTimeout(onFail, EMBED_DEX_WEB_FALLBACK_MS + 500),
+        { once: true },
+      );
+    }
+  }
+
   async function mountDexTradesEmbed(m, opts = {}) {
     const iframe = $('dexTradesEmbed');
     if (!iframe) return;
-    let pool = chartPoolRef(m);
-    if (!pool && !opts.skipResolve) {
-      pool = await Promise.race([
-        resolvePoolForEmbeds(m),
-        new Promise((resolve) => setTimeout(() => resolve(''), 3000)),
-      ]);
+    let provider = pickEmbedProvider(embedRefForMarket(m) || '', opts);
+    if (provider === 'dex' && !opts.skipResolve) {
+      await ensureDexPoolForEmbed(m, { timeoutMs: 6000 });
     }
+    const pool = dexEmbedPoolRef(m);
     const embedRef = embedRefForMarket(m) || pool;
     if (!embedRef) {
       iframe.classList.add('hidden');
@@ -3067,21 +3108,31 @@
       dexTradesEmbedRef = '';
       return;
     }
-    if (pool && !m.poolAddress) m.poolAddress = pool;
-    const provider = pickEmbedProvider(embedRef, opts);
+    provider = pickEmbedProvider(embedRef, opts);
+    if (provider === 'dex' && !dexEmbedPoolRef(m)) {
+      provider = 'gecko';
+      opts = { ...opts, forceProvider: 'gecko', geckoUseToken: true };
+    }
     const geckoUseToken =
-      opts.geckoUseToken ?? (provider === 'gecko' && !chartPoolRef(m));
+      opts.geckoUseToken ?? (provider === 'gecko' && !dexEmbedPoolRef(m));
     const url = tradesEmbedUrlFor(m, provider, { useTokenPath: geckoUseToken });
     if (!url) return;
     const refKey = `${provider}:${geckoUseToken ? 'tok' : 'pool'}:${embedRef}`;
     const srcChanged = dexTradesEmbedRef !== refKey || iframe.src !== url;
     if (srcChanged) {
       dexTradesEmbedRef = refKey;
+      iframe.referrerPolicy = 'no-referrer';
       iframe.src = url;
       iframe.classList.remove('hidden');
       scheduleDexTradesCrop();
     } else {
       iframe.classList.remove('hidden');
+    }
+    if (provider === 'dex') {
+      const container = $('priceChart');
+      const note = $('chartNote');
+      const tf = m?.chart?.timeframe || currentTf;
+      bindDexTradesEmbedFallback(iframe, embedRef, container, m, note, tf);
     }
     syncEmbedCropProfile(provider);
     const meta = $('tradesMeta');
@@ -3334,9 +3385,17 @@
       setChartEmbedMode(false);
       return false;
     }
-    const provider = pickEmbedProvider(embedRef, opts);
+    let provider = pickEmbedProvider(embedRef, opts);
+    if (provider === 'dex' && !opts.skipResolve) {
+      await ensureDexPoolForEmbed(m, { timeoutMs: 6000 });
+    }
+    provider = pickEmbedProvider(embedRef, opts);
+    if (provider === 'dex' && !dexEmbedPoolRef(m)) {
+      provider = 'gecko';
+      opts = { ...opts, forceProvider: 'gecko', geckoUseToken: true };
+    }
     const geckoUseToken =
-      opts.geckoUseToken ?? (provider === 'gecko' && !chartPoolRef(m));
+      opts.geckoUseToken ?? (provider === 'gecko' && !dexEmbedPoolRef(m));
     if (!opts.forceProvider && !opts.skipResolve) {
       scheduleEmbedProviderRefine(embedRef, container, m, note, tf);
     }
@@ -3368,7 +3427,7 @@
     }
     chartEmbedMountKey = mountKey;
     clearChartEmbedFallbackTimer();
-    container.innerHTML = `<iframe class="dex-embed-chart" src="${escHtml(embed)}" title="Canlı grafik" loading="eager" allow="fullscreen; clipboard-write" referrerpolicy="origin-when-cross-origin"></iframe>`;
+    container.innerHTML = `<iframe class="dex-embed-chart" src="${escHtml(embed)}" ${EMBED_IFRAME_ATTRS}></iframe>`;
     const chartIfr = container.querySelector('iframe.dex-embed-chart');
     if (note) {
       const srcLabel = provider === 'gecko' ? 'Gecko' : 'Dex';
@@ -3491,7 +3550,13 @@
         if (appData?.market) appData.market.poolAddress = live.poolAddress;
         if (m.chart) m.chart.poolAddress = live.poolAddress;
         if (live.poolAddress !== prevPool) {
-          void mountDexTradesEmbed(m, { skipResolve: true });
+          applyPoolToMarket(m, live.poolAddress);
+          chartEmbedMountKey = '';
+          if (activeDetailTab === 'chart' && appData?.market) {
+            void renderChart(appData.market);
+          } else {
+            void mountDexTradesEmbed(m, { skipResolve: true });
+          }
         }
       }
     } catch (e) {

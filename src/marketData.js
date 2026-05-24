@@ -183,9 +183,9 @@ async function enrichMarketForMiniApp(token, options = {}) {
     poolAddress = await resolvePoolAddressForMint(merged.address);
   }
 
-  const chartRef = poolAddress || merged.address;
-  const chartEmbedUrl = dexScreenerChartEmbedUrl(chartRef, timeframe);
-  const tradesEmbedUrl = dexScreenerTradesEmbedUrl(chartRef);
+  const chartRef = poolAddress || null;
+  const chartEmbedUrl = chartRef ? dexScreenerChartEmbedUrl(chartRef, timeframe) : null;
+  const tradesEmbedUrl = chartRef ? dexScreenerTradesEmbedUrl(chartRef) : null;
   const buys = merged.buys24h || 0;
   const sells = merged.sells24h || 0;
   const txnTotal = buys + sells;
