@@ -63,9 +63,10 @@
     const forced = fromUrl();
     if (forced) return forced;
     const w = layoutWidth();
+    /** Tarayıcı: Dex masaüstü kırpma (web). Dar pencere = mobil genişlik profilleri. */
     if (!isTelegramApp()) {
-      if (w > 500) return 'webgecko';
-      return detectGeckoByWidth(w);
+      if (w > 500) return 'web';
+      return detectByWidth(w);
     }
     if (isTelegramApp() && isTelegramDesktop() && w > 500) return 'web';
     return detectByWidth(w);

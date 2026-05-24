@@ -104,22 +104,16 @@
   let feedRefreshSec = 45;
   let dexTradesEmbedRef = '';
   let chartEmbedMountKey = '';
-  let chartEmbedFallbackTimer = null;
   const CHART_LIVE_POLL_MS = 2000;
-  const CHART_LIVE_POLL_MS_WEB = 15000;
-  const EMBED_PROVIDER_STORAGE = 'sniperEmbedProviderV1';
-  const EMBED_DEX_WEB_FALLBACK_MS = 1500;
-  const EMBED_PROVIDER_CHECK_MS = 3000;
+  /** Üst fiyat/metrik — grafik+işlemler Dex iframe içinde canlı. */
+  const CHART_LIVE_POLL_MS_WEB = 4000;
 
-  /** Eski oturumda yanlış sağlayıcı kilidi (web→dex, TG→gecko) temizle. */
+  /** Eski Gecko/Dex sağlayıcı önbelleğini temizle. */
   function migrateEmbedProviderStorage() {
     try {
       for (let i = sessionStorage.length - 1; i >= 0; i -= 1) {
         const k = sessionStorage.key(i);
-        if (!k?.startsWith(`${EMBED_PROVIDER_STORAGE}:`)) continue;
-        const v = sessionStorage.getItem(k);
-        if (isWebBrowser && v === 'dex') sessionStorage.removeItem(k);
-        if (!isWebBrowser && v === 'gecko') sessionStorage.removeItem(k);
+        if (k?.startsWith('sniperEmbedProviderV1:')) sessionStorage.removeItem(k);
       }
     } catch {
       /* yoksay */
@@ -2815,70 +2809,6 @@
     return `https://dexscreener.com/solana/${encodeURIComponent(ref)}?${q}`;
   }
 
-  function embedProviderStorageKey(pool) {
-    return `${EMBED_PROVIDER_STORAGE}:${String(pool || '').trim()}`;
-  }
-
-  function getStoredEmbedProvider(pool) {
-    try {
-      const v = sessionStorage.getItem(embedProviderStorageKey(pool));
-      if (v === 'gecko' || v === 'dex') return v;
-    } catch {
-      /* yoksay */
-    }
-    return null;
-  }
-
-  function setStoredEmbedProvider(pool, provider) {
-    if (isWebBrowser && provider === 'dex') return;
-    try {
-      sessionStorage.setItem(embedProviderStorageKey(pool), provider);
-    } catch {
-      /* yoksay */
-    }
-  }
-
-  function getEmbedProviderForPool(pool) {
-    if (isWebBrowser) return 'gecko';
-    return getStoredEmbedProvider(pool) || 'dex';
-  }
-
-  /** İlk çizim — API beklemeden iframe mount (boş ekran önlenir). */
-  function initialEmbedProvider(embedRef) {
-    if (isWebBrowser) return 'gecko';
-    const cached = getStoredEmbedProvider(embedRef);
-    if (cached) return cached;
-    return 'dex';
-  }
-
-  function pickEmbedProvider(embedRef, opts = {}) {
-    if (opts.forceProvider) return opts.forceProvider;
-    if (isWebBrowser) return 'gecko';
-    if (opts.skipResolve) return getEmbedProviderForPool(embedRef);
-    return initialEmbedProvider(embedRef);
-  }
-
-  function scheduleEmbedProviderRefine(embedRef, container, m, note, tf) {
-    if (isWebBrowser) return;
-    void resolveEmbedProviderForPool(embedRef).then((resolved) => {
-      if (!embedRef || !document.getElementById('priceChart')) return;
-      const current = getStoredEmbedProvider(embedRef) || initialEmbedProvider(embedRef);
-      if (resolved === current) return;
-      setStoredEmbedProvider(embedRef, resolved);
-      chartEmbedMountKey = '';
-      void showDexEmbedChart(container, m, note, tf, {
-        forceProvider: resolved,
-        skipResolve: true,
-        geckoUseToken: resolved === 'gecko' && !chartPoolRef(m),
-      });
-      void mountDexTradesEmbed(m, {
-        skipResolve: true,
-        forceProvider: resolved,
-        geckoUseToken: resolved === 'gecko' && !chartPoolRef(m),
-      });
-    });
-  }
-
   function embedRefForMarket(m) {
     return chartPoolRef(m) || tokenMintRef(m) || '';
   }
@@ -2915,112 +2845,12 @@
   const EMBED_IFRAME_ATTRS =
     'title="Canlı grafik" loading="eager" allow="fullscreen; clipboard-write" referrerpolicy="no-referrer"';
 
-  async function dexPairHasData(ref) {
-    const id = String(ref || '').trim();
-    if (!id) return false;
-    const ctrl = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(), EMBED_PROVIDER_CHECK_MS);
-    try {
-      const res = await fetch(apiPath(`/api/dex/chart/${encodeURIComponent(id)}?tf=15m`), {
-        cache: 'no-store',
-        signal: ctrl.signal,
-      });
-      if (!res.ok) return false;
-      const body = await res.json();
-      return !!(body.pair?.pairAddress || body.poolAddress);
-    } catch {
-      return false;
-    } finally {
-      clearTimeout(timer);
-    }
-  }
-
-  /** Dex yoksa veya daha önce boş kaldıysa Gecko. API yavaşsa ekranı kilitleme. */
-  async function resolveEmbedProviderForPool(ref) {
-    const id = String(ref || '').trim();
-    if (!id) return 'gecko';
-    if (isWebBrowser) return 'gecko';
-    const cached = getStoredEmbedProvider(id);
-    if (cached === 'gecko') return 'gecko';
-    if (cached === 'dex') return 'dex';
-    const check = dexPairHasData(id);
-    const timed = new Promise((resolve) => {
-      setTimeout(() => resolve('timeout'), EMBED_PROVIDER_CHECK_MS);
-    });
-    const hasDex = await Promise.race([check, timed]);
-    if (hasDex === 'timeout') return isWebBrowser ? 'gecko' : 'dex';
-    if (!hasDex) {
-      setStoredEmbedProvider(id, 'gecko');
-      return 'gecko';
-    }
-    return 'dex';
-  }
-
-  function clearChartEmbedFallbackTimer() {
-    if (chartEmbedFallbackTimer) {
-      clearTimeout(chartEmbedFallbackTimer);
-      chartEmbedFallbackTimer = null;
-    }
-  }
-
-  function geckoTfResolution(tf) {
-    const map = { '1m': '1m', '5m': '5m', '15m': '15m', '1h': '1h', '4h': '4h', '1d': '1d' };
-    return map[String(tf || '15m').toLowerCase()] || '15m';
-  }
-
-  function geckoChartEmbedUrl(ref, tf, useTokenPath = false) {
-    const id = String(ref || '').trim();
-    if (!id) return null;
-    const q = new URLSearchParams({
-      embed: '1',
-      info: '0',
-      swaps: '0',
-      light_chart: '1',
-      chart_type: 'price',
-      resolution: geckoTfResolution(tf),
-    });
-    const segment = useTokenPath ? 'tokens' : 'pools';
-    return `https://www.geckoterminal.com/solana/${segment}/${encodeURIComponent(id)}?${q.toString()}`;
-  }
-
-  function geckoTradesEmbedUrl(ref, useTokenPath = false) {
-    const id = String(ref || '').trim();
-    if (!id) return null;
-    const q = new URLSearchParams({
-      embed: '1',
-      info: '0',
-      swaps: '1',
-      light_chart: '1',
-    });
-    const segment = useTokenPath ? 'tokens' : 'pools';
-    return `https://www.geckoterminal.com/solana/${segment}/${encodeURIComponent(id)}?${q.toString()}`;
-  }
-
-  function geckoChartUrlForMarket(m, tf, opts = {}) {
-    const pool = chartPoolRef(m);
-    const mint = tokenMintRef(m);
-    if (opts.useTokenPath && mint) return geckoChartEmbedUrl(mint, tf, true);
-    if (pool) return geckoChartEmbedUrl(pool, tf, false);
-    if (mint) return geckoChartEmbedUrl(mint, tf, true);
-    return null;
-  }
-
-  function geckoTradesUrlForMarket(m, opts = {}) {
-    const pool = chartPoolRef(m);
-    const mint = tokenMintRef(m);
-    if (opts.useTokenPath && mint) return geckoTradesEmbedUrl(mint, true);
-    if (pool) return geckoTradesEmbedUrl(pool, false);
-    if (mint) return geckoTradesEmbedUrl(mint, true);
-    return null;
-  }
-
-  function syncEmbedCropProfile(provider) {
-    const isGecko = provider === 'gecko';
-    document.documentElement.dataset.chartEmbedProvider = provider;
-    document.documentElement.dataset.cropEmbedFamily = isGecko ? 'gecko' : 'dex';
+  function syncEmbedCropProfile() {
+    document.documentElement.dataset.chartEmbedProvider = 'dex';
+    document.documentElement.dataset.cropEmbedFamily = 'dex';
     if (globalThis.SniperDexCropEarly?.applyEarly) globalThis.SniperDexCropEarly.applyEarly();
     if (globalThis.SniperDexCrop?.applyForProvider) {
-      globalThis.SniperDexCrop.applyForProvider(provider);
+      globalThis.SniperDexCrop.applyForProvider('dex');
     } else if (globalThis.SniperDexCrop?.applyCropNow) {
       globalThis.SniperDexCrop.applyCropNow();
     }
@@ -3034,96 +2864,34 @@
     return '';
   }
 
-  function chartEmbedUrlFor(m, tf, provider) {
-    const ref = embedRefForMarket(m);
-    if (!ref) return null;
-    const prov = provider || getEmbedProviderForPool(ref);
-    if (prov === 'gecko') return geckoChartUrlForMarket(m, tf);
+  function chartEmbedUrlFor(m, tf) {
     const pool = dexEmbedPoolRef(m);
     if (!pool) return null;
     return dexEmbedUrlFor(pool, tf, chartType);
   }
 
-  function tradesEmbedUrlFor(m, provider, opts = {}) {
-    const ref = embedRefForMarket(m);
-    if (!ref) return null;
-    const prov = provider || getEmbedProviderForPool(ref);
-    if (prov === 'gecko') return geckoTradesUrlForMarket(m, opts);
+  function tradesEmbedUrlFor(m) {
     const pool = dexEmbedPoolRef(m);
     if (!pool) return null;
     return dexScreenerTradesUrl(pool);
   }
 
-  function fallbackEmbedsToGecko(embedRef, container, m, note, tf, opts = {}) {
-    if (!embedRef || getStoredEmbedProvider(embedRef) === 'gecko') return;
-    const useToken = !!opts.useTokenPath || !chartPoolRef(m);
-    setStoredEmbedProvider(embedRef, 'gecko');
-    chartEmbedMountKey = '';
-    clearChartEmbedFallbackTimer();
-    void showDexEmbedChart(container, m, note, tf, { forceProvider: 'gecko', geckoUseToken: useToken });
-    void mountDexTradesEmbed(m, { skipResolve: true, forceProvider: 'gecko', geckoUseToken: useToken });
-  }
-
-  function bindDexChartEmbedFallback(iframe, embedRef, container, m, note, tf) {
-    clearChartEmbedFallbackTimer();
-    const onFail = () => {
-      const useToken = !dexEmbedPoolRef(m);
-      fallbackEmbedsToGecko(embedRef, container, m, note, tf, { useTokenPath: useToken });
-    };
-    iframe.addEventListener('error', onFail, { once: true });
-    iframe.addEventListener(
-      'load',
-      () => {
-        scheduleDexTradesCrop();
-        if (globalThis.SniperDexCrop?.applyCropNow) globalThis.SniperDexCrop.applyCropNow();
-        if (!isWebBrowser) return;
-        clearChartEmbedFallbackTimer();
-        chartEmbedFallbackTimer = setTimeout(onFail, EMBED_DEX_WEB_FALLBACK_MS);
-      },
-      { once: true },
-    );
-  }
-
-  function bindDexTradesEmbedFallback(iframe, embedRef, container, m, note, tf) {
-    const onFail = () => {
-      const useToken = !dexEmbedPoolRef(m);
-      fallbackEmbedsToGecko(embedRef, container, m, note, tf, { useTokenPath: useToken });
-    };
-    iframe.addEventListener('error', onFail, { once: true });
-    if (isWebBrowser) {
-      iframe.addEventListener(
-        'load',
-        () => setTimeout(onFail, EMBED_DEX_WEB_FALLBACK_MS + 500),
-        { once: true },
-      );
-    }
-  }
-
   async function mountDexTradesEmbed(m, opts = {}) {
     const iframe = $('dexTradesEmbed');
     if (!iframe) return;
-    let provider = pickEmbedProvider(embedRefForMarket(m) || '', opts);
     if (!opts.skipResolve) {
       await ensureDexPoolForEmbed(m, { timeoutMs: 6000 });
     }
     const pool = dexEmbedPoolRef(m);
-    const embedRef = embedRefForMarket(m) || pool;
-    if (!embedRef) {
+    if (!pool) {
       iframe.classList.add('hidden');
       iframe.src = 'about:blank';
       dexTradesEmbedRef = '';
       return;
     }
-    provider = pickEmbedProvider(embedRef, opts);
-    if (provider === 'dex' && !dexEmbedPoolRef(m)) {
-      provider = 'gecko';
-      opts = { ...opts, forceProvider: 'gecko', geckoUseToken: true };
-    }
-    const geckoUseToken =
-      opts.geckoUseToken ?? (provider === 'gecko' && !dexEmbedPoolRef(m));
-    const url = tradesEmbedUrlFor(m, provider, { useTokenPath: geckoUseToken });
+    const url = tradesEmbedUrlFor(m);
     if (!url) return;
-    const refKey = `${provider}:${geckoUseToken ? 'tok' : 'pool'}:${embedRef}`;
+    const refKey = `dex:pool:${pool}`;
     const srcChanged = dexTradesEmbedRef !== refKey || iframe.src !== url;
     if (srcChanged) {
       dexTradesEmbedRef = refKey;
@@ -3134,13 +2902,7 @@
     } else {
       iframe.classList.remove('hidden');
     }
-    if (provider === 'dex') {
-      const container = $('priceChart');
-      const note = $('chartNote');
-      const tf = m?.chart?.timeframe || currentTf;
-      bindDexTradesEmbedFallback(iframe, embedRef, container, m, note, tf);
-    }
-    syncEmbedCropProfile(provider);
+    syncEmbedCropProfile();
     const meta = $('tradesMeta');
     if (meta) meta.textContent = i18n('detail.tradesLive');
   }
@@ -3385,91 +3147,48 @@
   }
 
   async function showDexEmbedChart(container, m, note, tf, opts = {}) {
-    const embedRef = embedRefForMarket(m);
-    if (!embedRef) {
-      chartEmbedMountKey = '';
-      setChartEmbedMode(false);
-      return false;
-    }
-    let provider = pickEmbedProvider(embedRef, opts);
     if (!opts.skipResolve) {
       await ensureDexPoolForEmbed(m, { timeoutMs: 6000 });
     }
-    provider = pickEmbedProvider(embedRef, opts);
-    if (provider === 'gecko' && !dexEmbedPoolRef(m) && !tokenMintRef(m)) {
-      chartEmbedMountKey = '';
-      setChartEmbedMode(false);
-      return false;
-    }
-    if (provider === 'dex' && !dexEmbedPoolRef(m)) {
-      provider = 'gecko';
-      opts = { ...opts, forceProvider: 'gecko', geckoUseToken: !dexEmbedPoolRef(m) };
-    }
-    const geckoUseToken =
-      opts.geckoUseToken ?? (provider === 'gecko' && !dexEmbedPoolRef(m));
-    if (!opts.forceProvider && !opts.skipResolve) {
-      scheduleEmbedProviderRefine(embedRef, container, m, note, tf);
-    }
-    const embed =
-      provider === 'gecko'
-        ? geckoChartUrlForMarket(m, tf, { useTokenPath: geckoUseToken })
-        : chartEmbedUrlFor(m, tf, provider);
+    const pool = dexEmbedPoolRef(m);
+    const embed = chartEmbedUrlFor(m, tf);
     const page = m?.chart?.dexScreenerPageUrl || m?.dexScreenerUrl;
-    if (!embed) {
+    if (!pool || !embed) {
       chartEmbedMountKey = '';
       setChartEmbedMode(false);
       const link = page
-        ? `<a class="dex-chart-link" href="${escHtml(page)}" target="_blank" rel="noopener">Harici grafikte aç</a>`
+        ? `<a class="dex-chart-link" href="${escHtml(page)}" target="_blank" rel="noopener">DexScreener’da aç</a>`
         : '';
-      container.innerHTML = `<div class="empty-chart">Grafik yüklenemedi. ${link}</div>`;
+      container.innerHTML = `<div class="empty-chart">Havuz bekleniyor — grafik DexScreener ile yüklenir. ${link}</div>`;
       return false;
     }
-    const mountKey = `${provider}:${geckoUseToken ? 'tok' : 'pool'}:${embedRef}:${embed}`;
+    const mountKey = `dex:pool:${pool}:${embed}`;
     const existing = container.querySelector('iframe.dex-embed-chart');
     setChartEmbedMode(true);
-    syncEmbedCropProfile(provider);
+    syncEmbedCropProfile();
     if (existing && chartEmbedMountKey === mountKey) {
       if (note) {
-        const srcLabel = provider === 'gecko' ? 'Gecko' : 'Dex';
-        note.textContent = `${(tf || '15m').toUpperCase()} · ${srcLabel}`;
+        note.textContent = `${(tf || '15m').toUpperCase()} · Dex`;
         note.classList.remove('hidden');
       }
       return true;
     }
     chartEmbedMountKey = mountKey;
-    clearChartEmbedFallbackTimer();
     container.innerHTML = `<iframe class="dex-embed-chart" src="${escHtml(embed)}" ${EMBED_IFRAME_ATTRS}></iframe>`;
     const chartIfr = container.querySelector('iframe.dex-embed-chart');
     if (note) {
-      const srcLabel = provider === 'gecko' ? 'Gecko' : 'Dex';
-      note.textContent = `${(tf || '15m').toUpperCase()} · ${srcLabel}`;
+      note.textContent = `${(tf || '15m').toUpperCase()} · Dex`;
       note.classList.remove('hidden');
     }
     if (chartIfr) {
-      scheduleDexTradesCrop();
-      if (provider === 'dex') bindDexChartEmbedFallback(chartIfr, embedRef, container, m, note, tf);
-      else {
-        chartIfr.addEventListener(
-          'load',
-          () => {
-            scheduleDexTradesCrop();
-            const reapply = () => {
-              if (globalThis.SniperDexCrop?.applyForProvider) {
-                globalThis.SniperDexCrop.applyForProvider('gecko');
-              } else if (globalThis.SniperDexCrop?.applyCropNow) {
-                globalThis.SniperDexCrop.applyCropNow();
-              }
-            };
-            reapply();
-            setTimeout(reapply, 350);
-            setTimeout(reapply, 1100);
-            if (globalThis.SniperDexCrop?.runHiddenMotor) {
-              setTimeout(() => globalThis.SniperDexCrop.runHiddenMotor(), 1600);
-            }
-          },
-          { once: true },
-        );
-      }
+      chartIfr.addEventListener(
+        'load',
+        () => {
+          scheduleDexTradesCrop();
+          if (globalThis.SniperDexCrop?.applyCropNow) globalThis.SniperDexCrop.applyCropNow();
+        },
+        { once: true },
+      );
     }
     return true;
   }
@@ -3492,7 +3211,6 @@
   }
 
   function destroyChart() {
-    clearChartEmbedFallbackTimer();
     const container = $('priceChart');
     if (container) container.innerHTML = '';
     chartEmbedMountKey = '';
@@ -3592,7 +3310,11 @@
     document.querySelectorAll('.ctype').forEach((b) => {
       b.classList.toggle('active', b.dataset.type === type);
     });
-    if (appData?.market) void renderChart(appData.market);
+    if (!appData?.market) return;
+    const container = $('priceChart');
+    const note = $('chartNote');
+    if (tryUpdateChartEmbedTimeframe(container, appData.market, note, currentTf)) return;
+    void renderChart(appData.market);
   }
 
   function sectionCard(title, bodyHtml) {
@@ -4105,11 +3827,32 @@
     });
   }
 
+  /** TF değişiminde iframe’i yeniden oluşturma — Dex iç WS akışı kesilmesin. */
+  function tryUpdateChartEmbedTimeframe(container, m, note, tf) {
+    if (!dexEmbedPoolRef(m) || !container?.querySelector('iframe.dex-embed-chart')) return false;
+    const embed = chartEmbedUrlFor(m, tf);
+    if (!embed) return false;
+    const pool = dexEmbedPoolRef(m);
+    const mountKey = `dex:pool:${pool}:${embed}`;
+    const iframe = container.querySelector('iframe.dex-embed-chart');
+    if (iframe.src !== embed) iframe.src = embed;
+    chartEmbedMountKey = mountKey;
+    if (note) {
+      note.textContent = `${(tf || '15m').toUpperCase()} · Dex`;
+      note.classList.remove('hidden');
+    }
+    scheduleDexTradesCrop();
+    return true;
+  }
+
   async function applyChartTimeframe(m, tf) {
     setChartLoading(true);
     try {
       currentTf = tf;
       if (appData?.market?.chart) appData.market.chart.timeframe = tf;
+      const container = $('priceChart');
+      const note = $('chartNote');
+      if (tryUpdateChartEmbedTimeframe(container, m, note, tf)) return true;
       await renderChart(m);
       scheduleDexTradesCrop();
       return true;

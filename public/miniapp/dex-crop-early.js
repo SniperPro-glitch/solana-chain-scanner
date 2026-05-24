@@ -46,10 +46,6 @@
   }
 
   function cropEmbedFamily() {
-    const fam = document.documentElement.dataset.cropEmbedFamily;
-    if (fam === 'gecko' || fam === 'dex') return fam;
-    if (document.documentElement.dataset.chartEmbedProvider === 'gecko') return 'gecko';
-    if (document.documentElement.classList.contains('web-browser')) return 'gecko';
     return 'dex';
   }
 
