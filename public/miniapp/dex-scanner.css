@@ -196,18 +196,18 @@ html.web-browser .scanner-home {
   margin: 0;
 }
 
-html.web-browser .promo-banner {
+html.web-browser .promo-banner:not(.app-promo-global) {
   height: auto;
   aspect-ratio: 1200 / 96;
   min-height: 56px;
 }
 
-html.web-browser .promo-banner-picture {
+html.web-browser .promo-banner:not(.app-promo-global) .promo-banner-picture {
   position: absolute;
   inset: 0;
 }
 
-html.web-browser .promo-banner-img {
+html.web-browser .promo-banner:not(.app-promo-global) .promo-banner-img {
   position: absolute;
   inset: 0;
 }

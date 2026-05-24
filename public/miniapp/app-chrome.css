@@ -3,7 +3,7 @@
 :root {
   --app-brand-h: 58px;
   --app-chrome-inset: 8px;
-  --promo-banner-edge: 6px;
+  --promo-banner-edge: 2px;
   --sniper-bg: #060910;
   --sniper-card: #0b101d;
   --sniper-border: rgba(255, 255, 255, 0.06);
@@ -281,16 +281,18 @@ html.tg-fullscreen .app-top-chrome {
   order: -1;
 }
 
-/* Banner — sağ/sol eşit 6px; toolbar 8px inset içinde kalır */
+/* Banner — ekrana göre sağ/sol aynı ince boşluk (left+right; toolbar dokunulmaz) */
 .app-top-chrome .promo-banner.app-promo-global {
   --promo-h: 96px;
   display: block;
   position: relative;
   box-sizing: border-box;
-  width: calc(100% + 2 * (var(--app-chrome-inset) - var(--promo-banner-edge)));
+  left: calc(var(--promo-banner-edge) - var(--app-chrome-inset));
+  right: calc(var(--promo-banner-edge) - var(--app-chrome-inset));
+  width: auto;
   max-width: none;
   height: var(--promo-h);
-  margin: 0 calc(var(--promo-banner-edge) - var(--app-chrome-inset)) 8px;
+  margin: 0 0 8px;
   border-radius: 10px;
   overflow: hidden;
   border: 1px solid rgba(0, 229, 255, 0.38);
@@ -299,6 +301,22 @@ html.tg-fullscreen .app-top-chrome {
     0 0 18px rgba(0, 229, 255, 0.16);
   text-decoration: none;
   flex-shrink: 0;
+}
+
+html.web-browser .app-top-chrome .promo-banner.app-promo-global {
+  height: auto;
+  aspect-ratio: 1200 / 96;
+  min-height: 72px;
+}
+
+html.web-browser .app-top-chrome .promo-banner.app-promo-global .promo-banner-picture {
+  position: absolute;
+  inset: 0;
+}
+
+html.web-browser .app-top-chrome .promo-banner.app-promo-global .promo-banner-img {
+  position: absolute;
+  inset: 0;
 }
 
 .app-top-chrome .promo-banner.app-promo-global.hidden {
