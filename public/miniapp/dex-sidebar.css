@@ -1,7 +1,8 @@
 /* Yan panel — DexScreener tarzı (mobil + Telegram) */
 
 :root {
-  --sidebar-nav-icon-size: 58px;
+  --sidebar-icon-col: 58px;
+  --sidebar-watchlist-icon-size: 58px;
 }
 
 .dex-sidebar {
@@ -226,10 +227,9 @@
 .dex-sidebar-link {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 12px;
   width: 100%;
-  padding: 8px 12px;
-  min-height: calc(var(--sidebar-nav-icon-size) + 16px);
+  padding: 10px 12px;
   box-sizing: border-box;
   border: none;
   border-radius: 10px;
@@ -244,20 +244,25 @@
 }
 
 .dex-sidebar-link .ico {
-  width: var(--sidebar-nav-icon-size);
-  height: var(--sidebar-nav-icon-size);
-  min-width: var(--sidebar-nav-icon-size);
-  min-height: var(--sidebar-nav-icon-size);
+  width: var(--sidebar-icon-col);
+  min-width: var(--sidebar-icon-col);
+  height: 20px;
+  min-height: 20px;
   text-align: center;
-  font-size: 30px;
+  font-size: 15px;
   line-height: 1;
-  opacity: 0.95;
+  opacity: 0.9;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
   overflow: visible;
   background: transparent;
+}
+
+.dex-sidebar-link[data-sidebar-nav='watchlist'] .ico {
+  height: var(--sidebar-watchlist-icon-size);
+  min-height: var(--sidebar-watchlist-icon-size);
 }
 
 .dex-sidebar-link > span:not(.ico) {
@@ -267,18 +272,20 @@
   align-self: center;
 }
 
-.dex-sidebar-link .scanner-ico-img,
+.dex-sidebar-link .scanner-ico-img {
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+}
+
 .dex-sidebar-link .watchlist-ico-img {
-  width: var(--sidebar-nav-icon-size);
-  height: var(--sidebar-nav-icon-size);
+  width: var(--sidebar-watchlist-icon-size);
+  height: var(--sidebar-watchlist-icon-size);
   object-fit: contain;
   object-position: center;
   display: block;
   flex-shrink: 0;
   background: transparent;
-}
-
-.dex-sidebar-link .watchlist-ico-img {
   mix-blend-mode: lighten;
 }
 
