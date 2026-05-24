@@ -1,7 +1,7 @@
 /* Yan panel — DexScreener tarzı (mobil + Telegram) */
 
 .dex-sidebar {
-  position: fixed;
+  position: fixed !important;
   inset: 0;
   z-index: 6500;
   pointer-events: none;
@@ -570,21 +570,15 @@
   padding: 10px;
 }
 
-/* Sol kenar çekmece tutamacı — TG Kapat (X) ile çakışmaz */
+/* Sol kenar çekmece — TG fullscreen body>* kuralından muaf (position:fixed) */
 .sidebar-drawer-rail {
-  position: fixed;
+  position: fixed !important;
   left: 0;
   top: 50%;
-  z-index: 6400;
+  z-index: 12000;
   transform: translateY(-50%);
   pointer-events: none;
-  opacity: 0.38;
   transition: opacity 0.2s ease, transform 0.2s ease;
-}
-
-.sidebar-drawer-rail:focus-within,
-.sidebar-drawer-rail:has(.sidebar-drawer-handle.is-dragging) {
-  opacity: 0.92;
 }
 
 .sidebar-drawer-rail.is-hidden {
@@ -598,19 +592,25 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 14px;
-  height: 40px;
+  width: 16px;
+  height: 44px;
   padding: 0;
   margin: 0;
-  border: 1px solid rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-left: none;
-  border-radius: 0 8px 8px 0;
-  background: rgba(10, 14, 24, 0.55);
-  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.25);
+  border-radius: 0 9px 9px 0;
+  background: rgba(10, 14, 24, 0.72);
+  box-shadow: 2px 0 10px rgba(0, 0, 0, 0.3);
   cursor: grab;
   touch-action: none;
   -webkit-tap-highlight-color: transparent;
+  opacity: 0.72;
   transition: background 0.15s ease, border-color 0.15s ease, opacity 0.15s ease;
+}
+
+.sidebar-drawer-handle:hover,
+.sidebar-drawer-handle:focus-visible {
+  opacity: 0.95;
 }
 
 .sidebar-drawer-rail:active .sidebar-drawer-handle,
@@ -657,6 +657,29 @@
 body.sidebar-open .sidebar-drawer-rail {
   opacity: 0;
   pointer-events: none;
+}
+
+/* Web tarayıcı: ince tutamak + üstte ☰ yedek */
+html.web-browser .web-only-menu {
+  display: inline-flex;
+  flex-shrink: 0;
+  width: 38px;
+  height: 38px;
+  margin-right: 2px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.04);
+  color: #eef2ff;
+  font-size: 17px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+html.tg-mini-app .web-only-menu,
+html:not(.web-browser) .web-only-menu {
+  display: none !important;
 }
 
 .scan-header .scan-brand {

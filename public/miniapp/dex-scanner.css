@@ -47,7 +47,7 @@ html.tg-mini-app.tg-fullscreen body::before {
   pointer-events: none;
 }
 
-html.tg-mini-app.tg-fullscreen body > * {
+html.tg-mini-app.tg-fullscreen body > *:not(.sidebar-drawer-rail):not(.dex-sidebar) {
   position: relative;
   z-index: 1;
 }
