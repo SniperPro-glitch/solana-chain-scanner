@@ -1,5 +1,6 @@
 /**
- * Sol menü: bölüm akordeonu + mobil/tablet drawer (tüm panel aç/kapa).
+ * Sol menü: bölüm akordeonu + mobil/tablet sol çekmece (drawer).
+ * Masaüstünde menü sürekli açık; dar ekranda sol kenar tutamacı ile açılır.
  */
 (function () {
   const t = ['d', 'i', 'v'].join('');
@@ -54,9 +55,10 @@
 
   function initSidebarDrawer() {
     const layout = document.getElementById('appLayout');
-    const toggle = document.getElementById('btnSidebarToggle');
+    const openBtn = document.getElementById('btnSidebarDrawer');
+    const closeBtn = document.getElementById('btnSidebarClose');
     const backdrop = document.getElementById('sidebarBackdrop');
-    if (!layout || !toggle || toggle.dataset.drawerReady === '1') return;
+    if (!layout || !openBtn || openBtn.dataset.drawerReady === '1') return;
 
     const mq = window.matchMedia(MQ);
 
@@ -65,23 +67,25 @@
     }
 
     function isOpen() {
-      return isMobile()
-        ? layout.classList.contains('sidebar-open')
-        : !layout.classList.contains('sidebar-collapsed');
+      return layout.classList.contains('sidebar-open');
     }
 
     function setOpen(open) {
-      if (isMobile()) {
-        layout.classList.toggle('sidebar-open', open);
-        layout.classList.remove('sidebar-collapsed');
-      } else {
-        layout.classList.toggle('sidebar-collapsed', !open);
-        layout.classList.remove('sidebar-open');
+      if (!isMobile()) {
+        layout.classList.remove('sidebar-open', 'sidebar-collapsed');
+        document.body.classList.remove('sidebar-drawer-open');
+        if (backdrop) backdrop.setAttribute('aria-hidden', 'true');
+        openBtn.setAttribute('aria-expanded', 'true');
+        openBtn.setAttribute('aria-label', 'Menü');
+        return;
       }
-      document.body.classList.toggle('sidebar-drawer-open', open && isMobile());
-      toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
-      toggle.setAttribute('aria-label', open ? 'Menüyü kapat' : 'Menüyü aç');
-      if (backdrop) backdrop.setAttribute('aria-hidden', open && isMobile() ? 'false' : 'true');
+
+      layout.classList.toggle('sidebar-open', open);
+      layout.classList.remove('sidebar-collapsed');
+      document.body.classList.toggle('sidebar-drawer-open', open);
+      openBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+      openBtn.setAttribute('aria-label', open ? 'Menüyü kapat' : 'Menüyü aç');
+      if (backdrop) backdrop.setAttribute('aria-hidden', open ? 'false' : 'true');
     }
 
     function closeSidebar() {
@@ -90,19 +94,21 @@
 
     window.SniperAdminSidebar = { close: closeSidebar, setOpen, isOpen };
 
-    toggle.addEventListener('click', () => {
+    openBtn.addEventListener('click', () => {
+      if (!isMobile()) return;
       setOpen(!isOpen());
     });
 
+    closeBtn?.addEventListener('click', closeSidebar);
     backdrop?.addEventListener('click', closeSidebar);
 
     document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape' && isOpen()) closeSidebar();
+      if (e.key === 'Escape' && isMobile() && isOpen()) closeSidebar();
     });
 
     document.querySelectorAll('.sidebar .nav-item').forEach((el) => {
       el.addEventListener('click', () => {
-        closeSidebar();
+        if (isMobile()) closeSidebar();
       });
     });
 
@@ -110,17 +116,17 @@
       layout.classList.remove('sidebar-open', 'sidebar-collapsed');
       document.body.classList.remove('sidebar-drawer-open');
       if (backdrop) backdrop.setAttribute('aria-hidden', 'true');
-      setOpen(!isMobile());
+      setOpen(false);
     });
 
-    setOpen(!isMobile());
-    toggle.dataset.drawerReady = '1';
+    setOpen(false);
+    openBtn.dataset.drawerReady = '1';
 
     const origShow = window.showPage;
     if (typeof origShow === 'function' && !window.__adminShowPagePatched) {
       window.showPage = function (id) {
         origShow(id);
-        if (id === 'support' || isMobile()) closeSidebar();
+        if (isMobile()) closeSidebar();
       };
       window.__adminShowPagePatched = true;
     }

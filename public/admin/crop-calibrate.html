@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>DEX Kırpma Kalibrasyon — SNIPER Admin</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="admin-shell.css?v=15" />
+  <link rel="stylesheet" href="admin-shell.css?v=17" />
   <link rel="stylesheet" href="admin-crop-calibrate.css?v=1" />
 </head>
 <body>
@@ -15,10 +15,22 @@
         <div class="brand-logo"><img src="assets/sniper-logo.png" alt="SNIPER" width="36" height="36" /></div>
         <div><strong style="font-size:18px">SNIPER</strong><div style="font-size:11px;color:#758096">DEX KIRPMA</div></div>
       </div>
-      <p class="login-hint" id="loginHint">Admin girişi gerekli</p>
-      <label class="input-group"><div class="input-label">Kullanıcı adı</div><input class="input" id="loginUser" autocomplete="username" /></label>
-      <label class="input-group"><div class="input-label">Şifre</div><input class="input" id="loginPass" type="password" autocomplete="current-password" /></label>
-      <button type="button" class="btn btn-primary btn-md" id="btnLogin" style="width:100%;margin-top:10px">Giriş yap</button>
+      <div class="login-lang-row" id="loginLangRow">
+        <span class="login-lang-label" data-i18n="login.lang">Dil</span>
+        <div class="login-lang-btns" role="group" aria-label="Language">
+          <button type="button" class="login-lang-btn" data-login-lang="en" aria-pressed="false">EN</button>
+          <button type="button" class="login-lang-btn" data-login-lang="tr" aria-pressed="false">TR</button>
+          <button type="button" class="login-lang-btn" data-login-lang="ru" aria-pressed="false">RU</button>
+        </div>
+      </div>
+      <p class="login-hint" id="loginHint" data-i18n="login.hint.crop">Admin girişi gerekli</p>
+      <label class="input-group"><div class="input-label" data-i18n="login.label.user">Kullanıcı adı</div><input class="input" id="loginUser" autocomplete="username" /></label>
+      <label class="input-group"><div class="input-label" data-i18n="login.label.pass">Şifre</div><input class="input" id="loginPass" type="password" autocomplete="current-password" /></label>
+      <label class="login-remember">
+        <input type="checkbox" id="loginRemember" />
+        <span data-i18n="login.remember">Beni hatırla</span>
+      </label>
+      <button type="button" class="btn btn-primary btn-md" id="btnLogin" style="width:100%;margin-top:8px" data-i18n="login.submit">Giriş yap</button>
       <p style="margin-top:12px;font-size:11px;text-align:center"><a href="/admin/" style="color:#67e8f9">← Ana admin paneli</a></p>
     </div>
   </div>
@@ -72,7 +84,8 @@
     </main>
   </div>
 
-  <script src="admin-live.js?v=10"></script>
+  <script src="admin-login-i18n.js?v=1"></script>
+  <script src="admin-live.js?v=11"></script>
   <script src="admin-crop-calibrate.js?v=1"></script>
 </body>
 </html>

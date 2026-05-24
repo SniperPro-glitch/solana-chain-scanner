@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>SNIPER Admin Panel</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="admin-shell.css?v=15" />
+  <link rel="stylesheet" href="admin-shell.css?v=17" />
 <link rel="stylesheet" href="admin-support-page.css?v=3" />
 </head>
 <body><div id="loginGate" class="login-gate">
@@ -14,18 +14,36 @@
       <div class="brand-logo"><img src="assets/sniper-logo.png" srcset="assets/sniper-logo.png 1x, assets/sniper-logo@2x.png 2x" alt="SNIPER" width="36" height="36" decoding="async" /></div>
       <div><strong style="font-size:18px">SNIPER</strong><div style="font-size:11px;color:#758096;letter-spacing:1px">ADMIN PANEL</div></div>
     </div>
-    <p class="login-hint" id="loginHint">Kullanıcı adı ve şifre</p>
-    <label class="input-group"><div class="input-label">Kullanıcı adı</div><input class="input" id="loginUser" autocomplete="username" /></label>
-    <label class="input-group"><div class="input-label">Şifre</div><input class="input" id="loginPass" type="password" autocomplete="current-password" /></label>
-    <button type="button" class="btn btn-primary btn-md" id="btnLogin" style="width:100%;margin-top:10px">Giriş yap</button>
+    <div class="login-lang-row" id="loginLangRow">
+      <span class="login-lang-label" data-i18n="login.lang">Dil</span>
+      <div class="login-lang-btns" role="group" aria-label="Language">
+        <button type="button" class="login-lang-btn" data-login-lang="en" aria-pressed="false">EN</button>
+        <button type="button" class="login-lang-btn" data-login-lang="tr" aria-pressed="false">TR</button>
+        <button type="button" class="login-lang-btn" data-login-lang="ru" aria-pressed="false">RU</button>
+      </div>
+    </div>
+    <p class="login-hint" id="loginHint" data-i18n="login.hint.default">Kullanıcı adı ve şifre</p>
+    <label class="input-group"><div class="input-label" data-i18n="login.label.user">Kullanıcı adı</div><input class="input" id="loginUser" autocomplete="username" /></label>
+    <label class="input-group"><div class="input-label" data-i18n="login.label.pass">Şifre</div><input class="input" id="loginPass" type="password" autocomplete="current-password" /></label>
+    <label class="login-remember">
+      <input type="checkbox" id="loginRemember" />
+      <span data-i18n="login.remember">Beni hatırla</span>
+    </label>
+    <button type="button" class="btn btn-primary btn-md" id="btnLogin" style="width:100%;margin-top:8px" data-i18n="login.submit">Giriş yap</button>
   </div>
 </div>
 <div class="layout hidden" id="appLayout">
 <button type="button" class="sidebar-backdrop" id="sidebarBackdrop" aria-hidden="true" tabindex="-1"></button>
+<button type="button" class="sidebar-drawer-handle" id="btnSidebarDrawer" aria-label="Menüyü aç" aria-expanded="false" aria-controls="adminSidebar">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/></svg>
+</button>
 
 <!-- ═══════════════════ SIDEBAR ═══════════════════ -->
 <aside class="sidebar" id="adminSidebar">
   <div class="sidebar-brand">
+    <button type="button" class="sidebar-drawer-close" id="btnSidebarClose" aria-label="Menüyü kapat">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
     <div class="brand-logo">
       <img src="assets/sniper-logo.png" srcset="assets/sniper-logo.png 1x, assets/sniper-logo@2x.png 2x" alt="SNIPER" width="34" height="34" decoding="async" />
     </div>
@@ -141,9 +159,6 @@
 
   <!-- TOPBAR -->
   <div class="topbar">
-    <button type="button" class="sidebar-menu-btn" id="btnSidebarToggle" aria-label="Menüyü aç" aria-expanded="false" aria-controls="adminSidebar">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-    </button>
     <div class="topbar-brand">
       <img src="assets/sniper-logo.png" srcset="assets/sniper-logo.png 1x, assets/sniper-logo@2x.png 2x" alt="SNIPER" class="topbar-logo-img" width="32" height="32" decoding="async" />
       <div class="topbar-titles">
@@ -1563,8 +1578,9 @@ function showPage(id) {
   document.getElementById('topbar-sub').textContent   = pages[id]?.sub   || '';
 }
 </script>
-<script src="admin-nav.js?v=4"></script>
-<script src="admin-live.js?v=9"></script>
+<script src="admin-login-i18n.js?v=1"></script>
+<script src="admin-nav.js?v=5"></script>
+<script src="admin-live.js?v=11"></script>
 <script src="admin-action-auth.js?v=1"></script>
 <script src="banner-specs.js?v=2"></script>
 <script src="admin-banner.js?v=6"></script>

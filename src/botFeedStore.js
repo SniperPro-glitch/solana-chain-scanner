@@ -4,6 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const { DATA_DIR, ensureDataDir } = require('./data-path');
 const pg = require('./pgClient');
+const { filterFeedEntries } = require('./channelFeedPolicy');
 
 const FEED_FILE = path.join(DATA_DIR, 'bot_feed.json');
 const MAX_ITEMS = 400;
@@ -127,7 +128,7 @@ async function listRecentPg(limit, tab) {
       return (b.postedAt || 0) - (a.postedAt || 0);
     });
   }
-  return items.slice(0, limit);
+  return filterFeedEntries(items).slice(0, limit);
 }
 
 function listRecent(limit = 48, tab = 'trending') {
@@ -146,7 +147,7 @@ function listRecent(limit = 48, tab = 'trending') {
     });
   }
 
-  return items.slice(0, limit);
+  return filterFeedEntries(items).slice(0, limit);
 }
 
 async function listRecentAsync(limit = 48, tab = 'trending') {

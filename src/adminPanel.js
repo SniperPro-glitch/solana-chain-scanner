@@ -6,6 +6,7 @@ const path = require('path');
 const { DATA_DIR, isPersistentDataDir } = require('./data-path');
 
 const SESSION_TTL_MS = 12 * 60 * 60 * 1000;
+const SESSION_REMEMBER_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 
 /** Shell'deki eski ADMIN_* değişkenleri .env'i ezmesin (Windows dev). */
 function applyAdminEnvFromFile() {
@@ -45,6 +46,10 @@ const ENV_GROUPS = [
     id: 'bot',
     title: 'Bot & Kanal',
     keys: [
+      'TON_SCAN_ENABLED',
+      'TON_SCAN_INTERVAL_MIN',
+      'BSC_SCAN_ENABLED',
+      'BSC_SCAN_INTERVAL_MIN',
       'SOLANA_SCAN_ENABLED',
       'SOLANA_SCAN_INTERVAL_MIN',
       'SOLANA_SCAN_POOL_LIMIT',
@@ -52,6 +57,7 @@ const ENV_GROUPS = [
       'TG_API_ID',
       'TG_SESSION',
       'TELEGRAM_CHANNEL_IDS',
+      'MINI_APP_FEED_CHANNEL_IDS',
     ],
   },
   {
@@ -117,8 +123,8 @@ function sessionSecret() {
   return `sniper-admin:${username}:${password}`;
 }
 
-function issueSessionToken(username) {
-  const exp = Date.now() + SESSION_TTL_MS;
+function issueSessionToken(username, ttlMs = SESSION_TTL_MS) {
+  const exp = Date.now() + Math.max(60_000, Number(ttlMs) || SESSION_TTL_MS);
   const payload = `${username}|${exp}`;
   const sig = crypto
     .createHmac('sha256', sessionSecret())
@@ -526,10 +532,15 @@ async function handleAdminApi(req, res, url, helpers) {
       sendJson(res, code, { ok: false, error: auth.error });
       return true;
     }
-    const session = issueSessionToken(auth.username);
+    const remember = body.remember === true || body.remember === 'true' || body.remember === 1;
+    const session = issueSessionToken(
+      auth.username,
+      remember ? SESSION_REMEMBER_TTL_MS : SESSION_TTL_MS,
+    );
     sendJson(res, 200, {
       ok: true,
       ...session,
+      remember,
       role: auth.role,
       roleLabel: auth.roleLabel,
       displayName: auth.displayName,

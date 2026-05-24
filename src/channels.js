@@ -419,8 +419,12 @@ function tokenPassesChannelFilters(token, audit, channel, opts = {}) {
   const s = channel.settings || DEFAULT_SETTINGS;
   if (!s.enabled) return { pass: false, reason: 'Channel disabled' };
   const chList = s.chains;
-  if (!Array.isArray(chList) || chList.length === 0 || !chList.includes('solana')) {
-    return { pass: false, reason: 'Network not selected (choose Solana in settings)' };
+  const expectedChain = opts.chainId || token.chain;
+  if (!Array.isArray(chList) || chList.length === 0) {
+    return { pass: false, reason: 'Network not selected (choose TON, BSC or Solana in settings)' };
+  }
+  if (expectedChain && !chList.includes(expectedChain)) {
+    return { pass: false, reason: `Channel network is ${chList[0]}, token is ${expectedChain}` };
   }
   // Min likidite 0 = filtre yok. >0 ise geçerli sayı şart — aksi halde JS `undefined < 1500` false döner ve token yanlışlıkla geçer.
   const liqUsd = Number(token.liquidityUsd);
@@ -449,7 +453,8 @@ function tokenPassesChannelFilters(token, audit, channel, opts = {}) {
     }
   }
   const pumpMode = String(s.pumpGraduationMode || 'off').toLowerCase();
-  if (pumpMode !== 'off') {
+  const chainForPump = expectedChain || (Array.isArray(chList) ? chList[0] : '');
+  if (pumpMode !== 'off' && chainForPump === 'solana') {
     const mint = token.tokenAddress || '';
     const isPump = token.isPumpFun || mint.endsWith('pump');
     if (isPump) {
@@ -738,6 +743,17 @@ module.exports = {
   isSolanaSelected(chatId) {
     const chList = cache.channels[String(chatId)]?.settings?.chains;
     return Array.isArray(chList) && chList.includes('solana');
+  },
+
+  primaryChain(chatId) {
+    const chList = cache.channels[String(chatId)]?.settings?.chains;
+    if (Array.isArray(chList) && chList.length) return chList[0];
+    return null;
+  },
+
+  hasChainSelected(chatId) {
+    const chList = cache.channels[String(chatId)]?.settings?.chains;
+    return Array.isArray(chList) && chList.length > 0;
   },
 
   add: addChannel,

@@ -1,33 +1,34 @@
-// Otomatik tarama — Solana (BSC/TON scanRunner deseni).
+// Otomatik tarama — TON / BSC / Solana (kanal başına tek ağ).
 
 const { recordMiniAppShare } = require('./recordMiniAppShare');
 const { publishToDexFirst } = require('./publishPipeline');
-const CHAIN_ID = 'solana';
+const { isOfficialFeedChannel } = require('./channelFeedPolicy');
+const { formatTokenCardForChain, bannerSourceForChain } = require('./chainRuntime');
 
 function createScanRunner(deps) {
   const {
     chainsRegistry,
     channels,
     storage,
-    formatTokenCard,
-    solanaBannerSource,
     sendCardToChannel,
     sendBotAnalysisFollowup,
     ensureShareEnrichment,
     applyTokenBadges,
     MAX_TOKENS_PER_SCAN,
-    SCAN_POOL_FETCH_LIMIT,
+    getScanPoolLimit,
     SCAN_TOKEN_GAP_MS,
   } = deps;
 
-  let scanning = false;
-  let lastScanResult = null;
+  const scanningByChain = { ton: false, bsc: false, solana: false };
+  const lastScanResult = {};
 
-  async function runScan(triggeredBy = 'cron') {
-    if (scanning) return { skipped: true, reason: 'already_running', chain: CHAIN_ID };
-    scanning = true;
+  async function runScan(triggeredBy = 'cron', chainId = 'solana') {
+    const cid = String(chainId || 'solana').toLowerCase();
+    if (scanningByChain[cid]) return { skipped: true, reason: 'already_running', chain: cid };
+    scanningByChain[cid] = true;
     const startedAt = Date.now();
-    const chain = chainsRegistry.getChain(CHAIN_ID);
+    const chain = chainsRegistry.getChain(cid);
+    const poolLimit = typeof getScanPoolLimit === 'function' ? getScanPoolLimit(cid) : 12;
 
     const result = {
       found: 0,
@@ -36,14 +37,15 @@ function createScanRunner(deps) {
       errors: 0,
       tokensShared: 0,
       triggeredBy,
-      chain: CHAIN_ID,
+      chain: cid,
       activeChannels: channels.listEnabled().length,
     };
 
     try {
       const activeChannels = channels.listEnabled().filter((c) => {
         const chList = c.settings?.chains;
-        return Array.isArray(chList) && chList.includes(CHAIN_ID);
+        if (!Array.isArray(chList) || chList.length === 0) return false;
+        return chList.includes(cid);
       });
 
       if (activeChannels.length === 0) {
@@ -59,12 +61,12 @@ function createScanRunner(deps) {
         return result;
       }
 
-      console.log(`🔍 [solana/${triggeredBy}] ${activeChannels.length} kanal`);
+      console.log(`🔍 [${cid}/${triggeredBy}] ${activeChannels.length} kanal`);
 
       const globalMinLiq = Math.min(...activeChannels.map((c) => c.settings?.minLiquidityUsd ?? 0));
       const tokens = await chain.scanNewTokens({
         minLiquidityUsd: Math.max(0, globalMinLiq),
-        limit: SCAN_POOL_FETCH_LIMIT,
+        limit: poolLimit,
       });
       result.found = tokens.length;
 
@@ -78,17 +80,17 @@ function createScanRunner(deps) {
           continue;
         }
 
-        token.chain = CHAIN_ID;
+        token.chain = cid;
         token.initialLiquidity = token.liquidityUsd || 0;
-        await ensureShareEnrichment(token, CHAIN_ID).catch(() => {});
-        applyTokenBadges(token);
+        await ensureShareEnrichment(token, cid).catch(() => {});
+        if (typeof applyTokenBadges === 'function') applyTokenBadges(token);
         let audit = chain.auditToken(token);
         let sentToAny = false;
         const channelMessages = [];
 
         const eligible = [];
         for (const ch of activeChannels) {
-          const filterCheck = channels.tokenPassesChannelFilters(token, audit, ch);
+          const filterCheck = channels.tokenPassesChannelFilters(token, audit, ch, { chainId: cid });
           if (filterCheck.pass) eligible.push(ch);
           else {
             const cat = channels.categorizeFilterReason(filterCheck.reason);
@@ -103,31 +105,40 @@ function createScanRunner(deps) {
         const cardLevel = isCritical ? 'critical' : (isRisky ? 'yellow' : 'green');
         const bannerLevel = isCritical ? 'critical' : (isRisky ? 'yellow' : 'green');
         const baseLang = channels.resolveCardLang(eligible[0]);
-        const dexListing = await publishToDexFirst(token, audit, baseLang, cardLevel);
+        const officialEligible = eligible.filter((ch) => isOfficialFeedChannel(ch.id));
+        let dexListing = { reportId: null, dexAppUrl: null };
+        if (cid === 'solana' && officialEligible.length) {
+          dexListing = await publishToDexFirst(token, audit, baseLang, cardLevel);
+        }
+        const dexTag = officialEligible.length && cid === 'solana' ? 'DEX+app' : 'kanal-only';
         console.log(
-          `[scan] filtre OK ${token.tokenSymbol || '?'} → DEX + ${eligible.length} kanal`,
+          `[scan] filtre OK ${token.tokenSymbol || '?'} → ${dexTag} · ${eligible.length} kanal (${officialEligible.length} resmi)`,
         );
 
         for (const ch of eligible) {
           const chLang = channels.resolveCardLang(ch);
-          const message = formatTokenCard(token, audit, chLang, cardLevel, { slim: true });
+          const message = formatTokenCardForChain(cid, token, audit, chLang, cardLevel, { slim: true });
           const silent = ch.settings?.silentNotification === true;
+          const official = cid === 'solana' && isOfficialFeedChannel(ch.id);
 
-          recordMiniAppShare(ch, token, audit, chLang, cardLevel, dexListing.reportId);
+          if (official) {
+            recordMiniAppShare(ch, token, audit, chLang, cardLevel, dexListing.reportId);
+          }
 
           try {
             const r = await sendCardToChannel(ch, {
               text: message,
-              ...solanaBannerSource(bannerLevel),
+              ...bannerSourceForChain(cid, bannerLevel),
               silent,
-              chain: CHAIN_ID,
+              chain: cid,
             });
             if (!r.ok) throw new Error(r.error || 'send fail');
 
+            const banner = bannerSourceForChain(cid, bannerLevel);
             const cmEntry = r.messageId ? {
               chatId: ch.id,
               messageId: r.messageId,
-              hasPhoto: !!(solanaBannerSource(bannerLevel).photoFileId || solanaBannerSource(bannerLevel).photoLocalPath),
+              hasPhoto: !!(banner.photoFileId || banner.photoLocalPath),
               originalText: message,
               lang: chLang,
               via: r.via,
@@ -135,8 +146,9 @@ function createScanRunner(deps) {
             if (cmEntry) {
               channelMessages.push(cmEntry);
               await sendBotAnalysisFollowup(ch, cmEntry, token, audit, chLang, cardLevel, {
-                reportId: dexListing.reportId,
-                dexAppUrl: dexListing.dexAppUrl,
+                reportId: official ? dexListing.reportId : null,
+                dexAppUrl: official ? dexListing.dexAppUrl : null,
+                includeMiniApp: official,
               });
             }
             channels.recordSuccess(ch.id);
@@ -153,7 +165,7 @@ function createScanRunner(deps) {
         if (sentToAny) {
           storage.markSeen(token.poolId);
           storage.watch(token.poolId, {
-            chain: CHAIN_ID,
+            chain: cid,
             tokenSymbol: token.tokenSymbol,
             tokenName: token.tokenName,
             tokenAddress: token.tokenAddress,
@@ -178,25 +190,29 @@ function createScanRunner(deps) {
         tokensShared: postedTokens,
         rejectionsByCategory,
         errors: result.errors,
+        chain: cid,
       });
-      lastScanResult = result;
+      lastScanResult[cid] = result;
       const rej = Object.keys(rejectionsByCategory).length
         ? ` · red: ${Object.entries(rejectionsByCategory).map(([k, v]) => `${k}=${v}`).join(', ')}`
         : '';
       console.log(
-        `✅ [solana] tarama: bulunan=${result.found} paylaşılan=${postedTokens} mesaj=${result.sharedToChannels} atlanan=${result.skipped}${rej} (${result.durationMs}ms)`,
+        `✅ [${cid}] tarama: bulunan=${result.found} paylaşılan=${postedTokens} mesaj=${result.sharedToChannels} atlanan=${result.skipped}${rej} (${result.durationMs}ms)`,
       );
     } catch (err) {
-      console.error('❌ [solana] tarama:', err.message);
+      console.error(`❌ [${cid}] tarama:`, err.message);
       result.errors++;
       result.error = err.message;
     } finally {
-      scanning = false;
+      scanningByChain[cid] = false;
     }
     return result;
   }
 
-  return { runScan, getLastScanResult: () => lastScanResult };
+  return {
+    runScan,
+    getLastScanResult: (chainId) => lastScanResult[String(chainId || 'solana').toLowerCase()] || null,
+  };
 }
 
 module.exports = { createScanRunner };

@@ -26,9 +26,8 @@ function L(chatId) {
   return normalizeLang(channels.getSettings(chatId).lang);
 }
 
-function isSolanaChainSelected(chatId) {
-  const chList = channels.getSettings(chatId).chains;
-  return Array.isArray(chList) && chList.includes('solana');
+function isChainSelected(chatId) {
+  return channels.hasChainSelected(chatId);
 }
 
 /** Ağ seçilmeden izin verilen callback'ler */
@@ -36,12 +35,12 @@ function isChainSetupAllowed(data) {
   if (!data) return false;
   if (data === 'menu:main' || data === 'menu:chain' || data === 'close') return true;
   if (data.startsWith('set:lang:')) return true;
-  if (data === 'set:chain:solana') return true;
+  if (data === 'set:chain:ton' || data === 'set:chain:bsc' || data === 'set:chain:solana') return true;
   return false;
 }
 
 function chainGuard(chatId, data, lang) {
-  if (isSolanaChainSelected(chatId)) return null;
+  if (isChainSelected(chatId)) return null;
   if (isChainSetupAllowed(data)) return null;
   return {
     menu: 'chain',
@@ -50,12 +49,35 @@ function chainGuard(chatId, data, lang) {
   };
 }
 
-/** Bu projede yalnızca Solana. */
-function primaryChainFor(_chatId) {
+/** Kanalın seçtiği tek ağ (ton | bsc | solana). */
+function primaryChainFor(chatId) {
+  const p = channels.primaryChain(chatId);
+  if (p === 'ton' || p === 'bsc' || p === 'solana') return p;
   return 'solana';
 }
 
-// BSC: DexScreener dexId tabanı — channels.tokenPassesChannelFilters ile aynı (küçük harf)
+function chainLabelFor(code, lang) {
+  if (code === 'bsc') return '🟡 BSC';
+  if (code === 'solana') return '◎ Solana';
+  if (code === 'ton') return '🔷 TON';
+  return t('settings.chain.none', lang);
+}
+
+const BSC_DEX_CHOICES = [
+  { id: 'pancakeswap', tr: 'PancakeSwap', en: 'PancakeSwap', ru: 'PancakeSwap' },
+  { id: 'biswap', tr: 'BiSwap', en: 'BiSwap', ru: 'BiSwap' },
+  { id: 'apeswap', tr: 'ApeSwap', en: 'ApeSwap', ru: 'ApeSwap' },
+  { id: 'sushiswap', tr: 'SushiSwap', en: 'SushiSwap', ru: 'SushiSwap' },
+  { id: 'uniswap', tr: 'Uniswap', en: 'Uniswap', ru: 'Uniswap' },
+  { id: 'mdex', tr: 'MDEX', en: 'MDEX', ru: 'MDEX' },
+  { id: 'babyswap', tr: 'BabySwap', en: 'BabySwap', ru: 'BabySwap' },
+];
+
+function bscDexButtonLabel(choice, lang) {
+  return choice[lang] || choice.en;
+}
+
+// Solana: DexScreener dexId tabanı — channels.tokenPassesChannelFilters ile aynı (küçük harf)
 const SOLANA_DEX_CHOICES = [
   { id: 'raydium', tr: 'Raydium', en: 'Raydium', ru: 'Raydium' },
   { id: 'orca', tr: 'Orca', en: 'Orca', ru: 'Orca' },
@@ -86,8 +108,8 @@ function buildMainMenu(chatId) {
 
   // ─ Chain (ağ) etiketi — seçilen tek ağ ya da 'seçilmedi' ─
   const chList = Array.isArray(s.chains) ? s.chains : [];
-  const chainLabel = '◎ Solana';
-  const chainSet = chList.includes('solana');
+  const chainLabel = chList.length ? chainLabelFor(chList[0], lang) : t('settings.chain.none', lang);
+  const chainSet = chList.length > 0;
 
   const riskCodeMap = { VERY_LOW: 'risk.veryLow', LOW: 'risk.low', MEDIUM: 'risk.medium', HIGH: 'risk.high' };
   const riskLabel = t(riskCodeMap[channels.normalizeRisk(s.maxRiskLevel)] || 'risk.high', lang);
@@ -327,26 +349,29 @@ function buildCatChannel(chatId) {
     : lang === 'ru'
       ? '🏛 *DEX* — Solana: Raydium, Orca, Meteora, Jupiter…'
       : '🏛 *Allowed DEXes* — Solana: Raydium, Orca, Meteora, Jupiter…';
-  const pumpGradHint = lang === 'tr'
-    ? '🎓 *Pump mezuniyet* — sadece %100 dolmuş (PumpSwap) veya sadece curve'
-    : lang === 'ru'
-      ? '🎓 *Pump выпуск* — только 100% или только на кривой'
-      : '🎓 *Pump graduation* — only 100% migrated or only on bonding curve';
+  const isSol = chain === 'solana';
+  const pumpGradHint = isSol
+    ? (lang === 'tr'
+      ? '🎓 *Pump mezuniyet* — sadece %100 dolmuş (PumpSwap) veya sadece curve'
+      : lang === 'ru'
+        ? '🎓 *Pump выпуск* — только 100% или только на кривой'
+        : '🎓 *Pump graduation* — only 100% migrated or only on bonding curve')
+    : '';
   const hints = lang === 'tr'
     ? [
-        dexHintSol,
-        pumpGradHint,
+        chain === 'bsc' ? '🏛 *İzinli DEX’ler* — BSC: PancakeSwap, BiSwap…' : dexHintSol,
+        ...(pumpGradHint ? [pumpGradHint] : []),
         '🔕 *Sessiz Bildirim* — sessiz post (titreşim/ses yok)',
       ]
     : lang === 'ru'
       ? [
-          dexHintSol,
-          pumpGradHint,
+          chain === 'bsc' ? '🏛 *DEX* — BSC: PancakeSwap, BiSwap…' : dexHintSol,
+          ...(pumpGradHint ? [pumpGradHint] : []),
           '🔕 *Тихое уведомление* — без звука/вибрации',
         ]
       : [
-          dexHintSol,
-          pumpGradHint,
+          chain === 'bsc' ? '🏛 *Allowed DEXes* — BSC: PancakeSwap, BiSwap…' : dexHintSol,
+          ...(pumpGradHint ? [pumpGradHint] : []),
           '🔕 *Silent Notification* — post without sound',
         ];
   const pumpGradStatus = pumpGradLabel(s.pumpGraduationMode, lang);
@@ -358,7 +383,7 @@ function buildCatChannel(chatId) {
     `${PANEL_RULE}\n` +
     `*${curP(lang)}*\n` +
     `🏛 DEX: *${dexFilter}*\n` +
-    `🎓 ${t('settings.pumpGrad.short', lang)}: *${pumpGradStatus}*\n` +
+    (isSol ? `🎓 ${t('settings.pumpGrad.short', lang)}: *${pumpGradStatus}*\n` : '') +
     `🔕 ${t('settings.silent', lang)}: *${silentLabel}*`;
   const userbotStatus2 = s.userbotEnabled ? t('common.on', lang) : t('common.off', lang);
   const userbotLbl = lang === 'tr' ? 'Premium Userbot' : lang === 'ru' ? 'Premium юзербот' : 'Premium Userbot';
@@ -370,7 +395,7 @@ function buildCatChannel(chatId) {
     text,
     keyboard: [
       [{ text: '🏛 DEX', callback_data: 'menu:dex' }],
-      [{ text: `🎓 ${t('settings.pumpGrad.short', lang)}`, callback_data: 'menu:pumpGrad' }],
+      ...(isSol ? [[{ text: `🎓 ${t('settings.pumpGrad.short', lang)}`, callback_data: 'menu:pumpGrad' }]] : []),
       [{ text: `🔕 ${t('settings.silent', lang)}: ${silentLabel}`, callback_data: 'tgl:silent' }],
       [{ text: `🤖 ${userbotLbl}: ${userbotStatus2}`, callback_data: 'tgl:userbot' }],
       [{ text: `⏰ ${hoursLbl}: ${hoursStatus}`, callback_data: 'menu:hours' }],
@@ -650,25 +675,43 @@ function buildDexMenu(chatId) {
   ];
 
   let sub = '';
-  sub = lang === 'tr' ? 'Raydium, Orca, Meteora, Pump…' : 'Raydium, Orca, Meteora, Pump…';
-  for (let i = 0; i < SOLANA_DEX_CHOICES.length; i += 2) {
-    const left = SOLANA_DEX_CHOICES[i];
-    const right = SOLANA_DEX_CHOICES[i + 1];
-    const row = [
-      { text: `${has(left.id) ? '✅' : '⬜'} ${solDexButtonLabel(left, lang)}`, callback_data: `dex:${left.id}` },
-    ];
-    if (right) {
-      row.push({
-        text: `${has(right.id) ? '✅' : '⬜'} ${solDexButtonLabel(right, lang)}`,
-        callback_data: `dex:${right.id}`,
-      });
+  let tag = 'Solana';
+  if (chain === 'bsc') {
+    tag = 'BSC';
+    sub = lang === 'tr' ? 'PancakeSwap, BiSwap, ApeSwap…' : 'PancakeSwap, BiSwap, ApeSwap…';
+    for (let i = 0; i < BSC_DEX_CHOICES.length; i += 2) {
+      const left = BSC_DEX_CHOICES[i];
+      const right = BSC_DEX_CHOICES[i + 1];
+      const row = [
+        { text: `${has(left.id) ? '✅' : '⬜'} ${bscDexButtonLabel(left, lang)}`, callback_data: `dex:${left.id}` },
+      ];
+      if (right) {
+        row.push({
+          text: `${has(right.id) ? '✅' : '⬜'} ${bscDexButtonLabel(right, lang)}`,
+          callback_data: `dex:${right.id}`,
+        });
+      }
+      keyboard.push(row);
     }
-    keyboard.push(row);
+  } else {
+    sub = lang === 'tr' ? 'Raydium, Orca, Meteora, Pump…' : 'Raydium, Orca, Meteora, Pump…';
+    for (let i = 0; i < SOLANA_DEX_CHOICES.length; i += 2) {
+      const left = SOLANA_DEX_CHOICES[i];
+      const right = SOLANA_DEX_CHOICES[i + 1];
+      const row = [
+        { text: `${has(left.id) ? '✅' : '⬜'} ${solDexButtonLabel(left, lang)}`, callback_data: `dex:${left.id}` },
+      ];
+      if (right) {
+        row.push({
+          text: `${has(right.id) ? '✅' : '⬜'} ${solDexButtonLabel(right, lang)}`,
+          callback_data: `dex:${right.id}`,
+        });
+      }
+      keyboard.push(row);
+    }
   }
 
   keyboard.push([{ text: t('settings.back', lang), callback_data: 'menu:catChannel' }]);
-
-  const tag = 'Solana';
 
   return {
     text:
@@ -940,16 +983,18 @@ function buildLangMenu(chatId) {
   };
 }
 
-// ─ Chain (ağ) — yalnızca Solana (TON'daki TON/BSC menüsünün Solana karşılığı)
+// ─ Chain (ağ) — TON | BSC | Solana (tek seçim)
 function buildChainMenu(chatId) {
   const s = channels.getSettings(chatId);
   const lang = L(chatId);
   const chList = Array.isArray(s.chains) ? s.chains : [];
-  const cur = chList.includes('solana') ? 'solana' : null;
+  const cur = chList.length ? chList[0] : null;
   const mark = (code) => (cur === code ? '✅ ' : '');
   return {
     text: `${PANEL_RULE}\n${t('settings.chain.menu.title', lang)}`,
     keyboard: [
+      [{ text: `${mark('ton')}🔷 TON`, callback_data: 'set:chain:ton' }],
+      [{ text: `${mark('bsc')}🟡 BSC`, callback_data: 'set:chain:bsc' }],
       [{ text: `${mark('solana')}◎ Solana`, callback_data: 'set:chain:solana' }],
       [{ text: t('settings.back', lang), callback_data: 'menu:main' }],
     ],
@@ -1079,8 +1124,13 @@ function handleCallback(data, chatId) {
 
     // chain (ağ) change — tek seçim, diğer ağları temizle
     if (key === 'chain') {
-      if (value !== 'solana') return { toast: '?' };
-      channels.updateSetting(chatId, 'chains', ['solana']);
+      if (!['ton', 'bsc', 'solana'].includes(value)) return { toast: '?' };
+      const prev = channels.getSettings(chatId).chains;
+      const prevFirst = Array.isArray(prev) && prev.length ? prev[0] : null;
+      channels.updateSetting(chatId, 'chains', [value]);
+      if (prevFirst && prevFirst !== value) {
+        channels.updateSetting(chatId, 'allowedDexes', []);
+      }
       return { menu: 'main', toast: t('settings.chain.saved', lang) };
     }
 

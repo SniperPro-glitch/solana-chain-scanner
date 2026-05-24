@@ -1,4 +1,4 @@
-// Solana Chain Scanner — Bot 2 (TON/BSC bağlantısı yok)
+// Sniper Scan Bot — TON + BSC + Solana (tek BOT_TOKEN)
 
 require('dotenv').config();
 require('./envBootstrap').applyHeliusEnv();
@@ -12,10 +12,16 @@ const TelegramBot = require('node-telegram-bot-api');
 
 const chainsRegistry = require('./chains');
 const {
-  formatTokenCard,
   formatAnalysisOnly,
   formatRiskBanner,
 } = require('./chains/solana/formatter');
+const {
+  formatTokenCardForChain,
+  bannerSourceForChain,
+  isScanEnabled,
+  scanIntervalMin,
+  scanPoolLimit,
+} = require('./chainRuntime');
 const channels = require('./channels');
 const storage = require('./storage');
 const users = require('./users');
@@ -35,10 +41,9 @@ const { startMiniAppServer, buildWebAppUrl, getWebAppBaseUrl, getWebAppEntryUrl 
 
 const BOT_TOKEN = process.env.BOT_TOKEN || process.env.TELEGRAM_BOT_TOKEN;
 const ADMIN_USER_ID = process.env.ADMIN_USER_ID ? String(process.env.ADMIN_USER_ID) : null;
-const SOLANA_SCAN_ENABLED = ['1', 'true', 'on', 'yes'].includes(
-  String(process.env.SOLANA_SCAN_ENABLED || '0').trim().toLowerCase(),
-);
-const SOLANA_SCAN_INTERVAL_MIN = parseInt(process.env.SOLANA_SCAN_INTERVAL_MIN || '12', 10);
+const TON_SCAN_ENABLED = isScanEnabled('ton');
+const BSC_SCAN_ENABLED = isScanEnabled('bsc');
+const SOLANA_SCAN_ENABLED = isScanEnabled('solana');
 const MAX_TOKENS_PER_SCAN = parseInt(process.env.MAX_TOKENS_PER_SCAN || '8', 10);
 const SCAN_POOL_FETCH_LIMIT = parseInt(process.env.SOLANA_SCAN_POOL_LIMIT || '12', 10);
 const SCAN_TOKEN_GAP_MS = parseInt(process.env.SOLANA_SCAN_TOKEN_GAP_MS || '1200', 10);
@@ -504,28 +509,34 @@ async function sendBotAnalysisFollowup(ch, cmEntry, token, audit, lang, cardLeve
 
   let reportId = opts.reportId || null;
   let replyMarkup;
+  const { isOfficialFeedChannel } = require('./channelFeedPolicy');
+  const includeMiniApp = opts.includeMiniApp !== undefined
+    ? !!opts.includeMiniApp
+    : isOfficialFeedChannel(ch?.id);
   try {
-    if (!reportId) {
-      const { publishToDexFirst } = require('./publishPipeline');
-      const listing = await publishToDexFirst(token, audit, lang, cardLevel);
-      reportId = listing.reportId;
-    } else {
-      console.log(`[report] mevcut id=${reportId} sembol=${sym}`);
-    }
-    if (!opts.reportId) {
-      const { recordMiniAppShare } = require('./recordMiniAppShare');
-      recordMiniAppShare(ch, token, audit, lang, cardLevel, reportId);
-    }
-    const webAppUrl = opts.dexAppUrl || buildWebAppUrl(reportId);
-    if (webAppUrl && /^https:\/\//i.test(webAppUrl)) {
-      replyMarkup = {
-        inline_keyboard: [[{
-          text: t('comment.openFullReport', lang),
-          web_app: { url: webAppUrl },
-        }]],
-      };
-    } else if (webAppUrl) {
-      body += `\n\n🔗 <a href="${webAppUrl}">${t('comment.openFullReport', lang)}</a>`;
+    if (includeMiniApp) {
+      if (!reportId) {
+        const { publishToDexFirst } = require('./publishPipeline');
+        const listing = await publishToDexFirst(token, audit, lang, cardLevel);
+        reportId = listing.reportId;
+      } else {
+        console.log(`[report] mevcut id=${reportId} sembol=${sym}`);
+      }
+      if (!opts.reportId) {
+        const { recordMiniAppShare } = require('./recordMiniAppShare');
+        recordMiniAppShare(ch, token, audit, lang, cardLevel, reportId);
+      }
+      const webAppUrl = opts.dexAppUrl || buildWebAppUrl(reportId);
+      if (webAppUrl && /^https:\/\//i.test(webAppUrl)) {
+        replyMarkup = {
+          inline_keyboard: [[{
+            text: t('comment.openFullReport', lang),
+            web_app: { url: webAppUrl },
+          }]],
+        };
+      } else if (webAppUrl) {
+        body += `\n\n🔗 <a href="${webAppUrl}">${t('comment.openFullReport', lang)}</a>`;
+      }
     }
   } catch (e) {
     console.warn('[followup] report save:', e.message);
@@ -557,14 +568,12 @@ const scanDeps = {
   chainsRegistry,
   channels,
   storage,
-  formatTokenCard,
-  solanaBannerSource,
   sendCardToChannel,
   sendBotAnalysisFollowup,
   ensureShareEnrichment,
   applyTokenBadges,
   MAX_TOKENS_PER_SCAN,
-  SCAN_POOL_FETCH_LIMIT,
+  getScanPoolLimit: scanPoolLimit,
   SCAN_TOKEN_GAP_MS,
 };
 const { runScan } = createScanRunner(scanDeps);
@@ -574,9 +583,9 @@ const { checkWatchedTokens } = createWatchRunner({
   chainsRegistry,
   channels,
   storage,
-  formatTokenCard,
-  formatRiskBanner,
-  solanaBannerSource,
+  formatTokenCardForChain,
+  formatRiskBannerForChain: require('./chainRuntime').formatRiskBannerForChain,
+  bannerSourceForChain,
   editCardMessage,
   wrapEmojis,
   DEFAULT_LANG,
@@ -850,8 +859,9 @@ function registerWatch(token, audit, channelMessages) {
   if (!token?.poolId) return;
   const isCritical = audit?.isCritical === true;
   const isRisky = !isCritical && (audit?.risk?.code === 'HIGH' || audit?.risk?.code === 'MEDIUM');
+  const chainId = token.chain || 'solana';
   storage.watch(token.poolId, {
-    chain: 'solana',
+    chain: chainId,
     tokenSymbol: token.tokenSymbol,
     tokenName: token.tokenName,
     tokenAddress: token.tokenAddress,
@@ -864,16 +874,17 @@ function registerWatch(token, audit, channelMessages) {
 }
 
 async function shareTokenToChannel(ch, token, audit, opts = {}) {
+  const chainId = token.chain || channels.primaryChain(ch.id) || 'solana';
   const chLang = channels.resolveCardLang(ch);
   const isCritical = audit.isCritical === true;
   const isRisky = !isCritical && (audit.risk.code === 'HIGH' || audit.risk.code === 'MEDIUM');
   const cardLevel = isCritical ? 'critical' : (isRisky ? 'yellow' : 'green');
   const bannerLevel = cardLevel === 'yellow' ? 'yellow' : (isCritical ? 'critical' : 'green');
-  const message = formatTokenCard(token, audit, chLang, cardLevel, { slim: true });
+  const message = formatTokenCardForChain(chainId, token, audit, chLang, cardLevel, { slim: true });
   const silent = ch.settings?.silentNotification === true;
   const banner = opts.customBannerFileId
     ? { photoFileId: opts.customBannerFileId }
-    : solanaBannerSource(bannerLevel);
+    : bannerSourceForChain(chainId, bannerLevel);
   const { publishToDexAndChannel } = require('./publishPipeline');
   const pub = await publishToDexAndChannel({
     ch,
@@ -884,7 +895,7 @@ async function shareTokenToChannel(ch, token, audit, opts = {}) {
     message,
     banner,
     silent,
-    chain: 'solana',
+    chain: chainId,
     sendCardToChannel,
     sendBotAnalysisFollowup,
   });
@@ -913,17 +924,40 @@ async function processManualPost(chatId, userId, arg, lang, customBannerFileId =
   }
 
   await bot.sendMessage(chatId, t('post.fetching', lang));
-  const sol = chainsRegistry.getChain('solana');
+
+  let resolveChain = 'solana';
+  const dmTargetId = getDmTarget(userId);
+  if (dmTargetId) {
+    const targetCh = channels.get(dmTargetId);
+    const chList = targetCh?.settings?.chains;
+    if (Array.isArray(chList) && chList.length === 1) {
+      resolveChain = chList[0];
+    } else if (/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(String(arg).trim())) {
+      resolveChain = 'solana';
+    } else if (/0x[a-fA-F0-9]{40}/.test(arg)) {
+      resolveChain = 'bsc';
+    } else if (Array.isArray(chList) && chList.length) {
+      resolveChain = chList[0];
+    }
+  } else if (/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(String(arg).trim())) {
+    resolveChain = 'solana';
+  } else if (/0x[a-fA-F0-9]{40}/.test(arg)) {
+    resolveChain = 'bsc';
+  } else {
+    resolveChain = 'ton';
+  }
+
+  const chainMod = chainsRegistry.getChain(resolveChain);
   let token;
   let audit;
   try {
-    token = await sol.resolveTokenFromInput(arg);
+    token = await chainMod.resolveTokenFromInput(arg);
     if (token) {
-      token.chain = 'solana';
+      token.chain = resolveChain;
       token.initialLiquidity = token.liquidityUsd || 0;
-      await ensureShareEnrichment(token);
+      await ensureShareEnrichment(token, resolveChain);
       applyTokenBadges(token);
-      audit = sol.auditToken(token);
+      audit = chainMod.auditToken(token);
     }
   } catch (err) {
     if (err.code === 'WRONG_CHAIN') {
@@ -933,19 +967,19 @@ async function processManualPost(chatId, userId, arg, lang, customBannerFileId =
         { parse_mode: 'HTML' },
       );
     }
-    console.error('[post]', err.message);
+    console.error(`[post:${resolveChain}]`, err.message);
     return bot.sendMessage(chatId, t('post.notFound', lang), { parse_mode: 'HTML' });
   }
   if (!token || !audit) {
     return bot.sendMessage(chatId, t('post.notFound', lang), { parse_mode: 'HTML' });
   }
 
-  setPendingPost(userId, { token, audit, customBannerFileId: customBannerFileId || null });
+  setPendingPost(userId, { token, audit, customBannerFileId: customBannerFileId || null, chain: resolveChain });
 
   const isCritical = audit.isCritical === true;
   const isRisky = !isCritical && (audit.risk.code === 'HIGH' || audit.risk.code === 'MEDIUM');
   const cardLevel = isCritical ? 'critical' : (isRisky ? 'yellow' : 'green');
-  let preview = wrapEmojis(formatTokenCard(token, audit, lang, cardLevel, { slim: true }), 'solana');
+  let preview = wrapEmojis(formatTokenCardForChain(resolveChain, token, audit, lang, cardLevel, { slim: true }), resolveChain);
   try {
     if (userbot.isEnabled()) await userbot.sendMessage(chatId, preview, { silent: false });
     else await bot.sendMessage(chatId, preview, { parse_mode: 'HTML', disable_web_page_preview: true });
@@ -1168,13 +1202,21 @@ bindTextCommand(/^\/scan(@\w+)?$/i, async (msg) => {
     return bot.sendMessage(msg.chat.id, '⛔ Admin only.');
   }
   await bot.sendMessage(msg.chat.id, '🔍 Tarama başlatılıyor…');
-  const r = await runScan('manual');
-  const lang = langForMsg(msg);
-  await bot.sendMessage(
-    msg.chat.id,
-    `✅ Bitti: ${r.tokensShared || 0} paylaşım, ${r.found || 0} aday, ${r.errors || 0} hata (${r.durationMs || 0}ms)`,
-    { parse_mode: 'HTML' },
-  );
+  const parts = [];
+  if (TON_SCAN_ENABLED) {
+    const r = await runScan('manual', 'ton');
+    parts.push(`TON: ${r.tokensShared || 0} paylaşım`);
+  }
+  if (BSC_SCAN_ENABLED) {
+    const r = await runScan('manual', 'bsc');
+    parts.push(`BSC: ${r.tokensShared || 0} paylaşım`);
+  }
+  if (SOLANA_SCAN_ENABLED) {
+    const r = await runScan('manual', 'solana');
+    parts.push(`Solana: ${r.tokensShared || 0} paylaşım`);
+  }
+  if (!parts.length) parts.push('Tüm taramalar kapalı (TON_SCAN_ENABLED / BSC_SCAN_ENABLED / SOLANA_SCAN_ENABLED)');
+  await bot.sendMessage(msg.chat.id, `✅ ${parts.join(' · ')}`, { parse_mode: 'HTML' });
 });
 
 bindTextCommand(/^\/wl(?:@\w+)?(?:\s+(.+))?$/i, async (msg, match) => {
@@ -1468,7 +1510,7 @@ bot.on('callback_query', async (cb) => {
       });
     }
     const manualChId = isDM ? getDmTarget(userId) : fromChatId;
-    if (manualChId && !channels.isSolanaSelected(manualChId)) {
+    if (manualChId && !channels.hasChainSelected(manualChId)) {
       return bot.answerCallbackQuery(cb.id, {
         text: t('settings.chain.pickFirstAlert', cbLang),
         show_alert: true,
@@ -1614,9 +1656,11 @@ async function main() {
   await startBotPolling();
   const me = await bot.getMe().catch(() => ({ username: 'bot', id: '?' }));
   process.env.BOT_USERNAME = me.username ? `@${me.username}` : '';
-  console.log(`✅ Solana bot: @${me.username} (id=${me.id})`);
+  console.log(`✅ Sniper Scan Bot: @${me.username} (id=${me.id})`);
   console.log('   Bu token yalnızca TEK yerde çalışmalı (Railway XOR yerel PC).');
-  console.log(`   Tarama: ${SOLANA_SCAN_ENABLED ? `AÇIK (${SOLANA_SCAN_INTERVAL_MIN} dk)` : 'KAPALI'}`);
+  console.log(`   TON tarama: ${TON_SCAN_ENABLED ? `AÇIK (${scanIntervalMin('ton')} dk)` : 'KAPALI'}`);
+  console.log(`   BSC tarama: ${BSC_SCAN_ENABLED ? `AÇIK (${scanIntervalMin('bsc')} dk)` : 'KAPALI'}`);
+  console.log(`   Solana tarama: ${SOLANA_SCAN_ENABLED ? `AÇIK (${scanIntervalMin('solana')} dk)` : 'KAPALI'}`);
   console.log(`   İzleme: ${WATCH_INTERVAL_SEC} sn`);
   try {
     const botFeedStore = require('./botFeedStore');
@@ -1625,6 +1669,11 @@ async function main() {
     console.log(`   Bot↔DEX: WEB_APP_URL=${getWebAppBaseUrl()}`);
     if (getBotApiBaseUrl()) console.log(`   DEX→Bot API: BOT_API_URL=${getBotApiBaseUrl()}`);
     console.log(`   Mini App feed: ${botFeedStore.feedCount()} kayıt (DATA_DIR=${DATA_DIR})`);
+    const { getOfficialFeedChannelIds } = require('./channelFeedPolicy');
+    const feedCh = getOfficialFeedChannelIds();
+    if (feedCh.length) {
+      console.log(`   Mini App feed kanalları (resmi): ${feedCh.join(', ')}`);
+    }
   } catch (_) { /* */ }
 
   const webEntry = getWebAppEntryUrl();
@@ -1697,14 +1746,49 @@ async function main() {
       }
     }
   }
-  const enabledCh = channels.listEnabled().filter((c) => channels.isSolanaSelected(c.id));
-  console.log(`   Özet: ${enabledCh.length} kanal aktif ve ◎ Solana seçili (post için)`);
+  const enabledCh = channels.listEnabled().filter((c) => channels.hasChainSelected(c.id));
+  const tonN = enabledCh.filter((c) => (c.settings?.chains || [])[0] === 'ton').length;
+  const bscN = enabledCh.filter((c) => (c.settings?.chains || [])[0] === 'bsc').length;
+  const solN = enabledCh.filter((c) => (c.settings?.chains || [])[0] === 'solana').length;
+  console.log(`   Özet: ${enabledCh.length} kanal (🔷 TON=${tonN} · 🟡 BSC=${bscN} · ◎ Solana=${solN})`);
 
   await require('./envBootstrap').verifyHeliusRpc().catch(() => {});
 
+  if (TON_SCAN_ENABLED) {
+    try {
+      const { getInstance } = require('./poolDiscovery');
+      const discovery = getInstance();
+      const hasActiveTonChannel = () => channels.listEnabled().some((c) => {
+        const chList = c.settings?.chains;
+        return Array.isArray(chList) && chList.includes('ton');
+      });
+      const tickDiscovery = () => {
+        const should = hasActiveTonChannel();
+        if (should && !discovery.started) {
+          discovery.start();
+          console.log('🟢 TON on-chain discovery BAŞLATILDI');
+        } else if (!should && discovery.started) {
+          discovery.stop();
+          console.log('⚪ TON on-chain discovery DURDURULDU');
+        }
+      };
+      setTimeout(tickDiscovery, 8_000);
+      setInterval(tickDiscovery, 60_000);
+    } catch (e) {
+      console.error('Pool discovery init:', e.message);
+    }
+    setTimeout(() => runScan('cron', 'ton'), 5_000);
+    setInterval(() => runScan('cron', 'ton'), scanIntervalMin('ton') * 60 * 1000);
+  }
+
+  if (BSC_SCAN_ENABLED) {
+    setTimeout(() => runScan('cron', 'bsc'), 30_000);
+    setInterval(() => runScan('cron', 'bsc'), scanIntervalMin('bsc') * 60 * 1000);
+  }
+
   if (SOLANA_SCAN_ENABLED) {
-    setTimeout(() => runScan('cron'), 15_000);
-    setInterval(() => runScan('cron'), SOLANA_SCAN_INTERVAL_MIN * 60 * 1000);
+    setTimeout(() => runScan('cron', 'solana'), 15_000);
+    setInterval(() => runScan('cron', 'solana'), scanIntervalMin('solana') * 60 * 1000);
   }
   setInterval(() => {
     checkWatchedTokens().catch((e) => console.error('[watch]', e.message));

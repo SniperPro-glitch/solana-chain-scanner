@@ -1,8 +1,12 @@
-// Chain registry — yalnızca Solana (TON/BSC yok).
+// Chain registry — TON + BSC + Solana (tek bot).
 
+const ton = require('./ton');
+const bsc = require('./bsc');
 const solana = require('./solana');
 
 const REGISTRY = {
+  [ton.id]: ton,
+  [bsc.id]: bsc,
   [solana.id]: solana,
 };
 

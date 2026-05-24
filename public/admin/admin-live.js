@@ -3,33 +3,86 @@
  */
 (function () {
   const TOKEN_KEY = 'sniperAdminTokenV2';
+  const TOKEN_PERSIST_KEY = 'sniperAdminTokenV2_persist';
   const USER_KEY = 'sniperAdminUserV2';
   const PROFILE_KEY = 'sniperAdminProfileV1';
+  const PROFILE_PERSIST_KEY = 'sniperAdminProfileV1_persist';
+  const REMEMBER_KEY = 'sniperAdminRememberV1';
+  const SAVED_USER_KEY = 'sniperAdminSavedUserV1';
 
   const $ = (id) => document.getElementById(id);
   const qs = (sel, root) => (root || document).querySelector(sel);
 
-  function getToken() {
-    return sessionStorage.getItem(TOKEN_KEY) || '';
+  function L(key, vars) {
+    return window.SniperAdminLoginI18n?.t?.(key, vars) ?? key;
   }
 
-  function setSession(token, user, profile) {
+  function isRememberChecked() {
+    return $('loginRemember')?.checked === true;
+  }
+
+  function loadRememberPref() {
+    try {
+      return localStorage.getItem(REMEMBER_KEY) === '1';
+    } catch {
+      return false;
+    }
+  }
+
+  function saveRememberPref(on) {
+    try {
+      if (on) localStorage.setItem(REMEMBER_KEY, '1');
+      else localStorage.removeItem(REMEMBER_KEY);
+    } catch { /* yoksay */ }
+  }
+
+  function getToken() {
+    try {
+      return sessionStorage.getItem(TOKEN_KEY)
+        || localStorage.getItem(TOKEN_PERSIST_KEY)
+        || '';
+    } catch {
+      return sessionStorage.getItem(TOKEN_KEY) || '';
+    }
+  }
+
+  function setSession(token, user, profile, remember) {
     if (typeof window.SniperAdminClearActionAuth === 'function') {
       window.SniperAdminClearActionAuth();
     }
+    const persist = remember === true || (remember !== false && loadRememberPref());
     if (token) {
       sessionStorage.setItem(TOKEN_KEY, token);
       if (user) sessionStorage.setItem(USER_KEY, user);
       if (profile) {
-        sessionStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
+        const raw = JSON.stringify(profile);
+        sessionStorage.setItem(PROFILE_KEY, raw);
         if (typeof window.SniperAdminSetProfile === 'function') {
           window.SniperAdminSetProfile(profile);
         }
+        if (persist) {
+          localStorage.setItem(TOKEN_PERSIST_KEY, token);
+          if (user) localStorage.setItem(SAVED_USER_KEY, user);
+          localStorage.setItem(PROFILE_PERSIST_KEY, raw);
+          saveRememberPref(true);
+        }
+      }
+      if (!persist) {
+        try {
+          localStorage.removeItem(TOKEN_PERSIST_KEY);
+          localStorage.removeItem(PROFILE_PERSIST_KEY);
+          saveRememberPref(false);
+        } catch { /* yoksay */ }
       }
     } else {
       sessionStorage.removeItem(TOKEN_KEY);
       sessionStorage.removeItem(USER_KEY);
       sessionStorage.removeItem(PROFILE_KEY);
+      try {
+        localStorage.removeItem(TOKEN_PERSIST_KEY);
+        localStorage.removeItem(PROFILE_PERSIST_KEY);
+        saveRememberPref(false);
+      } catch { /* yoksay */ }
       if (typeof window.SniperAdminSetProfile === 'function') window.SniperAdminSetProfile(null);
     }
   }
@@ -81,9 +134,27 @@
 
   const FOUNDER_PAGES = ['channels', 'trending', 'risk', 'chains', 'admins', 'env', 'settings'];
 
+  function restorePersistedSessionToTab() {
+    try {
+      if (!sessionStorage.getItem(TOKEN_KEY) && localStorage.getItem(TOKEN_PERSIST_KEY)) {
+        sessionStorage.setItem(TOKEN_KEY, localStorage.getItem(TOKEN_PERSIST_KEY));
+      }
+      if (!sessionStorage.getItem(PROFILE_KEY) && localStorage.getItem(PROFILE_PERSIST_KEY)) {
+        sessionStorage.setItem(PROFILE_KEY, localStorage.getItem(PROFILE_PERSIST_KEY));
+      }
+      const savedUser = localStorage.getItem(SAVED_USER_KEY);
+      if (savedUser && !sessionStorage.getItem(USER_KEY)) {
+        sessionStorage.setItem(USER_KEY, savedUser);
+      }
+    } catch { /* yoksay */ }
+  }
+
   function getProfile() {
     try {
-      return JSON.parse(sessionStorage.getItem(PROFILE_KEY) || 'null');
+      const raw = sessionStorage.getItem(PROFILE_KEY)
+        || localStorage.getItem(PROFILE_PERSIST_KEY)
+        || 'null';
+      return JSON.parse(raw);
     } catch {
       return null;
     }
@@ -125,16 +196,22 @@
   async function login() {
     const username = ($('loginUser')?.value || '').trim();
     const password = $('loginPass')?.value || '';
+    const remember = isRememberChecked();
     const hint = $('loginHint');
     if (!username || !password) return;
     if (hint) hint.classList.remove('err');
     try {
+      if (remember) {
+        try { localStorage.setItem(SAVED_USER_KEY, username); } catch { /* yoksay */ }
+      } else {
+        try { localStorage.removeItem(SAVED_USER_KEY); } catch { /* yoksay */ }
+      }
       const body = await api('/api/admin/login', {
         method: 'POST',
-        body: JSON.stringify({ username, password }),
+        body: JSON.stringify({ username, password, remember }),
       });
       if (!body?.token) {
-        setLoginError('Sunucu oturum jetonu döndürmedi — sunucuyu yeniden başlatın.');
+        setLoginError(L('login.err.noToken'));
         return;
       }
       const profile = storeProfileFromBody({
@@ -145,7 +222,7 @@
         permissions: body.permissions,
         id: body.id,
       });
-      setSession(body.token, profile.username, profile);
+      setSession(body.token, profile.username, profile, remember);
       showApp();
       if ($('loginPass')) $('loginPass').value = '';
       try {
@@ -153,15 +230,15 @@
         document.dispatchEvent(new Event('sniper-admin-ready'));
       } catch (loadErr) {
         console.warn('[admin] panel verisi:', loadErr);
-        setLoginError('Giriş başarılı; panel verisi yüklenemedi. Sayfayı yenileyin (F5).');
+        setLoginError(L('login.err.loadFailed'));
       }
     } catch (e) {
       setSession('');
       showLogin();
-      if (e.status === 401) setLoginError('Kullanıcı adı veya şifre hatalı (.env içindeki ADMIN_PASSWORD).');
-      else if (e.status === 503) setLoginError('Admin kapalı — .env içine ADMIN_USERNAME ve ADMIN_PASSWORD ekle, sunucuyu yeniden başlat.');
-      else if (e.message === 'Failed to fetch') setLoginError('Sunucuya bağlanılamadı — npm run miniapp:dev çalışıyor mu? (http://localhost:3080)');
-      else setLoginError(`Giriş başarısız${e.status ? ` (HTTP ${e.status})` : ''}.`);
+      if (e.status === 401) setLoginError(L('login.err.badCreds'));
+      else if (e.status === 503) setLoginError(L('login.err.disabled'));
+      else if (e.message === 'Failed to fetch') setLoginError(L('login.err.network'));
+      else setLoginError(`${L('login.err.generic')}${e.status ? ` (HTTP ${e.status})` : ''}.`);
     }
   }
 
@@ -332,7 +409,21 @@
     try { await renderEnv(); } catch (e) { console.warn('[admin] env:', e); }
   }
 
+  function restoreLoginFormPrefs() {
+    const rememberEl = $('loginRemember');
+    if (rememberEl) rememberEl.checked = loadRememberPref();
+    try {
+      const savedUser = localStorage.getItem(SAVED_USER_KEY);
+      if (savedUser && $('loginUser') && !$('loginUser').value) {
+        $('loginUser').value = savedUser;
+      }
+    } catch { /* yoksay */ }
+  }
+
   async function boot() {
+    window.SniperAdminLoginI18n?.init?.();
+    restoreLoginFormPrefs();
+
     try {
       const st = await fetch('/api/admin/status').then((r) => r.json());
       if (st.username && $('loginUser') && !$('loginUser').value) {
@@ -340,18 +431,26 @@
       }
       if (!st.enabled && $('loginHint')) {
         $('loginHint').classList.add('err');
-        $('loginHint').textContent = 'Sunucuda ADMIN_USERNAME + ADMIN_PASSWORD yok (.env veya Railway).';
+        $('loginHint').textContent = L('login.hint.envMissing');
         $('btnLogin') && ($('btnLogin').disabled = true);
       } else if (st.enabled && st.username && $('loginHint')) {
-        $('loginHint').textContent = `Kullanıcı: ${st.username} — şifre proje kökündeki .env dosyasındaki ADMIN_PASSWORD.`;
+        $('loginHint').classList.remove('err');
+        $('loginHint').textContent = L('login.hint.envUser', { user: st.username });
       }
     } catch { /* yoksay */ }
 
     $('btnLogin')?.addEventListener('click', login);
     $('loginPass')?.addEventListener('keydown', (e) => { if (e.key === 'Enter') login(); });
+    $('loginRemember')?.addEventListener('change', () => {
+      saveRememberPref(isRememberChecked());
+      if (!isRememberChecked()) {
+        try { localStorage.removeItem(SAVED_USER_KEY); } catch { /* yoksay */ }
+      }
+    });
     qs('.logout-btn')?.addEventListener('click', () => {
       setSession('');
       showLogin();
+      restoreLoginFormPrefs();
       if ($('loginPass')) $('loginPass').value = '';
     });
 
@@ -361,10 +460,11 @@
     });
 
     if (getToken()) {
+      restorePersistedSessionToTab();
       try {
         const sess = await api('/api/admin/session', { method: 'POST' });
         const profile = storeProfileFromBody(sess);
-        setSession(getToken(), profile.username, profile);
+        setSession(getToken(), profile.username, profile, loadRememberPref());
         showApp();
         await refreshAll();
         document.dispatchEvent(new Event('sniper-admin-ready'));

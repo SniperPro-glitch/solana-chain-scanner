@@ -3,6 +3,7 @@
 const reportStore = require('./reportStore');
 const { buildWebAppUrl, getWebAppBaseUrl } = require('./miniAppServer');
 const { recordMiniAppShare } = require('./recordMiniAppShare');
+const { isOfficialFeedChannel } = require('./channelFeedPolicy');
 
 /**
  * Tokeni DEX / Mini App'e kaydet, paylaşım URL'si üret.
@@ -43,8 +44,13 @@ async function publishToDexAndChannel({
   sendCardToChannel,
   sendBotAnalysisFollowup,
 }) {
-  const listing = await publishToDexFirst(token, audit, chLang, cardLevel);
-  recordMiniAppShare(ch, token, audit, chLang, cardLevel, listing.reportId);
+  const official = isOfficialFeedChannel(ch?.id);
+  const listing = official
+    ? await publishToDexFirst(token, audit, chLang, cardLevel)
+    : { reportId: null, dexAppUrl: null };
+  if (official) {
+    recordMiniAppShare(ch, token, audit, chLang, cardLevel, listing.reportId);
+  }
 
   const r = await sendCardToChannel(ch, {
     text: message,
@@ -73,6 +79,7 @@ async function publishToDexAndChannel({
     await sendBotAnalysisFollowup(ch, cmEntry, token, audit, chLang, cardLevel, {
       reportId: listing.reportId,
       dexAppUrl: listing.dexAppUrl,
+      includeMiniApp: official,
     });
   }
 

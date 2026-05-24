@@ -1,6 +1,7 @@
-// Kanal paylaşımı → Mini App feed (manuel /post + otomatik scan ortak).
+// Kanal paylaşımı → Mini App feed (yalnızca resmi kanallar).
 
 const botFeedStore = require('./botFeedStore');
+const { isOfficialFeedChannel } = require('./channelFeedPolicy');
 
 function sharePayload(ch, token, audit, lang, level, reportId) {
   return {
@@ -16,6 +17,7 @@ function sharePayload(ch, token, audit, lang, level, reportId) {
 
 function recordMiniAppShare(ch, token, audit, lang, level, reportId = null) {
   if (!token?.tokenAddress) return null;
+  if (!isOfficialFeedChannel(ch?.id)) return null;
   try {
     return botFeedStore.recordShare(sharePayload(ch, token, audit, lang, level, reportId));
   } catch (e) {
@@ -26,6 +28,7 @@ function recordMiniAppShare(ch, token, audit, lang, level, reportId = null) {
 
 async function recordMiniAppShareAsync(ch, token, audit, lang, level, reportId = null) {
   if (!token?.tokenAddress) return null;
+  if (!isOfficialFeedChannel(ch?.id)) return null;
   try {
     return await botFeedStore.recordShareAsync(sharePayload(ch, token, audit, lang, level, reportId));
   } catch (e) {
