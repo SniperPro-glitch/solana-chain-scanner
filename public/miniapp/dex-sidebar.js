@@ -119,7 +119,10 @@
     const root = $('dexSidebar');
     const panel = root?.querySelector('.dex-sidebar-panel');
     const backdrop = $('dexSidebarBackdrop');
-    root?.classList.remove('dex-sidebar--dragging');
+    if (root) {
+      root.classList.remove('dex-sidebar--dragging');
+      root.style.pointerEvents = '';
+    }
     if (panel) panel.style.transform = '';
     if (backdrop) backdrop.style.opacity = '';
   }
@@ -132,7 +135,6 @@
     const w = panelWidth();
     const x = Math.max(0, Math.min(w, px));
     root.classList.add('dex-sidebar--dragging');
-    root.style.pointerEvents = 'auto';
     panel.style.transform = `translateX(calc(-100% + ${x}px))`;
     if (backdrop) backdrop.style.opacity = String((x / w) * 0.62);
     return x;

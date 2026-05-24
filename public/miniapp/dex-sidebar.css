@@ -59,7 +59,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: 10px;
   padding: 14px 14px 10px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 }
@@ -67,8 +67,11 @@
 .dex-sidebar-brand {
   display: flex;
   align-items: center;
+  justify-content: flex-end;
   gap: 8px;
   min-width: 0;
+  margin-left: auto;
+  text-align: right;
 }
 
 .dex-sidebar-brand img {
@@ -82,6 +85,7 @@
   display: flex;
   flex-direction: column;
   line-height: 1.1;
+  align-items: flex-end;
 }
 
 .dex-sidebar-brand-text strong {
@@ -655,7 +659,7 @@
   border-color: rgba(0, 229, 255, 0.55);
 }
 
-.dex-sidebar--dragging {
+.dex-sidebar.open.dex-sidebar--dragging {
   pointer-events: auto;
 }
 
