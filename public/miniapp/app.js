@@ -2793,21 +2793,73 @@
     return `https://dexscreener.com/solana/${encodeURIComponent(ref)}?${q}`;
   }
 
-  function mountDexTradesEmbed(m) {
+  /** Web tarayıcı: Dex iframe içinde sık "No data here" — Gecko aynı havuzda veri verir. */
+  function useGeckoEmbedOnWeb() {
+    return !!isWebBrowser;
+  }
+
+  function geckoChartEmbedUrl(poolAddress, tf) {
+    const pool = String(poolAddress || '').trim();
+    if (!pool) return null;
+    const q = new URLSearchParams({
+      embed: '1',
+      info: '0',
+      swaps: '0',
+      light_chart: '1',
+      chart_type: 'price',
+      resolution: String(tf || '15m'),
+    });
+    return `https://www.geckoterminal.com/solana/pools/${encodeURIComponent(pool)}?${q.toString()}`;
+  }
+
+  function geckoTradesEmbedUrl(poolAddress) {
+    const pool = String(poolAddress || '').trim();
+    if (!pool) return null;
+    const q = new URLSearchParams({
+      embed: '1',
+      info: '0',
+      swaps: '1',
+      light_chart: '1',
+    });
+    return `https://www.geckoterminal.com/solana/pools/${encodeURIComponent(pool)}?${q.toString()}`;
+  }
+
+  async function resolvePoolForEmbeds(m) {
+    const fromMarket = chartPoolRef(m);
+    if (fromMarket) return fromMarket;
+    const resolved = await ensurePoolOnMarket(m);
+    if (resolved) return resolved;
+    return '';
+  }
+
+  function chartEmbedUrlFor(m, tf) {
+    const pool = chartPoolRef(m);
+    if (!pool) return null;
+    if (useGeckoEmbedOnWeb()) return geckoChartEmbedUrl(pool, tf);
+    return m?.chart?.dexScreenerEmbedUrl || dexEmbedUrlFor(pool, tf, chartType);
+  }
+
+  function tradesEmbedUrlFor(m) {
+    const pool = chartPoolRef(m);
+    if (!pool) return null;
+    if (useGeckoEmbedOnWeb()) return geckoTradesEmbedUrl(pool);
+    return dexScreenerTradesUrl(pool);
+  }
+
+  async function mountDexTradesEmbed(m) {
     const iframe = $('dexTradesEmbed');
     if (!iframe) return;
-    const mint = tokenMintRef(m);
-    const pool = chartPoolRef(m) || m?.poolAddress;
-    const ref = pool && pool !== mint ? pool : (pool || mint);
-    if (!ref) {
+    const pool = (await resolvePoolForEmbeds(m)) || '';
+    if (!pool) {
       iframe.classList.add('hidden');
       iframe.src = 'about:blank';
       return;
     }
-    const url = dexScreenerTradesUrl(ref);
+    const url = tradesEmbedUrlFor(m);
     if (!url) return;
-    if (dexTradesEmbedRef !== ref || iframe.src !== url) {
-      dexTradesEmbedRef = ref;
+    const refKey = `${useGeckoEmbedOnWeb() ? 'gecko' : 'dex'}:${pool}`;
+    if (dexTradesEmbedRef !== refKey || iframe.src !== url) {
+      dexTradesEmbedRef = refKey;
       iframe.src = url;
     }
     iframe.classList.remove('hidden');
@@ -3055,12 +3107,13 @@
   }
 
   function showDexEmbedChart(container, m, note, tf) {
-    const poolRef = chartPoolRef(m) || tokenMintRef(m);
-    const embed = m?.chart?.dexScreenerEmbedUrl || dexEmbedUrlFor(poolRef, tf, chartType);
+    const poolRef = chartPoolRef(m);
+    const embed = chartEmbedUrlFor(m, tf);
     const page = m?.chart?.dexScreenerPageUrl || m?.dexScreenerUrl;
-    if (embed) {
+    if (embed && poolRef) {
       setChartEmbedMode(true);
-      container.innerHTML = `<iframe class="dex-embed-chart" src="${escHtml(embed)}" title="Canlı grafik" loading="eager" allow="fullscreen" referrerpolicy="no-referrer-when-downgrade"></iframe>`;
+      document.documentElement.dataset.chartEmbedProvider = useGeckoEmbedOnWeb() ? 'gecko' : 'dex';
+      container.innerHTML = `<iframe class="dex-embed-chart" src="${escHtml(embed)}" title="Canlı grafik" loading="eager" allow="fullscreen; clipboard-write" referrerpolicy="origin-when-cross-origin"></iframe>`;
       const chartIfr = container.querySelector('iframe.dex-embed-chart');
       if (note) {
         note.textContent = `${(tf || '15m').toUpperCase()} · canlı`;
@@ -3118,6 +3171,20 @@
     container.innerHTML = '';
     if (note) note.classList.remove('hidden');
 
+    try {
+      const pool = await resolvePoolForEmbeds(m);
+      if (pool) {
+        m.poolAddress = pool;
+        if (appData?.market) appData.market.poolAddress = pool;
+        if (m.chart) {
+          m.chart.poolAddress = pool;
+          m.chart.pairRef = pool;
+        }
+      }
+    } catch (e) {
+      console.warn('pool for chart', e);
+    }
+
     if (showDexEmbedChart(container, m, note, tf)) {
       const candles = m?.chart?.candles || [];
       const last = candles[candles.length - 1];
@@ -3152,7 +3219,9 @@
       if (live.poolAddress) {
         m.poolAddress = live.poolAddress;
         if (appData?.market) appData.market.poolAddress = live.poolAddress;
-        mountDexTradesEmbed(m);
+        if (m.chart) m.chart.poolAddress = live.poolAddress;
+        void mountDexTradesEmbed(m);
+        if (isWebBrowser && activeDetailTab === 'chart') void renderChart(m);
       }
     } catch (e) {
       console.warn('live refresh', e);

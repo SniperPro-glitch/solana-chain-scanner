@@ -139,6 +139,34 @@ function dexScreenerTradesEmbedUrl(poolOrMint) {
   return `https://dexscreener.com/solana/${encodeURIComponent(ref)}?${q.toString()}`;
 }
 
+/** Tarayıcıda Dex embed sık boş kalır — GeckoTerminal aynı havuzda çalışır. */
+function geckoTerminalChartEmbedUrl(poolAddress, timeframe = '15m') {
+  const pool = String(poolAddress || '').trim();
+  if (!pool) return null;
+  void timeframe;
+  const q = new URLSearchParams({
+    embed: '1',
+    info: '0',
+    swaps: '0',
+    light_chart: '1',
+    chart_type: 'price',
+    resolution: '15m',
+  });
+  return `https://www.geckoterminal.com/solana/pools/${encodeURIComponent(pool)}?${q.toString()}`;
+}
+
+function geckoTerminalTradesEmbedUrl(poolAddress) {
+  const pool = String(poolAddress || '').trim();
+  if (!pool) return null;
+  const q = new URLSearchParams({
+    embed: '1',
+    info: '0',
+    swaps: '1',
+    light_chart: '1',
+  });
+  return `https://www.geckoterminal.com/solana/pools/${encodeURIComponent(pool)}?${q.toString()}`;
+}
+
 function dexScreenerPageUrl(poolOrMint) {
   const ref = String(poolOrMint || '').trim();
   if (!ref) return null;
@@ -210,6 +238,8 @@ module.exports = {
   pickBestSolanaPair,
   dexScreenerChartEmbedUrl,
   dexScreenerTradesEmbedUrl,
+  geckoTerminalChartEmbedUrl,
+  geckoTerminalTradesEmbedUrl,
   dexScreenerPageUrl,
   getPairChart,
   getTokenTrades,
