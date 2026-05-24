@@ -3018,11 +3018,11 @@
     const isGecko = provider === 'gecko';
     document.documentElement.dataset.chartEmbedProvider = provider;
     document.documentElement.dataset.cropEmbedFamily = isGecko ? 'gecko' : 'dex';
-    if (global.SniperDexCropEarly?.applyEarly) global.SniperDexCropEarly.applyEarly();
-    if (global.SniperDexCrop?.applyForProvider) {
-      global.SniperDexCrop.applyForProvider(provider);
-    } else if (global.SniperDexCrop?.applyCropNow) {
-      global.SniperDexCrop.applyCropNow();
+    if (globalThis.SniperDexCropEarly?.applyEarly) globalThis.SniperDexCropEarly.applyEarly();
+    if (globalThis.SniperDexCrop?.applyForProvider) {
+      globalThis.SniperDexCrop.applyForProvider(provider);
+    } else if (globalThis.SniperDexCrop?.applyCropNow) {
+      globalThis.SniperDexCrop.applyCropNow();
     }
   }
 
