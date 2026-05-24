@@ -21,7 +21,7 @@
   <link rel="stylesheet" href="new-pairs.css?v=120" />
   <link rel="stylesheet" href="dex-scanner-radar.css?v=3" />
   <link rel="stylesheet" href="dex-sidebar.css?v=17" />
-  <link rel="stylesheet" href="app-chrome.css?v=9" />
+  <link rel="stylesheet" href="app-chrome.css?v=10" />
   <link rel="stylesheet" href="search-overlay.css?v=2" />
   <link rel="stylesheet" href="support.css?v=3" />
   <link rel="stylesheet" href="account-login.css?v=4" />
@@ -125,6 +125,10 @@
   </div>
 
   <div id="appTopChrome" class="app-top-chrome" aria-label="SNIPER marka">
+    <div class="feed-meta-bar app-chrome-home-only hidden" id="feedMetaBar">
+      <span class="feed-meta-dot"></span>
+      <span id="feedMetaText">◎ Bot channel posts · live prices</span>
+    </div>
     <header class="app-brand-bar">
       <button type="button" class="btn-sidebar-open web-only-menu" id="btnSidebarOpen" data-i18n-aria="aria.menu" aria-label="Menu">☰</button>
       <button type="button" class="app-brand-back" id="btnBack" data-i18n-aria="aria.backHome" aria-label="Back to home">←</button>
@@ -144,10 +148,6 @@
         <button type="button" class="btn-connect" id="btnConnect"><span class="wallet-ico">👛</span><span data-i18n="connect.wallet">Connect</span></button>
       </div>
     </header>
-    <div class="feed-meta-bar app-chrome-home-only hidden" id="feedMetaBar">
-      <span class="feed-meta-dot"></span>
-      <span id="feedMetaText">◎ Bot channel posts · live prices</span>
-    </div>
     <a href="#" class="promo-banner app-promo-global hidden" id="promoBanner" rel="noopener noreferrer">
       <picture class="promo-banner-picture">
         <source id="promoBannerSrcMobile" media="(max-width: 479px)" srcset="" />
