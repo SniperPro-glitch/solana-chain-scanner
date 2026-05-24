@@ -64,15 +64,8 @@
     if (forced) return forced;
     const w = layoutWidth();
     if (!isTelegramApp()) {
-      const gecko =
-        document.documentElement.dataset.chartEmbedProvider === 'gecko'
-        || document.documentElement.dataset.cropEmbedFamily === 'gecko';
-      if (gecko) {
-        if (w > 500) return 'webgecko';
-        return detectGeckoByWidth(w);
-      }
-      if (w > 500) return 'web';
-      return 'web';
+      if (w > 500) return 'webgecko';
+      return detectGeckoByWidth(w);
     }
     if (isTelegramApp() && isTelegramDesktop() && w > 500) return 'web';
     return detectByWidth(w);

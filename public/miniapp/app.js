@@ -2825,6 +2825,33 @@
     return getStoredEmbedProvider(pool) || 'dex';
   }
 
+  /** İlk çizim — API beklemeden iframe mount (boş ekran önlenir). */
+  function initialEmbedProvider(embedRef) {
+    const cached = getStoredEmbedProvider(embedRef);
+    if (cached) return cached;
+    return isWebBrowser ? 'gecko' : 'dex';
+  }
+
+  function scheduleEmbedProviderRefine(embedRef, container, m, note, tf) {
+    void resolveEmbedProviderForPool(embedRef).then((resolved) => {
+      if (!embedRef || !document.getElementById('priceChart')) return;
+      const current = getStoredEmbedProvider(embedRef) || initialEmbedProvider(embedRef);
+      if (resolved === current) return;
+      setStoredEmbedProvider(embedRef, resolved);
+      chartEmbedMountKey = '';
+      void showDexEmbedChart(container, m, note, tf, {
+        forceProvider: resolved,
+        skipResolve: true,
+        geckoUseToken: resolved === 'gecko' && !chartPoolRef(m),
+      });
+      void mountDexTradesEmbed(m, {
+        skipResolve: true,
+        forceProvider: resolved,
+        geckoUseToken: resolved === 'gecko' && !chartPoolRef(m),
+      });
+    });
+  }
+
   function embedRefForMarket(m) {
     return chartPoolRef(m) || tokenMintRef(m) || '';
   }
@@ -2966,7 +2993,7 @@
   }
 
   function fallbackEmbedsToGecko(embedRef, container, m, note, tf, opts = {}) {
-    if (!embedRef || getEmbedProviderForPool(embedRef) === 'gecko') return;
+    if (!embedRef || getStoredEmbedProvider(embedRef) === 'gecko') return;
     const useToken = !!opts.useTokenPath || !chartPoolRef(m);
     setStoredEmbedProvider(embedRef, 'gecko');
     chartEmbedMountKey = '';
@@ -2998,7 +3025,13 @@
   async function mountDexTradesEmbed(m, opts = {}) {
     const iframe = $('dexTradesEmbed');
     if (!iframe) return;
-    let pool = chartPoolRef(m) || (opts.skipResolve ? '' : (await resolvePoolForEmbeds(m)) || '');
+    let pool = chartPoolRef(m);
+    if (!pool && !opts.skipResolve) {
+      pool = await Promise.race([
+        resolvePoolForEmbeds(m),
+        new Promise((resolve) => setTimeout(() => resolve(''), 3000)),
+      ]);
+    }
     const embedRef = embedRefForMarket(m) || pool;
     if (!embedRef) {
       iframe.classList.add('hidden');
@@ -3009,7 +3042,7 @@
     if (pool && !m.poolAddress) m.poolAddress = pool;
     const provider =
       opts.forceProvider
-      || (opts.skipResolve ? getEmbedProviderForPool(embedRef) : await resolveEmbedProviderForPool(embedRef));
+      || (opts.skipResolve ? getEmbedProviderForPool(embedRef) : initialEmbedProvider(embedRef));
     const url = tradesEmbedUrlFor(m, provider, { useTokenPath: !!opts.geckoUseToken });
     if (!url) return;
     const refKey = `${provider}:${opts.geckoUseToken ? 'tok' : 'pool'}:${embedRef}`;
@@ -3275,9 +3308,10 @@
     }
     const provider =
       opts.forceProvider
-      || (opts.skipResolve
-        ? getEmbedProviderForPool(embedRef)
-        : await resolveEmbedProviderForPool(embedRef));
+      || (opts.skipResolve ? getEmbedProviderForPool(embedRef) : initialEmbedProvider(embedRef));
+    if (!opts.forceProvider && !opts.skipResolve) {
+      scheduleEmbedProviderRefine(embedRef, container, m, note, tf);
+    }
     const embed =
       provider === 'gecko'
         ? geckoChartUrlForMarket(m, tf, { useTokenPath: !!opts.geckoUseToken })
@@ -3390,7 +3424,9 @@
       if (m.chart) m.chart.pairRef = tokenMintRef(m);
     }
 
-    if (await showDexEmbedChart(container, m, note, tf)) {
+    const chartOk = await showDexEmbedChart(container, m, note, tf);
+    void mountDexTradesEmbed(m);
+    if (chartOk) {
       const candles = m?.chart?.candles || [];
       const last = candles[candles.length - 1];
       if (last) updateOhlc(last);

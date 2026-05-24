@@ -392,6 +392,21 @@
     localStorage.setItem(STORAGE_KEY, JSON.stringify(store));
   }
 
+  function sanitizeCropBlock(block) {
+    const b = clone(normalizeBlock(block));
+    const c = b.chart || {};
+    const t = b.trades || {};
+    c.stageH = Math.max(260, Math.min(520, Number(c.stageH) || 330));
+    c.top = Math.max(-120, Math.min(80, Number(c.top) || 0));
+    c.brandCrop = Math.max(0, Math.min(80, Number(c.brandCrop) || 0));
+    c.shiftDown = Math.max(0, Math.min(120, Number(c.shiftDown) || 0));
+    t.viewH = Math.max(160, Math.min(400, Number(t.viewH) || 302));
+    t.iframeH = Math.max(400, Math.min(1400, Number(t.iframeH) || 845));
+    t.iframeTop = Math.max(-1200, Math.min(-120, Number(t.iframeTop) || -590));
+    t.shiftDown = Math.max(0, Math.min(200, Number(t.shiftDown) || 0));
+    return b;
+  }
+
   function loadForProfile(profileId) {
     const store = loadStore();
     const fam = profileFamily(profileId);
@@ -399,7 +414,7 @@
       (fam === 'gecko' ? store.profiles.webgecko : store.profiles.web)
       || store.profiles.web
       || defaultBlock();
-    return clone(normalizeBlock(store.profiles[profileId] || fallback));
+    return sanitizeCropBlock(store.profiles[profileId] || fallback);
   }
 
   function load() {
@@ -591,8 +606,8 @@
       applyClip(stage, c.clipLeft, c.clipRight, c.clipTop, c.clipBottom);
     }
     if (chartIframe) {
-      const chartTop = `${c.top - brandCrop + chartDown}px`;
-      const chartH = `${c.stageH + c.heightExtra + brandCrop}px`;
+      const chartTop = `${Math.max(-80, c.top - brandCrop + chartDown)}px`;
+      const chartH = `${Math.max(c.stageH, c.stageH + c.heightExtra + brandCrop)}px`;
       setImp(chartIframe, 'position', 'absolute');
       setImp(chartIframe, 'top', chartTop);
       setImp(chartIframe, 'left', `${c.left}%`);
