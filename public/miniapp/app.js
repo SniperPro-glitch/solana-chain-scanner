@@ -1343,6 +1343,8 @@
     return { desktop, tablet, mobile };
   }
 
+  const PROMO_SLOT_H = { desktop: 96, tablet: 80, mobile: 64 };
+
   function applyPromoBannerLayout() {
     const el = $('promoBanner');
     const img = $('promoBannerImg');
@@ -1357,6 +1359,11 @@
     el?.classList.toggle('promo-banner--mobile', key === 'mobile');
     el?.classList.toggle('promo-banner--tablet', key === 'tablet');
     el?.classList.toggle('promo-banner--desktop', key === 'desktop');
+    if (el && !isWebBrowser) {
+      el.style.setProperty('--promo-h', `${PROMO_SLOT_H[key] || PROMO_SLOT_H.desktop}px`);
+    } else if (el) {
+      el.style.removeProperty('--promo-h');
+    }
   }
 
   function renderPromoBanner(promo) {

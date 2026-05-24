@@ -108,63 +108,61 @@ body.sidebar-open {
   min-width: 0;
 }
 
-/* Üst reklam banner — web tam ekran oran 12.5:1 (src/bannerSpecs.js) */
+/* Üst reklam banner — src/bannerSpecs.js (desktop 12.5:1, tablet 80px, mobile 64px) */
 .promo-banner {
+  --promo-h: 96px;
   display: block;
   position: relative;
-  margin: 0 8px 10px;
+  box-sizing: border-box;
+  width: calc(100% - 16px);
+  height: var(--promo-h);
+  margin: 0 8px 8px;
   border-radius: var(--radius);
   overflow: hidden;
   border: 1px solid rgba(0, 229, 255, 0.25);
   box-shadow: 0 0 20px rgba(0, 229, 255, 0.12);
   text-decoration: none;
+  flex-shrink: 0;
 }
 
 .promo-banner-picture {
   display: block;
   width: 100%;
   height: 100%;
+  margin: 0;
 }
 
 .promo-banner-img {
   display: block;
   width: 100%;
   height: 100%;
-  object-fit: contain;
+  object-fit: cover;
   object-position: center center;
   background: var(--card);
+  vertical-align: top;
 }
 
-/* Telegram / dar sütun — sabit yükseklik */
-html.tg-mini-app .promo-banner {
-  max-height: 96px;
+.promo-banner.promo-banner--tablet {
+  --promo-h: 80px;
 }
 
-html.tg-mini-app .promo-banner-img {
-  height: 96px;
-}
-
-html.tg-mini-app .promo-banner--tablet .promo-banner-img {
-  height: 80px;
-}
-
-html.tg-mini-app .promo-banner--mobile .promo-banner-img {
-  height: 64px;
+.promo-banner.promo-banner--mobile {
+  --promo-h: 64px;
 }
 
 @media (max-width: 899px) {
-  html.tg-mini-app .promo-banner {
-    max-height: 80px;
+  .promo-banner:not(.promo-banner--desktop) {
+    --promo-h: 80px;
   }
 }
 
 @media (max-width: 479px) {
-  html.tg-mini-app .promo-banner {
-    max-height: 64px;
+  .promo-banner:not(.promo-banner--desktop):not(.promo-banner--tablet) {
+    --promo-h: 64px;
   }
 }
 
-/* Web tarayıcı — tam ekran genişlik, banner oranı 1200:96 (yükseklik = genişlik ÷ 12.5) */
+/* Web tarayıcı — genişliğe göre oran 1200:96 */
 html.web-browser .scanner-home {
   width: 100%;
   max-width: 100%;
@@ -172,37 +170,19 @@ html.web-browser .scanner-home {
 }
 
 html.web-browser .promo-banner {
-  display: block;
-  position: relative;
-  box-sizing: border-box;
-  width: calc(100% - 16px);
-  max-width: none;
-  margin: 0 8px 12px;
+  height: auto;
   aspect-ratio: 1200 / 96;
   min-height: 56px;
-  height: auto;
-  overflow: hidden;
-  border-radius: var(--radius);
-  border: 1px solid rgba(0, 229, 255, 0.25);
-  box-shadow: 0 0 20px rgba(0, 229, 255, 0.12);
 }
 
 html.web-browser .promo-banner-picture {
   position: absolute;
   inset: 0;
-  display: block;
-  width: 100%;
-  height: 100%;
-  margin: 0;
 }
 
 html.web-browser .promo-banner-img {
-  display: block;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: center center;
-  background: var(--card);
+  position: absolute;
+  inset: 0;
 }
 
 /* Banner stüdyosu (⚙) */

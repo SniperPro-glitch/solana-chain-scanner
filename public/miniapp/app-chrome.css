@@ -221,9 +221,6 @@ html.detail-mode .app-top-chrome .feed-meta-bar {
   width: calc(100% - 16px);
   margin: 0 8px 8px;
   border-radius: 10px;
-  aspect-ratio: 12.5 / 1;
-  min-height: 44px;
-  max-height: 68px;
   overflow: hidden;
 }
 
