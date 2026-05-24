@@ -3,7 +3,7 @@
  * dex-crop.js DOM/iframe üzerine !important uygular; burada sadece :root değişkenleri.
  */
 (function (global) {
-  const ORDER = ['web', 'app11', 'app13', 'app13pm', 'app16'];
+  const ORDER = ['web', 'webgecko', 'app11', 'app13', 'app13pm', 'app16'];
 
   function getBakedProfiles() {
     const g = global.__DEX_CROP_BAKED__;
@@ -55,7 +55,7 @@
     if (!profiles) return;
     const id = detectProfileId();
     document.documentElement.dataset.dexCropProfile = id;
-    applyRootVars(profiles[id] || profiles.web);
+    applyRootVars(profiles[id] || profiles.webgecko || profiles.web);
   }
 
   applyEarly();

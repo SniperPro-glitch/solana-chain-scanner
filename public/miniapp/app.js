@@ -2803,13 +2803,11 @@
   function geckoChartEmbedUrl(poolAddress, tf) {
     const pool = String(poolAddress || '').trim();
     if (!pool) return null;
+    void tf;
     const q = new URLSearchParams({
       embed: '1',
       info: '0',
       swaps: '0',
-      light_chart: '1',
-      chart_type: 'price',
-      resolution: String(tf || '15m'),
     });
     return `https://www.geckoterminal.com/solana/pools/${encodeURIComponent(pool)}?${q.toString()}`;
   }
@@ -2821,9 +2819,15 @@
       embed: '1',
       info: '0',
       swaps: '1',
-      light_chart: '1',
     });
     return `https://www.geckoterminal.com/solana/pools/${encodeURIComponent(pool)}?${q.toString()}`;
+  }
+
+  function syncWebGeckoCropProfile() {
+    if (!useGeckoEmbedOnWeb()) return;
+    document.documentElement.dataset.dexCropProfile = 'webgecko';
+    if (global.SniperDexCropEarly?.applyEarly) global.SniperDexCropEarly.applyEarly();
+    if (global.SniperDexCrop?.applyCropNow) global.SniperDexCrop.applyCropNow();
   }
 
   async function resolvePoolForEmbeds(m) {
@@ -2871,6 +2875,7 @@
     } else {
       iframe.classList.remove('hidden');
     }
+    syncWebGeckoCropProfile();
     const meta = $('tradesMeta');
     if (meta) meta.textContent = i18n('detail.tradesLive');
   }
@@ -3124,6 +3129,7 @@
       const existing = container.querySelector('iframe.dex-embed-chart');
       setChartEmbedMode(true);
       document.documentElement.dataset.chartEmbedProvider = provider;
+      syncWebGeckoCropProfile();
       if (existing && chartEmbedMountKey === mountKey) {
         if (note) {
           note.textContent = `${(tf || '15m').toUpperCase()} · canlı`;

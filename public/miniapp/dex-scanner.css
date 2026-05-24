@@ -2873,7 +2873,7 @@ html.web-browser .dex-trades-embed:not(.hidden) {
 }
 
 /* AUTO_DEX_CROP_PROFILES_START */
-/* Otomatik — sync-dex-crop-css.js · 2026-05-24T03:24:15.858Z */
+/* Otomatik — sync-dex-crop-css.js · 2026-05-24T03:54:16.866Z */
 
 html:not([data-dex-crop-profile]) {
   --dex-trades-view-h: 302px;
@@ -2897,6 +2897,25 @@ html[data-dex-crop-profile="web"] {
   --dex-iframe-width: 100%;
   --dex-mask-top-h: 0px;
   --dex-mask-foot-h: 0px;
+}
+
+html[data-dex-crop-profile="webgecko"] {
+  --chart-embed-h: 388px;
+  --chart-embed-top: 0px;
+  --chart-shift-down: 14px;
+  --chart-embed-left: 0%;
+  --chart-embed-width: 100%;
+  --chart-embed-extra: 10px;
+  --chart-brand-crop: 44px;
+  --tape-shift-down: 0px;
+  --dex-trades-view-h: 312px;
+  --dex-iframe-h: 690px;
+  --dex-iframe-top: -412px;
+  --dex-trades-shift-down: 68px;
+  --dex-iframe-left: 0%;
+  --dex-iframe-width: 100%;
+  --dex-mask-top-h: 60px;
+  --dex-mask-foot-h: 14px;
 }
 
 html[data-dex-crop-profile="app11"] {

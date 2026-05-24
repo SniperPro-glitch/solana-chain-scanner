@@ -11,7 +11,7 @@ const PROFILES_JSON = path.join(ROOT, 'public', 'miniapp', 'dex-crop-profiles.js
 const CSS_FILE = path.join(ROOT, 'public', 'miniapp', 'dex-scanner.css');
 const MARK_START = '/* AUTO_DEX_CROP_PROFILES_START */';
 const MARK_END = '/* AUTO_DEX_CROP_PROFILES_END */';
-const ORDER = ['web', 'app11', 'app13', 'app13pm', 'app16'];
+const ORDER = ['web', 'webgecko', 'app11', 'app13', 'app13pm', 'app16'];
 
 function px(n, fallback = 0) {
   const v = Number(n);

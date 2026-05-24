@@ -2,7 +2,7 @@
  * Tek referans profilden 5 cihaz (web, app11, app13, app13pm, app16) ölçü üretir.
  * Canonical genişlikler: Apple HIG / Telegram WebApp viewport (portrait CSS px).
  */
-const PROFILE_ORDER = ['web', 'app11', 'app13', 'app13pm', 'app16'];
+const PROFILE_ORDER = ['web', 'webgecko', 'app11', 'app13', 'app13pm', 'app16'];
 
 /** Profil → tipik cihaz genişliği (layoutWidth) */
 const CANONICAL_WIDTH = {

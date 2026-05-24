@@ -21,40 +21,15 @@
   const MOTOR_TEMP_DISABLED = false;
 
   const PROFILE_META = {
-    web: { label: 'Web', hint: 'Tarayici / masaustu' },
+    web: { label: 'Web', hint: 'Tarayici / Dex embed' },
+    webgecko: { label: 'Web GK', hint: 'Tarayici · GeckoTerminal (~1200px)' },
     app11: { label: '11', hint: 'iPhone 11, XR, 11 Pro Max (~414px)' },
     app13: { label: '13', hint: 'iPhone 12–15, 12 Pro (~390px)' },
     app13pm: { label: '13 PM', hint: 'iPhone 12–15 Pro Max (~428px)' },
     app16: { label: '16 PM', hint: 'iPhone 16 Pro / Pro Max (~440px) — referans' },
   };
 
-  const PROFILE_ORDER = ['web', 'app11', 'app13', 'app13pm', 'app16'];
-
-  /** Web + GeckoTerminal — Dex kırpmasından farklı kadraj */
-  const GECKO_WEB_CROP = {
-    chart: {
-      stageH: 372,
-      top: 0,
-      left: 0,
-      width: 100,
-      heightExtra: 8,
-      brandCrop: 36,
-      shiftDown: 12,
-    },
-    tape: { shiftDown: 0 },
-    trades: {
-      viewH: 318,
-      iframeH: 680,
-      iframeTop: -402,
-      shiftDown: 54,
-      left: 0,
-      width: 100,
-      maskTop: 58,
-      maskFoot: 12,
-      maskTopOn: true,
-      maskFootOn: true,
-    },
-  };
+  const PROFILE_ORDER = ['web', 'webgecko', 'app11', 'app13', 'app13pm', 'app16'];
 
   const BAKED_PROFILES = {"web":{"chart":{"stageH":330,"top":40,"left":1,"width":104,"heightExtra":0,"brandCrop":39,"clipLeft":0,"clipRight":0,"clipTop":0,"clipBottom":0,"shiftDown":0},"tape":{"shiftDown":0},"trades":{"viewH":302,"iframeH":845,"iframeTop":-590,"shiftDown":0,"left":1,"width":98,"maskTop":0,"maskFoot":0,"maskTopOn":true,"maskFootOn":true,"clipLeft":0,"clipRight":0,"clipTop":0,"clipBottom":0}},"app11":{"chart":{"stageH":424,"top":-104,"left":0,"width":100,"heightExtra":0,"brandCrop":40,"clipLeft":0,"clipRight":0,"clipTop":0,"clipBottom":0,"shiftDown":142},"tape":{"shiftDown":0},"trades":{"viewH":294,"iframeH":845,"iframeTop":-555,"shiftDown":44,"left":0,"width":101,"maskTop":0,"maskFoot":0,"maskTopOn":true,"maskFootOn":false,"clipLeft":0,"clipRight":0,"clipTop":0,"clipBottom":0}},"app13":{"chart":{"stageH":314,"top":-15,"left":-1,"width":102,"heightExtra":0,"brandCrop":0,"clipLeft":0,"clipRight":0,"clipTop":0,"clipBottom":0,"shiftDown":55},"tape":{"shiftDown":0},"trades":{"viewH":302,"iframeH":845,"iframeTop":-590,"shiftDown":0,"left":1,"width":98,"maskTop":0,"maskFoot":0,"maskTopOn":true,"maskFootOn":true,"clipLeft":0,"clipRight":0,"clipTop":0,"clipBottom":0}},"app13pm":{"chart":{"stageH":344,"top":40,"left":-1,"width":108,"heightExtra":36,"brandCrop":39,"clipLeft":0,"clipRight":0,"clipTop":0,"clipBottom":0,"shiftDown":0},"tape":{"shiftDown":0},"trades":{"viewH":268,"iframeH":980,"iframeTop":-755,"shiftDown":166,"left":-1,"width":108,"maskTop":0,"maskFoot":0,"maskTopOn":true,"maskFootOn":true,"clipLeft":0,"clipRight":0,"clipTop":0,"clipBottom":0}},"app16":{"chart":{"stageH":418,"top":26,"left":-2,"width":103,"heightExtra":6,"brandCrop":0,"clipLeft":0,"clipRight":0,"clipTop":0,"clipBottom":0,"shiftDown":13},"tape":{"shiftDown":0},"trades":{"viewH":250,"iframeH":745,"iframeTop":-585,"shiftDown":137,"left":0,"width":100,"maskTop":0,"maskFoot":0,"maskTopOn":false,"maskFootOn":false,"clipLeft":0,"clipRight":0,"clipTop":0,"clipBottom":0}}};
 
@@ -245,7 +220,7 @@
     const forced = profileFromUrl();
     if (forced) return forced;
     const w = cropLayoutWidth();
-    if (!isTelegram() && w > 500) return 'web';
+    if (!isTelegram() && w > 500) return 'webgecko';
     return detectProfileByWidth(w);
   }
 
@@ -381,14 +356,8 @@
 
   function loadForProfile(profileId) {
     const store = loadStore();
-    let block = clone(normalizeBlock(store.profiles[profileId] || store.profiles.web));
-    if (
-      profileId === 'web'
-      && document.documentElement.dataset.chartEmbedProvider === 'gecko'
-    ) {
-      block = mergeBlock(block, GECKO_WEB_CROP);
-    }
-    return block;
+    const fallback = store.profiles.webgecko || store.profiles.web;
+    return clone(normalizeBlock(store.profiles[profileId] || fallback));
   }
 
   function load() {

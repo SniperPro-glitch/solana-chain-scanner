@@ -2,7 +2,7 @@
  * Kayıtlı profil — genişlik: max(innerWidth, TG viewportWidth).
  */
 (function () {
-  const IDS = ['web', 'app11', 'app13', 'app13pm', 'app16'];
+  const IDS = ['web', 'webgecko', 'app11', 'app13', 'app13pm', 'app16'];
 
   function fromUrl() {
     try {
@@ -45,7 +45,7 @@
     const forced = fromUrl();
     if (forced) return forced;
     const w = layoutWidth();
-    if (!isTelegramApp()) return 'web';
+    if (!isTelegramApp()) return 'webgecko';
     if (isTelegramApp() && isTelegramDesktop() && w > 500) return 'web';
     return detectByWidth(w);
   }
