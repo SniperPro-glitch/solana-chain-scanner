@@ -267,11 +267,39 @@ html.tg-fullscreen .app-top-chrome {
 
 .app-top-chrome .promo-banner.app-promo-global {
   display: block;
+  position: relative;
   box-sizing: border-box;
-  width: calc(100% - 16px);
-  margin: 0 8px 8px;
+  width: 100%;
+  height: var(--promo-h, 88px);
+  margin: 0 0 8px;
   border-radius: 10px;
   overflow: hidden;
+  border: 1px solid rgba(0, 229, 255, 0.25);
+  flex-shrink: 0;
+}
+
+.app-top-chrome .promo-banner.app-promo-global.promo-banner--tablet {
+  --promo-h: 96px;
+}
+
+.app-top-chrome .promo-banner.app-promo-global.promo-banner--mobile {
+  --promo-h: 88px;
+}
+
+html.web-browser .app-top-chrome .promo-banner.app-promo-global {
+  height: auto;
+  aspect-ratio: 1200 / 96;
+  min-height: 72px;
+}
+
+html.web-browser .app-top-chrome .promo-banner.app-promo-global .promo-banner-picture {
+  position: absolute;
+  inset: 0;
+}
+
+html.web-browser .app-top-chrome .promo-banner.app-promo-global .promo-banner-img {
+  position: absolute;
+  inset: 0;
 }
 
 .app-top-chrome .promo-banner.app-promo-global.hidden {

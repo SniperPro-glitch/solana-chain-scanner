@@ -135,7 +135,7 @@ body.sidebar-open {
   min-width: 0;
 }
 
-/* Üst reklam banner — src/bannerSpecs.js (desktop 12.5:1, tablet 80px, mobile 64px) */
+/* Üst reklam banner — src/bannerSpecs.js (desktop 12.5:1, tablet 96px, mobile 88px) */
 .promo-banner {
   --promo-h: 96px;
   display: block;
@@ -170,22 +170,22 @@ body.sidebar-open {
 }
 
 .promo-banner.promo-banner--tablet {
-  --promo-h: 80px;
+  --promo-h: 96px;
 }
 
 .promo-banner.promo-banner--mobile {
-  --promo-h: 64px;
+  --promo-h: 88px;
 }
 
 @media (max-width: 899px) {
   .promo-banner:not(.promo-banner--desktop) {
-    --promo-h: 80px;
+    --promo-h: 96px;
   }
 }
 
 @media (max-width: 479px) {
   .promo-banner:not(.promo-banner--desktop):not(.promo-banner--tablet) {
-    --promo-h: 64px;
+    --promo-h: 88px;
   }
 }
 

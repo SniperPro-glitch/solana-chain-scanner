@@ -21,7 +21,7 @@ const PERMISSIONS = [
   { key: 'dashboard', label: 'Dashboard', founderOnly: false },
   { key: 'feed.view', label: 'Token Feed (Görüntüle)', founderOnly: false },
   { key: 'feed.write', label: 'Token Ekle / Kaldır', founderOnly: false },
-  { key: 'banner', label: 'Banner Yönetimi', founderOnly: false },
+  { key: 'banner', label: 'App Banner', founderOnly: false },
   { key: 'channels', label: 'Bot & Kanallar', founderOnly: true },
   { key: 'trending', label: 'Trend Ayarları', founderOnly: true },
   { key: 'risk', label: 'Risk Filtreleri', founderOnly: true },

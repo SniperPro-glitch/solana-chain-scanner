@@ -1,13 +1,13 @@
 /**
- * Admin panel — Mini App promo banner (bilgisayar / tablet / telefon).
+ * Admin panel — App üst banner (Telegram / tablet / web).
  */
 (function () {
   const API = '/api/admin/promo-banner';
-  const VARIANTS = ['desktop', 'tablet', 'mobile'];
+  const VARIANTS = ['mobile', 'tablet', 'desktop'];
   const SPECS = (typeof window !== 'undefined' && window.SniperBannerSpecs) || {
-    desktop: { width: 1920, height: 154, maxWidth: '100%', ratioW: 1200, ratioH: 96, label: 'Web tam ekran' },
-    tablet: { width: 768, height: 80, maxWidth: 768, label: 'Tablet' },
-    mobile: { width: 414, height: 64, maxWidth: 414, label: 'Telefon' },
+    mobile: { width: 414, height: 88, maxWidth: 414, label: 'Telegram / App' },
+    tablet: { width: 768, height: 96, maxWidth: 768, label: 'Tablet' },
+    desktop: { width: 1920, height: 154, maxWidth: '100%', ratioW: 1200, ratioH: 96, label: 'Web (tam genişlik)' },
   };
 
   function buildLabels() {
@@ -15,18 +15,18 @@
     for (const key of VARIANTS) {
       const s = SPECS[key];
       const isWeb = key === 'desktop';
-      const size = isWeb ? `${s.width}×${s.height}` : `${s.width}×${s.height}`;
+      const size = `${s.width}×${s.height}`;
       const aspect = isWeb ? `${s.ratioW || 1200} / ${s.ratioH || 96}` : `${s.width} / ${s.height}`;
       out[key] = {
         upload: `📤 ${s.label} görseli seç`,
         change: '🔄 Görseli değiştir',
         size: isWeb ? '12.5:1 (Full HD 1920×154)' : size,
         hint: isWeb
-          ? `Tam ekran — Canva Full HD: ${s.width}×${s.height} px. Formül: genişlik ÷ 12,5 = yükseklik. F12: [banner ölçü]`
-          : `Bire bir ${size} px`,
+          ? `Web tarayıcı — oran ${s.ratioW || 1200}:${s.ratioH || 96} (÷12,5). Örnek Full HD: ${s.width}×${s.height} px`
+          : `App üst şerit — bire bir ${size} px (2x: ${s.width * 2}×${s.height * 2})`,
         previewMaxW: isWeb ? '100%' : `${s.maxWidth}px`,
         aspect,
-        fit: key === 'mobile' ? 'contain' : 'fill',
+        fit: key === 'mobile' ? 'cover' : 'fill',
       };
     }
     return out;
@@ -34,7 +34,7 @@
 
   const LABELS = buildLabels();
 
-  let activeVariant = 'desktop';
+  let activeVariant = 'mobile';
   let draft = {
     link: '',
     enabled: true,
@@ -69,10 +69,20 @@
     const stage = $('adminBannerStage');
     const slotEl = $('adminBannerSlot');
     const hint = $('adminBannerSizeHint');
+    const appChrome = $('adminBannerAppChrome');
     const spec = LABELS[activeVariant];
     if (pos) pos.value = String(s.posX);
     if (posVal) posVal.textContent = `${Math.round(s.posX)}%`;
-    if (stage) stage.dataset.bannerVariant = activeVariant;
+    if (stage) {
+      stage.dataset.bannerVariant = activeVariant;
+      stage.classList.toggle('admin-banner-stage--app', activeVariant !== 'desktop');
+      stage.classList.toggle('admin-banner-stage--web', activeVariant === 'desktop');
+    }
+    if (appChrome) {
+      const showChrome = activeVariant === 'mobile';
+      appChrome.hidden = !showChrome;
+      appChrome.setAttribute('aria-hidden', showChrome ? 'false' : 'true');
+    }
     if (hint && spec) hint.textContent = spec.hint;
     if (stage && spec) {
       stage.style.setProperty('--banner-aspect', spec.aspect);
@@ -81,7 +91,7 @@
     }
     if (link) link.value = draft.link || '';
     if (enabled) enabled.checked = draft.enabled !== false;
-    document.querySelectorAll('#page-banner .banner-variant-tab').forEach((btn) => {
+    document.querySelectorAll('#page-app-banner .banner-variant-tab').forEach((btn) => {
       btn.classList.toggle('active', btn.dataset.variant === activeVariant);
       const sz = btn.querySelector('.banner-tab-size');
       const key = btn.dataset.variant;
@@ -105,7 +115,7 @@
     draft.link = cfg?.link || '';
     draft.enabled = cfg?.enabled !== false;
     if (cfg?.variants) {
-      for (const key of VARIANTS) {
+      for (const key of ['desktop', 'tablet', 'mobile']) {
         const v = cfg.variants[key];
         if (v?.imageUrl) {
           slot(key).previewUrl = v.imageUrl;
@@ -114,7 +124,7 @@
         }
       }
     } else if (live?.variants) {
-      for (const key of VARIANTS) {
+      for (const key of ['desktop', 'tablet', 'mobile']) {
         const v = live.variants[key];
         if (v?.imageUrl) {
           slot(key).previewUrl = v.imageUrl;
@@ -161,7 +171,7 @@
 
   function buildPayload() {
     const variants = {};
-    for (const key of VARIANTS) {
+    for (const key of ['desktop', 'tablet', 'mobile']) {
       const s = slot(key);
       const entry = { posX: Math.round(Number(s.posX) || 50) };
       if (s.imageBase64) entry.imageBase64 = s.imageBase64;
@@ -182,15 +192,15 @@
         body: JSON.stringify(buildPayload()),
       });
       applyServer(body.saved, body.live);
-      for (const key of VARIANTS) slot(key).imageBase64 = null;
-      setStatus('Kaydedildi — Mini App’te görünür.');
+      for (const key of ['desktop', 'tablet', 'mobile']) slot(key).imageBase64 = null;
+      setStatus('Kaydedildi — App’te (üst şerit) görünür.');
     } catch (e) {
       setStatus(e.message || 'Kayıt başarısız', true);
     }
   }
 
   function setVariant(key) {
-    if (!VARIANTS.includes(key)) return;
+    if (!['desktop', 'tablet', 'mobile'].includes(key)) return;
     activeVariant = key;
     syncUi();
   }
@@ -209,7 +219,7 @@
     });
     $('adminBannerSave')?.addEventListener('click', () => save());
     $('adminBannerReload')?.addEventListener('click', () => load());
-    document.querySelectorAll('#page-banner .banner-variant-tab').forEach((btn) => {
+    document.querySelectorAll('#page-app-banner .banner-variant-tab').forEach((btn) => {
       btn.addEventListener('click', () => setVariant(btn.dataset.variant));
     });
 
@@ -217,7 +227,7 @@
     if (typeof orig === 'function') {
       window.showPage = function (id) {
         orig(id);
-        if (id === 'banner') load();
+        if (id === 'app-banner') load();
       };
     }
 

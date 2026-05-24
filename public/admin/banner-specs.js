@@ -1,4 +1,4 @@
-/** Admin + mini app — web tam ekran oran 12.5:1 */
+/** Admin + mini app — ölçüler src/bannerSpecs.js ile uyumlu */
 (function (g) {
   const RATIO_W = 1200;
   const RATIO_H = 96;
@@ -12,10 +12,10 @@
       maxWidth: '100%',
       ratioW: RATIO_W,
       ratioH: RATIO_H,
-      label: 'Web tam ekran',
+      label: 'Web (tam genişlik)',
     },
-    tablet: { width: 768, height: 80, maxWidth: 768, label: 'Tablet' },
-    mobile: { width: 414, height: 64, maxWidth: 414, label: 'Telefon' },
+    tablet: { width: 768, height: 96, maxWidth: 768, label: 'Tablet' },
+    mobile: { width: 414, height: 88, maxWidth: 414, label: 'Telegram / App' },
   };
   g.SniperBannerHeightForWidth = h;
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -1360,7 +1360,7 @@
     return { desktop, tablet, mobile };
   }
 
-  const PROMO_SLOT_H = { desktop: 96, tablet: 80, mobile: 64 };
+  const PROMO_SLOT_H = { desktop: 96, tablet: 96, mobile: 88 };
 
   function applyPromoBannerLayout() {
     const el = $('promoBanner');
