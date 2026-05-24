@@ -35,7 +35,16 @@ body {
   background: linear-gradient(180deg, rgba(6, 9, 16, 0.99) 0%, rgba(6, 9, 16, 0.96) 100%);
   border-bottom: 1px solid var(--sniper-border-cyan);
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
-  padding-top: var(--tg-content-safe-top, 0px);
+  padding-top: var(--sniper-content-top, var(--tg-content-safe-top, 0px));
+}
+
+html.tg-fullscreen .app-top-chrome {
+  background: linear-gradient(
+    180deg,
+    rgba(6, 9, 16, 1) 0%,
+    rgba(6, 9, 16, 0.97) 72%,
+    rgba(6, 9, 16, 0.92) 100%
+  );
 }
 
 .app-top-chrome::before {

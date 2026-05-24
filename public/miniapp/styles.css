@@ -3053,9 +3053,9 @@ html.web-browser .detail-body {
 
 html.tg-mini-app .detail-top,
 html.web-browser .detail-top {
-  padding-top: calc(8px + min(var(--tg-content-safe-top, 0px), 16px));
-  padding-left: 12px;
-  padding-right: 12px;
+  padding-top: calc(8px + min(var(--sniper-content-top, var(--tg-content-safe-top, 0px)), 72px));
+  padding-left: calc(12px + var(--tg-content-safe-left, 0px));
+  padding-right: calc(12px + var(--tg-content-safe-right, 0px));
 }
 
 html.tg-mini-app .hero-card,

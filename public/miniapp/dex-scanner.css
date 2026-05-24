@@ -25,6 +25,33 @@ html.tg-mini-app body {
   background: #060910;
 }
 
+/* Tam ekran: TG sohbet sütunu daralır; uygulama arka planı çentiğe kadar yukarı taşar */
+html.tg-mini-app.tg-fullscreen {
+  background: #060910;
+}
+
+html.tg-mini-app.tg-fullscreen body {
+  position: relative;
+  background: transparent;
+}
+
+html.tg-mini-app.tg-fullscreen body::before {
+  content: '';
+  position: fixed;
+  z-index: 0;
+  left: 0;
+  right: 0;
+  top: calc(-1 * var(--sniper-bg-bleed-top, env(safe-area-inset-top, 0px)));
+  height: calc(var(--app-height, 100dvh) + var(--sniper-bg-bleed-top, env(safe-area-inset-top, 0px)));
+  background: #060910;
+  pointer-events: none;
+}
+
+html.tg-mini-app.tg-fullscreen body > * {
+  position: relative;
+  z-index: 1;
+}
+
 .scanner-home {
   --bg: #060910;
   --card: #0b101d;
@@ -594,8 +621,14 @@ html.tg-fullscreen .btn-connect {
   font-size: 11px;
 }
 
-/* Expand mod: Telegram üst şeridi — ekstra sol boşluk gerekmez */
-html.tg-expanded .scan-header {
+html.tg-fullscreen .scan-header {
+  padding-top: calc(10px + var(--sniper-content-top, var(--tg-content-safe-top, 0px)));
+  padding-left: calc(12px + var(--tg-content-safe-left, 0px));
+  padding-right: calc(12px + var(--tg-content-safe-right, 0px));
+}
+
+/* Genişletilmiş (fullscreen desteklenmiyorsa) */
+html.tg-expanded:not(.tg-fullscreen) .scan-header {
   padding-left: 12px;
   padding-top: calc(6px + var(--tg-content-safe-top, 0px));
 }
