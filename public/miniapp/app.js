@@ -3139,7 +3139,10 @@
         note.classList.remove('hidden');
       }
       if (chartIfr) {
-        chartIfr.addEventListener('load', scheduleDexTradesCrop, { once: true });
+        chartIfr.addEventListener('load', () => {
+          scheduleDexTradesCrop();
+          if (globalThis.SniperDexCrop?.applyCropNow) globalThis.SniperDexCrop.applyCropNow();
+        }, { once: true });
         scheduleDexTradesCrop();
       }
       return true;
