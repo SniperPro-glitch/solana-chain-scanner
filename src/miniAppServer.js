@@ -667,7 +667,10 @@ function createMiniAppServer() {
       }
 
       let rel = url.pathname === '/' ? '/index.html' : url.pathname;
-      if (rel.startsWith('/miniapp')) rel = rel.slice('/miniapp'.length) || '/index.html';
+      // Only strip /miniapp/ prefix (not /miniapp-i18n.js etc.)
+      if (rel === '/miniapp' || rel.startsWith('/miniapp/')) {
+        rel = rel.slice('/miniapp'.length) || '/index.html';
+      }
 
       const safe = path.normalize(rel).replace(/^(\.\.[/\\])+/, '');
       const filePath = path.join(PUBLIC_DIR, safe);
