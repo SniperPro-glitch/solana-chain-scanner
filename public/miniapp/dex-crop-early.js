@@ -17,7 +17,7 @@
   ];
 
   function getBakedProfiles() {
-    const g = global.__DEX_CROP_BAKED__;
+    const g = global.__DEX_CROP_BAKED__ || globalThis.__DEX_CROP_BAKED__;
     return g?.profiles || null;
   }
 
@@ -90,4 +90,4 @@
       applyEarly();
     };
   }
-})();
+})(typeof globalThis !== 'undefined' ? globalThis : typeof window !== 'undefined' ? window : this);

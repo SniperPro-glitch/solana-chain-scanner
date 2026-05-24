@@ -444,7 +444,10 @@
   }
 
   function profileFromBaked(profileId) {
-    return loadForProfile(profileId);
+    const baked = getBakedSource();
+    const block = baked?.profiles?.[profileId];
+    if (!block) return null;
+    return normalizeBlock(block);
   }
 
   function saveBlock(profileId, block) {
