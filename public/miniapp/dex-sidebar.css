@@ -222,6 +222,7 @@
 
 .dex-sidebar-nav {
   padding: 2px 8px;
+  overflow: visible;
 }
 
 .dex-sidebar-link {
@@ -260,16 +261,16 @@
   background: transparent;
 }
 
+/* Watchlist görseli büyük; satır yüksekliği diğer menü ile aynı (taşma) */
 .dex-sidebar-link[data-sidebar-nav='watchlist'] {
-  padding-top: 2px;
-  padding-bottom: 2px;
+  position: relative;
+  z-index: 2;
+  overflow: visible;
 }
 
 .dex-sidebar-link[data-sidebar-nav='watchlist'] .ico {
-  width: var(--sidebar-watchlist-icon-size);
-  min-width: var(--sidebar-watchlist-icon-size);
-  height: var(--sidebar-watchlist-icon-size);
-  min-height: var(--sidebar-watchlist-icon-size);
+  position: relative;
+  overflow: visible;
 }
 
 .dex-sidebar-link > span:not(.ico) {
@@ -286,12 +287,16 @@
 }
 
 .dex-sidebar-link .watchlist-ico-img {
+  position: absolute;
+  left: 50%;
+  top: 50%;
   width: var(--sidebar-watchlist-icon-size);
   height: var(--sidebar-watchlist-icon-size);
+  transform: translate(-50%, -50%);
   object-fit: contain;
   object-position: center;
   display: block;
-  flex-shrink: 0;
+  pointer-events: none;
   background: transparent;
   mix-blend-mode: lighten;
 }
