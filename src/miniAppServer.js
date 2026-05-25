@@ -452,7 +452,7 @@ function createMiniAppServer() {
               const axios = require('axios');
               const sampleId = String(process.env.DEV_REPORT_ID || '1QCResXVs8I').trim();
               const base = String(
-                process.env.DEV_REPORT_BASE || 'https://solana-chain-scanner-production.up.railway.app',
+                process.env.DEV_REPORT_BASE || 'https://sniperscanbot-production.up.railway.app',
               ).replace(/\/$/, '');
               const tf = url.searchParams.get('tf') || '15m';
               const { data } = await axios.get(`${base}/api/report/${encodeURIComponent(sampleId)}`, {
@@ -734,9 +734,40 @@ function normalizePublicUrl(raw) {
   return norm(raw);
 }
 
+/** Eski ayrı DEX Railway — Settings düğmesi buraya gitmesin. */
+const LEGACY_DEX_WEB_HOSTS = new Set([
+  'solana-chain-scanner-production.up.railway.app',
+]);
+
+function isLegacyDexWebHost(url) {
+  try {
+    return LEGACY_DEX_WEB_HOSTS.has(new URL(url).hostname.toLowerCase());
+  } catch {
+    return false;
+  }
+}
+
 function getWebAppBaseUrl() {
   const raw = String(process.env.WEB_APP_URL || '').trim();
-  if (raw) return normalizePublicUrl(raw);
+  let url = raw ? normalizePublicUrl(raw) : '';
+
+  const hasBotToken = !!String(process.env.BOT_TOKEN || process.env.TELEGRAM_BOT_TOKEN || '').trim();
+  const onRailway = !!(process.env.RAILWAY_ENVIRONMENT || process.env.RAILWAY_PROJECT_ID);
+  const pubDom = String(process.env.RAILWAY_PUBLIC_DOMAIN || '').trim();
+  const selfFromRailway = pubDom && onRailway
+    ? normalizePublicUrl(`https://${pubDom}`)
+    : '';
+
+  if (hasBotToken && url && isLegacyDexWebHost(url)) {
+    console.warn(
+      `[miniApp] WEB_APP_URL eski DEX (${url}) — Settings/Menü için bot domain: ${selfFromRailway || url}`,
+    );
+    if (selfFromRailway) url = selfFromRailway;
+  } else if (hasBotToken && !url && selfFromRailway) {
+    url = selfFromRailway;
+  }
+
+  if (url) return url;
   const port = process.env.MINI_APP_PORT || process.env.PORT || '3080';
   return `http://localhost:${port}`;
 }
@@ -778,6 +809,45 @@ function buildWebAppUrl(reportId) {
   return u.toString();
 }
 
+/** Bot WEB_APP_URL başka deploy'a işaret ediyorsa Settings DEX boş, menü dolu görünebilir. */
+async function warnMiniAppFeedWebAppAlign() {
+  const web = getWebAppBaseUrl();
+  if (!/^https:\/\//i.test(web)) return;
+  let localCount = 0;
+  try {
+    const botFeedStore = require('./botFeedStore');
+    localCount = await botFeedStore.feedCountAsync();
+  } catch {
+    return;
+  }
+  let remoteCount = null;
+  try {
+    const r = await fetch(`${web.replace(/\/$/, '')}/api/feed/status`, {
+      signal: AbortSignal.timeout(10000),
+      headers: { Accept: 'application/json' },
+    });
+    if (r.ok) {
+      const j = await r.json();
+      remoteCount = j.botCount ?? null;
+    }
+  } catch {
+    return;
+  }
+  if (remoteCount == null) return;
+  if (remoteCount > 0 && localCount === 0) {
+    console.warn(
+      `[miniApp] WEB_APP_URL (${web}) üzerinde ${remoteCount} feed kaydı var; `
+      + 'bu bot servisinde 0 — Railway bot servisine DATABASE_URL=${{ Postgres.DATABASE_URL }} ekleyin '
+      + 'veya WEB_APP_URL\'i bot domain\'iniz yapıp kanala paylaşım yapın.',
+    );
+  } else if (remoteCount === 0 && localCount > 0) {
+    console.warn(
+      `[miniApp] Feed bu serviste (${localCount}) ama WEB_APP_URL (${web}) boş — `
+      + 'Settings/DEX düğmesi WEB_APP_URL\'i bot Railway domain\'i ile eşleştirin.',
+    );
+  }
+}
+
 function startMiniAppServer() {
   const enabled = ['1', 'true', 'on', 'yes'].includes(
     String(process.env.MINI_APP_ENABLED || '1').trim().toLowerCase(),
@@ -810,6 +880,7 @@ function startMiniAppServer() {
 module.exports = {
   createMiniAppServer,
   startMiniAppServer,
+  warnMiniAppFeedWebAppAlign,
   buildWebAppUrl,
   getWebAppBaseUrl,
   getWebAppEntryUrl,

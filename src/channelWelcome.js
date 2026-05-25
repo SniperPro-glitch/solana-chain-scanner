@@ -2,7 +2,6 @@
 
 const channels = require('./channels');
 const { t } = require('./i18n');
-const { buildSniperDexWebAppButton } = require('./dexAppButton');
 const {
   getOfficialFeedChannelIds,
   isOfficialFeedChannel,
@@ -18,10 +17,9 @@ function channelIdToStartToken(chatId) {
 function buildWelcomeKeyboard(lang, botUsername, chatId) {
   const username = botUsername || 'bot';
   const deeplink = `https://t.me/${username}?start=settings_${channelIdToStartToken(chatId)}`;
-  const rows = [[{ text: t('settings.open', lang), url: deeplink }]];
-  const dexBtn = buildSniperDexWebAppButton(lang);
-  if (dexBtn) rows.push([dexBtn]);
-  return { inline_keyboard: rows };
+  return {
+    inline_keyboard: [[{ text: t('settings.open', lang), url: deeplink }]],
+  };
 }
 
 /**
@@ -66,16 +64,6 @@ async function sendChannelWelcome(bot, chat, opts = {}) {
     reply_markup: replyMarkup,
   }).catch((e) => {
     console.warn('[welcome] channel msg fail:', e.message);
-    if (replyMarkup.inline_keyboard.length > 1) {
-      return bot.sendMessage(chatId, welcomeMsg, {
-        parse_mode: 'Markdown',
-        disable_web_page_preview: true,
-        reply_markup: { inline_keyboard: [replyMarkup.inline_keyboard[0]] },
-      }).catch((e2) => {
-        console.warn('[welcome] fallback (settings only):', e2.message);
-        return null;
-      });
-    }
     return null;
   });
 

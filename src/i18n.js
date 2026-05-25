@@ -594,7 +594,7 @@ const STRINGS = {
   'settings.langSaved': { en: 'Language saved.', tr: 'Dil kaydedildi.', ru: 'Язык сохранён.' },
   'settings.back': { en: '« Back', tr: '« Geri', ru: '« Назад' },
   'settings.close': { en: 'Close', tr: 'Kapat', ru: 'Закрыть' },
-  'settings.open': { en: '⚙️ Open Settings (DM)', tr: '⚙️ Ayarları aç (DM)', ru: '⚙️ Настройки (ЛС)' },
+  'settings.open': { en: '⚙️ Settings (DM)', tr: '⚙️ Ayarlar (DM)', ru: '⚙️ Настройки (ЛС)' },
 
   'settings.panel.current': { en: 'Current', tr: 'Mevcut', ru: 'Текущие' },
   'settings.recommended': { en: 'recommended', tr: 'önerilen', ru: 'реком.' },
@@ -770,9 +770,9 @@ const STRINGS = {
     ru: 'Привет! Я сканирую новые токены Solana и публикую те, что проходят ваши фильтры.',
   },
   'welcome.added': {
-    en: '✅ *{name}* — bot is ready.\n\n1️⃣ Tap *Open Settings (DM)* → pick network (TON / BSC / ◎ Solana) and filters\n2️⃣ *Sniper DEX* → Mini App feed & charts\n\nOfficial Solana channel posts also appear in the app.',
-    tr: '✅ *{name}* — bot hazır.\n\n1️⃣ *Ayarları aç (DM)* → ağ seç (TON / BSC / ◎ Solana) ve filtreler\n2️⃣ *Sniper DEX* → Mini App listesi ve grafik\n\nResmi Solana kanalı paylaşımları uygulamada da listelenir.',
-    ru: '✅ *{name}* — бот готов.\n\n1️⃣ *Настройки (ЛС)* → сеть (TON / BSC / ◎ Solana) и фильтры\n2️⃣ *Sniper DEX* → Mini App\n\nОфициальный Solana-канал попадает в ленту приложения.',
+    en: '⚙️ *{name}* — open settings in DM (network & filters).',
+    tr: '⚙️ *{name}* — filtreler için DM\'de ayarları açın.',
+    ru: '⚙️ *{name}* — настройки в ЛС (сеть и фильтры).',
   },
   'welcome.start': {
     en: '👋 *Solana Chain Scanner*\n\nI automatically discover and audit new tokens on the Solana network and share them with the channels/groups I am added to.\n\n*Open the scanner:* tap *🎯 Sniper DEX* below (Mini App inside Telegram).\n\n*Quick start:*\n1. Add me to your channel as admin\n2. Tap *“Open Settings”* in the welcome message on the channel\n3. Configure your filters\n\n*Commands:* /dex /settings /ping /stats /post',
@@ -793,7 +793,11 @@ const STRINGS = {
   // ─── Komutlar ───
   'cmd.adminOnly': { en: '⛔ Only admins can use this command.', tr: '⛔ Bu komutu sadece yönetici kullanabilir.', ru: '⛔ Только администраторы могут использовать эту команду.' },
   'cmd.adminOnlyShort': { en: '⛔ Admin only', tr: '⛔ Sadece yönetici', ru: '⛔ Только админы' },
-  'cmd.notChannelAdmin': { en: '⛔ You are not an admin of this channel.', tr: '⛔ Bu kanalın yöneticisi değilsin.', ru: '⛔ Вы не администратор этого канала.' },
+  'cmd.notChannelAdmin': {
+    en: '⛔ Not a channel admin (use the Telegram account that manages the channel). Bot owner: set ADMIN_USER_ID on Railway.',
+    tr: '⛔ Bu kanalın yöneticisi değilsin (kanalı yöneten Telegram hesabıyla dene). Bot sahibi: Railway’de ADMIN_USER_ID.',
+    ru: '⛔ Вы не админ канала. Владелец бота: ADMIN_USER_ID в Railway.',
+  },
   'cmd.channelNotFound': { en: '❌ Channel not found. Make sure the bot was added to your channel as admin.', tr: '❌ Kanal bulunamadı. Botu kanalına admin olarak eklediğinden emin ol.', ru: '❌ Канал не найден. Убедитесь, что бот добавлен в канал как администратор.' },
   'cmd.scanRunning': { en: '⏳ A scan is already running.', tr: '⏳ Zaten tarama sürüyor.', ru: '⏳ Сканирование уже выполняется.' },
   'cmd.scanStarting': { en: '🔍 Starting manual scan...', tr: '🔍 Manuel tarama başlatılıyor...', ru: '🔍 Запуск ручного сканирования...' },

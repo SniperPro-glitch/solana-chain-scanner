@@ -670,7 +670,11 @@ function consumePendingBanner(chatId, userId) {
   return true;
 }
 
-const ADMIN_IDS = (ADMIN_USER_ID || '').split(',').map((s) => s.trim()).filter(Boolean);
+const ADMIN_IDS = (ADMIN_USER_ID || '')
+  .split(/[,;\s]+/)
+  .map((s) => s.trim().replace(/^["']|["']$/g, ''))
+  .filter(Boolean);
+
 function isBotAdmin(userId) {
   if (!ADMIN_IDS.length) return true;
   return ADMIN_IDS.includes(String(userId));
@@ -789,12 +793,24 @@ async function registerChannelFromForward(msg) {
 
 async function isChatAdmin(chatId, userId) {
   if (userId == null || userId === '') return false;
-  try {
-    const m = await bot.getChatMember(chatId, userId);
-    return ['creator', 'administrator'].includes(m.status);
-  } catch {
-    return false;
+  const cidCandidates = [chatId, Number(chatId)].filter(
+    (c) => c !== '' && c != null && !Number.isNaN(c),
+  );
+  for (const cid of cidCandidates) {
+    try {
+      const m = await bot.getChatMember(cid, userId);
+      if (['creator', 'administrator'].includes(m.status)) return true;
+    } catch (e) {
+      console.warn('[admin] getChatMember', cid, userId, e.message);
+    }
   }
+  return false;
+}
+
+/** DM ayarları / pickchat — kanal yöneticisi veya Railway ADMIN_USER_ID */
+async function canManageChannel(chatId, userId) {
+  if (userId != null && userId !== '' && isBotAdmin(userId)) return true;
+  return isChatAdmin(chatId, userId);
 }
 
 /** Kanal gönderisinde from yok; grup/DM'de from.id */
@@ -808,11 +824,12 @@ async function canManageChat(msg) {
   if (!chat) return false;
   if (chat.type === 'private') return true;
   const uid = actorUserId(msg);
+  if (uid && isBotAdmin(uid)) return true;
   if (chat.type === 'channel') {
-    if (uid) return isChatAdmin(chat.id, uid);
+    if (uid) return canManageChannel(chat.id, uid);
     return true;
   }
-  if (uid) return isChatAdmin(chat.id, uid);
+  if (uid) return canManageChannel(chat.id, uid);
   return false;
 }
 
@@ -1083,7 +1100,12 @@ async function sendSettingsWithBanner(chatId, text, keyboard) {
 }
 
 bindTextCommand(/^\/ping(@\w+)?$/i, async (msg) => {
-  await bot.sendMessage(msg.chat.id, '🏓 pong — bot çalışıyor');
+  const uid = actorUserId(msg);
+  const admin = uid && isBotAdmin(uid) ? 'evet' : 'hayır';
+  const extra = uid
+    ? `\nID: <code>${uid}</code> · bot-admin: ${admin}`
+    : '';
+  await bot.sendMessage(msg.chat.id, `🏓 pong — bot çalışıyor${extra}`, { parse_mode: 'HTML' });
 });
 
 async function openDmChannelSettings(dmChatId, userId, channelId) {
@@ -1099,7 +1121,7 @@ async function openDmChannelSettings(dmChatId, userId, channelId) {
         : 'Use /channelid in the channel or forward a post to the bot.'),
     );
   }
-  if (!(await isChatAdmin(targetId, userId))) {
+  if (!(await canManageChannel(targetId, userId))) {
     return bot.sendMessage(dmChatId, t('cmd.notChannelAdmin', lang));
   }
   setDmTarget(userId, targetId);
@@ -1133,7 +1155,7 @@ async function handleSettings(msg) {
 
   const adminChannels = [];
   for (const ch of channels.list()) {
-    if (await isChatAdmin(ch.id, uid)) adminChannels.push(ch);
+    if (await canManageChannel(ch.id, uid)) adminChannels.push(ch);
   }
   if (!adminChannels.length) {
     return bot.sendMessage(msg.chat.id, t('settings.noChannels', lang));
@@ -1156,13 +1178,20 @@ bindTextCommand(/^\/settings(@\w+)?$/i, handleSettings);
 /** Kanalda hoş geldin mesajını yeniden gönder (yönetici). */
 bindTextCommand(/^\/welcome(@\w+)?$/i, async (msg) => {
   if (!isBroadcastChat(msg.chat)) {
-    return bot.sendMessage(msg.chat.id, 'ℹ️ /welcome — use in a channel where the bot is admin.');
+    const lang = langForMsg(msg);
+    return bot.sendMessage(
+      msg.chat.id,
+      lang === 'tr'
+        ? 'ℹ️ /welcome — bunu *kanalda* yazın (DM değil). Botun admin olduğu kanal.'
+        : 'ℹ️ /welcome — run this in the *channel* (not DM), where the bot is admin.',
+      { parse_mode: 'Markdown' },
+    );
   }
-  const uid = actorUserId(msg);
-  if (!uid || !(await isChatAdmin(msg.chat.id, uid))) {
+  if (!(await canManageChat(msg))) {
     return bot.sendMessage(msg.chat.id, t('cmd.notChannelAdmin', langForMsg(msg)));
   }
-  channels.add(msg.chat, 'welcome-cmd', uid);
+  const uid = actorUserId(msg);
+  channels.add(msg.chat, 'welcome-cmd', uid || 'channel-cmd');
   ensureOfficialChannelDefaults(msg.chat.id);
   const oldId = channels.get(msg.chat.id)?.settings?.welcomeMessageId;
   if (oldId) {
@@ -1500,7 +1529,7 @@ bot.on('callback_query', async (cb) => {
     if (!ch) {
       return bot.answerCallbackQuery(cb.id, { text: t('cmd.channelNotFound', cbLang), show_alert: true });
     }
-    if (!(await isChatAdmin(targetId, userId))) {
+    if (!(await canManageChannel(targetId, userId))) {
       return bot.answerCallbackQuery(cb.id, { text: t('cmd.notChannelAdmin', cbLang), show_alert: true });
     }
     setDmTarget(userId, targetId);
@@ -1522,7 +1551,7 @@ bot.on('callback_query', async (cb) => {
       return bot.answerCallbackQuery(cb.id, { text: t('post.notFound', cbLang) });
     }
     const ch = channels.get(cb.data.slice('post:ch:'.length));
-    if (!ch || !(await isChatAdmin(ch.id, userId))) {
+    if (!ch || !(await canManageChannel(ch.id, userId))) {
       return bot.answerCallbackQuery(cb.id, { text: 'Yetki yok' });
     }
     /* Manuel /post — kanal filtresi yok (otomatik tarama filtreli kalır) */
@@ -1555,7 +1584,7 @@ bot.on('callback_query', async (cb) => {
     }
     if (isDM) {
       const tgt = getDmTarget(userId);
-      if (!(await isChatAdmin(tgt, userId))) {
+      if (!(await canManageChannel(tgt, userId))) {
         return bot.answerCallbackQuery(cb.id, { text: t('cmd.notChannelAdmin', cbLang), show_alert: true });
       }
     }
@@ -1581,8 +1610,8 @@ bot.on('callback_query', async (cb) => {
     if (!targetChatId || !channels.get(targetChatId)) {
       return bot.answerCallbackQuery(cb.id, { text: t('cmd.noChannelPicked', cbLang), show_alert: true });
     }
-    if (!(await isChatAdmin(targetChatId, userId))) {
-      return bot.answerCallbackQuery(cb.id, { text: t('cmd.adminOnlyShort', cbLang) });
+    if (!(await canManageChannel(targetChatId, userId))) {
+      return bot.answerCallbackQuery(cb.id, { text: t('cmd.notChannelAdmin', cbLang), show_alert: true });
     }
     if (cb.data?.startsWith('set:lang:')) {
       channels.applyGlobalLang(userId, cb.data.slice('set:lang:'.length));
@@ -1694,6 +1723,9 @@ async function main() {
   const me = await bot.getMe().catch(() => ({ username: 'bot', id: '?' }));
   process.env.BOT_USERNAME = me.username ? `@${me.username}` : '';
   console.log(`✅ Sniper Scan Bot: @${me.username} (id=${me.id})`);
+  console.log(
+    `   ADMIN_USER_ID: ${ADMIN_IDS.length ? ADMIN_IDS.join(', ') : '(yok — herkes bot admin sayılır)'}`,
+  );
   console.log('   Bu token yalnızca TEK yerde çalışmalı (Railway XOR yerel PC).');
   console.log(`   TON tarama: ${TON_SCAN_ENABLED ? `AÇIK (${scanIntervalMin('ton')} dk)` : 'KAPALI'}`);
   console.log(`   BSC tarama: ${BSC_SCAN_ENABLED ? `AÇIK (${scanIntervalMin('bsc')} dk)` : 'KAPALI'}`);
@@ -1702,10 +1734,17 @@ async function main() {
   try {
     const botFeedStore = require('./botFeedStore');
     const { DATA_DIR } = require('./data-path');
-    const { getWebAppBaseUrl, getBotApiBaseUrl } = require('./miniAppServer');
+    const { getWebAppBaseUrl, getBotApiBaseUrl, warnMiniAppFeedWebAppAlign } = require('./miniAppServer');
     console.log(`   Bot↔DEX: WEB_APP_URL=${getWebAppBaseUrl()}`);
     if (getBotApiBaseUrl()) console.log(`   DEX→Bot API: BOT_API_URL=${getBotApiBaseUrl()}`);
-    console.log(`   Mini App feed: ${botFeedStore.feedCount()} kayıt (DATA_DIR=${DATA_DIR})`);
+    const localFeedN = await botFeedStore.feedCountAsync();
+    console.log(`   Mini App feed: ${localFeedN} kayıt (DATA_DIR=${DATA_DIR})`);
+    if (localFeedN === 0) {
+      console.warn(
+        '   Settings → Sniper DEX boş liste: resmi kanala paylaşım veya bot servisinde DATABASE_URL (eski DEX Postgres).',
+      );
+    }
+    warnMiniAppFeedWebAppAlign().catch(() => {});
     const { getOfficialFeedChannelIds } = require('./channelFeedPolicy');
     const feedCh = getOfficialFeedChannelIds();
     if (feedCh.length) {

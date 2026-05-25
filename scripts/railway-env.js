@@ -93,6 +93,19 @@ function applyRailwayEnv() {
     console.log(`[railway-env] WEB_APP_URL otomatik: ${process.env.WEB_APP_URL}`);
   }
 
+  const hasBotToken = !!String(process.env.BOT_TOKEN || process.env.TELEGRAM_BOT_TOKEN || '').trim();
+  if (hasBotToken && onRailway && process.env.RAILWAY_PUBLIC_DOMAIN && process.env.WEB_APP_URL) {
+    try {
+      const host = new URL(process.env.WEB_APP_URL).hostname.toLowerCase();
+      if (host === 'solana-chain-scanner-production.up.railway.app') {
+        process.env.WEB_APP_URL = normalizePublicUrl(`https://${process.env.RAILWAY_PUBLIC_DOMAIN}`);
+        console.log(`[railway-env] WEB_APP_URL eski DEX → bot: ${process.env.WEB_APP_URL}`);
+      }
+    } catch {
+      /* yoksay */
+    }
+  }
+
   if (!String(process.env.DATA_DIR || '').trim() && onRailway) {
     const mount = String(process.env.RAILWAY_VOLUME_MOUNT_PATH || '').trim();
     process.env.DATA_DIR = mount || '/app/data';

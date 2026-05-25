@@ -9,7 +9,8 @@ restartPolicyMaxRetries = 10
 
 # Public URL — https zorunlu (Telegram Mini App)
 [variables]
-WEB_APP_URL = "https://solana-chain-scanner-production.up.railway.app"
+# Bot + Mini App aynı serviste — Settings/DEX düğmesi bu domaini açar (feed DATA_DIR/Postgres burada)
+WEB_APP_URL = "https://sniperscanbot-production.up.railway.app"
 DATA_DIR = "/app/data"
 MINI_APP_ENABLED = "1"
 MINI_APP_SEED = "0"
