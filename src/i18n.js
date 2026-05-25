@@ -471,9 +471,9 @@ const STRINGS = {
   },
   'settings.titleDM': { en: '⚙️ Settings', tr: '⚙️ Ayarlar', ru: '⚙️ Настройки' },
   'settings.dashboard.subtitle': {
-    en: '_Early listings · Live risk signals · Your filter rules_',
-    tr: '_Erken listeler · Canlı risk sinyalleri · Senin filtre kuralların_',
-    ru: '_Ранние листинги · Сигналы риска · Ваши правила фильтра_',
+    en: '_TON · BSC · Solana — filters, risk & channel posts_',
+    tr: '_TON · BSC · ◎ Solana — filtre, risk ve kanal paylaşımı_',
+    ru: '_TON · BSC · Solana — фильтры, риск и посты в канал_',
   },
   'settings.main.networkRow': {
     en: '*Network & language*',
@@ -557,33 +557,33 @@ const STRINGS = {
   'settings.chain': { en: '🌐 Network', tr: '🌐 Ağ', ru: '🌐 Сеть' },
   'settings.chain.none': { en: 'not set', tr: 'seçilmedi', ru: 'не выбрана' },
   'settings.chain.menu.title': {
-    en: '🌐 *Select the network for this channel*\nThis bot shares tokens on *Solana* only — confirm below.',
-    tr: '🌐 *Bu kanalın ağını seçin*\nBu bot yalnızca *Solana* ağında paylaşım yapar — aşağıdan onaylayın.',
-    ru: '🌐 *Выберите сеть для канала*\nБот публикует только в сети *Solana* — подтвердите ниже.',
+    en: '🌐 *Pick one network for this channel*\nTON, BSC, or ◎ Solana — only tokens on that chain are posted here.',
+    tr: '🌐 *Bu kanal için tek ağ seçin*\nTON, BSC veya ◎ Solana — paylaşımlar yalnızca seçtiğiniz ağda.',
+    ru: '🌐 *Одна сеть на канал*\nTON, BSC или ◎ Solana — публикации только в выбранной сети.',
   },
   'settings.chain.saved': { en: 'Network saved.', tr: 'Ağ kaydedildi.', ru: 'Сеть сохранена.' },
   'settings.chain.sanitizedMulti': {
     en:
-      '⚠️ *Invalid network list*\nThis bot supports *Solana only*. The channel list was corrected to *{kept}*. Removed: {removed}.\n_(In channels.json use: ["solana"].)_',
+      '⚠️ *Invalid network list*\nSupported: *ton*, *bsc*, *solana* (one per channel). Corrected to *{kept}*. Removed: {removed}.',
     tr:
-      '⚠️ *Geçersiz ağ listesi*\nBu bot *yalnızca Solana* destekler. Kanal listesi *{kept}* olarak düzeltildi. Silinenler: {removed}.\n_(channels.json: ["solana"])_',
+      '⚠️ *Geçersiz ağ listesi*\nDesteklenen: *ton*, *bsc*, *solana* (kanal başına bir ağ). Düzeltildi: *{kept}*. Silinen: {removed}.',
     ru:
-      '⚠️ *Неверный список сетей*\nБот поддерживает *только Solana*. Список исправлен на *{kept}*. Удалено: {removed}.\n_(В channels.json: ["solana"].)_',
+      '⚠️ *Неверный список сетей*\nПоддержка: *ton*, *bsc*, *solana* (одна на канал). Исправлено: *{kept}*. Удалено: {removed}.',
   },
   'settings.chain.required': {
-    en: '⚠️ Please select a network first — the bot will not post until you choose Solana.',
-    tr: '⚠️ Önce ağ seçimi yapınız — ◎ Solana seçene kadar bot mesaj atmaz.',
-    ru: '⚠️ Сначала выберите сеть — бот не будет публиковать, пока не выберете Solana.',
+    en: '⚠️ Select a network first (TON, BSC, or ◎ Solana). No posts until confirmed.',
+    tr: '⚠️ Önce ağ seçin (TON, BSC veya ◎ Solana). Onaylanana kadar paylaşım yok.',
+    ru: '⚠️ Сначала выберите сеть (TON, BSC или ◎ Solana). Без выбора постов не будет.',
   },
   'settings.chain.setupPanel': {
-    en: '👇 *Start here:* tap **◎ Solana** under Network below.\nOther settings stay locked until the network is confirmed.',
-    tr: '👇 *Başlangıç:* aşağıdan **◎ Solana** ağını seçin.\nAğ onaylanana kadar diğer ayarlar kilitlidir.',
-    ru: '👇 *Сначала:* нажмите **◎ Solana** в разделе сети.\nОстальные настройки заблокированы до выбора сети.',
+    en: '👇 *Setup:* tap **TON**, **BSC**, or **◎ Solana** under Network.\nOther filters unlock after you pick one.',
+    tr: '👇 *Kurulum:* Ağ bölümünden **TON**, **BSC** veya **◎ Solana** seçin.\nSonra filtreleri ayarlayın.',
+    ru: '👇 *Настройка:* выберите **TON**, **BSC** или **◎ Solana** в разделе «Сеть».\nЗатем настройте фильтры.',
   },
   'settings.chain.pickFirstAlert': {
-    en: 'Select ◎ Solana network first. Other settings are locked.',
-    tr: 'Önce ◎ Solana ağını seçin. Diğer ayarlar kilitli.',
-    ru: 'Сначала выберите сеть ◎ Solana. Остальные настройки заблокированы.',
+    en: 'Pick TON, BSC, or ◎ Solana first.',
+    tr: 'Önce TON, BSC veya ◎ Solana seçin.',
+    ru: 'Сначала выберите TON, BSC или ◎ Solana.',
   },
   'settings.filterHeader': {
     en: '⚙️ *Configure the bot\'s filter settings*',
@@ -594,7 +594,12 @@ const STRINGS = {
   'settings.langSaved': { en: 'Language saved.', tr: 'Dil kaydedildi.', ru: 'Язык сохранён.' },
   'settings.back': { en: '« Back', tr: '« Geri', ru: '« Назад' },
   'settings.close': { en: 'Close', tr: 'Kapat', ru: 'Закрыть' },
-  'settings.open': { en: '⚙️ Settings (DM)', tr: '⚙️ Ayarlar (DM)', ru: '⚙️ Настройки (ЛС)' },
+  'settings.open': { en: '⚙️ Open Settings (DM)', tr: '⚙️ Ayarları aç (DM)', ru: '⚙️ Открыть настройки (ЛС)' },
+  'settings.dmOnly': {
+    en: '⚙️ Settings open in *private chat*. Tap *Open Settings (DM)* on the channel welcome message.',
+    tr: '⚙️ Ayarlar *özel mesajda* açılır. Kanaldaki *Ayarları aç (DM)* düğmesine basın.',
+    ru: '⚙️ Настройки в *личке*. Нажмите *Открыть настройки (ЛС)* в приветствии канала.',
+  },
 
   'settings.panel.current': { en: 'Current', tr: 'Mevcut', ru: 'Текущие' },
   'settings.recommended': { en: 'recommended', tr: 'önerilen', ru: 'реком.' },
@@ -765,19 +770,48 @@ const STRINGS = {
 
   // ─── Welcome ───
   'welcome.short': {
-    en: 'Hi! I scan new Solana tokens and post the ones that pass your filters.',
-    tr: 'Selam! Solana’daki yeni tokenleri tarayıp filtrene uyanları yayınlıyorum.',
-    ru: 'Привет! Я сканирую новые токены Solana и публикую те, что проходят ваши фильтры.',
+    en: 'Sniper Scan — TON, BSC & Solana. I post tokens that pass your channel filters.',
+    tr: 'Sniper Scan — TON, BSC ve Solana. Filtrene uyan tokenleri kanala paylaşırım.',
+    ru: 'Sniper Scan — TON, BSC и Solana. Публикую токены по вашим фильтрам.',
   },
   'welcome.added': {
-    en: '⚙️ *{name}* — open settings in DM (network & filters).',
-    tr: '⚙️ *{name}* — filtreler için DM\'de ayarları açın.',
-    ru: '⚙️ *{name}* — настройки в ЛС (сеть и фильтры).',
+    en: '✅ *{name}* is ready.\nTap *Open Settings (DM)* — pick *one* network (TON / BSC / ◎ Solana) and filters.',
+    tr: '✅ *{name}* hazır.\n*Ayarları aç (DM)* → kanal için *tek ağ* (TON / BSC / ◎ Solana) ve filtreler.',
+    ru: '✅ *{name}* готов.\n*Открыть настройки (ЛС)* → одна сеть (TON / BSC / ◎ Solana) и фильтры.',
   },
   'welcome.start': {
-    en: '👋 *Solana Chain Scanner*\n\nI automatically discover and audit new tokens on the Solana network and share them with the channels/groups I am added to.\n\n*Open the scanner:* tap *🎯 Sniper DEX* below (Mini App inside Telegram).\n\n*Quick start:*\n1. Add me to your channel as admin\n2. Tap *“Open Settings”* in the welcome message on the channel\n3. Configure your filters\n\n*Commands:* /dex /settings /ping /stats /post',
-    tr: '👋 *Solana Chain Scanner*\n\nSolana ağındaki yeni tokenleri otomatik bulup denetler, eklendiğim kanal/gruplara paylaşırım.\n\n*Tarayıcı:* Aşağıdaki *🎯 Sniper DEX* düğmesine bas (Telegram içi Mini App).\n\n*Hızlı başlangıç:*\n1. Botu kanalına admin ekle\n2. Kanaldaki hoş geldin mesajında *Ayarları aç*\n3. Filtreleri ayarla\n\n*Komutlar:* /dex /settings /ping /stats /post',
-    ru: '👋 *Solana Chain Scanner*\n\nЯ нахожу и проверяю новые токены Solana и делюсь ими в каналах/группах.\n\n*Сканер:* кнопка *🎯 Sniper DEX* ниже (Mini App в Telegram).\n\n*Быстрый старт:*\n1. Добавьте бота в канал как админа\n2. *«Открыть настройки»* в приветствии канала\n3. Настройте фильтры\n\n*Команды:* /dex /settings /ping /stats /post',
+    en:
+      '👋 *Sniper Scan Bot*\n\n'
+      + 'Scans *TON*, *BSC* and *◎ Solana* — shares tokens that pass your filters to channels where I am admin.\n\n'
+      + '*Setup*\n'
+      + '1. Add the bot to your channel as *admin*\n'
+      + '2. On the channel, tap *Open Settings (DM)*\n'
+      + '3. Choose *one network* per channel + filters\n\n'
+      + '*Mini App:* *🎯 Sniper DEX* below (official Solana feed & charts)\n\n'
+      + '*Commands:* /settings /dex /welcome /post /stats /ping',
+    tr:
+      '👋 *Sniper Scan Bot*\n\n'
+      + '*TON*, *BSC* ve *◎ Solana* tarar — filtrene uyan tokenleri admin olduğum kanallara paylaşır.\n\n'
+      + '*Kurulum*\n'
+      + '1. Botu kanala *admin* ekle\n'
+      + '2. Kanaldaki *Ayarları aç (DM)* düğmesine bas\n'
+      + '3. Kanal başına *tek ağ* + filtreleri ayarla\n\n'
+      + '*Mini App:* Aşağıda *🎯 Sniper DEX* (resmi Solana listesi & grafik)\n\n'
+      + '*Komutlar:* /settings /dex /welcome /post /stats /ping',
+    ru:
+      '👋 *Sniper Scan Bot*\n\n'
+      + 'Сканирует *TON*, *BSC* и *◎ Solana* — публикует токены по фильтрам в каналах, где я админ.\n\n'
+      + '*Настройка*\n'
+      + '1. Добавьте бота в канал как *админа*\n'
+      + '2. В канале: *Открыть настройки (ЛС)*\n'
+      + '3. Одна сеть на канал + фильтры\n\n'
+      + '*Mini App:* *🎯 Sniper DEX* ниже (лента Solana)\n\n'
+      + '*Команды:* /settings /dex /welcome /post /stats /ping',
+  },
+  'welcome.channelCmd': {
+    en: 'ℹ️ /welcome — run in the *channel* (not DM), where the bot is admin.',
+    tr: 'ℹ️ /welcome — *kanalda* yazın (DM değil); bot admin olmalı.',
+    ru: 'ℹ️ /welcome — только в *канале* (не в ЛС), где бот админ.',
   },
   'welcome.openDex': {
     en: '🎯 Sniper DEX',
@@ -840,9 +874,9 @@ const STRINGS = {
     ru: 'Использование: <code>/post MINT_ИЛИ_ССЫЛКА</code>\n• Mint Solana\n• DexScreener / Gecko <b>solana</b>\n• <code>pump.fun/coin/MINT</code>\n• Solscan',
   },
   'post.wrongChain': {
-    en: '❌ The token you sent is <b>not on Solana</b> (network: <code>{chain}</code>). This bot only shares Solana tokens.',
-    tr: '❌ Gönderdiğiniz token <b>Solana ağına ait değil</b> (algılanan ağ: <code>{chain}</code>). Bu bot yalnızca Solana paylaşır.',
-    ru: '❌ Токен <b>не в сети Solana</b> (сеть: <code>{chain}</code>). Бот публикует только Solana.',
+    en: '❌ Token network <code>{chain}</code> does not match this channel. Pick TON / BSC / ◎ Solana in channel settings.',
+    tr: '❌ Token ağı <code>{chain}</code> bu kanalla uyuşmuyor. Kanal ayarlarında TON / BSC / ◎ Solana seçili olmalı.',
+    ru: '❌ Сеть токена <code>{chain}</code> не совпадает с каналом. Выберите TON / BSC / ◎ Solana в настройках.',
   },
   'post.fetching': { en: '🔍 Fetching token data...', tr: '🔍 Token verisi alınıyor...', ru: '🔍 Получение данных токена...' },
   'post.notFound': {

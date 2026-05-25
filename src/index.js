@@ -845,7 +845,7 @@ function buildStartKeyboard(lang) {
   const dexBtn = buildSniperDexWebAppButton(lang);
   if (dexBtn) rows.push([dexBtn]);
   rows.push([
-    { text: lang === 'tr' ? '⚙️ Ayarlar' : '⚙️ Settings', callback_data: 'startcmd:settings' },
+    { text: t('settings.titleDM', lang), callback_data: 'startcmd:settings' },
     { text: '🏓 Ping', callback_data: 'startcmd:ping' },
   ]);
   return { inline_keyboard: rows };
@@ -1140,13 +1140,7 @@ async function handleSettings(msg) {
   const uid = actorUserId(msg);
 
   if (msg.chat.type !== 'private') {
-    return bot.sendMessage(
-      msg.chat.id,
-      lang === 'tr'
-        ? '⚙️ Ayarlar özel mesajda açılır. Kanaldaki *Ayarları aç (DM)* butonuna basın.'
-        : '⚙️ Settings open in DM. Use the *Open Settings (DM)* button in the channel.',
-      { parse_mode: 'Markdown' },
-    );
+    return bot.sendMessage(msg.chat.id, t('settings.dmOnly', lang), { parse_mode: 'Markdown' });
   }
 
   if (!uid) {
@@ -1178,14 +1172,7 @@ bindTextCommand(/^\/settings(@\w+)?$/i, handleSettings);
 /** Kanalda hoş geldin mesajını yeniden gönder (yönetici). */
 bindTextCommand(/^\/welcome(@\w+)?$/i, async (msg) => {
   if (!isBroadcastChat(msg.chat)) {
-    const lang = langForMsg(msg);
-    return bot.sendMessage(
-      msg.chat.id,
-      lang === 'tr'
-        ? 'ℹ️ /welcome — bunu *kanalda* yazın (DM değil). Botun admin olduğu kanal.'
-        : 'ℹ️ /welcome — run this in the *channel* (not DM), where the bot is admin.',
-      { parse_mode: 'Markdown' },
-    );
+    return bot.sendMessage(msg.chat.id, t('welcome.channelCmd', langForMsg(msg)), { parse_mode: 'Markdown' });
   }
   if (!(await canManageChat(msg))) {
     return bot.sendMessage(msg.chat.id, t('cmd.notChannelAdmin', langForMsg(msg)));
