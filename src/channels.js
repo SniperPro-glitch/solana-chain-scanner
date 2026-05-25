@@ -5,7 +5,7 @@ const path = require('path');
 const { t, normalizeLang } = require('./i18n');
 const { DATA_DIR, ensureDataDir, isPersistentDataDir } = require('./data-path');
 
-const VALID_CHAIN_IDS = new Set(['solana']);
+const VALID_CHAIN_IDS = new Set(['ton', 'bsc', 'solana']);
 /** Kanal ayarları panelinde bir kez gösterilecek uyarı (normalize sonrası). */
 const chainsSanitizeNotices = new Map();
 

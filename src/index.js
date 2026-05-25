@@ -1101,11 +1101,69 @@ async function sendSettingsWithBanner(chatId, text, keyboard) {
 
 bindTextCommand(/^\/ping(@\w+)?$/i, async (msg) => {
   const uid = actorUserId(msg);
-  const admin = uid && isBotAdmin(uid) ? 'evet' : 'hayır';
-  const extra = uid
-    ? `\nID: <code>${uid}</code> · bot-admin: ${admin}`
-    : '';
-  await bot.sendMessage(msg.chat.id, `🏓 pong — bot çalışıyor${extra}`, { parse_mode: 'HTML' });
+  const lang = langForMsg(msg);
+  const lines = [lang === 'tr' ? '🏓 pong — bot çalışıyor' : '🏓 pong'];
+
+  if (uid) {
+    const botAdmin = isBotAdmin(uid);
+    lines.push(`ID: <code>${uid}</code>`);
+    lines.push(
+      lang === 'tr'
+        ? `bot-admin (ADMIN_USER_ID): ${botAdmin ? 'evet' : 'hayır'}`
+        : `bot-admin: ${botAdmin ? 'yes' : 'no'}`,
+    );
+    if (!botAdmin && ADMIN_IDS.length) {
+      lines.push(
+        lang === 'tr'
+          ? `<i>Railway ADMIN_USER_ID: ${escapeHtmlLite(ADMIN_IDS.join(', '))} — sizinki farklıysa ekle/güncelle.</i>`
+          : `<i>Railway ADMIN_USER_ID: ${escapeHtmlLite(ADMIN_IDS.join(', '))}</i>`,
+      );
+    }
+  }
+
+  const chat = msg.chat;
+  if (chat?.type !== 'private' && chat?.id) {
+    const cid = String(chat.id);
+    const reg = channels.get(cid);
+    lines.push(
+      lang === 'tr'
+        ? `Bu sohbet kayıtlı: ${reg ? 'evet' : 'hayır'} · chat_id: <code>${cid}</code>`
+        : `Registered: ${reg ? 'yes' : 'no'} · chat_id: <code>${cid}</code>`,
+    );
+    if (uid) {
+      const ca = await isChatAdmin(chat.id, uid);
+      lines.push(lang === 'tr' ? `kanal-admin: ${ca ? 'evet' : 'hayır'}` : `channel-admin: ${ca ? 'yes' : 'no'}`);
+    }
+    if (!reg) {
+      lines.push(
+        lang === 'tr'
+          ? '<i>Botu kanala admin yapın, sonra /channelid veya /welcome</i>'
+          : '<i>Add bot as admin, then /channelid or /welcome</i>',
+      );
+    }
+  } else if (chat?.type === 'private' && uid) {
+    const listed = channels.list();
+    lines.push(lang === 'tr' ? `Kayıtlı kanal: ${listed.length}` : `Channels registered: ${listed.length}`);
+    for (const ch of listed.slice(0, 8)) {
+      const ok = await canManageChannel(ch.id, uid);
+      lines.push(`${ok ? '✅' : '⛔'} ${escapeHtmlLite(ch.title || ch.id)} <code>${ch.id}</code>`);
+    }
+    if (!listed.length) {
+      const envIds = String(
+        process.env.TELEGRAM_CHANNEL_IDS || process.env.TELEGRAM_CHANNEL_ID || '',
+      ).trim();
+      if (envIds) {
+        lines.push(`TELEGRAM_CHANNEL_IDS: <code>${escapeHtmlLite(envIds)}</code>`);
+      }
+      lines.push(
+        lang === 'tr'
+          ? '<i>Bot kanalda admin değil veya yanlış BOT_TOKEN. Kanala admin ekle → /channelid</i>'
+          : '<i>Bot not admin in channel or wrong BOT_TOKEN.</i>',
+      );
+    }
+  }
+
+  await bot.sendMessage(msg.chat.id, lines.join('\n'), { parse_mode: 'HTML' });
 });
 
 async function openDmChannelSettings(dmChatId, userId, channelId) {
