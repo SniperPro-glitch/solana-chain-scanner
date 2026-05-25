@@ -135,7 +135,7 @@
     '24h': 24 * 60 * 60 * 1000,
     '48h': NEW_PAIRS_MAX_AGE_MS,
   };
-  let newPairsAgeFilter = '24h';
+  let newPairsAgeFilter = '48h';
   let npAgeMenuOpen = false;
   let feedListMode = 'top';
   let feedTimeframe = '24h';
@@ -773,7 +773,7 @@
       btn.addEventListener('click', (e) => {
         e.preventDefault();
         e.stopPropagation();
-        setNewPairsAgeFilter(btn.dataset.npAge || '24h');
+        setNewPairsAgeFilter(btn.dataset.npAge || '48h');
       });
     });
 
@@ -1108,7 +1108,8 @@
       list = list.filter((it) => isWithinNewPairsWindow(it));
       list.sort((a, b) => (b.listedAt || 0) - (a.listedAt || 0));
     } else {
-      list = list.filter((it) => !isWithinNewPairsWindow(it));
+      const mature = list.filter((it) => !isWithinNewPairsWindow(it));
+      list = mature.length > 0 ? mature : list;
       if (feedListMode === 'gainers') {
         list = list.filter((it) => (getFeedChange(it) ?? -1) > 0);
         list.sort((a, b) => (getFeedChange(b) ?? 0) - (getFeedChange(a) ?? 0));
