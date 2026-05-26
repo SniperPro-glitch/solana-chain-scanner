@@ -1947,10 +1947,13 @@ async function main() {
   const { initPersistence } = require('./persistence');
   await initPersistence();
   startMiniAppServer();
-  await startBotPolling();
+
   const me = await bot.getMe().catch(() => ({ username: 'bot', id: '?' }));
   process.env.BOT_USERNAME = me.username ? `@${me.username}` : '';
-  console.log(`✅ Sniper Scan Bot: @${me.username} (id=${me.id})`);
+  const dexFace = isDexUserFacingBot();
+  console.log(`✅ Telegram bot: @${me.username} (id=${me.id}) — ${dexFace ? 'DEX kullanıcı' : 'Kanal tarama'}`);
+
+  await startBotPolling();
   console.log(
     `   ADMIN_USER_ID: ${ADMIN_IDS.length ? ADMIN_IDS.join(', ') : '(yok — herkes bot admin sayılır)'}`,
   );

@@ -574,6 +574,14 @@ function createMiniAppServer() {
         const officialIds = getOfficialFeedChannelIds();
         const botCount = await botFeedStore.feedCountAsync();
         const feedEntries = (await botFeedStore.listRecentAsync(48, 'trending')).length;
+        let botFace = null;
+        try {
+          const { isDexUserFacingBot } = require('./botMode');
+          const u = String(process.env.BOT_USERNAME || '').replace(/^@/, '');
+          if (u) botFace = isDexUserFacingBot() ? 'dex' : 'scan';
+        } catch {
+          /* yoksay */
+        }
         sendJson(res, misconfigured ? 503 : 200, {
           botCount,
           feedEntries,
@@ -585,6 +593,9 @@ function createMiniAppServer() {
           dataDir: DATA_DIR,
           botApiProxy: getBotApiBaseUrl() || null,
           dexMode: isMiniAppOnlyMode(),
+          botFace,
+          botUsername: String(process.env.BOT_USERNAME || '').replace(/^@/, '') || null,
+          git: String(process.env.RAILWAY_GIT_COMMIT_SHA || '').slice(0, 7) || null,
           needsDatabaseUrl: misconfigured,
           hint:
             botCount === 0
