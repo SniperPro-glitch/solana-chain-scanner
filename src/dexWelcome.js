@@ -5,6 +5,9 @@ const path = require('path');
 const { t } = require('./i18n');
 const { buildSniperDexWebAppButton } = require('./dexAppButton');
 
+/** Bot DM /start metinleri — yalnızca EN; dil Mini App içinde. */
+const DEX_BOT_UI_LANG = 'en';
+
 const SCAN_BOT_USERNAME = String(process.env.SCAN_BOT_USERNAME || 'solanachainscanbot').replace(/^@/, '');
 const OFFICIAL_CHANNEL_URL =
   String(process.env.DEX_OFFICIAL_CHANNEL_URL || process.env.OFFICIAL_CHANNEL_URL || '').trim()
@@ -32,99 +35,41 @@ function photoFileOptions(photoPath) {
   };
 }
 
-function dexWelcomeCaption(lang) {
-  return t('welcome.dexStartHtml', lang);
+function dexWelcomeCaption() {
+  return t('welcome.dexStartHtml', DEX_BOT_UI_LANG);
 }
 
-function dexLangPickCaption(lang) {
-  return t('welcome.dexLangPickHtml', lang);
-}
-
-function buildDexStartKeyboard(lang) {
-  const launch = buildSniperDexWebAppButton(lang);
+function buildDexStartKeyboard() {
+  const launch = buildSniperDexWebAppButton(DEX_BOT_UI_LANG);
   if (!launch) return { inline_keyboard: [] };
-  launch.text = t('welcome.dexBtnLaunch', lang);
+  launch.text = t('welcome.dexBtnLaunch', DEX_BOT_UI_LANG);
   return { inline_keyboard: [[launch]] };
 }
 
-function buildDexLangPickKeyboard() {
-  const rows = [];
-  const launch = buildSniperDexWebAppButton('en');
-  if (launch) {
-    launch.text = t('welcome.dexBtnLaunch', 'en');
-    rows.push([launch]);
-  }
-  rows.push([
-    { text: 'English', callback_data: 'startlang:en' },
-    { text: 'Türkçe', callback_data: 'startlang:tr' },
-    { text: 'Русский', callback_data: 'startlang:ru' },
-  ]);
-  return { inline_keyboard: rows };
-}
-
-function dexWelcomeSendOptions(lang) {
+function dexWelcomeSendOptions() {
   return {
     parse_mode: 'HTML',
     disable_web_page_preview: true,
-    reply_markup: buildDexStartKeyboard(lang),
+    reply_markup: buildDexStartKeyboard(),
   };
 }
 
-async function sendDexWelcomeMessage(bot, chatId, lang) {
-  const caption = dexWelcomeCaption(lang);
-  const opts = dexWelcomeSendOptions(lang);
+async function sendDexWelcomeMessage(bot, chatId) {
+  const caption = dexWelcomeCaption();
+  const opts = dexWelcomeSendOptions();
   const photo = welcomePhotoPath();
   if (photo) {
     return bot.sendPhoto(chatId, photo, { caption, ...opts }, photoFileOptions(photo));
   }
   return bot.sendMessage(chatId, caption, opts);
-}
-
-async function sendDexLangPickMessage(bot, chatId, lang = 'en') {
-  const caption = dexLangPickCaption(lang);
-  const opts = {
-    parse_mode: 'HTML',
-    disable_web_page_preview: true,
-    reply_markup: buildDexLangPickKeyboard(),
-  };
-  const photo = welcomePhotoPath();
-  if (photo) {
-    return bot.sendPhoto(chatId, photo, { caption, ...opts }, photoFileOptions(photo));
-  }
-  return bot.sendMessage(chatId, caption, opts);
-}
-
-async function editDexWelcomeMessage(bot, chatId, messageId, lang) {
-  const caption = `${t('welcome.langSetHtml', lang)}\n\n${dexWelcomeCaption(lang)}`;
-  const opts = dexWelcomeSendOptions(lang);
-  const edited = await bot
-    .editMessageCaption(caption, {
-      chat_id: chatId,
-      message_id: messageId,
-      ...opts,
-    })
-    .catch(() => null);
-  if (edited) return edited;
-  const editedText = await bot
-    .editMessageText(caption, {
-      chat_id: chatId,
-      message_id: messageId,
-      ...opts,
-    })
-    .catch(() => null);
-  if (editedText) return editedText;
-  return sendDexWelcomeMessage(bot, chatId, lang);
 }
 
 module.exports = {
+  DEX_BOT_UI_LANG,
   OFFICIAL_CHANNEL_URL,
   SCAN_BOT_USERNAME,
   dexWelcomeCaption,
-  dexLangPickCaption,
   buildDexStartKeyboard,
-  buildDexLangPickKeyboard,
   dexWelcomeSendOptions,
   sendDexWelcomeMessage,
-  sendDexLangPickMessage,
-  editDexWelcomeMessage,
 };

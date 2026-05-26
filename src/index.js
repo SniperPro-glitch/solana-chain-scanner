@@ -863,13 +863,7 @@ async function canManageChat(msg) {
 const { buildSniperDexWebAppButton, sniperDexMenuButton } = require('./dexAppButton');
 const { isDexUserFacingBot } = require('./botMode');
 const { applyTelegramBotProfile } = require('./botProfile');
-const {
-  sendDexWelcomeMessage,
-  sendDexLangPickMessage,
-  editDexWelcomeMessage,
-  buildDexStartKeyboard,
-  buildDexLangPickKeyboard,
-} = require('./dexWelcome');
+const { sendDexWelcomeMessage, buildDexStartKeyboard } = require('./dexWelcome');
 const {
   sendChannelWelcome,
   ensureOfficialChannelDefaults,
@@ -885,7 +879,7 @@ function welcomeLangPickKey() {
 }
 
 function buildStartKeyboard(lang) {
-  if (isDexUserFacingBot()) return buildDexStartKeyboard(lang);
+  if (isDexUserFacingBot()) return buildDexStartKeyboard();
   const rows = [];
   const dexBtn = buildSniperDexWebAppButton(lang);
   if (dexBtn) rows.push([dexBtn]);
@@ -897,7 +891,6 @@ function buildStartKeyboard(lang) {
 }
 
 function buildLangPickKeyboard() {
-  if (isDexUserFacingBot()) return buildDexLangPickKeyboard();
   const rows = [];
   const dexBtn = buildSniperDexWebAppButton('tr');
   if (dexBtn) rows.push([dexBtn]);
@@ -935,6 +928,7 @@ function langForMsg(msgOrCb) {
   const msg = msgOrCb.message || msgOrCb;
   const from = msgOrCb.from || msg?.from;
   if (!msg?.chat) return DEFAULT_LANG;
+  if (isDexUserFacingBot() && msg.chat.type === 'private') return 'en';
   if (from?.id) return users.getLang(from.id);
   return DEFAULT_LANG;
 }
@@ -1252,7 +1246,7 @@ async function handleSettings(msg) {
   if (isDexUserFacingBot() && msg.chat.type === 'private') {
     return bot.sendMessage(msg.chat.id, t('dex.appOnlyHint', lang), {
       parse_mode: 'Markdown',
-      reply_markup: buildDexStartKeyboard(lang),
+      reply_markup: buildDexStartKeyboard(),
     });
   }
 
@@ -1321,8 +1315,7 @@ bindTextCommand(/^\/dex(@\w+)?$/i, async (msg) => {
     );
   }
   if (isDexUserFacingBot()) {
-    dexBtn.text = t('welcome.dexBtnLaunch', lang);
-    return sendDexWelcomeMessage(bot, msg.chat.id, lang);
+    return sendDexWelcomeMessage(bot, msg.chat.id);
   }
   return bot.sendMessage(msg.chat.id, t('dex.openHint', lang), {
     parse_mode: 'Markdown',
@@ -1358,15 +1351,16 @@ bindTextCommand(/^\/start(@\w+)?(\s+(.+))?$/, async (msg, match) => {
     touchSubscriber(msg.from, 'start');
   }
 
+  if (isDexUserFacingBot() && msg.chat.type === 'private') {
+    return sendDexWelcomeMessage(bot, msg.chat.id);
+  }
+
   const param = (match && match[3] || '').trim();
   if (param.startsWith('settings_') && msg.chat.type === 'private') {
     const targetId = startTokenToChannelId(param.slice('settings_'.length).trim());
     if (targetId) {
       if (!users.hasChosenLang(msg.from.id)) {
         pendingChannelAfterLang.set(String(msg.from.id), targetId);
-        if (isDexUserFacingBot()) {
-          return sendDexLangPickMessage(bot, msg.chat.id, 'en');
-        }
         return bot.sendMessage(msg.chat.id, t(welcomeLangPickKey(), 'en'), {
           parse_mode: 'Markdown',
           reply_markup: buildLangPickKeyboard(),
@@ -1377,9 +1371,6 @@ bindTextCommand(/^\/start(@\w+)?(\s+(.+))?$/, async (msg, match) => {
   }
 
   if (msg.chat.type === 'private' && !users.hasChosenLang(msg.from.id)) {
-    if (isDexUserFacingBot()) {
-      return sendDexLangPickMessage(bot, msg.chat.id, 'en');
-    }
     return bot.sendMessage(msg.chat.id, t(welcomeLangPickKey(), 'en'), {
       parse_mode: 'Markdown',
       reply_markup: buildLangPickKeyboard(),
@@ -1387,9 +1378,6 @@ bindTextCommand(/^\/start(@\w+)?(\s+(.+))?$/, async (msg, match) => {
   }
 
   const lang = langForMsg(msg);
-  if (isDexUserFacingBot() && msg.chat.type === 'private') {
-    return sendDexWelcomeMessage(bot, msg.chat.id, lang);
-  }
   await bot.sendMessage(msg.chat.id, t(welcomeStartKey(lang), lang), {
     parse_mode: 'Markdown',
     reply_markup: buildStartKeyboard(lang),
@@ -1708,14 +1696,16 @@ bot.on('callback_query', async (cb) => {
     await bot.answerCallbackQuery(cb.id).catch(() => {});
     return bot.sendMessage(fromChatId, '🏓 pong');
   }
-  if (cb.data === 'startcmd:lang' && isDexUserFacingBot()) {
-    await bot.answerCallbackQuery(cb.id).catch(() => {});
-    return sendDexLangPickMessage(bot, fromChatId, cbLang);
-  }
-
   if (isDM && cb.from) touchSubscriber(cb.from, 'callback');
 
   if (cb.data?.startsWith('startlang:')) {
+    if (isDexUserFacingBot()) {
+      await bot.answerCallbackQuery(cb.id, {
+        text: 'Change language inside the Mini App',
+        show_alert: false,
+      }).catch(() => {});
+      return;
+    }
     const code = channels.applyGlobalLang(userId, cb.data.slice('startlang:'.length));
     const pendingCh = pendingChannelAfterLang.get(String(userId));
     if (pendingCh) {
@@ -1726,13 +1716,6 @@ bot.on('callback_query', async (cb) => {
       }).catch(() => {});
       await bot.answerCallbackQuery(cb.id, { text: t('welcome.langSet', code) });
       return openDmChannelSettings(fromChatId, userId, pendingCh);
-    }
-    if (isDexUserFacingBot()) {
-      const edited = await editDexWelcomeMessage(bot, fromChatId, cb.message.message_id, code);
-      if (!edited) {
-        await sendDexWelcomeMessage(bot, fromChatId, code);
-      }
-      return bot.answerCallbackQuery(cb.id, { text: t('welcome.langSet', code) });
     }
     const newText = `${t('welcome.langSet', code)}\n\n${t(welcomeStartKey(code), code)}`;
     const markup = buildStartKeyboard(code);
