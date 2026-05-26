@@ -1991,7 +1991,7 @@ async function main() {
     console.log(`   Mini App menü URL: ${webEntry}`);
   }
 
-  await applyTelegramBotProfile(bot);
+  await applyTelegramBotProfile();
 
   try {
     const sub = botSubscribers.countStats();
