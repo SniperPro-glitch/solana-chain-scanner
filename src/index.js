@@ -862,7 +862,6 @@ async function canManageChat(msg) {
 
 const { buildSniperDexWebAppButton, sniperDexMenuButton } = require('./dexAppButton');
 const { isDexUserFacingBot } = require('./botMode');
-const { applyTelegramBotProfile } = require('./botProfile');
 const { sendDexWelcomeMessage, buildDexStartKeyboard } = require('./dexWelcome');
 const {
   sendChannelWelcome,
@@ -1973,8 +1972,6 @@ async function main() {
     }).catch((e) => console.warn('setChatMenuButton:', e?.message));
     console.log(`   Mini App menü URL: ${webEntry}`);
   }
-
-  await applyTelegramBotProfile(BOT_TOKEN);
 
   try {
     const sub = botSubscribers.countStats();
