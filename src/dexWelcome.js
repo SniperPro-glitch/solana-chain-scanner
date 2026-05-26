@@ -10,7 +10,11 @@ const OFFICIAL_CHANNEL_URL =
   String(process.env.DEX_OFFICIAL_CHANNEL_URL || process.env.OFFICIAL_CHANNEL_URL || '').trim()
   || `https://t.me/${SCAN_BOT_USERNAME}`;
 
+/** BotFather Description Picture + /start foto: 640×360 (16:9). Oval köşe: scripts/prepare-welcome-image.js */
 const WELCOME_PHOTO_CANDIDATES = [
+  'dex-welcome-start@2x.png',
+  'dex-welcome-start.png',
+  'dex-welcome-start.jpg',
   'dexscanner-description-640x360.jpg',
   'dexscanner-live-ui.png',
   'dexscanner-description-banner.png',
