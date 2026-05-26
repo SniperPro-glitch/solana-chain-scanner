@@ -773,9 +773,21 @@ const STRINGS = {
     ru: '<b>🎯 Sniper DEX</b>\nВыберите язык и откройте приложение.',
   },
   'welcome.dexStartHtml': {
-    en: '<b>🎯 Sniper DEX</b> — tap <b>Launch Mini App</b> below.',
-    tr: '<b>🎯 Sniper DEX</b> — <b>Uygulamayı Aç</b> düğmesine bas.',
-    ru: '<b>🎯 Sniper DEX</b> — <b>Открыть Mini App</b> ниже.',
+    en:
+      '<b>🎯 Sniper DEX</b>\n\n'
+      + 'Multi-chain token scanner in Telegram — <b>TON · BSC · ◎ Solana · ETH</b>.\n'
+      + 'Trending, new pairs, live charts, risk checks &amp; alerts in one Mini App.\n\n'
+      + 'Tap <b>Launch Mini App</b> below or use the menu button.',
+    tr:
+      '<b>🎯 Sniper DEX</b>\n\n'
+      + 'Telegram içinde çoklu ağ tarayıcı — <b>TON · BSC · ◎ Solana · ETH</b>.\n'
+      + 'Trending, yeni çiftler, canlı grafik, risk raporu ve alarmlar tek uygulamada.\n\n'
+      + 'Aşağıdan <b>Uygulamayı Aç</b> veya menü düğmesine bas.',
+    ru:
+      '<b>🎯 Sniper DEX</b>\n\n'
+      + 'Мульти-сеть в Telegram — <b>TON · BSC · ◎ Solana · ETH</b>.\n'
+      + 'Тренды, новые пары, графики, риск и алерты в Mini App.\n\n'
+      + 'Нажмите <b>Открыть Mini App</b> ниже или кнопку меню.',
   },
   'welcome.langSetHtml': {
     en: '✅ Language: <b>English</b>',

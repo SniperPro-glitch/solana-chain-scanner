@@ -74,28 +74,41 @@ async function setDescriptionLang(bot, map, method) {
   }
 }
 
+function envFlag(name, defaultOn = false) {
+  const raw = process.env[name];
+  const v = raw === undefined || raw === '' ? (defaultOn ? '1' : '0') : String(raw).trim().toLowerCase();
+  return ['1', 'true', 'on', 'yes'].includes(v);
+}
+
 async function applyTelegramBotProfile(bot) {
   if (!bot) return;
   const dex = isDexUserFacingBot();
 
-  try {
-    if (dex) {
-      await setDescriptionLang(bot, DEX_DESCRIPTION, 'setMyDescription');
-      await setDescriptionLang(bot, DEX_SHORT, 'setMyShortDescription');
-    } else {
-      await setDescriptionLang(bot, SCAN_DESCRIPTION, 'setMyDescription');
-      await setDescriptionLang(bot, SCAN_SHORT, 'setMyShortDescription');
+  if (envFlag('BOT_PROFILE_SYNC_DESCRIPTION')) {
+    try {
+      if (dex) {
+        await setDescriptionLang(bot, DEX_DESCRIPTION, 'setMyDescription');
+        await setDescriptionLang(bot, DEX_SHORT, 'setMyShortDescription');
+      } else {
+        await setDescriptionLang(bot, SCAN_DESCRIPTION, 'setMyDescription');
+        await setDescriptionLang(bot, SCAN_SHORT, 'setMyShortDescription');
+      }
+      console.log('[botProfile] BotFather description + short description güncellendi (env açık)');
+    } catch (e) {
+      console.warn('[botProfile] description:', e.message);
     }
-  } catch (e) {
-    console.warn('[botProfile] description:', e.message);
+  } else {
+    console.log('[botProfile] Description atlandı — BotFather’daki metin korunur (BOT_PROFILE_SYNC_DESCRIPTION=0)');
   }
 
-  const commands = dex ? dexCommands() : scanCommands();
-  try {
-    await bot.setMyCommands(commands);
-    console.log(`[botProfile] komutlar (${dex ? 'DEX' : 'scan'}): ${commands.length} adet`);
-  } catch (e) {
-    console.warn('[botProfile] setMyCommands:', e.message);
+  if (envFlag('BOT_PROFILE_SYNC_COMMANDS')) {
+    const commands = dex ? dexCommands() : scanCommands();
+    try {
+      await bot.setMyCommands(commands);
+      console.log(`[botProfile] komutlar (${dex ? 'DEX' : 'scan'}): ${commands.length} adet`);
+    } catch (e) {
+      console.warn('[botProfile] setMyCommands:', e.message);
+    }
   }
 }
 
