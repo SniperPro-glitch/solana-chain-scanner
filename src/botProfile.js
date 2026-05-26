@@ -1,4 +1,8 @@
-/** Telegram bot profili — açıklama, kısa açıklama, komut menüsü (DEX vs scan). */
+/**
+ * BotFather metinleri (Description, Short description, komut listesi) varsayılan KAPALI.
+ * Sen BotFather’da elle ayarla — deploy üzerine yazmaz.
+ * Açmak için: BOT_PROFILE_SYNC_DESCRIPTION=1 ve/veya BOT_PROFILE_SYNC_COMMANDS=1
+ */
 
 const { isDexUserFacingBot } = require('./botMode');
 
@@ -82,9 +86,17 @@ function envFlag(name, defaultOn = false) {
 
 async function applyTelegramBotProfile(bot) {
   if (!bot) return;
+
+  const syncDesc = envFlag('BOT_PROFILE_SYNC_DESCRIPTION');
+  const syncCmd = envFlag('BOT_PROFILE_SYNC_COMMANDS');
+  if (!syncDesc && !syncCmd) {
+    console.log('[botProfile] BotFather metinleri elle — description / komutlar API ile güncellenmez');
+    return;
+  }
+
   const dex = isDexUserFacingBot();
 
-  if (envFlag('BOT_PROFILE_SYNC_DESCRIPTION')) {
+  if (syncDesc) {
     try {
       if (dex) {
         await setDescriptionLang(bot, DEX_DESCRIPTION, 'setMyDescription');
@@ -97,11 +109,9 @@ async function applyTelegramBotProfile(bot) {
     } catch (e) {
       console.warn('[botProfile] description:', e.message);
     }
-  } else {
-    console.log('[botProfile] Description atlandı — BotFather’daki metin korunur (BOT_PROFILE_SYNC_DESCRIPTION=0)');
   }
 
-  if (envFlag('BOT_PROFILE_SYNC_COMMANDS')) {
+  if (syncCmd) {
     const commands = dex ? dexCommands() : scanCommands();
     try {
       await bot.setMyCommands(commands);
