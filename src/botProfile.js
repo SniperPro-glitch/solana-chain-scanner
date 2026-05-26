@@ -1,6 +1,7 @@
-/** BotFather (Description, Short description, komut menüsü) — yalnızca elle; kod API ile yazmaz. */
+/** BotFather metinleri elle; deploy yalnızca eski API dil kayıtlarını (en/tr/ru) temizler. */
 
 const { isDexUserFacingBot } = require('./botMode');
+const { clearApiLocalizedBotTexts } = require('./botApiDescriptionClear');
 
 function dexCommands() {
   return [
@@ -24,8 +25,27 @@ function scanCommands() {
   ];
 }
 
-async function applyTelegramBotProfile() {
-  console.log('[botProfile] BotFather metinleri elle — API ile description/komut güncellenmez');
+function envFlag(name, defaultOn = false) {
+  const raw = process.env[name];
+  const v = raw === undefined || raw === '' ? (defaultOn ? '1' : '0') : String(raw).trim().toLowerCase();
+  return ['1', 'true', 'on', 'yes'].includes(v);
+}
+
+async function applyTelegramBotProfile(botToken) {
+  const token = String(botToken || process.env.BOT_TOKEN || '').trim();
+  const dex = isDexUserFacingBot();
+
+  if (dex && token && !envFlag('BOT_SKIP_CLEAR_API_DESCRIPTIONS')) {
+    const { cleared, errors } = await clearApiLocalizedBotTexts(token);
+    if (errors.length) {
+      console.warn('[botProfile] API dil açıklama temizliği:', errors.slice(0, 3).join('; '));
+    }
+    console.log(
+      `[botProfile] API en/tr/ru description temizlendi (${cleared} çağrı) — BotFather Description geçerli; Rusça Telegram da varsayılanı gösterir`,
+    );
+  } else {
+    console.log('[botProfile] BotFather metinleri elle — yeni description API ile yazılmaz');
+  }
 }
 
 module.exports = {
