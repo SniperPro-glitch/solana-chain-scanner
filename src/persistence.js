@@ -9,7 +9,16 @@ async function initPersistence() {
   if (pg.enabled()) {
     try {
       await pg.ensureSchema();
+      const channels = require('./channels');
+      await channels.migrateFileToPostgres?.();
       await migrateFilesToPostgres();
+      await channels.reloadFromPostgres?.();
+      const users = require('./users');
+      await users.migrateFileToPostgres?.();
+      await users.reloadFromPostgres?.();
+      const botSubscribers = require('./botSubscribers');
+      await botSubscribers.migrateFileToPostgres?.();
+      await botSubscribers.reloadFromPostgres?.();
     } catch (e) {
       console.error('[pg] başlatılamadı:', e.message);
       console.error('   Railway → PostgreSQL eklentisi → DATABASE_URL bot servisinde olmalı');
@@ -49,7 +58,7 @@ function runVolumeProbe() {
 
 function logPersistenceMode() {
   if (pg.enabled()) {
-    console.log('[data] Depolama: PostgreSQL (DATABASE_URL) — Volume gerekmez');
+    console.log('[data] Depolama: PostgreSQL — feed, rapor, kanal ayarları, bot aboneleri kalıcı');
     return;
   }
   const vol = process.env.RAILWAY_VOLUME_MOUNT_PATH || process.env.RAILWAY_VOLUME_NAME || '';

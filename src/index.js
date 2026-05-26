@@ -25,6 +25,7 @@ const {
 const channels = require('./channels');
 const storage = require('./storage');
 const users = require('./users');
+const botSubscribers = require('./botSubscribers');
 const settingsUI = require('./settings-ui');
 const statsReport = require('./statsReport');
 const whitelist = require('./whitelist');
@@ -633,6 +634,32 @@ function consumePendingManualInput(userId) {
 }
 /** Kanal butonundan geldi; dil seçilince bu kanalın ayar paneli açılır (TON akışı). */
 const pendingChannelAfterLang = new Map();
+const pendingBroadcast = new Map();
+const BROADCAST_TTL_MS = 10 * 60 * 1000;
+
+function touchSubscriber(from, source) {
+  if (!from?.id) return;
+  try {
+    botSubscribers.touch(from, { source });
+  } catch (e) {
+    console.warn('[subscribers] touch:', e.message);
+  }
+}
+
+function setPendingBroadcast(userId) {
+  pendingBroadcast.set(String(userId), { expiresAt: Date.now() + BROADCAST_TTL_MS });
+}
+
+function consumePendingBroadcast(userId) {
+  const s = pendingBroadcast.get(String(userId));
+  if (!s) return false;
+  if (Date.now() > s.expiresAt) {
+    pendingBroadcast.delete(String(userId));
+    return false;
+  }
+  pendingBroadcast.delete(String(userId));
+  return true;
+}
 
 function setPendingPost(userId, data) {
   pendingPost.set(String(userId), { ...data, expiresAt: Date.now() + POST_TTL_MS });
@@ -834,13 +861,31 @@ async function canManageChat(msg) {
 }
 
 const { buildSniperDexWebAppButton, sniperDexMenuButton } = require('./dexAppButton');
+const { isDexUserFacingBot } = require('./botMode');
+const { applyTelegramBotProfile } = require('./botProfile');
+const {
+  sendDexWelcomeMessage,
+  sendDexLangPickMessage,
+  editDexWelcomeMessage,
+  buildDexStartKeyboard,
+  buildDexLangPickKeyboard,
+} = require('./dexWelcome');
 const {
   sendChannelWelcome,
   ensureOfficialChannelDefaults,
   bootstrapOfficialChannels,
 } = require('./channelWelcome');
 
+function welcomeStartKey(lang) {
+  return isDexUserFacingBot() ? 'welcome.dexStart' : 'welcome.start';
+}
+
+function welcomeLangPickKey() {
+  return isDexUserFacingBot() ? 'welcome.dexLangPick' : 'welcome.langPick';
+}
+
 function buildStartKeyboard(lang) {
+  if (isDexUserFacingBot()) return buildDexStartKeyboard(lang);
   const rows = [];
   const dexBtn = buildSniperDexWebAppButton(lang);
   if (dexBtn) rows.push([dexBtn]);
@@ -852,6 +897,7 @@ function buildStartKeyboard(lang) {
 }
 
 function buildLangPickKeyboard() {
+  if (isDexUserFacingBot()) return buildDexLangPickKeyboard();
   const rows = [];
   const dexBtn = buildSniperDexWebAppButton('tr');
   if (dexBtn) rows.push([dexBtn]);
@@ -1142,6 +1188,12 @@ bindTextCommand(/^\/ping(@\w+)?$/i, async (msg) => {
       );
     }
   } else if (chat?.type === 'private' && uid) {
+    const sub = botSubscribers.countStats();
+    lines.push(
+      lang === 'tr'
+        ? `Bot aboneleri: ${sub.active} aktif / ${sub.total} kayıt`
+        : `Bot subscribers: ${sub.active} active / ${sub.total} total`,
+    );
     const listed = channels.list();
     lines.push(lang === 'tr' ? `Kayıtlı kanal: ${listed.length}` : `Channels registered: ${listed.length}`);
     for (const ch of listed.slice(0, 8)) {
@@ -1197,6 +1249,13 @@ async function handleSettings(msg) {
   const lang = langForMsg(msg);
   const uid = actorUserId(msg);
 
+  if (isDexUserFacingBot() && msg.chat.type === 'private') {
+    return bot.sendMessage(msg.chat.id, t('dex.appOnlyHint', lang), {
+      parse_mode: 'Markdown',
+      reply_markup: buildDexStartKeyboard(lang),
+    });
+  }
+
   if (msg.chat.type !== 'private') {
     return bot.sendMessage(msg.chat.id, t('settings.dmOnly', lang), { parse_mode: 'Markdown' });
   }
@@ -1250,6 +1309,7 @@ bindTextCommand(/^\/welcome(@\w+)?$/i, async (msg) => {
 });
 
 bindTextCommand(/^\/dex(@\w+)?$/i, async (msg) => {
+  if (msg.chat.type === 'private' && msg.from) touchSubscriber(msg.from, 'dex');
   const lang = langForMsg(msg);
   const dexBtn = buildSniperDexWebAppButton(lang);
   if (!dexBtn) {
@@ -1259,6 +1319,10 @@ bindTextCommand(/^\/dex(@\w+)?$/i, async (msg) => {
         ? '❌ Sniper DEX henüz yapılandırılmadı. Railway → WEB_APP_URL (HTTPS) ayarlayın.'
         : '❌ Sniper DEX is not configured. Set WEB_APP_URL (HTTPS) on Railway.',
     );
+  }
+  if (isDexUserFacingBot()) {
+    dexBtn.text = t('welcome.dexBtnLaunch', lang);
+    return sendDexWelcomeMessage(bot, msg.chat.id, lang);
   }
   return bot.sendMessage(msg.chat.id, t('dex.openHint', lang), {
     parse_mode: 'Markdown',
@@ -1290,6 +1354,8 @@ bindTextCommand(/^\/channelid(@\w+)?$/i, async (msg) => {
 bindTextCommand(/^\/start(@\w+)?(\s+(.+))?$/, async (msg, match) => {
   if (msg.chat.type !== 'private') {
     channels.add(msg.chat, msg.from?.username || 'cmd');
+  } else if (msg.from) {
+    touchSubscriber(msg.from, 'start');
   }
 
   const param = (match && match[3] || '').trim();
@@ -1298,7 +1364,11 @@ bindTextCommand(/^\/start(@\w+)?(\s+(.+))?$/, async (msg, match) => {
     if (targetId) {
       if (!users.hasChosenLang(msg.from.id)) {
         pendingChannelAfterLang.set(String(msg.from.id), targetId);
-        return bot.sendMessage(msg.chat.id, t('welcome.langPick', 'en'), {
+        if (isDexUserFacingBot()) {
+          return sendDexLangPickMessage(bot, msg.chat.id, 'en');
+        }
+        return bot.sendMessage(msg.chat.id, t(welcomeLangPickKey(), 'en'), {
+          parse_mode: 'Markdown',
           reply_markup: buildLangPickKeyboard(),
         });
       }
@@ -1307,13 +1377,20 @@ bindTextCommand(/^\/start(@\w+)?(\s+(.+))?$/, async (msg, match) => {
   }
 
   if (msg.chat.type === 'private' && !users.hasChosenLang(msg.from.id)) {
-    return bot.sendMessage(msg.chat.id, t('welcome.langPick', 'en'), {
+    if (isDexUserFacingBot()) {
+      return sendDexLangPickMessage(bot, msg.chat.id, 'en');
+    }
+    return bot.sendMessage(msg.chat.id, t(welcomeLangPickKey(), 'en'), {
+      parse_mode: 'Markdown',
       reply_markup: buildLangPickKeyboard(),
     });
   }
 
   const lang = langForMsg(msg);
-  await bot.sendMessage(msg.chat.id, t('welcome.start', lang), {
+  if (isDexUserFacingBot() && msg.chat.type === 'private') {
+    return sendDexWelcomeMessage(bot, msg.chat.id, lang);
+  }
+  await bot.sendMessage(msg.chat.id, t(welcomeStartKey(lang), lang), {
     parse_mode: 'Markdown',
     reply_markup: buildStartKeyboard(lang),
   });
@@ -1391,10 +1468,94 @@ bot.on('message', async (msg) => {
   }
   if (msg.chat.type !== 'private' || !msg.from?.id || !msg.text) return;
   if (msg.text.startsWith('/')) return;
+  touchSubscriber(msg.from, 'dm');
+  if (isBotAdmin(msg.from.id) && consumePendingBroadcast(msg.from.id)) {
+    const lang = langForMsg(msg);
+    const st = botSubscribers.countStats();
+    if (!st.active) {
+      return bot.sendMessage(
+        msg.chat.id,
+        lang === 'tr' ? 'Henüz kayıtlı abone yok.' : 'No subscribers yet.',
+      );
+    }
+    await bot.sendMessage(
+      msg.chat.id,
+      lang === 'tr' ? `⏳ ${st.active} kişiye gönderiliyor…` : `⏳ Sending to ${st.active}…`,
+    );
+    const result = await botSubscribers.broadcastToAll(bot, msg.text.trim(), {
+      parse_mode: 'HTML',
+      disable_web_page_preview: true,
+    });
+    const summary = lang === 'tr'
+      ? `✅ Duyuru bitti\n• Gönderildi: ${result.sent}\n• Engelli: ${result.blocked}\n• Hata: ${result.failed}`
+      : `✅ Sent: ${result.sent} · blocked: ${result.blocked} · failed: ${result.failed}`;
+    return bot.sendMessage(msg.chat.id, summary);
+  }
   const state = consumePendingManualInput(msg.from.id);
   if (!state) return;
   const lang = langForMsg(msg);
   return processManualPost(msg.chat.id, msg.from.id, msg.text.trim(), lang, state.bannerFileId || null);
+});
+
+bindTextCommand(/^\/(subscribers|aboneler)(@\w+)?$/i, async (msg) => {
+  const uid = actorUserId(msg);
+  const lang = langForMsg(msg);
+  if (!uid || !isBotAdmin(uid)) {
+    return bot.sendMessage(msg.chat.id, lang === 'tr' ? '⛔ Sadece bot admin.' : '⛔ Admin only.');
+  }
+  const st = botSubscribers.countStats();
+  const body = lang === 'tr'
+    ? `👥 <b>Bot aboneleri</b> (Start / DEX — kanal şart değil)\n\n`
+      + `• Aktif: <b>${st.active}</b>\n`
+      + `• Engellemiş / pasif: <b>${st.blocked}</b>\n`
+      + `• Toplam kayıt: <b>${st.total}</b>\n\n`
+      + `<i>Duyuru: /broadcast metin</i>`
+    : `👥 <b>Bot subscribers</b>\n\n`
+      + `• Active: <b>${st.active}</b>\n`
+      + `• Blocked: <b>${st.blocked}</b>\n`
+      + `• Total: <b>${st.total}</b>\n\n`
+      + `<i>Broadcast: /broadcast text</i>`;
+  return bot.sendMessage(msg.chat.id, body, { parse_mode: 'HTML' });
+});
+
+bindTextCommand(/^\/broadcast(@\w+)?(?:\s+([\s\S]+))?$/i, async (msg, match) => {
+  const uid = actorUserId(msg);
+  const lang = langForMsg(msg);
+  if (!uid || !isBotAdmin(uid)) {
+    return bot.sendMessage(msg.chat.id, lang === 'tr' ? '⛔ Sadece bot admin.' : '⛔ Admin only.');
+  }
+  if (msg.chat.type !== 'private') {
+    return bot.sendMessage(
+      msg.chat.id,
+      lang === 'tr' ? 'Duyuruyu bota özelden gönderin.' : 'Send broadcast from private chat with the bot.',
+    );
+  }
+  const text = (match[2] || '').trim();
+  if (!text) {
+    setPendingBroadcast(uid);
+    const hint = lang === 'tr'
+      ? '📢 <b>Duyuru modu</b>\n\nŞimdi göndermek istediğiniz metni yazın (HTML desteklenir).\nİptal: /start'
+      : '📢 <b>Broadcast mode</b>\n\nSend the message text now (HTML supported).\nCancel: /start';
+    return bot.sendMessage(msg.chat.id, hint, { parse_mode: 'HTML' });
+  }
+  const st = botSubscribers.countStats();
+  if (!st.active) {
+    return bot.sendMessage(
+      msg.chat.id,
+      lang === 'tr' ? 'Henüz kayıtlı abone yok (/start veya DEX).' : 'No subscribers yet.',
+    );
+  }
+  await bot.sendMessage(
+    msg.chat.id,
+    lang === 'tr'
+      ? `⏳ ${st.active} kişiye gönderiliyor…`
+      : `⏳ Sending to ${st.active} users…`,
+  );
+  const result = await botSubscribers.broadcastToAll(bot, text, { parse_mode: 'HTML', disable_web_page_preview: true });
+  const summary = lang === 'tr'
+    ? `✅ Duyuru bitti\n• Gönderildi: ${result.sent}\n• Engelli: ${result.blocked}\n• Hata: ${result.failed}\n• Hedef: ${result.total}`
+    : `✅ Done\n• Sent: ${result.sent}\n• Blocked: ${result.blocked}\n• Failed: ${result.failed}\n• Target: ${result.total}`;
+  return bot.sendMessage(msg.chat.id, summary);
 });
 
 bindTextCommand(/^\/stats(@\w+)?$/i, (msg) => {
@@ -1430,6 +1591,15 @@ bot.on('my_chat_member', async (upd) => {
   const chat = upd.chat;
   const newStatus = upd.new_chat_member?.status;
   const oldStatus = upd.old_chat_member?.status;
+
+  if (chat.type === 'private' && upd.from?.id) {
+    if (['kicked', 'left'].includes(newStatus)) {
+      botSubscribers.markInactive(upd.from.id, newStatus);
+    } else if (newStatus === 'member') {
+      touchSubscriber(upd.from, 'rejoin');
+    }
+    return;
+  }
 
   // Gerçek kanala giriş veya üye → admin yükseltme.
   const joinedChannel = ['administrator', 'member'].includes(newStatus)
@@ -1538,6 +1708,12 @@ bot.on('callback_query', async (cb) => {
     await bot.answerCallbackQuery(cb.id).catch(() => {});
     return bot.sendMessage(fromChatId, '🏓 pong');
   }
+  if (cb.data === 'startcmd:lang' && isDexUserFacingBot()) {
+    await bot.answerCallbackQuery(cb.id).catch(() => {});
+    return sendDexLangPickMessage(bot, fromChatId, cbLang);
+  }
+
+  if (isDM && cb.from) touchSubscriber(cb.from, 'callback');
 
   if (cb.data?.startsWith('startlang:')) {
     const code = channels.applyGlobalLang(userId, cb.data.slice('startlang:'.length));
@@ -1551,7 +1727,14 @@ bot.on('callback_query', async (cb) => {
       await bot.answerCallbackQuery(cb.id, { text: t('welcome.langSet', code) });
       return openDmChannelSettings(fromChatId, userId, pendingCh);
     }
-    const newText = `${t('welcome.langSet', code)}\n\n${t('welcome.start', code)}`;
+    if (isDexUserFacingBot()) {
+      const edited = await editDexWelcomeMessage(bot, fromChatId, cb.message.message_id, code);
+      if (!edited) {
+        await sendDexWelcomeMessage(bot, fromChatId, code);
+      }
+      return bot.answerCallbackQuery(cb.id, { text: t('welcome.langSet', code) });
+    }
+    const newText = `${t('welcome.langSet', code)}\n\n${t(welcomeStartKey(code), code)}`;
     const markup = buildStartKeyboard(code);
     const edited = await bot.editMessageText(newText, {
       chat_id: fromChatId,
@@ -1805,16 +1988,12 @@ async function main() {
     console.log(`   Mini App menü URL: ${webEntry}`);
   }
 
-  await bot.setMyCommands([
-    { command: 'start', description: 'Başlangıç / dil' },
-    { command: 'dex', description: 'Sniper DEX Mini App' },
-    { command: 'settings', description: 'Kanal ayarları' },
-    { command: 'welcome', description: 'Hoş geldin mesajı (kanal)' },
-    { command: 'post', description: 'Manuel token paylaş (DM)' },
-    { command: 'channelid', description: 'Kanal ID (Railway yedek)' },
-    { command: 'ping', description: 'Bot canlı mı?' },
-    { command: 'stats', description: 'İstatistikler' },
-  ]).catch((e) => console.warn('setMyCommands:', e?.message));
+  await applyTelegramBotProfile(bot);
+
+  try {
+    const sub = botSubscribers.countStats();
+    console.log(`   Bot aboneleri: ${sub.active} aktif / ${sub.total} kayıt (Start & DEX)`);
+  } catch (_) { /* */ }
 
   const dataPath = require('./data-path');
   const pg = require('./pgClient');

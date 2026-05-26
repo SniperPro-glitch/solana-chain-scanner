@@ -762,6 +762,55 @@ const STRINGS = {
     tr: '👋 Hoş geldin! Hangi dilde konuşalim?',
     ru: '👋 Привет! На каком языке будем общаться?',
   },
+  'welcome.dexLangPick': {
+    en: '👋 *Sniper DEX*\n\nPick your language, then open the app below.',
+    tr: '👋 *Sniper DEX*\n\nDilini seç, ardından uygulamayı aç.',
+    ru: '👋 *Sniper DEX*\n\nВыберите язык и откройте приложение ниже.',
+  },
+  'welcome.dexLangPickHtml': {
+    en: '<b>🎯 Sniper DEX</b>\nPick a language, then open the app.',
+    tr: '<b>🎯 Sniper DEX</b>\nDilini seç, ardından uygulamayı aç.',
+    ru: '<b>🎯 Sniper DEX</b>\nВыберите язык и откройте приложение.',
+  },
+  'welcome.dexStartHtml': {
+    en:
+      '<b>🎯 Sniper DEX</b>\n\n'
+      + 'Trending, charts, risk &amp; alerts — everything is inside the app.\n\n'
+      + 'Tap <b>Launch Mini App</b> below (or the menu button).',
+    tr:
+      '<b>🎯 Sniper DEX</b>\n\n'
+      + 'Trending, grafik, risk ve alarmlar uygulamanın içinde.\n\n'
+      + 'Aşağıdan <b>Uygulamayı Aç</b> veya menü düğmesine bas.',
+    ru:
+      '<b>🎯 Sniper DEX</b>\n\n'
+      + 'Тренды, графики, риск и алерты — всё в приложении.\n\n'
+      + 'Нажмите <b>Открыть Mini App</b> ниже (или кнопку меню).',
+  },
+  'welcome.langSetHtml': {
+    en: '✅ Language: <b>English</b>',
+    tr: '✅ Dil: <b>Türkçe</b>',
+    ru: '✅ Язык: <b>Русский</b>',
+  },
+  'welcome.dexBtnLaunch': {
+    en: '▶ Launch Mini App',
+    tr: '▶ Uygulamayı Aç',
+    ru: '▶ Открыть Mini App',
+  },
+  'welcome.dexBtnChannel': {
+    en: '📢 Official feed',
+    tr: '📢 Resmi kanal',
+    ru: '📢 Официальный канал',
+  },
+  'welcome.dexBtnLang': {
+    en: '🌐 Language',
+    tr: '🌐 Dil',
+    ru: '🌐 Язык',
+  },
+  'welcome.dexBtnScanBot': {
+    en: '⚙️ Channel scanner bot',
+    tr: '⚙️ Kanal tarama botu',
+    ru: '⚙️ Бот для канала',
+  },
   'welcome.langSet': {
     en: '✅ Language set to English.',
     tr: '✅ Dil Türkçe olarak ayarlandı.',
@@ -778,6 +827,11 @@ const STRINGS = {
     en: '✅ *{name}* is ready.\nTap *Open Settings (DM)* — pick *one* network (TON / BSC / ◎ Solana) and filters.',
     tr: '✅ *{name}* hazır.\n*Ayarları aç (DM)* → kanal için *tek ağ* (TON / BSC / ◎ Solana) ve filtreler.',
     ru: '✅ *{name}* готов.\n*Открыть настройки (ЛС)* → одна сеть (TON / BSC / ◎ Solana) и фильтры.',
+  },
+  'welcome.dexStart': {
+    en: '👋 *Sniper DEX*\n\nTap *Launch Mini App* below — trending, charts & alerts are in the app.',
+    tr: '👋 *Sniper DEX*\n\n*Uygulamayı Aç* — liste, grafik ve alarmlar uygulama içinde.',
+    ru: '👋 *Sniper DEX*\n\n*Открыть Mini App* — всё внутри приложения.',
   },
   'welcome.start': {
     en:
@@ -819,9 +873,19 @@ const STRINGS = {
     ru: '🎯 Sniper DEX',
   },
   'dex.openHint': {
-    en: '🎯 Tap *Sniper DEX* to open the scanner inside Telegram (not in an external browser).',
-    tr: '🎯 *Sniper DEX* düğmesine bas — tarayıcıda değil, Telegram içinde Mini App açılır.',
-    ru: '🎯 Нажмите *Sniper DEX* — Mini App откроется внутри Telegram.',
+    en: '🎯 Tap *Launch Mini App* below.',
+    tr: '🎯 Aşağıdan *Uygulamayı Aç*.',
+    ru: '🎯 Нажмите *Открыть Mini App*.',
+  },
+  'dex.appOnlyHint': {
+    en: 'ℹ️ Lists, filters & alerts are in the *Mini App* — tap the button below.\n\n_Channel scanner (separate bot):_ @solanachainscanbot',
+    tr: 'ℹ️ Liste, filtre ve alarmlar *Mini App* içinde — aşağıdaki düğmeye bas.\n\n_Kanal tarayıcı (ayrı bot):_ @solanachainscanbot',
+    ru: 'ℹ️ Списки и алерты в *Mini App* — кнопка ниже.\n\n_Сканер канала:_ @solanachainscanbot',
+  },
+  'dex.channelBotHint': {
+    en: 'ℹ️ Channel filters & auto-posts: @solanachainscanbot\n\nFor the DEX feed, open the Mini App below.',
+    tr: 'ℹ️ Kanal filtresi & otomatik paylaşım: @solanachainscanbot\n\nDEX listesi için Mini App\'i aç.',
+    ru: 'ℹ️ Фильтры канала: @solanachainscanbot\n\nЛента DEX — Mini App ниже.',
   },
 
   // ─── Komutlar ───

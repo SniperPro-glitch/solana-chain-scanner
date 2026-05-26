@@ -662,6 +662,9 @@ function createMiniAppServer() {
       const { handleMiniAppAdminAccess } = require('./miniAppAdminAccess');
       if (await handleMiniAppAdminAccess(req, res, url, sendJson, readBody)) return;
 
+      const { handleMiniAppTouchUser } = require('./miniAppTouchUser');
+      if (await handleMiniAppTouchUser(req, res, url, sendJson, readBody)) return;
+
       const { handlePublicSupportApi } = require('./supportApi');
       if (url.pathname.startsWith('/api/support')) {
         const handled = await handlePublicSupportApi(req, res, url, sendJson);

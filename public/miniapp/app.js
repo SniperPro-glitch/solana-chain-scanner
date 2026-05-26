@@ -31,8 +31,24 @@
     if (Number.isFinite(sec) && sec >= 30 && sec <= 120) feedRefreshSec = sec;
   }
 
+  async function registerBotSubscriber() {
+    if (!tg || isWebBrowser) return;
+    const initData = String(tg.initData || '').trim();
+    if (!initData) return;
+    try {
+      await fetch(apiPath('/api/miniapp/touch'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ initData, source: 'dex' }),
+      });
+    } catch {
+      /* yoksay */
+    }
+  }
+
   function loadApiConfigOnce() {
     void loadApiConfig();
+    void registerBotSubscriber();
   }
 
   function apiRoot() {
@@ -58,6 +74,14 @@
   }
   if (typeof window.__tgApplyFullscreen === 'function') {
     window.__tgApplyFullscreen();
+  }
+  if (tg?.ready) {
+    try {
+      tg.ready();
+    } catch {
+      /* yoksay */
+    }
+    void registerBotSubscriber();
   }
 
   const $ = (id) => document.getElementById(id);

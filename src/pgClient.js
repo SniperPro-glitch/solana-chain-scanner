@@ -50,9 +50,14 @@ async function ensureSchema() {
     );
     CREATE INDEX IF NOT EXISTS sc_feed_posted ON sc_feed (posted_at DESC);
     CREATE INDEX IF NOT EXISTS sc_feed_mint ON sc_feed (mint);
+    CREATE TABLE IF NOT EXISTS sc_state (
+      key TEXT PRIMARY KEY,
+      body JSONB NOT NULL,
+      updated_at BIGINT NOT NULL
+    );
   `);
   schemaReady = true;
-  console.log('[pg] şema hazır (sc_reports, sc_feed)');
+  console.log('[pg] şema hazır (sc_reports, sc_feed, sc_state)');
 }
 
 async function query(text, params) {

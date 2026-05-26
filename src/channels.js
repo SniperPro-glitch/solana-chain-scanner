@@ -212,6 +212,14 @@ function logEnvBackupHint() {
   console.warn(`[channels] TELEGRAM_CHANNEL_IDS=${ids}`);
 }
 
+function applyLoadedState(raw) {
+  let state = raw && typeof raw === 'object' ? raw : { channels: {} };
+  if (!state.channels || typeof state.channels !== 'object') state = { channels: {} };
+  state = mergeChannelIdsFile(state);
+  state = mergeEnvChannelIds(state);
+  return state;
+}
+
 function load() {
   try {
     ensureDir();
@@ -219,22 +227,71 @@ function load() {
     if (fs.existsSync(CHANNELS_FILE)) {
       state = JSON.parse(fs.readFileSync(CHANNELS_FILE, 'utf8'));
     }
-    state = mergeChannelIdsFile(state);
-    state = mergeEnvChannelIds(state);
-    return state;
+    return applyLoadedState(state);
   } catch (err) {
     console.error('channels.json okuma hatası:', err.message);
-    return mergeEnvChannelIds(mergeChannelIdsFile({ channels: {} }));
+    return applyLoadedState({ channels: {} });
   }
 }
 
-function save(state) {
+function save(state, opts = {}) {
+  cache = state;
   try {
     ensureDir();
     fs.writeFileSync(CHANNELS_FILE, JSON.stringify(state, null, 2));
     writeChannelIdsBackup(state);
   } catch (err) {
     console.error('channels.json yazma hatası:', err.message);
+  }
+  if (!opts.skipPg) {
+    try {
+      const pgState = require('./pgStateStore');
+      if (pgState && require('./pgClient').enabled()) {
+        pgState.save('channels', state).catch((e) => {
+          console.warn('[channels] PostgreSQL kayıt:', e.message);
+        });
+      }
+    } catch (e) {
+      console.warn('[channels] pg save:', e.message);
+    }
+  }
+}
+
+/** Deploy sonrası — PostgreSQL'deki kanal ayarlarını dosyadan önce yükle. */
+async function reloadFromPostgres() {
+  try {
+    const pgState = require('./pgStateStore');
+    const pg = require('./pgClient');
+    if (!pg.enabled()) return false;
+    const row = await pgState.load('channels');
+    const n = Object.keys(row?.channels || {}).length;
+    if (!n) return false;
+    cache = applyLoadedState(row);
+    save(cache, { skipPg: true });
+    console.log(`[channels] PostgreSQL'den yüklendi: ${n} kanal (ayarlar korundu)`);
+    return true;
+  } catch (e) {
+    console.warn('[channels] pg reload:', e.message);
+    return false;
+  }
+}
+
+async function migrateFileToPostgres() {
+  try {
+    const pgState = require('./pgStateStore');
+    const pg = require('./pgClient');
+    if (!pg.enabled()) return 0;
+    if (await pgState.has('channels')) return 0;
+    if (!fs.existsSync(CHANNELS_FILE)) return 0;
+    const state = applyLoadedState(JSON.parse(fs.readFileSync(CHANNELS_FILE, 'utf8')));
+    const n = Object.keys(state.channels || {}).length;
+    if (!n) return 0;
+    await pgState.save('channels', state);
+    console.log(`[pg] channels.json → PostgreSQL (${n} kanal)`);
+    return n;
+  } catch (e) {
+    console.warn('[channels] migrate pg:', e.message);
+    return 0;
   }
 }
 
@@ -300,8 +357,10 @@ function applyGlobalLang(userId, langCode) {
 
 function logBootSummary() {
   const list = Object.values(cache.channels || {});
-  const fileExists = fs.existsSync(CHANNELS_FILE);
-  const persist = isPersistentDataDir() ? 'KALICI' : 'GEÇİCİ (deploy sıfırlar)';
+  const pg = require('./pgClient').enabled();
+  const persist = pg
+    ? 'PostgreSQL (kanal ayarları)'
+    : (isPersistentDataDir() ? 'Volume/dosya' : 'GEÇİCİ (deploy sıfırlar)');
   let globalLang = 'en';
   try {
     const users = require('./users');
@@ -311,8 +370,8 @@ function logBootSummary() {
     }
   } catch (_) { /* yoksay */ }
   console.log(`[channels] ${list.length} kanal · depo=${persist} · global dil=${globalLang} · ${CHANNELS_FILE}`);
-  if (!isPersistentDataDir()) {
-    console.warn('[channels] ⚠️ Railway: Volume → Mount Path /app/data (veya TELEGRAM_CHANNEL_IDS yedek).');
+  if (!pg && !isPersistentDataDir()) {
+    console.warn('[channels] ⚠️ Deploy ayarları siler: DATABASE_URL veya Volume /app/data ekleyin.');
   }
   if (!list.length) {
     console.log('[channels] (boş — TELEGRAM_CHANNEL_IDS env veya Volume /data gerekli)');
@@ -878,6 +937,8 @@ module.exports = {
   applyGlobalLang,
   initialChannelLang,
   getChannelIdsForEnv,
+  reloadFromPostgres,
+  migrateFileToPostgres,
 
   tokenPassesChannelFilters,
 };
