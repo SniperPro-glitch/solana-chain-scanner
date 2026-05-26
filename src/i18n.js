@@ -774,10 +774,8 @@ const STRINGS = {
   },
   'welcome.dexStartHtml': {
     en:
-      '<b>🎯 Sniper DEX</b>\n\n'
-      + 'Multi-chain token scanner in Telegram — <b>TON · BSC · ◎ Solana · ETH</b>.\n'
-      + 'Trending, new pairs, live charts, risk checks &amp; alerts in one Mini App.\n\n'
-      + 'Tap <b>Launch Mini App</b> below or use the menu button.',
+      '🐻 Welcome to Dex Scanner.\n\n'
+      + '🚀 Open the Mini App to access live market analysis, smart signals, advanced charts, token tracking and AI-powered risk detection across multiple blockchain networks.',
     tr:
       '<b>🎯 Sniper DEX</b>\n\n'
       + 'Telegram içinde çoklu ağ tarayıcı — <b>TON · BSC · ◎ Solana · ETH</b>.\n'
