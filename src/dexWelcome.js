@@ -11,6 +11,7 @@ const OFFICIAL_CHANNEL_URL =
   || `https://t.me/${SCAN_BOT_USERNAME}`;
 
 const WELCOME_PHOTO_CANDIDATES = [
+  'dex-welcome-1080.jpg',
   'dex-welcome-start@2x.png',
   'dex-welcome-start.png',
   'dex-welcome-start.jpg',
