@@ -6,6 +6,25 @@ function getBotToken() {
   return String(process.env.BOT_TOKEN || process.env.TELEGRAM_BOT_TOKEN || '').trim();
 }
 
+/** Mini App sniperscanbot’ta, initData @dexscannerappbot ile imzalı olabilir */
+function getWebAppBotTokens() {
+  const keys = ['BOT_TOKEN', 'TELEGRAM_BOT_TOKEN', 'DEX_BOT_TOKEN'];
+  const out = [];
+  for (const k of keys) {
+    const t = String(process.env[k] || '').trim();
+    if (t && !out.includes(t)) out.push(t);
+  }
+  return out;
+}
+
+function parseUserFromInitDataAny(initData) {
+  for (const token of getWebAppBotTokens()) {
+    const user = parseUserFromInitData(initData, token);
+    if (user?.id) return user;
+  }
+  return null;
+}
+
 function getAdminTelegramIds() {
   const raw = String(process.env.ADMIN_USER_ID || '').trim();
   if (!raw) return [];
@@ -47,7 +66,7 @@ function parseUserFromInitData(initData, botToken) {
 }
 
 function resolveAdminFromInitData(initData) {
-  const user = parseUserFromInitData(initData, getBotToken());
+  const user = parseUserFromInitDataAny(initData);
   if (!user?.id) return { allowed: false, userId: '' };
   const userId = String(user.id);
   return { allowed: isTelegramAdmin(userId), userId };
@@ -95,9 +114,11 @@ async function handleMiniAppAdminAccess(req, res, url, sendJson, readBody) {
 
 module.exports = {
   getBotToken,
+  getWebAppBotTokens,
   getAdminTelegramIds,
   isTelegramAdmin,
   parseUserFromInitData,
+  parseUserFromInitDataAny,
   resolveAdminFromInitData,
   handleMiniAppAdminAccess,
 };

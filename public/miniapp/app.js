@@ -32,20 +32,30 @@
   }
 
   async function syncLangFromServer(initData, lang) {
-    if (!initData) return;
+    if (!initData) return null;
     try {
       const res = await fetch(apiPath('/api/miniapp/touch'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ initData, source: lang ? 'lang' : 'dex', lang: lang || undefined }),
       });
-      if (!res.ok) return;
+      if (!res.ok) return null;
       const data = await res.json();
       if (data?.lang && globalThis.MiniAppI18n?.setLang) {
-        globalThis.MiniAppI18n.setLang(data.lang, { skipServerSync: true });
+        const hasLocal = (() => {
+          try {
+            return !!localStorage.getItem('sniperMiniAppLang');
+          } catch {
+            return false;
+          }
+        })();
+        if (lang || !hasLocal) {
+          globalThis.MiniAppI18n.setLang(data.lang, { skipServerSync: true });
+        }
       }
+      return data;
     } catch {
-      /* yoksay */
+      return null;
     }
   }
 

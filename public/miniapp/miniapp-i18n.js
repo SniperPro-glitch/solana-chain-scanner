@@ -217,6 +217,14 @@
     );
   }
 
+  function hasStoredLang() {
+    try {
+      return !!localStorage.getItem(LANG_KEY);
+    } catch {
+      return false;
+    }
+  }
+
   function init() {
     currentLang = loadStoredLang();
     document.documentElement.lang = currentLang;
@@ -225,10 +233,14 @@
     const tg = root.Telegram?.WebApp;
     const initData = String(tg?.initData || '').trim();
     if (initData && typeof root.SniperMiniAppSyncLang === 'function') {
-      void root.SniperMiniAppSyncLang(initData).then(() => {
-        applyAll();
-        emitLangChange();
-      });
+      if (hasStoredLang()) {
+        void root.SniperMiniAppSyncLang(initData, currentLang);
+      } else {
+        void root.SniperMiniAppSyncLang(initData).then(() => {
+          applyAll();
+          emitLangChange();
+        });
+      }
     }
   }
 

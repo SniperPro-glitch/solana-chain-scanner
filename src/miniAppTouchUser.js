@@ -1,6 +1,6 @@
 /** Mini App açılışında initData ile abone kaydı + dil senkronu (bot /start ile aynı). */
 
-const { parseUserFromInitData, getBotToken } = require('./miniAppAdminAccess');
+const { parseUserFromInitDataAny } = require('./miniAppAdminAccess');
 const botSubscribers = require('./botSubscribers');
 const users = require('./users');
 const { normalizeLang } = require('./i18n');
@@ -27,7 +27,7 @@ async function handleMiniAppTouchUser(req, res, url, sendJson, readBody) {
     const raw = readBody ? await readBody(req) : Buffer.alloc(0);
     const payload = JSON.parse(raw.toString('utf8') || '{}');
     const initData = String(payload.initData || '').trim();
-    const user = parseUserFromInitData(initData, getBotToken());
+    const user = parseUserFromInitDataAny(initData);
     if (!user?.id) {
       sendJson(res, 401, { ok: false, error: 'invalid_init_data' });
       return true;
