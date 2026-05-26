@@ -10,28 +10,26 @@ const OFFICIAL_CHANNEL_URL =
   String(process.env.DEX_OFFICIAL_CHANNEL_URL || process.env.OFFICIAL_CHANNEL_URL || '').trim()
   || `https://t.me/${SCAN_BOT_USERNAME}`;
 
-/** BotFather Description Picture + /start foto: 640×360 (16:9). Oval köşe: scripts/prepare-welcome-image.js */
+/** BotFather Description: 640×360. /start: mümkünse 1280×720 PNG (Telegram tam genişlik gösterir). */
 const WELCOME_PHOTO_CANDIDATES = [
   'dex-welcome-start@2x.png',
   'dex-welcome-start.png',
   'dex-welcome-start.jpg',
-  'dexscanner-description-640x360.jpg',
-  'dexscanner-live-ui.png',
-  'dexscanner-description-banner.png',
 ].map((name) => path.join(__dirname, '..', 'public', 'bot-assets', name));
-
-function escapeHtml(s) {
-  return String(s ?? '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;');
-}
 
 function welcomePhotoPath() {
   for (const p of WELCOME_PHOTO_CANDIDATES) {
     if (fs.existsSync(p)) return p;
   }
   return null;
+}
+
+function photoFileOptions(photoPath) {
+  const base = path.basename(photoPath);
+  return {
+    filename: base,
+    contentType: base.endsWith('.png') ? 'image/png' : 'image/jpeg',
+  };
 }
 
 function dexWelcomeCaption(lang) {
@@ -42,7 +40,6 @@ function dexLangPickCaption(lang) {
   return t('welcome.dexLangPickHtml', lang);
 }
 
-/** DEX DM: tek iş — Mini App aç (liste/ayarlar uygulama içinde). */
 function buildDexStartKeyboard(lang) {
   const launch = buildSniperDexWebAppButton(lang);
   if (!launch) return { inline_keyboard: [] };
@@ -73,12 +70,18 @@ function dexWelcomeSendOptions(lang) {
   };
 }
 
+/**
+ * Telegram caption+photo tek mesajda görseli küçük gösterir.
+ * Banner ayrı (tam genişlik), metin+düğme altta.
+ */
 async function sendDexWelcomeMessage(bot, chatId, lang) {
   const caption = dexWelcomeCaption(lang);
   const opts = dexWelcomeSendOptions(lang);
   const photo = welcomePhotoPath();
   if (photo) {
-    return bot.sendPhoto(chatId, photo, { caption, ...opts });
+    const fo = photoFileOptions(photo);
+    await bot.sendPhoto(chatId, photo, {}, fo);
+    return bot.sendMessage(chatId, caption, opts);
   }
   return bot.sendMessage(chatId, caption, opts);
 }
@@ -92,7 +95,9 @@ async function sendDexLangPickMessage(bot, chatId, lang = 'en') {
   };
   const photo = welcomePhotoPath();
   if (photo) {
-    return bot.sendPhoto(chatId, photo, { caption, ...opts });
+    const fo = photoFileOptions(photo);
+    await bot.sendPhoto(chatId, photo, {}, fo);
+    return bot.sendMessage(chatId, caption, opts);
   }
   return bot.sendMessage(chatId, caption, opts);
 }
@@ -101,22 +106,17 @@ async function editDexWelcomeMessage(bot, chatId, messageId, lang) {
   const caption = `${t('welcome.langSetHtml', lang)}\n\n${dexWelcomeCaption(lang)}`;
   const opts = dexWelcomeSendOptions(lang);
   const edited = await bot
-    .editMessageCaption(caption, {
+    .editMessageText(caption, {
       chat_id: chatId,
       message_id: messageId,
       ...opts,
     })
     .catch(() => null);
   if (edited) return edited;
-  return bot.editMessageText(caption, {
-    chat_id: chatId,
-    message_id: messageId,
-    ...opts,
-  }).catch(() => null);
+  return sendDexWelcomeMessage(bot, chatId, lang);
 }
 
 module.exports = {
-  escapeHtml,
   OFFICIAL_CHANNEL_URL,
   SCAN_BOT_USERNAME,
   dexWelcomeCaption,

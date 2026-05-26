@@ -773,18 +773,9 @@ const STRINGS = {
     ru: '<b>🎯 Sniper DEX</b>\nВыберите язык и откройте приложение.',
   },
   'welcome.dexStartHtml': {
-    en:
-      '<b>🎯 Sniper DEX</b>\n\n'
-      + 'Trending, charts, risk &amp; alerts — everything is inside the app.\n\n'
-      + 'Tap <b>Launch Mini App</b> below (or the menu button).',
-    tr:
-      '<b>🎯 Sniper DEX</b>\n\n'
-      + 'Trending, grafik, risk ve alarmlar uygulamanın içinde.\n\n'
-      + 'Aşağıdan <b>Uygulamayı Aç</b> veya menü düğmesine bas.',
-    ru:
-      '<b>🎯 Sniper DEX</b>\n\n'
-      + 'Тренды, графики, риск и алерты — всё в приложении.\n\n'
-      + 'Нажмите <b>Открыть Mini App</b> ниже (или кнопку меню).',
+    en: '<b>🎯 Sniper DEX</b> — tap <b>Launch Mini App</b> below.',
+    tr: '<b>🎯 Sniper DEX</b> — <b>Uygulamayı Aç</b> düğmesine bas.',
+    ru: '<b>🎯 Sniper DEX</b> — <b>Открыть Mini App</b> ниже.',
   },
   'welcome.langSetHtml': {
     en: '✅ Language: <b>English</b>',
