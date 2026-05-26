@@ -82,7 +82,10 @@ let cache = load();
 
 function hasChosenLang(userId) {
   const u = cache.users[String(userId)];
-  return Boolean(u?.lang);
+  if (!u) return false;
+  if (u.langChosen === true) return true;
+  if (u.langChosen === false) return false;
+  return Boolean(u.lang);
 }
 
 /** Ayarlardan seçilmediyse İngilizce; seçildiyse kayıtlı dil. */
@@ -91,9 +94,16 @@ function getLang(userId) {
   return u?.lang || 'en';
 }
 
-function setLang(userId, lang) {
+function setLang(userId, lang, opts = {}) {
+  const { normalizeLang } = require('./i18n');
   const id = String(userId);
-  cache.users[id] = { ...(cache.users[id] || {}), lang };
+  const prev = cache.users[id] || {};
+  const langChosen = opts.langChosen !== undefined ? !!opts.langChosen : true;
+  cache.users[id] = {
+    ...prev,
+    lang: normalizeLang(lang),
+    langChosen: langChosen || prev.langChosen === true,
+  };
   save(cache);
 }
 

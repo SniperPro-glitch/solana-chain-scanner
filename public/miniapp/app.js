@@ -31,20 +31,32 @@
     if (Number.isFinite(sec) && sec >= 30 && sec <= 120) feedRefreshSec = sec;
   }
 
-  async function registerBotSubscriber() {
-    if (!tg || isWebBrowser) return;
-    const initData = String(tg.initData || '').trim();
+  async function syncLangFromServer(initData, lang) {
     if (!initData) return;
     try {
-      await fetch(apiPath('/api/miniapp/touch'), {
+      const res = await fetch(apiPath('/api/miniapp/touch'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ initData, source: 'dex' }),
+        body: JSON.stringify({ initData, source: lang ? 'lang' : 'dex', lang: lang || undefined }),
       });
+      if (!res.ok) return;
+      const data = await res.json();
+      if (data?.lang && globalThis.MiniAppI18n?.setLang) {
+        globalThis.MiniAppI18n.setLang(data.lang, { skipServerSync: true });
+      }
     } catch {
       /* yoksay */
     }
   }
+
+  async function registerBotSubscriber() {
+    if (!tg || isWebBrowser) return;
+    const initData = String(tg.initData || '').trim();
+    if (!initData) return;
+    await syncLangFromServer(initData);
+  }
+
+  globalThis.SniperMiniAppSyncLang = syncLangFromServer;
 
   function loadApiConfigOnce() {
     void loadApiConfig();

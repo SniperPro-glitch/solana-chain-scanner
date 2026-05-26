@@ -177,7 +177,7 @@
     document.dispatchEvent(new CustomEvent('miniapp:langchange', { detail: { lang: getLang() } }));
   }
 
-  function setLang(lang) {
+  function setLang(lang, opts = {}) {
     currentLang = normalizeLang(lang);
     try {
       localStorage.setItem(LANG_KEY, currentLang);
@@ -187,6 +187,13 @@
     document.documentElement.lang = currentLang;
     applyAll();
     emitLangChange();
+    if (!opts.skipServerSync) {
+      const tg = root.Telegram?.WebApp;
+      const initData = String(tg?.initData || '').trim();
+      if (initData && typeof root.SniperMiniAppSyncLang === 'function') {
+        void root.SniperMiniAppSyncLang(initData, currentLang);
+      }
+    }
     return currentLang;
   }
 
@@ -215,6 +222,14 @@
     document.documentElement.lang = currentLang;
     bindLangClicks();
     applyAll();
+    const tg = root.Telegram?.WebApp;
+    const initData = String(tg?.initData || '').trim();
+    if (initData && typeof root.SniperMiniAppSyncLang === 'function') {
+      void root.SniperMiniAppSyncLang(initData).then(() => {
+        applyAll();
+        emitLangChange();
+      });
+    }
   }
 
   window.MiniAppI18n = {
