@@ -63,7 +63,18 @@
     if (!tg || isWebBrowser) return;
     const initData = String(tg.initData || '').trim();
     if (!initData) return;
-    await syncLangFromServer(initData);
+    let hasLocal = false;
+    try {
+      hasLocal = !!localStorage.getItem('sniperMiniAppLang');
+    } catch {
+      /* yoksay */
+    }
+    const localLang = globalThis.MiniAppI18n?.getLang?.();
+    if (hasLocal && localLang) {
+      await syncLangFromServer(initData, localLang);
+    } else {
+      await syncLangFromServer(initData);
+    }
   }
 
   globalThis.SniperMiniAppSyncLang = syncLangFromServer;
