@@ -36,14 +36,12 @@ function TgApi {
   return Invoke-RestMethod -Uri $uri -Method Get
 }
 
-# Token kaynağı
-if (-not $Token) { $Token = Read-DotEnvToken (Join-Path $root ".env") }
-if (-not $Token) {
-  $localFile = Join-Path $PSScriptRoot "dex-token.txt"
-  if (Test-Path $localFile) {
-    $Token = (Get-Content $localFile -Raw).Trim()
-  }
+# Token kaynağı (önce dex-token.txt — .env scan bot olabilir)
+$localFile = Join-Path $PSScriptRoot "dex-token.txt"
+if (-not $Token -and (Test-Path $localFile)) {
+  $Token = (Get-Content $localFile -Raw).Trim()
 }
+if (-not $Token) { $Token = Read-DotEnvToken (Join-Path $root ".env") }
 if (-not $Token) {
   Write-Host ""
   Write-Host "BOT_TOKEN yok." -ForegroundColor Red
@@ -54,8 +52,8 @@ if (-not $Token) {
   exit 1
 }
 
-$Token = $Token.Trim().Trim('"').Trim("'")
-if ($Token -notmatch '^\d+:[A-Za-z0-9_-]+$') {
+$Token = ($Token -replace '[\s\r\n]+', '').Trim('"').Trim("'")
+if ($Token -notmatch '^\d+:.+$') {
   Write-Host "Token formati hatali (ornek: 123456789:AAH...)" -ForegroundColor Red
   exit 1
 }
