@@ -861,7 +861,12 @@ async function canManageChat(msg) {
 }
 
 const { buildSniperDexWebAppButton, sniperDexMenuButton } = require('./dexAppButton');
-const { isDexUserFacingBot, getScanBotMention } = require('./botMode');
+const {
+  isDexUserFacingBot,
+  getScanBotMention,
+  getScanBotUsername,
+  DEFAULT_SCAN_BOT_USERNAME,
+} = require('./botMode');
 const { sendDexWelcomeMessage, buildDexStartKeyboard } = require('./dexWelcome');
 const {
   sendChannelWelcome,
@@ -1934,6 +1939,16 @@ async function main() {
   process.env.BOT_USERNAME = me.username ? `@${me.username}` : '';
   const dexFace = isDexUserFacingBot();
   console.log(`✅ Telegram bot: @${me.username} (id=${me.id}) — ${dexFace ? 'DEX kullanıcı' : 'Kanal tarama'}`);
+  if (!dexFace) {
+    const expect = getScanBotUsername();
+    if (String(me.username || '').toLowerCase() === expect) {
+      console.log(`   Kanal bot @${expect} — TON · BSC · Solana (kanal başına tek ağ)`);
+    } else {
+      console.warn(
+        `   ⚠️ Token @${me.username} çalışıyor; beklenen @${expect} — BotFather username veya SCAN_BOT_USERNAME kontrol et`,
+      );
+    }
+  }
 
   await startBotPolling();
   console.log(
