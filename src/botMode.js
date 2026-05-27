@@ -9,7 +9,26 @@ function parseUsernames(envVal, defaults) {
 }
 
 const DEX_USERNAMES = parseUsernames(process.env.DEX_BOT_USERNAME, ['dexscannerappbot']);
-const SCAN_USERNAMES = parseUsernames(process.env.SCAN_BOT_USERNAME, ['solanachainscanbot', 'sniperscanbot']);
+/** Varsayılan kanal botu @ — çoklu ağ (TON/BSC/Solana); BotFather’da değiştirince SCAN_BOT_USERNAME güncelle */
+const DEFAULT_SCAN_BOT_USERNAME = 'sniperscanbot';
+
+const SCAN_USERNAMES = parseUsernames(process.env.SCAN_BOT_USERNAME, [
+  DEFAULT_SCAN_BOT_USERNAME,
+  'solanachainscanbot', // eski kullanıcı adı (geçiş)
+  'sniperscanbot',
+]);
+
+function getScanBotUsername() {
+  const fromEnv = String(process.env.SCAN_BOT_USERNAME || '').replace(/^@/, '').trim();
+  if (fromEnv) return fromEnv.toLowerCase();
+  const live = String(process.env.BOT_USERNAME || '').replace(/^@/, '').trim().toLowerCase();
+  if (live && SCAN_USERNAMES.has(live)) return live;
+  return DEFAULT_SCAN_BOT_USERNAME;
+}
+
+function getScanBotMention() {
+  return `@${getScanBotUsername()}`;
+}
 
 function telegramUsername() {
   return String(process.env.BOT_USERNAME || '').replace(/^@/, '').toLowerCase();
@@ -33,4 +52,11 @@ function isDexUserFacingBot() {
   return miniOnly && hasToken;
 }
 
-module.exports = { isDexUserFacingBot, DEX_USERNAMES, SCAN_USERNAMES };
+module.exports = {
+  isDexUserFacingBot,
+  DEX_USERNAMES,
+  SCAN_USERNAMES,
+  DEFAULT_SCAN_BOT_USERNAME,
+  getScanBotUsername,
+  getScanBotMention,
+};

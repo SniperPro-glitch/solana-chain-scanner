@@ -8,7 +8,8 @@ const { buildSniperDexWebAppButton } = require('./dexAppButton');
 /** Bot DM /start metinleri — yalnızca EN; dil Mini App içinde. */
 const DEX_BOT_UI_LANG = 'en';
 
-const SCAN_BOT_USERNAME = String(process.env.SCAN_BOT_USERNAME || 'solanachainscanbot').replace(/^@/, '');
+const { getScanBotUsername } = require('./botMode');
+const SCAN_BOT_USERNAME = getScanBotUsername();
 const OFFICIAL_CHANNEL_URL =
   String(process.env.DEX_OFFICIAL_CHANNEL_URL || process.env.OFFICIAL_CHANNEL_URL || '').trim()
   || `https://t.me/${SCAN_BOT_USERNAME}`;

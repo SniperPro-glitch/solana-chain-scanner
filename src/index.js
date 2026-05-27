@@ -861,7 +861,7 @@ async function canManageChat(msg) {
 }
 
 const { buildSniperDexWebAppButton, sniperDexMenuButton } = require('./dexAppButton');
-const { isDexUserFacingBot } = require('./botMode');
+const { isDexUserFacingBot, getScanBotMention } = require('./botMode');
 const { sendDexWelcomeMessage, buildDexStartKeyboard } = require('./dexWelcome');
 const {
   sendChannelWelcome,
@@ -1243,7 +1243,7 @@ async function handleSettings(msg) {
   const uid = actorUserId(msg);
 
   if (isDexUserFacingBot() && msg.chat.type === 'private') {
-    return bot.sendMessage(msg.chat.id, t('dex.appOnlyHint', lang), {
+    return bot.sendMessage(msg.chat.id, t('dex.appOnlyHint', lang, { scanBot: getScanBotMention() }), {
       parse_mode: 'Markdown',
       reply_markup: buildDexStartKeyboard(),
     });

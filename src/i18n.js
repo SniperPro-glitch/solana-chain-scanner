@@ -836,31 +836,31 @@ const STRINGS = {
   },
   'welcome.start': {
     en:
-      '👋 *Sniper Scan Bot*\n\n'
-      + 'Scans *TON*, *BSC* and *◎ Solana* — shares tokens that pass your filters to channels where I am admin.\n\n'
+      '👋 *Dex Scanner — Channel Bot*\n\n'
+      + 'Multi-chain scanner: *TON*, *BSC* & *◎ Solana* — posts tokens that pass your filters to channels where I am admin.\n\n'
       + '*Setup*\n'
       + '1. Add the bot to your channel as *admin*\n'
       + '2. On the channel, tap *Open Settings (DM)*\n'
       + '3. Choose *one network* per channel + filters\n\n'
-      + '*Mini App:* *🎯 Sniper DEX* below (official Solana feed & charts)\n\n'
+      + '*Mini App:* *🎯 Sniper DEX* below (charts & feed)\n\n'
       + '*Commands:* /settings /dex /welcome /post /stats /ping',
     tr:
-      '👋 *Sniper Scan Bot*\n\n'
-      + '*TON*, *BSC* ve *◎ Solana* tarar — filtrene uyan tokenleri admin olduğum kanallara paylaşır.\n\n'
+      '👋 *Dex Scanner — Kanal Botu*\n\n'
+      + 'Çoklu ağ: *TON*, *BSC* ve *◎ Solana* — filtrene uyan tokenleri admin olduğum kanallara paylaşır.\n\n'
       + '*Kurulum*\n'
       + '1. Botu kanala *admin* ekle\n'
       + '2. Kanaldaki *Ayarları aç (DM)* düğmesine bas\n'
       + '3. Kanal başına *tek ağ* + filtreleri ayarla\n\n'
-      + '*Mini App:* Aşağıda *🎯 Sniper DEX* (resmi Solana listesi & grafik)\n\n'
+      + '*Mini App:* Aşağıda *🎯 Sniper DEX* (grafik & liste)\n\n'
       + '*Komutlar:* /settings /dex /welcome /post /stats /ping',
     ru:
-      '👋 *Sniper Scan Bot*\n\n'
-      + 'Сканирует *TON*, *BSC* и *◎ Solana* — публикует токены по фильтрам в каналах, где я админ.\n\n'
+      '👋 *Dex Scanner — бот канала*\n\n'
+      + 'Мульти-сеть: *TON*, *BSC* и *◎ Solana* — публикует токены по фильтрам в каналах, где я админ.\n\n'
       + '*Настройка*\n'
       + '1. Добавьте бота в канал как *админа*\n'
       + '2. В канале: *Открыть настройки (ЛС)*\n'
       + '3. Одна сеть на канал + фильтры\n\n'
-      + '*Mini App:* *🎯 Sniper DEX* ниже (лента Solana)\n\n'
+      + '*Mini App:* *🎯 Sniper DEX* ниже (графики и лента)\n\n'
       + '*Команды:* /settings /dex /welcome /post /stats /ping',
   },
   'welcome.channelCmd': {
@@ -879,14 +879,14 @@ const STRINGS = {
     ru: '🎯 Нажмите *Открыть Mini App*.',
   },
   'dex.appOnlyHint': {
-    en: 'ℹ️ Lists, filters & alerts are in the *Mini App* — tap the button below.\n\n_Channel scanner (separate bot):_ @solanachainscanbot',
-    tr: 'ℹ️ Liste, filtre ve alarmlar *Mini App* içinde — aşağıdaki düğmeye bas.\n\n_Kanal tarayıcı (ayrı bot):_ @solanachainscanbot',
-    ru: 'ℹ️ Списки и алерты в *Mini App* — кнопка ниже.\n\n_Сканер канала:_ @solanachainscanbot',
+    en: 'ℹ️ Lists, filters & alerts are in the *Mini App* — tap the button below.\n\n_Channel scanner (TON · BSC · Solana):_ {scanBot}',
+    tr: 'ℹ️ Liste, filtre ve alarmlar *Mini App* içinde — aşağıdaki düğmeye bas.\n\n_Kanal tarayıcı (TON · BSC · Solana):_ {scanBot}',
+    ru: 'ℹ️ Списки и алерты в *Mini App* — кнопка ниже.\n\n_Сканер канала (TON · BSC · Solana):_ {scanBot}',
   },
   'dex.channelBotHint': {
-    en: 'ℹ️ Channel filters & auto-posts: @solanachainscanbot\n\nFor the DEX feed, open the Mini App below.',
-    tr: 'ℹ️ Kanal filtresi & otomatik paylaşım: @solanachainscanbot\n\nDEX listesi için Mini App\'i aç.',
-    ru: 'ℹ️ Фильтры канала: @solanachainscanbot\n\nЛента DEX — Mini App ниже.',
+    en: 'ℹ️ Channel filters & auto-posts: {scanBot}\n\nFor the DEX feed, open the Mini App below.',
+    tr: 'ℹ️ Kanal filtresi & otomatik paylaşım: {scanBot}\n\nDEX listesi için Mini App\'i aç.',
+    ru: 'ℹ️ Фильтры канала: {scanBot}\n\nЛента DEX — Mini App ниже.',
   },
 
   // ─── Komutlar ───
